@@ -1,0 +1,53 @@
+//============================================================================
+//  Name:                                                                     
+//    std_loadbuild.cmm 
+//
+//  Description:                                                              
+//    Top level build loading script
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/19/2012 AJCheriyan    Created for B-family 
+
+// ARG0 - Load option - Supported : ERASEONLY, LOADCOMMON, LOADFULL
+ENTRY &ARG0
+
+LOCAL &LOAD_OPTION
+
+MAIN:
+	&LOAD_OPTION="&ARG0"
+	// We have checked for all the intercom sessions at this point and we don't need any error
+	// checks
+	// Reset the chip
+	do std_reset 
+
+	// Set the target up to load the build
+	do std_setuptarget
+
+	// Call the HLOS specific load script
+	&HLOS_LOADSCRIPT="std_loadbuild_"+STR.LWR("&HLOS")
+	do std_intercom_do &APPS0_PORT &HLOS_LOADSCRIPT &LOAD_OPTION
+
+	// Now reset the chip to complete whatever loading remains
+	do std_reset
+
+	// Let the system run and boot
+	do std_utils ATTACHPROC
+	
+	GOTO EXIT
+
+EXIT:
+	ENDDO
+		
+	
+
+

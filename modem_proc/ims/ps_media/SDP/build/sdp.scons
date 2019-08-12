@@ -1,0 +1,80 @@
+#===============================================================================
+#
+# TMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/ps_media/SDP/build/sdp.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('IMS_PS_MEDIA_SDP_NC', [ 
+"${INC_ROOT}/modem/ims/ps_media/SDP/inc",
+"${INC_ROOT}/modem/ims/ps_media/common/inc",
+"${INC_ROOT}/modem/IPStream/Common/Network/inc",
+])
+
+IMS_API = ['IMS_DPL'
+           ]
+
+env.RequireProtectedApi(IMS_API)
+
+IMS_API_PUB = [
+	'IMS_PS_MEDIA_RTP_CORE',
+  'IMS_PS_MEDIA_COMMON_INC',
+  'IMS_DPL_MEDIA',
+]
+
+env.RequireProtectedApi(IMS_API_PUB)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+QVP_SDP_LIB_C_SOURCES=[
+	'${BUILDPATH}/qvp_app_oa_api.c',
+	'${BUILDPATH}/qvp_app_oa_media_common.c',
+	'${BUILDPATH}/qvp_app_oa_media_encoder.c',
+	'${BUILDPATH}/qvp_app_oa_media_parser.c',
+	'${BUILDPATH}/qvp_app_oa_validator.c',
+	'${BUILDPATH}/qvp_sdp_common.c',
+	'${BUILDPATH}/qvp_sdp_encoder_class.c',
+	'${BUILDPATH}/qvp_sdp_info.c',
+	'${BUILDPATH}/qvp_sdp_parser_class.c',
+	'${BUILDPATH}/qvp_sdp_media_info.c',
+	'${BUILDPATH}/qvp_sdp_parser_util.c',
+	'${BUILDPATH}/qvp_sdp_session_info.c',
+]
+
+
+#-------------------------------------------------------------------------------
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+#-------------------------------------------------------------------------------
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/qvp_sdp', [QVP_SDP_LIB_C_SOURCES])

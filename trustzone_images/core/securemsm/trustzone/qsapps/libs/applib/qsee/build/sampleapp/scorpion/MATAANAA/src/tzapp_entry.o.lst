@@ -1,0 +1,99 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000                 EXPORT           __main
+    2 00000000                 EXPORT           _main
+    3 00000000                 EXPORT           TZAPPENTRY
+    4 00000000                 EXPORT           read_app_rw_base
+    5 00000000                 EXPORT           set_rw_base
+    6 00000000                 IMPORT           app_export_init_info_to_qsee
+    7 00000000                 IMPORT           tzlib_app_entry
+    8 00000000                 IMPORT           get_stack_base
+    9 00000000                 IMPORT           get_stack_size
+   10 00000000                 IMPORT           get_app_entry
+   11 00000000                 IMPORT           get_app_name
+   12 00000000                 PRESERVE8
+   13 00000000                 AREA             TZAPPENTRYCODE, CODE, READONLY
+   14 00000000                 CODE32
+   15 00000000         __main
+   16 00000000         _main
+   17 00000000                 ENTRY
+   18 00000000         TZAPPENTRY
+   19 00000000 E3500002        cmp              r0, #02
+   20 00000004 1A000002        bne              version_check_failed
+   21 00000008 E3510001        cmp              r1, #01
+   22 0000000C 1A000000        bne              version_check_failed
+   23 00000010 EA000001        b                version_check_passed
+   24 00000014         version_check_failed
+   25 00000014 E3A000FF        mov              r0, #0xFF
+   26 00000018 FAFFFFFE        blx              app_export_init_info_to_qsee
+   27 0000001C         version_check_passed
+   28 0000001C FAFFFFFE        blx              get_stack_size
+   29 00000020 E1A02000        mov              r2, r0
+   30 00000024 FAFFFFFE        blx              get_stack_base
+   31 00000028 E1A03000        mov              r3, r0
+   32 0000002C FAFFFFFE        blx              get_app_name
+   33 00000030 E1A04000        mov              r4, r0
+   34 00000034 FAFFFFFE        blx              get_app_entry
+   35 00000038 E1A01000        mov              r1, r0
+   36 0000003C E3A00000        mov              r0, #0
+   37 00000040 FAFFFFFE        blx              app_export_init_info_to_qsee
+   38 00000044         read_app_rw_base
+   39 00000044 E92D4010        push             {r4,lr}
+   40 00000048 E1A00009        mov              r0, r9      ; Return RW base
+   41 0000004C E8BD8010        pop              {r4,pc}     ; Return.
+   42 00000050         set_rw_base
+   43 00000050 E92D4010        push             {r4,lr}
+   44 00000054 E1A09000        mov              r9, r0      ; set RW base
+   45 00000058 E8BD8010        pop              {r4,pc}     ; Return.
+   46 0000005C                 END
+Command Line: --debug --dwarf2 --cpu=QSP.no_neon.no_vfp --apcs=/noswst/interwor
+k//ropi/rwpi --no_unaligned_access -o/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c
+10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/tru
+stzone/qsapps/libs/applib/qsee/build/sampleapp/scorpion/MATAANAA/src/tzapp_entr
+y.o -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161
+130_222454/b/trustzone_images/core/securemsm/trustzone/qsapps/libs/applib/qsee/
+build -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_201
+61130_222454/b/trustzone_images/build/cust -I. -I/local/mnt/workspace/CRMBuilds
+/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/s
+ecuremsm/trustzone/qsee/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-
+00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/services -I/
+local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222
+454/b/trustzone_images/core/api/rapi/services/inc -I/local/mnt/workspace/CRMBui
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+lds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/cor
+e/api/dal -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2
+_20161130_222454/b/trustzone_images/core/services/utils/src -I/local/mnt/worksp
+ace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_
+images/core/dal/framework/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00
+004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/dal/framework/sys/
+inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161
+130_222454/b/trustzone_images/core/dal/config -I/local/mnt/workspace/CRMBuilds/
+TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/ap
+i/securemsm/trustzone/qsee -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004
+-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/services -I/local
+/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b
+/trustzone_images/core/securemsm/trustzone/qsee/include -I/local/mnt/workspace/
+CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_imag
+es/core/securemsm/trustzone/qsapps/libs/applib/common/src -I/local/mnt/workspac
+e/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_im
+ages/core/api/kernel/libstd -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-0000
+4-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/securemsm/trustz
+one/qsee -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_
+20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsapps/libs/service
+s/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_201
+61130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/services/keyprov/
+macchiato/shared/inc --list=/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-
+M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qs
+apps/libs/applib/qsee/build/sampleapp/scorpion/MATAANAA/src/tzapp_entry.o.lst -
+-sitelicense /local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-
+2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsapps/libs/appli
+b/qsee/build/sampleapp/scorpion/MATAANAA/src/tzapp_entry.o.i

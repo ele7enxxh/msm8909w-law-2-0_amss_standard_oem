@@ -1,0 +1,108 @@
+#===============================================================================
+#
+# secmath
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 20011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/securemsm/secdbgplcy/build/SConscript#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/22/11   vg     Removed publish restricted API as this is getting done in 
+#                   paths under core/securemsm.
+# 06/16/11   vg     Added AUTH_BOOT_DRIVER to link to boot loaders for future 
+#                   targets
+# 06/16/11   vg     Fixed for pack and strip build.
+# 05/12/11   vg     initial version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/inc/chipset/${MSM_ID}")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/inc")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secpil/inc")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secpil/oem")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/src}")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secdbgplcy/inc/")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/uie/inc/")
+
+INC_PATH = [
+      "${BUILD_ROOT}/core/securemsm/secboot/src/",
+	  "${COREBSP_ROOT}/securemsm/secpil/oem",
+	  "${COREBSP_ROOT}/securemsm/secdbgplcy/inc/",
+	  "${COREBSP_ROOT}/securemsm/secpil/inc",
+]
+env.Append(CPPPATH = INC_PATH)
+
+if env['CHIPSET'] == "msm8937":
+    env.Append(CPPDEFINES = ['FEATURE_DEBUG_POLICY'])
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',
+   'BOOT',
+]
+
+env.RequirePublicApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/secdbgplcy"
+
+#-------------------------------------------------------------------------------
+# Let Scons build the object files in $(BUILDPATH} and don't copy over files
+#-------------------------------------------------------------------------------
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(['SECUREMSM'])
+env.RequireRestrictedApi(['SECUREMSM', 'BOOT'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SECDBGPLCY_LIB_SOURCES = [
+        '${BUILDPATH}/src/debug_policy.c',
+]
+
+SECDBGPLCY_OEM_SOURCES = [
+        '${BUILDPATH}/oem/oem_debug_policy.c',
+]
+
+env.Append(CPPDEFINES = ["FEATURE_BOOT_ALLOW_UNSIGNED_IMAGE"])
+
+CLEAN_PACK_SOURCES = [
+		'${BUILDPATH}/src/debug_policy.c',
+]							
+
+PACK_SOURCE_FILES = list(set(CLEAN_PACK_SOURCES))
+
+#-------------------------------------------------------------------------------
+# Add Libraries to MBA Image
+#-------------------------------------------------------------------------------
+env.AddBinaryObject(['MBA_CORE_SW'], SECDBGPLCY_LIB_SOURCES)
+env.AddObject(['MBA_CORE_SW'], SECDBGPLCY_OEM_SOURCES)
+env.CleanPack(['MBA_CORE_SW'], PACK_SOURCE_FILES)
+

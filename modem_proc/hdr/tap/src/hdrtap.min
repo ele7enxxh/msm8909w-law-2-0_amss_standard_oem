@@ -1,0 +1,66 @@
+#-------------------------------------------------------------------------------
+# HDR Test Application Object files
+#-------------------------------------------------------------------------------
+
+HDRTAP_SOURCES=\
+	hdris890a.c     \
+	hdrfetap.c      \
+	hdrretap.c      \
+
+#-------------------------------------------------------------------------------
+# HDR Test Application include file(s) path
+#-------------------------------------------------------------------------------
+
+HDR_CINCPATH=\
+        $(COMMON)       \
+        $(ADC)          \
+        $(ADSP)         \
+        $(AVS)          \
+        $(CM)           \
+        $(BIO)          \
+        $(BOOT)         \
+        $(CLK)          \
+        $(CP)           \
+        $(DATA)         \
+        $(DEC)          \
+        $(DFM)          \
+        $(DIAG)         \
+        $(ENC)          \
+        $(FTM)          \
+        $(GPS)          \
+        $(HS)           \
+        $(HW)           \
+        $(MUX)          \
+        $(MDSP)         \
+        $(QDSP)         \
+        $(NV)           \
+        $(PM)           \
+        $(PLT)          \
+        $(RF)           \
+        $(SBI)          \
+        $(SIO)          \
+        $(SRCH)         \
+        $(TLMM)         \
+        $(TRAMP)        \
+        $(TRERM)        \
+        $(UASMS)        \
+        $(UI)           \
+        $(VBATT)        \
+        $(USB)
+
+#-----------------------------------------------------------------------------
+# HDR Test Application object file(s)
+#-----------------------------------------------------------------------------
+
+HDRTAP_OBJS :=  $(addprefix $(TARGETDIR)/, $(HDRTAP_SOURCES:%.c=%.o))
+$(HDRTAP_OBJS): INCLUDES = $(addprefix -I, $(HDR_CINCPATH))
+
+HDRTAP_DEPS :=  $(addprefix $(TARGETDIR)/, $(HDRTAP_SOURCES:%.c=%.dep) )
+$(HDRTAP_DEPS): INCLUDES = $(addprefix -I, $(HDR_CINCPATH))
+
+#-----------------------------------------------------------------------------
+# HDR Test Application source files search path
+#-----------------------------------------------------------------------------
+
+vpath %.c $(HDRTAP)/src
+

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2015, Qualcomm Technologies, Inc.
+  All Rights Reserved.
+  Confidential and Proprietary - Qualcomm Technologies, Inc.
+ -->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.qti.primarycardcontroller"
+    android:sharedUserId="android.uid.phone"
+    >
+
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <application android:process="com.android.phone">
+
+        <receiver android:name=".PrimaryCardReceiver"
+            android:label="PrimaryCardReceiver">
+         <intent-filter>
+           <action android:name="android.intent.action.BOOT_COMPLETED"/>
+         </intent-filter>
+       </receiver>
+
+        <activity android:name=".PrimarySubSetting"
+                android:label="@string/lte_recognition_title"
+                android:icon="@drawable/ic_settings_sim_display"
+                android:configChanges="orientation|screenSize|keyboardHidden|mcc|mnc" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <action android:name="codeaurora.intent.action.ACTION_LTE_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

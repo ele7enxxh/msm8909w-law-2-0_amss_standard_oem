@@ -1,0 +1,17 @@
+/* List of RFC module using dynamic reclaiming feature. */
+  __dynrec_section_start__ = .;
+  __dynrec_rfc_section_start__ = .;
+  .dynamicReclaim :
+   {
+     __dynrec_rfc_section_start2__ = .;
+     INCLUDE dynrec.lst
+     /* Make the dynrec section 512KB and reduce the heap size by 512KB, this number is for JO1.0 only. */
+     /*. = ALIGN (0x080000);*/     
+     __dynrec_rfc_section_end2__ = .;
+     __dynrec_rfc_section_size2__ = __dynrec_rfc_section_end2__ - __dynrec_rfc_section_start2__;
+     __dynrec_rfc_section_end3__ = __dynrec_rfc_section_start2__ + 0x080000;
+     . = ((__dynrec_rfc_section_size2__ > 0x080000) ? (__dynrec_rfc_section_end2__) : (__dynrec_rfc_section_end3__));
+     . = ALIGN (4K);
+   } :dynamicReclaim
+  __dynrec_rfc_section_end__ = .;
+  __dynrec_section_end__ = .;

@@ -1,0 +1,115 @@
+
+#r===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011-2014 Qualcomm Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rftech_gnss/build/modem_rfa_gnss.api#1 $
+# $DateTime: 2016/12/13 07:59:49 $ 
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/16/14   dej     Clean-up SCons and add support for TABASCO
+# 05/14/13   ra      Added support for Bolt
+# 03/14/13   sar     Fixed compiler errors in APQ target. 
+# 09/27/12   bm      Added support for WFR2600 device and RFC
+# 09/24/12   kai     Added support for RF_WTR1605_NA717_QFE1510
+# 09/22/12   yzw     Add TP70 Proto2 RF card
+# 09/14/12   av      Added HCMMPA cards
+# 09/14/12    gh     Add support for tuner QMI intf
+# 09/13/12   sn      Added paths for rfc_wtr1605_eu_qfe1320 and rfc_wtr1605_vz_qfe1320
+# 09/10/12    bm     Added paths for WTR2605 device and RFC
+# 08/16/12   npi     Added RFCs for NA717_s, ATT_B14, VZW_B14, SPRINT_CSFB
+# 08/06/12   tws     Add SGLTE RFCs.
+# 08/01/12   av      Fix cal issues on 8960 4.0.0
+# 07/25/11   sar     Updated RFA Restricted api list.
+# 07/25/11   sar     Removed rfa all remaining violations. 
+# 07/21/11   jhe     Added td-scdma. 
+# 06/24/11   sar     Removed rfa violations. 
+# 04/23/11   prp     Created
+#===============================================================================
+
+Import('env')
+
+if env.PathExists('${INC_ROOT}/rfa'):
+    env.Replace(RF_ROOT = '${INC_ROOT}/rfa')
+else:
+    env.Replace(RF_ROOT = '${INC_ROOT}/modem/rfa')
+
+
+env.Replace(RFTECH_GNSS_ROOT = env.GetBuildPath(Dir('..')))
+
+env.PublishPublicApi('RFTECH_GNSS',['${RFTECH_GNSS_ROOT}/api'])
+
+if env.get('CHIPSET') not in ('mdm9x35'):
+   env.PublishRestrictedApi ('RFTECH_GNSS_VIOLATONS',[
+       '${INC_ROOT}/mcs/hwio/inc',
+       '${INC_ROOT}/mcs/hwio/inc/${CHIPSET}'
+       ])
+
+#Start public VIOLATIONS
+env.PublishRestrictedApi('RFTECH_GNSS_VIOLATONS',[
+        '${RF_ROOT}/rf/common/hwtc/inc',
+        '${RF_ROOT}/rf/common/rf/core/inc',
+        '${RF_ROOT}/rf/common/rf/nv/inc',
+        '${RF_ROOT}/rf/common/rf/rfc/inc',
+        '${RF_ROOT}/rf/hal/gnss/gen8a/inc',
+        '${RF_ROOT}/rfc/common/inc',
+        '${RF_ROOT}/rfc/vreg_mgr/common/inc',
+        '${RF_ROOT}/variation/inc',
+        '${RF_ROOT}/rf/rfd/common/inc',
+        '${RF_ROOT}/rf/rfd/nikel/inc',
+        '${RF_ROOT}/rf/rfd/common/inc',
+        '${RF_ROOT}/rf/rfd/nikel/inc',
+        '${RF_ROOT}/rf/hal/common/inc',
+        '${RF_ROOT}/device/rfdev_intf/inc',
+        '${INC_ROOT}/hdr/variation/inc',
+        '${INC_ROOT}/hdr/cust/inc',
+        '${INC_ROOT}/hdr/common/api',
+        '${INC_ROOT}/hdr/srch/api',
+        '${INC_ROOT}/hdr/mac/api',
+        '${INC_ROOT}/hdr/cp/api',
+        '${RF_ROOT}/variation/inc',
+        '${RF_ROOT}/rf/common/ftm/inc',
+        '${INC_ROOT}/geran/variation/inc',
+        '${INC_ROOT}/fw/api/common',
+        '${INC_ROOT}/geran/cust/inc',
+        '${INC_ROOT}/stubs/api',
+ 
+        ])
+
+#This violation needs to eventually be updated to include 
+#TRITON RFC Target folder when available
+if env.get('CHIPSET') in ('msm8x26','msm8x10','mdm9x35','msm8962','msm8926','msm8916'):
+  env.PublishRestrictedApi( 'RFTECH_GNSS_VIOLATONS', [
+        '${RF_ROOT}/rfc/dime/target/msm8974/inc',
+    ])
+else:
+  env.PublishRestrictedApi( 'RFTECH_GNSS_VIOLATONS', [    
+        '${RF_ROOT}/rfc/dime/target/${CHIPSET}/inc',
+    ])
+
+

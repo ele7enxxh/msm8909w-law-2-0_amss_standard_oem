@@ -1,0 +1,204 @@
+#===============================================================================
+#
+# QFPROM Driver , Diag Libs
+#
+# GENERAL DESCRIPTION
+#    QFPROM HAL build script
+#
+# Copyright 2012-2013,2014,2015 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/boot/scons/main/latest/target/mdm9x00/src/boot/qfprom/build/mdm9x00.sconscript#1 $
+#  $DateTime: 2010/05/26 14:13:33 $
+#  $Author: dkammath $
+#  $Change: 1313635 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/13/15   lm      Added support for MDM9x07 chipset
+# 06/12/14   lm      Added support for MSM8936 chipset
+# 06/12/14   lm      Added support for MSM8909 chipset
+# 03/20/14   ck      Created qfprom_target_v6.c for Bear family
+# 03/18/14   ck      Added support for MSM8916 chipset
+# 09/05/13   wg      Added support for MSM8962 chipset
+# 07/22/13   plc     Added support for MPQ8092 chipset
+# 07/04/13   lm      Added support for MSM8x10 chipset
+# 05/31/13   jz      Support fuse map for different targets
+# 04/01/13   plc     Add check for 28nmLP devices, so we can adjust blow time
+# 07/10/12   dh      Add qfprom_fuse_region.c
+# 11/08/11   plc     Initial Revision.
+#===============================================================================
+Import('env')
+env = env.Clone()
+env.LoadSoftwareUnits(level=1)
+
+# To be updated: if fuse map is different, please create new files
+
+if env['CHIPSET'] in ['msm8x26']:
+   env.Append(CPPDEFINES = [
+      "QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg_v2.h\\\"",
+      "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target_v2.h\\\"",
+   ])
+
+elif env['CHIPSET'] in ['msm8x10']:
+	env.Append(CPPDEFINES = [
+      "QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg_v3.h\\\"",
+      "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target_v3.h\\\"",
+   ])
+   
+elif env['CHIPSET'] in ['msm8962']:
+	env.Append(CPPDEFINES = [
+      "QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg_v5.h\\\"",
+      "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target_v5.h\\\"",
+   ])
+
+elif env['CHIPSET'] in ['msm8916']:
+	env.Append(CPPDEFINES = [
+      "QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg_v6.h\\\"",
+      "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target_v6.h\\\"",
+   ])
+
+elif env['CHIPSET'] in ['msm8936']:
+	env.Append(CPPDEFINES = [
+      "QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg_v7.h\\\"",
+      "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target_v7.h\\\"",
+   ])
+
+elif env['CHIPSET'] in ['msm8909','msm8909w']:
+	env.Append(CPPDEFINES = [
+      "QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg_v8.h\\\"",
+      "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target_v8.h\\\"",
+   ])
+
+elif env['CHIPSET'] in ['mdm9x07']:
+	env.Append(CPPDEFINES = [
+      "QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg_v9.h\\\"",
+      "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target_v9.h\\\"",
+   ])
+   
+elif env['CHIPSET'] in ['mpq8092']:
+	env.Append(CPPDEFINES = [
+      "QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg_v3.h\\\"",
+      "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target_v3.h\\\"",
+   ])
+else:
+   env.Append(CPPDEFINES = [
+      "QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg_v1.h\\\"",
+      "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target_v1.h\\\"",
+   ])
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/boot/qfprom/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'HAL',
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'MPROC',
+   'POWER',
+   'DEBUGTOOLS',
+   'STORAGE',
+   # needs to be last also contains wrong comdef.h   
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequirePublicApi(['RFA'],area='modem')
+
+INC_PATH = [
+     "${INC_ROOT}/core/securemsm/trustzone/qsee/include/",
+]
+env.Append(CPPPATH = INC_PATH)
+#-------------------------------------------------------------------------------
+# Source Code and LIBs
+#-------------------------------------------------------------------------------
+
+if env['CHIPSET'] in ['msm8x26']:
+  QFPROM_FUSE_MAP_SOURCES = [
+     '${BUILDPATH}/hw/core_2_0/qfprom_fuse_region_v2.c',
+     '${BUILDPATH}/hw/core_2_0/qfprom_target.c',
+   ]
+elif env['CHIPSET'] in ['msm8x10']:
+  QFPROM_FUSE_MAP_SOURCES = [
+     '${BUILDPATH}/hw/core_2_0/qfprom_fuse_region_v3.c',
+     '${BUILDPATH}/hw/core_2_0/qfprom_target.c',
+ ]
+elif env['CHIPSET'] in ['msm8962']:
+  QFPROM_FUSE_MAP_SOURCES = [
+     '${BUILDPATH}/hw/core_2_0/qfprom_fuse_region_v5.c',
+     '${BUILDPATH}/hw/core_2_0/qfprom_target.c',
+   ]
+elif env['CHIPSET'] in ['msm8916']:
+  QFPROM_FUSE_MAP_SOURCES = [
+     '${BUILDPATH}/hw/core_2_0/qfprom_fuse_region_v6.c',
+     '${BUILDPATH}/hw/core_2_0/qfprom_target_v6.c',
+ ]
+elif env['CHIPSET'] in ['msm8936']:
+  QFPROM_FUSE_MAP_SOURCES = [
+     '${BUILDPATH}/hw/core_2_0/qfprom_fuse_region_v7.c',
+     '${BUILDPATH}/hw/core_2_0/qfprom_target_v6.c',
+ ]
+elif env['CHIPSET'] in ['msm8909','msm8909w']:
+  QFPROM_FUSE_MAP_SOURCES = [
+     '${BUILDPATH}/hw/core_2_0/qfprom_fuse_region_v8.c',
+     '${BUILDPATH}/hw/core_2_0/qfprom_target_v6.c',
+ ]
+elif env['CHIPSET'] in ['mdm9x07']:
+  QFPROM_FUSE_MAP_SOURCES = [
+     '${BUILDPATH}/hw/core_2_0/qfprom_fuse_region_v9.c',
+     '${BUILDPATH}/hw/core_2_0/qfprom_target.c',
+ ]
+elif env['CHIPSET'] in ['mpq8092']:
+  QFPROM_FUSE_MAP_SOURCES = [
+     '${BUILDPATH}/hw/core_2_0/qfprom_fuse_region_v3.c',
+     '${BUILDPATH}/hw/core_2_0/qfprom_target.c',
+ ]
+else:
+  QFPROM_FUSE_MAP_SOURCES = [
+     '${BUILDPATH}/hw/core_2_0/qfprom_fuse_region_v1.c',
+     '${BUILDPATH}/hw/core_2_0/qfprom_target.c',
+   ]
+
+QFPROM_SOURCES = [
+   '${BUILDPATH}/src/qfprom.c',
+   '${BUILDPATH}/src/qfprom_test.c'
+ ]
+
+QFPROM_HAL_SOURCES = [
+   '${BUILDPATH}/hw/core_2_0/HALqfprom.c'
+]
+qfprom_hal_obj = env.Object([QFPROM_HAL_SOURCES])
+qfprom_hal_lib = env.Library('${BUILDPATH}/qfprom_hal', qfprom_hal_obj)
+qfprom_driver_obj = env.Object([QFPROM_FUSE_MAP_SOURCES, QFPROM_SOURCES])
+qfprom_driver_lib = env.Library('${BUILDPATH}/qfprom_driver', qfprom_driver_obj)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage(['CBSP_MODEM_IMAGE','MODEM_IMAGE','SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE'],
+                         qfprom_driver_lib)
+
+env.AddLibsToImage(['TZOS_IMAGE'], [qfprom_driver_lib, qfprom_hal_lib])

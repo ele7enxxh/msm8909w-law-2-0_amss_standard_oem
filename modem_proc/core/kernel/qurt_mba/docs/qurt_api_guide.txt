@@ -1,0 +1,176 @@
+ _______________________________________________________
+|           Guide to New/Modified QuRT APIs             |
+|_______________________________________________________|
+
+
+* QuRT UTCB change
+--------------------------------------------------------
+  - Before
+
+  //qurt_utcb.h
+  typedef struct QURT_utcb 
+  {
+     /* SW Thread ID */
+     unsigned int thread_id;
+
+     /* Entry point of higher layer */
+     void (*entrypoint)(void *);
+
+     /* Argument to be to higher layer entry point */
+     void *arg;
+
+     /* Thread Name */
+     long long int thread_name0;
+     long long int thread_name1;
+
+     /* Stack Pointer */
+     unsigned int *stack_ptr;
+
+     /* Stack Size */
+     unsigned int stack_size;
+
+     /* AnySignal */
+     qurt_anysignal_t anysignal;
+
+  } QURT_utcb_t;
+
+
+  //////////////////////////////
+  - After
+  //qurt_utcb.h
+  typedef struct QURT_utcb 
+  {
+     /* SW Thread ID */
+     unsigned int thread_id;
+
+     /* Entry point of higher layer */
+     void (*entrypoint)(void *);
+
+     /* Argument to be to higher layer entry point */
+     void *arg;
+
+     /* Thread attributes */
+     qurt_thread_attr_t attr;
+
+     /* AnySignal */
+     qurt_anysignal_t anysignal;
+
+  } QURT_utcb_t;
+
+  //qurt_thread.h
+  typedef struct _qurt_thread_attr {
+      char name[QURT_THREAD_ATTR_NAME_MAXLEN]; /**< Thread name */
+      unsigned char tcb_partition;  /**< Should the thread TCB reside in RAM or
+                                       on chip memory (i.e. TCM) */
+      unsigned char affinity;       /**< HW bitmask indicating the threads it
+                                         can run on */
+      unsigned short priority;      /**< Thread priority */
+      unsigned short asid;          /**< Address space ID */
+      unsigned short timetest_id;   /**< TIMETEST ID */
+      unsigned int stack_size;      /**< Thread's stack size */
+      void *stack_addr;             /**< Stack address base.
+                                         (stack_addr, stack_addr+stack_size-1)
+                                         is the range of the stack */
+  } qurt_thread_attr_t;
+
+
+
+
+
+
+* QuRT Thread APIs
+--------------------------------------------------------
+
+- New thread apis for attribute specification
+
+  //For initializing all the thread attributes to default values
+  //
+  //#define QURT_THREAD_ATTR_NAME_MAXLEN            16
+  //#define QURT_THREAD_ATTR_TCB_PARTITION_DEFAULT  0
+  //#define QURT_THREAD_ATTR_PRIORITY_DEFAULT       256
+  //#define QURT_THREAD_ATTR_ASID_DEFAULT           0
+  //#define QURT_THREAD_ATTR_AFFINITY_DEFAULT      (-1)
+  //#define QURT_THREAD_ATTR_TIMETEST_ID_DEFAULT   (-2) 
+  
+  static inline void qurt_thread_attr_init (qurt_thread_attr_t *attr)
+
+  //For setting individual thread attributes
+  static inline void qurt_thread_attr_set_name (qurt_thread_attr_t *attr, char *name)
+  static inline void qurt_thread_attr_set_tcb_partition (qurt_thread_attr_t *attr, unsigned short tcb_partition)
+  static inline void qurt_thread_attr_set_priority (qurt_thread_attr_t *attr, unsigned short priority)
+  static inline void qurt_thread_attr_set_affinity (qurt_thread_attr_t *attr, unsigned char affinity)
+  static inline void qurt_thread_attr_set_timetest_id (qurt_thread_attr_t *attr, unsigned short timetest_id)
+  static inline void qurt_thread_attr_set_stack_size (qurt_thread_attr_t *attr, unsigned int stack_size)
+  static inline void qurt_thread_attr_set_stack_addr (qurt_thread_attr_t *attr, void *stack_addr)
+  void qurt_thread_get_name (char *name, unsigned char max_len);
+
+
+
+- Moification of thread create api
+  
+  //Before
+  /**
+   * Create a qurt thread  
+   *
+   *
+   * @param  pc   	start PC 
+   * @param  stack  	Stack pointer 
+   * @param  arg  	Argument 
+   * @param  prio  	Priority of the new thread 
+   * @param  asid     ASID(Space ID)	
+   * @param  thread_cfg   The thread configuration field. The 8bits of LSB is hw_bitmask that
+   * the thread will be restricted to run on.  Bit 0 is corresponding to hw
+   * thread 0, and so on. If the corresponding bit is set to 1, then the software
+   * thread is eligible to run this hw thread.  0x3f means it can run any hw
+   * threads 0x0 also means it can run on any hw threads
+   *
+   * @return Qurt thread ID 
+   */
+  int qurt_thread_create(void *pc, void *stack, void *arg, unsigned int prio, unsigned int asid, unsigned int thread_cfg);
+
+  // After
+  /**
+   * Create a QuRT thread  
+   *
+   * @param  attr  	pointer to the thread attributes such as stack addr
+   * @param  entrypoint   Entry function of the thread
+   * @param  arg  	Argument 
+   *
+   * @output thread_id	Thread ID
+   *
+   * @return Qurt thread ID 
+   */
+  int qurt_thread_create (qurt_thread_t *thread_id, qurt_thread_attr_t *attr, void (*entrypoint) (void *), void *arg);
+
+  
+  
+
+* QuRT Pipe APIs
+----------------------------------------------------------
+  
+  //New QuRT pipe apis for pipe attribute structure
+  /**
+   * Pipe attributes
+   */
+  typedef struct {
+    qurt_pipe_data_t *buffer;
+    unsigned int elements;
+  } qurt_pipe_attr_t
+
+  static inline void qurt_pipe_attr_set_buffer(qurt_pipe_attr_t *attr, qurt_pipe_data_t *buffer)
+  static inline void qurt_pipe_attr_set_elements(qurt_pipe_attr_t *attr, unsigned int elements)
+
+  //Modified and non-backward compatible QuRT pipe APIs
+  int qurt_pipe_create (qurt_pipe_t **pipe, qurt_pipe_attr_t *attr);
+  int qurt_pipe_init (qurt_pipe_t *pipe, qurt_pipe_attr_t *attr);
+  int qurt_pipe_delete (qurt_pipe_t *pipe)
+
+  - The difference between “init” and “create” in QuRT is “create” allocates the data structure, 
+    where as init takes the allocated data structure. 
+  - This helps us expand mutex/pipe etc. to multi-PD. 
+  - Some of the services may not have both “init” and “create” functionality. 
+    Since memory is allocated as part of the create API, it needs extra “*” compared to “init”.
+
+
+
+

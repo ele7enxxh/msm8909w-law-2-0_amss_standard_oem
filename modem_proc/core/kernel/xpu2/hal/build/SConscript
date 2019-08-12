@@ -1,0 +1,165 @@
+#===============================================================================
+#
+#                             Edit History
+#
+# $ Header: $
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2013/11/13   sc      Updated for Bagheera
+# 2013/05/21   sc      Updated for Thorin and Gimli
+# 2013/02/07   sc      Provided interim solution for DevCfg
+# 2012/10/09   sc      Cleaned up the HWIO modules for 8x26 and 8x10
+# 2012/10/09   sc      Updated for Dino
+# 2012/09/27   sc      Added modem images
+# 2012/09/12   sc      Provided SW workaround for MSA owned partitions
+# 2012/06/27   sc      Updated with MSS APU and BOOT ROM
+# 2012/06/18   sc      Updated for Frodo
+# 2012/05/30   sc      Updated for Elan
+# 2011/12/09   sc      Initial Creation for xPU2 modem
+#
+#===============================================================================
+# Copyright (c) 2011-2013
+# Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# HAL XPU2 Libs
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+if env['MSM_ID'] in ['8974', '9x25', '8x26', '8x10', '8962', '8926', '8916','8936','8909','9607','8937']:
+   env.Append(CPPDEFINES = ["FEATURE_MSA_PART_HARDCODED_SW_WORKAROUND"])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'KERNEL_XPU2',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+#-------------------------------------------------------------------------------
+# Internal depends within subunit
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('KERNEL_XPU2_HAL', [
+   '${INC_ROOT}/core/kernel/xpu2/hal/src',
+   '${INC_ROOT}/core/kernel/xpu2/hal/config/${MSM_ID}', #for target specific HWIO
+])
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# HWIO
+#-------------------------------------------------------------------------------
+
+if env.has_key('HWIO_IMAGE'):
+   if env['HAL_PLATFORM'] in ['8974', '8962']:
+         env.AddHWIOFile('HWIO', [
+            {
+               'filename': '${INC_ROOT}/core/kernel/xpu2/hal/config/${MSM_ID}/HALxpu2HWIOTarget.h',
+               'modules': ['BIMC_S_DDR0', 'BIMC_S_DDR1', 'BOOT_ROM_MPU1032_4_M17L10_AHB',
+                           'MSS_APU0132_5'],
+               'filter-include': ['.*XPU.*', '.*RPU.*', '.*APU.*', '.*MPU.*'],
+               'output-offsets': True,
+               'header': '#include "msmhwiobase.h"'
+            }
+         ])
+   elif env['HAL_PLATFORM'] in ['9x25']:
+         env.AddHWIOFile('HWIO', [
+            {
+               'filename': '${INC_ROOT}/core/kernel/xpu2/hal/config/${MSM_ID}/HALxpu2HWIOTarget.h',
+               'modules': ['BIMC_S_DDR0', 'BOOT_ROM_MPU1032_4_M17L10_AHB', 'MSS_APU0132_5',
+                           'PERIPH_SS_QPIC_QPIC_MPU_MPU0132_8_M39L16_AHB_40'],
+               'filter-include': ['.*XPU.*', '.*RPU.*', '.*APU.*', '.*MPU.*'],
+               'output-offsets': True,
+               'header': '#include "msmhwiobase.h"'
+            }
+         ])
+   elif env['HAL_PLATFORM'] in ['8x26', '8926']:
+         env.AddHWIOFile('HWIO', [
+            {
+               'filename': '${INC_ROOT}/core/kernel/xpu2/hal/config/${MSM_ID}/HALxpu2HWIOTarget.h',
+               'modules': ['BIMC_S_DDR0', 'BOOT_ROM_MPU1032_4_M17L10_AHB',
+                           'MSS_APU0132_5'],
+               'filter-include': ['.*XPU.*', '.*RPU.*', '.*APU.*', '.*MPU.*'],
+               'output-offsets': True,
+               'header': '#include "msmhwiobase.h"'
+            }
+         ])
+   elif env['HAL_PLATFORM'] in ['8x10']:
+         env.AddHWIOFile('HWIO', [
+            {
+               'filename': '${INC_ROOT}/core/kernel/xpu2/hal/config/${MSM_ID}/HALxpu2HWIOTarget.h',
+               'modules': ['BIMC_S_DDR0', 'BOOT_ROM_MPU1032_4_M17L10_AHB',
+                           'MSS_APU0132_5'],
+               'filter-include': ['.*XPU.*', '.*RPU.*', '.*APU.*', '.*MPU.*'],
+               'output-offsets': True,
+               'header': '#include "msmhwiobase.h"'
+            }
+         ])
+   elif env['HAL_PLATFORM'] in ['8916' , '8936' , '8909','8937']:
+         env.AddHWIOFile('HWIO', [
+            {
+               'filename': '${INC_ROOT}/core/kernel/xpu2/hal/config/${MSM_ID}/HALxpu2HWIOTarget.h',
+               'modules': ['BIMC_S_DDR0', 'BOOT_ROM_MPU1032_3_M20L12_AHB',
+                           'MSS_APU0132_5'],
+               'filter-include': ['.*XPU.*', '.*RPU.*', '.*APU.*', '.*MPU.*'],
+               'output-offsets': True,
+               'header': '#include "msmhwiobase.h"'
+            }
+         ])
+   elif env['HAL_PLATFORM'] in ['9607']:
+         env.AddHWIOFile('HWIO', [
+            {
+               'filename': '${INC_ROOT}/core/kernel/xpu2/hal/config/${MSM_ID}/HALxpu2HWIOTarget.h',
+               'modules': ['BIMC_S_DDR0', 'BOOT_ROM_MPU1032_3_M20L12_AHB',
+                           'MSS_APU0132_5', 'QPIC_QPIC_MPU_MPU1132_8_M39L16_AHB_40'],
+               'filter-include': ['.*XPU.*', '.*RPU.*', '.*APU.*', '.*MPU.*'],
+               'output-offsets': True,
+               'header': '#include "msmhwiobase.h"'
+            }
+         ]) 
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+HAL_XPU2_COMMON_SOURCES = [
+   '${BUILDPATH}/HALxpu2.c',
+   '${BUILDPATH}/HALxpu2InfoImpl.c',
+]
+
+HAL_XPU2_PACKOUT_HEADER_FILES = env.FindFiles(
+   '*.h',
+   '${INC_ROOT}/core/kernel/xpu2/hal/config/')
+
+HAL_XPU2_PACKOUT_HEADER_FILES += env.FindFiles(
+   '*.h',
+   '${INC_ROOT}/core/kernel/xpu2/hal/src/')
+
+env.CleanPack(['MBA_CORE_SW', 'MODEM_IMAGE', 'CORE_MODEM', 'CORE_QDSP6_SW'],
+              HAL_XPU2_PACKOUT_HEADER_FILES)
+
+env.AddBinaryLibrary(['MBA_CORE_SW', 'MODEM_IMAGE', 'CORE_MODEM', 'CORE_QDSP6_SW'],
+                     '${BUILDPATH}/HALxpu2MSS',
+                     [HAL_XPU2_COMMON_SOURCES])

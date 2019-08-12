@@ -1,0 +1,97 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000                 EXPORT           app_export_init_info_to_qsee
+    2 00000000                 EXPORT           qsee_printf_syscall
+    3 00000000                 EXPORT           qsee_generic_syscall
+    4 00000000                 AREA             tzapp_syscall_asm, CODE, align=
+8
+    5 00000000                 CODE32
+    6 00000000         app_export_init_info_to_qsee
+    7 00000000 E1A08004        mov              r8, r4
+    8 00000004 E1A04000        mov              r4, r0
+    9 00000008 E1A05001        mov              r5, r1
+   10 0000000C E1A06002        mov              r6, r2
+   11 00000010 E1A07003        mov              r7, r3
+   12 00000014 E3E000FF        mov              r0, #(0xffffff00 + 0x0)
+   13 00000018 EF001400        swi              (0x1400 + 0x0)
+   14 0000001C E12FFF1E        bx               r14
+   15 00000020         qsee_printf_syscall
+   16 00000020 E92D5FF0        push             {r4-r12, r14}
+   17 00000024 E1A04000        mov              r4, r0
+   18 00000028 E1A05001        mov              r5, r1
+   19 0000002C E3E00006        mov              r0, #(0xffffff00 + 0xF9)
+   20 00000030 EF0014F9        swi              (0x1400 + 0xF9)
+   21 00000034 E8BD9FF0        pop              {r4-r12, pc}
+   22 00000038         qsee_generic_syscall
+   23 00000038 E92D5FF0        push             {r4-r12, r14}
+   24 0000003C E1A04001        mov              r4, r1
+   25 00000040 E1A05002        mov              r5, r2
+   26 00000044 E1A06003        mov              r6, r3
+   27 00000048 E59D7028        ldr              r7, [sp,#0x28]
+   28 0000004C E59D802C        ldr              r8, [sp,#0x2C]
+   29 00000050 E59D9030        ldr              r9, [sp,#0x30]
+   30 00000054 EF001400        swi              0x1400
+   31 00000058 E8BD9FF0        pop              {r4-r12, pc}
+   32 0000005C                 END
+Command Line: --debug --dwarf2 --cpu=QSP.no_neon.no_vfp --apcs=/noswst/interwor
+k//ropi/rwpi --no_unaligned_access -o/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c
+10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/tru
+stzone/qsapps/libs/applib/common/build/commonlib/scorpion/MATAANAA/common/src/c
+mnlib_syscall.o -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAA
+NAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsapps/libs/
+applib/common/build -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909A
+AAAANAZT-2_20161130_222454/b/trustzone_images/build/cust -I. -I/local/mnt/works
+pace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone
+_images/core/securemsm/trustzone/qsee/include -I/local/mnt/workspace/CRMBuilds/
+TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/se
+curemsm/trustzone/qsapps/libs/applib/common/src -I/local/mnt/workspace/CRMBuild
+s/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/
+securemsm/trustzone/qsapps/libs/services/src -I/local/mnt/workspace/CRMBuilds/T
+Z.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/sec
+uremsm/trustzone/qsee/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00
+004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/securemsm/trus
+tzone/qsee -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-
+2_20161130_222454/b/trustzone_images/core/securemsm/secmath/shared/inc -I/local
+/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b
+/trustzone_images/core/securemsm/secrsa/shared/inc -I/local/mnt/workspace/CRMBu
+ilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/co
+re/securemsm/secrsa/shared/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-0
+0004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/securemsm/cry
+pto -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161
+130_222454/b/trustzone_images/core/api/services -I/local/mnt/workspace/CRMBuild
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+s/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/
+api/dal -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_2
+0161130_222454/b/trustzone_images/core/securemsm/unifiedcrypto/shared/ecc/inc -
+I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_2
+22454/b/trustzone_images/core/securemsm/unifiedcrypto/core/ecc/inc -I/local/mnt
+/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/tru
+stzone_images/core/securemsm/unifiedcrypto/environment/inc -I/local/mnt/workspa
+ce/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_i
+mages/core/securemsm/unifiedcrypto/shared/aes/inc -I/local/mnt/workspace/CRMBui
+lds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/cor
+e/securemsm/unifiedcrypto/shared/des/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF
+.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securem
+sm/unifiedcrypto/core/aes/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00
+004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/unifiedc
+rypto/shared/sha/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909
+AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/unifiedcrypto/cor
+e/sha/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2
+_20161130_222454/b/trustzone_images/core/securemsm/unifiedcrypto/shared/ecc_gen
+eric/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_
+20161130_222454/b/trustzone_images/core/securemsm/unifiedcrypto/core/ecc_generi
+c/inc --list=/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-
+2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsapps/libs/appli
+b/common/build/commonlib/scorpion/MATAANAA/common/src/cmnlib_syscall.o.lst --si
+telicense /local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_2
+0161130_222454/b/trustzone_images/core/securemsm/trustzone/qsapps/libs/applib/c
+ommon/build/commonlib/scorpion/MATAANAA/common/src/cmnlib_syscall.o.i

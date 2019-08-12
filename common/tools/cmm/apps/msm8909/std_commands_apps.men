@@ -1,0 +1,65 @@
+//
+//  Description:                                                              
+//    RPM Command Menu
+//                                                                            
+// Copyright (c) 2012 - 2014 by QUALCOMM, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/27/2012 AJCheriyan    Created for B-family.
+
+ADD
+MENU
+(
+	POPUP "&APPS Commands"
+	(
+		MENUITEM "[:flash]&Build Options"
+		(
+			WINCLEAR
+			do std_buildoptions
+		)
+
+		POPUP "[:CORRELATE]&Debug Images"
+		( 
+			MENUITEM "[:PSTEP]&Debug SBL1"
+			( 
+				WINCLEAR
+				do std_debug sbl1 lpm_enable
+
+			)
+			MENUITEM "[:PSTEP]&Debug MPSS"
+			(
+				WINCLEAR
+				do std_debug mpss lpm_enable main 
+			)
+			
+			MENUITEM "[:PSTEP]&Debug RPM"
+			(
+				WINCLEAR
+				do std_debug rpm lpm_enable exceptions_init
+			)
+			
+			MENUITEM "[:PSTEP]&Debug WCNSS"
+			(
+				WINCLEAR
+				do std_debug wcnss lpm_enable main
+			)
+				
+		)
+
+		MENUITEM "[:REDO]&Soft Reset"
+		(
+			WINCLEAR
+			do std_reset
+		)
+	)
+)
+
+

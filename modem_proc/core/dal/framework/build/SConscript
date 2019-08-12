@@ -1,0 +1,73 @@
+#===============================================================================
+#
+# DAL Framework
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009 - 2011 Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/dal/framework/build/SConscript#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 4/16/13    sho     Move all source code unrelated to device management out
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${DAL_ROOT}/framework/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+
+DALFW_SOURCES =  [
+   '${BUILDPATH}/common/dalfwkbase.c',
+   '${BUILDPATH}/common/DALDevice.c',
+   '${BUILDPATH}/common/DALMemDesc.c',
+   '${BUILDPATH}/common/DALQueue.c',
+   ]
+
+env.AddLibrary(
+   ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+    'APPS_IMAGE', 'CBSP_APPS_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+    '${BUILDPATH}/DALFwk', DALFW_SOURCES)
+if env.GetUsesFlag('USES_QPIC_NAND') is True:
+    env.AddLibrary(['MBA_CORE_SW'], '${BUILDPATH}/DALFwk', DALFW_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load Subunits (sys)
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

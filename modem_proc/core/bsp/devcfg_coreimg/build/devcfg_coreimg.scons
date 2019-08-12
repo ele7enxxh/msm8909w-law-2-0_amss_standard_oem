@@ -1,0 +1,393 @@
+#===============================================================================
+#
+# Target-Level Build Script for Modem Processor
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: 2010/05/11 14:20:50 $
+#  $Change: 1295568 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import sys
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = [
+   'devcfg_img_core', 'core_devcfg', 'core'
+]
+
+# init environment variables
+output_elf_name = 'M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_CORE'
+env.InitImageVars(
+   alias_list=aliases,        # aliases
+   proc='qdsp6',              # proc
+   config='qdsp6_sw',         # config type, proc_name
+   plat='qurt',
+   target= output_elf_name,   # target (elf, image file name)
+   build_tags = ['DAL_DEVCFG_IMG'],
+   tools = ['${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/hex_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py',
+            'buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/kernel_builders.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/doc_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/gendevcfghdr.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/elfmergerutil.py',            
+            '${BUILD_ROOT}/core/bsp/build/scripts/lcs_builder.py',            
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_lcs_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/QurtImageSconsBuilder.py',
+            '${BUILD_ROOT}/tools/build/scons/sectools/sectools_builder.py',
+            ]
+   )
+
+#---------------------------------------------------------------------------
+# Add Device Configuration specific defines
+#---------------------------------------------------------------------------
+# Reason for doing this is because python does 
+# not like the 'x' in targets like '9x15'
+if env['MSM_ID'] in ['9x15']:
+  env.Replace(DAL_CONFIG_TARGET_ID = '0x9015')
+elif env['MSM_ID'] in ['9x25']:
+  env.Replace(DAL_CONFIG_TARGET_ID = '0x9025')   
+elif env['MSM_ID'] in ['8x26']:
+  env.Replace(DAL_CONFIG_TARGET_ID = '0x8626')   
+elif env['MSM_ID'] in ['8x10']:
+  env.Replace(DAL_CONFIG_TARGET_ID = '0x8610') 
+else:
+  env.Replace(DAL_CONFIG_TARGET_ID = '0x${MSM_ID}')
+
+env.Append(CPPDEFINES = [
+  "DAL_CONFIG_IMAGE_MODEM",
+  "DAL_CONFIG_TARGET_ID=${DAL_CONFIG_TARGET_ID}"
+])
+if not env.CheckAlias(alias_list=aliases):
+   Return()
+
+# Add defines
+env.Append(CPPDEFINES = [
+   "CUST_H=\\\"${CUST_H}\\\"",
+   "DAL_CONFIG_IMAGE_MODEM",
+   "MODEM_FW_NUM_PRIO=75"
+])
+
+#------------------------------------------------------------------------------
+# Setting up export paths for access to elfparserutil.py
+#------------------------------------------------------------------------------
+corebsp_scripts_path = env.RealPath('${BUILD_ROOT}/core/bsp/build/scripts/')
+sys.path.append(corebsp_scripts_path)
+
+#------------------------------------------------------------------------------
+# Print banner
+#------------------------------------------------------------------------------
+env.PrintImageBanner()
+
+#---------------------------------------------------------------------------
+# Now that we know we need to build something, the first thing we need
+# to do is add our image to BuildProducts.txt, so that tools can verify
+# when our build is successful.  Make sure we append, so that we don't
+# overwrite other images that have written to this file.
+#---------------------------------------------------------------------------
+prod_files = []
+prod_files.append(env.BuildProductsFile ("${BUILDPATH}/BuildProducts_core_qdsp6sw.txt", "${BUILD_ROOT}/build/ms/bin/${SHORT_BUILDPATH}/core_qdsp6sw.mbn")) 
+#prod_files.append(env.BuildProductsFile ("${BUILDPATH}/BuildProducts_non-reloc_core_qdsp6sw.txt", "${BUILD_ROOT}/build/ms/bin/${SHORT_BUILDPATH}/non-reloc/core_qdsp6sw.mbn"))
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(USES_DEVCFG = True)
+env.Replace(USES_MULTI_DEVCFG = True)
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_IMG')
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.Tool('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.Tool('qdsp6_defs', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts']) 
+if env.PathExists('${BUILD_ROOT}/build/scripts/build_utils.py'):
+   use_build_utils = True
+   env.LoadToolScript('build_utils', toolpath = ['${BUILD_ROOT}/build/scripts'])
+else:
+   use_build_utils = False
+
+#---------------------------------------------------------------------------
+# Load in the compiler options for the devcfg image
+#---------------------------------------------------------------------------
+# This ensures that there is no .sdata section created in the devcfg image
+env.Append(CFLAGS = "-G0 -fno-zero-initialized-in-bss ")
+
+#---------------------------------------------------------------------------
+# Libraries/Objects Section
+#---------------------------------------------------------------------------
+devcfgimg_libs = []
+devcfgimg_objs = []
+devcfg_units = [prod_files]
+
+primary_elf = env.RealPath('${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_NODEVCFG_CORE.elf')
+devcfg_build_dest_name = '${BUILDPATH}/DEVCFG_${BUILD_ASIC}${BUILD_ID}${BUILD_VER}'
+devcfg_elf_name = env.RealPath('${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_DEVCFG_CORE.elf')
+if use_build_utils:
+   devcfg_lcs_template_file = env.FindConfigFiles('DEVCFG_IMG.lcs.template')[0]
+else:
+   devcfg_lcs_template_file = env.RealPath('${BUILD_MS_ROOT}/DEVCFG_IMG.lcs.template')
+
+devcfg_lcs_name = 'DEVCFG_IMG.lcs'
+devcfg_lcs_file_path_name = env.RealPath('${BUILDPATH}/DEVCFG_IMG.lcs')
+#merged_elf_name_v0 = env.RealPath('${SHORT_BUILDPATH}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_v0.elf')
+merged_elf_name = env.RealPath('${BUILDPATH}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}.elf')
+
+merged_elf_name_reloc = env.RealPath('${BUILDPATH}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_reloc.elf')
+
+merged_elf_name_output = env.RealPath('${BUILD_MS_ROOT}/' + output_elf_name + '.elf')
+
+merged_elf_name_relocflags = env.RealPath('${BUILDPATH}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_relocflags.elf')
+#merged_elf_name_output_reloc = env.RealPath('${BUILD_MS_ROOT}/' + output_elf_name + '_reloc.elf')
+devcfg_hdr_file_name = 'devcfg_def.h'
+devcfg_hdr_file = env.RealPath('${BUILDPATH}/' + devcfg_hdr_file_name)
+
+# Template to load au_name libs/objs build rules.
+#au_name_path = env.RealPath('${BUILD_ROOT}/au_name')
+#if env.PathExists(au_name_path):
+   #au_name_items = env.LoadAreaSoftwareUnits('au_name')
+   #ourimg_libs.extend(au_name_items['LIBS'])
+   #ourimg_objs.extend(au_name_items['OBJS'])
+
+# load Core BSP libs/objs build rules.
+core_path = env.RealPath('${BUILD_ROOT}/core')
+if env.PathExists(core_path):
+   au_items = env.LoadAreaSoftwareUnits('core')
+   devcfgimg_libs.extend(au_items['LIBS'])
+   devcfgimg_objs.extend(au_items['OBJS'])
+
+devcfg_units = [devcfgimg_libs, devcfgimg_objs]
+
+#------------------------------------------------------------------------------
+# Rule for compiling devcfg_main.c 
+#------------------------------------------------------------------------------
+# filter is not define or filter is current target files only, ok to build misc files
+filter_opt = env.get('FILTER_OPT')
+if (filter_opt is None) or (env.FilterMatch(os.getcwd())):
+   env.VariantDir("${BUILDPATH}", "${BUILD_ROOT}/core/bsp/devcfg_coreimg/src", duplicate=0)
+   env.RequirePublicApi(['DAL'])
+   env.RequireRestrictedApi(['DAL'])
+   #Add devcfg_main as an object in the devcfg image 
+   devcfg_main_obj = env.AddObject('DAL_DEVCFG_IMG' , '${BUILDPATH}/devcfg_main.c')
+   env.Depends(devcfg_main_obj, primary_elf)
+   devcfgimg_objs.extend(devcfg_main_obj)
+   env.Depends(merged_elf_name,'${BUILD_ROOT}/core/bsp/build/scripts/QurtImageSconsBuilder.py')
+
+   #=========================================================================
+   # Beging building DEVCFG Image
+   #-------------------------------------------------------------------------
+   # # Create the devcfg linker script
+   devcfg_lcs_file = env.DevcfgLCSBuilder(devcfg_lcs_file_path_name, devcfg_lcs_template_file, DEVCFG_DEF_HDR_FILE = devcfg_hdr_file_name)
+   env.Depends(devcfg_lcs_file, devcfg_lcs_template_file)
+   env.Depends(devcfg_lcs_file, (env.Value(env.get('DEVCFG_ENV_USED_XML_TAGS'))))
+   #install_devcfg_lcs_file = env.InstallAs(devcfg_lcs_file_path_name, devcfg_lcs_file)
+   devcfg_units.extend(devcfg_lcs_file)
+   env.AddArtifact('DAL_DEVCFG_IMG', devcfg_lcs_file)
+
+   # Create the devcfg_def hdr file that contains the segment addrs from the primary elf. This 
+   # will be the address at which the devcfg elf data segments will be built at
+   # Collect the segment name and the addr variable that was constructed when creating 
+   # the devcfg lcs file: build\ms\DEVCFG_IMG.lcs.
+   devcfg_scl_hdr_file = env.GenerateDevCfgHdrs(devcfg_hdr_file, [primary_elf])
+   env.Depends(devcfg_scl_hdr_file, primary_elf)
+   env.Depends(devcfg_scl_hdr_file, devcfg_lcs_file_path_name)
+   #install_devcfg_hdr_file = env.InstallAs(devcfg_hdr_file, devcfg_scl_hdr_file)
+   devcfg_units.extend(devcfg_scl_hdr_file)
+
+# the following steps can only be performed if there is no filters in effect
+if filter_opt is None:
+   libs_path = env['INSTALL_LIBPATH']
+   # create list of files used during link.
+
+   #Preprocess the LCS (linker script) file
+   pp_lcs = env.PreProcess(devcfg_lcs_file_path_name + '.pp', devcfg_lcs_file_path_name)
+   #Cleanup the Preprocessed LCS file
+   pp_lcs_clean = env.PreProcessClean(devcfg_lcs_file_path_name + '.i', pp_lcs)
+   
+   #Setup the bare minimum linker commands
+   env.Replace(LINKFLAGS = "-m${Q6VERSION} -nostdlib --section-start .start=0x0 --entry=0x0 ${LFLAGS}")
+   env.Append(LINKFLAGS = '-T' + env.RealPath(str(pp_lcs_clean[0])))
+   
+   env.Replace(LINKOBJGRP = "--start-group $_LIBFLAGS_POSIX  $SOURCES.posix --end-group ")
+   #Invoke the build command
+   devcfg_elf = env.Program(devcfg_build_dest_name, 
+                              source=[devcfgimg_objs], 
+                              LIBS=[devcfgimg_libs], 
+                              LIBPATH=libs_path)
+
+   install_devcfg_elf = env.InstallAs(devcfg_elf_name, devcfg_elf)
+
+   devcfg_map = env.SideEffect(env.subst(devcfg_build_dest_name + '.map'), devcfg_elf)
+   devcfg_sym = env.SideEffect(env.subst(devcfg_build_dest_name + '.sym'), devcfg_elf)
+   env.Clean(devcfg_elf, devcfg_map)
+   env.Clean(devcfg_elf, devcfg_sym)
+   
+   env.Depends(pp_lcs_clean, devcfg_lcs_file_path_name)
+   env.Depends(devcfg_elf, pp_lcs_clean)
+   env.Depends(devcfg_elf, primary_elf)
+
+   #-------------------------------------------------------------------------
+   # Install ELF, reloc files
+   #-------------------------------------------------------------------------
+   # Merge elfs here
+
+   elfmergeout = env.ElfMergerUtilBuilder(merged_elf_name, [primary_elf, devcfg_elf_name], 
+                     PRIMARY_SECTION_NAME=[], SECONDARY_SECTION_NAME=[])
+   env.Depends(elfmergeout, (env.Value(env.get('SECTION_NAME_HDR_LIST'))))
+   env.Depends(elfmergeout, devcfg_lcs_file)
+   env.Depends(elfmergeout, install_devcfg_elf)   
+
+   #----------------------------------------------------------------------------
+   # Note - 
+   # *_reloc refers to using qurt_image_build.py tool to shift physical address down to desired area
+   # *_relocflags refers to the addition of relocatable images feature flags to the elf, which only affects elf headers, not code.
+   #----------------------------------------------------------------------------
+   
+   if env['MSM_ID'] not in ['8926','9x25','9x35','8974']:
+        MPSS_PHYS_ADDR = os.environ.get('HEXAGON_IMAGE_ENTRY', '0x08000000') 
+        elfmergeout_reloc = env.QurtImageBuilder(merged_elf_name_reloc, elfmergeout , PHYS_ADDR=MPSS_PHYS_ADDR)
+
+
+        #move elf to build\ms directory
+        install_merged_elf = env.InstallAs(merged_elf_name_output, elfmergeout_reloc)
+        #----------------------------------------------------------------------
+        #Add relocatable flags to relocatable binary
+        #----------------------------------------------------------------------
+        env.Append(alignvalue=[0x400000])
+        elfmergeout_relocflags = env.ModifyRelocatableFlagsBuilder( merged_elf_name_relocflags, elfmergeout_reloc )
+
+        #----------------------------------------------------------------------
+        # Build env mbn files
+        #----------------------------------------------------------------------
+        
+        #relocatable variant is default. This won't have flags if one of the targets specified above
+        install_root = env.subst('${MBN_ROOT}')
+        image_name = 'core_qdsp6sw'
+        install_unsigned_root = env.SectoolGetUnsignedInstallPath(install_base_dir = install_root)
+        #MBN_FILE set the installation path for MbnBuilder          
+        target_mbn_relocflags = env.MbnBuilder('${TARGET_NAME}', elfmergeout_relocflags, IMAGE_TYPE="core_qdsp6sw",
+            FLASH_TYPE=env['TARGET_FLASH_TYPE'],
+            MBN_FILE = os.path.join(install_unsigned_root, image_name))
+        
+        #build non-relocatable variant
+        install_nonreloc_root = os.path.join(env.subst('${MBN_ROOT}'), 'non-reloc')
+        install_nonreloc_unsigned_root = env.SectoolGetUnsignedInstallPath(install_base_dir = install_nonreloc_root)         
+        target_mbn = env.MbnBuilder('non-reloc/${TARGET_NAME}', elfmergeout_reloc, IMAGE_TYPE="core_qdsp6sw", DISABLE_RELOCATABLE=True,
+            FLASH_TYPE=env['TARGET_FLASH_TYPE'],
+            MBN_FILE = os.path.join(install_nonreloc_unsigned_root, image_name))
+
+        #----------------------------------------------------------------------------
+        # Sectools signing for generated mbns
+        # Default mapping will be used if msm_jtag_mapping.xml does not exist
+        #----------------------------------------------------------------------------
+        
+        # for relocatable mbn
+        msm_jtag_mapping_path = env.RealPath('${BUILD_ROOT}/build/ms/msm_jtag_mapping.xml')
+        sectools_signed_mbn = env.SectoolBuilder(
+               target_base_dir = '${SHORT_BUILDPATH}', 
+               source=target_mbn_relocflags, 
+               sign_id="qdsp6sw",
+               msmid = env['MSM_ID'],
+               sectools_install_base_dir = install_root,  
+               install_file_name = image_name + '.mbn',
+               msm_jtag_mapping_file=msm_jtag_mapping_path)   
+        
+        # for non-relocatable mbn
+        sectools_signed_nonreloc_mbn = env.SectoolBuilder(
+                target_base_dir = '${SHORT_BUILDPATH}/non-reloc', 
+                source=target_mbn, 
+                sign_id="qdsp6sw",
+                msmid = env['MSM_ID'],
+                sectools_install_base_dir = install_nonreloc_root,  
+                install_file_name = image_name + '.mbn',
+                msm_jtag_mapping_file=msm_jtag_mapping_path)                
+
+        #=========================================================================
+        # Define targets needed DEVCFGIMG
+        #=========================================================================
+        devcfg_units += [
+            install_devcfg_elf,
+            elfmergeout_reloc,
+            install_merged_elf,
+            target_mbn,
+
+            elfmergeout_relocflags,
+            target_mbn_relocflags,
+            sectools_signed_mbn,
+            sectools_signed_nonreloc_mbn
+        ]
+   
+   else:
+        #----------------------------------------------------------------------
+        # Build env mbn files
+        #----------------------------------------------------------------------
+        elfmergeout_reloc = elfmergeout
+        
+        install_root = env.subst('${MBN_ROOT}')
+        image_name = 'core_qdsp6sw'
+        install_unsigned_root = env.SectoolGetUnsignedInstallPath(install_base_dir = install_root)         
+        #MBN_FILE set the installation path for MbnBuilder 
+        target_mbn = env.MbnBuilder('${TARGET_NAME}', elfmergeout_reloc, IMAGE_TYPE="core_qdsp6sw",
+            FLASH_TYPE=env['TARGET_FLASH_TYPE'],
+            MBN_FILE = os.path.join(install_unsigned_root, image_name))
+
+        #move elf to build\ms directory
+        install_merged_elf = env.InstallAs(merged_elf_name_output, elfmergeout_reloc)            
+            
+        #----------------------------------------------------------------------------
+        # Sectools signing
+        # Default mapping will be used if msm_jtag_mapping.xml does not exist
+        #----------------------------------------------------------------------------
+        msm_jtag_mapping_path = env.RealPath('${BUILD_ROOT}/build/ms/msm_jtag_mapping.xml')
+        sectools_signed_mbn = env.SectoolBuilder(
+                target_base_dir = '${SHORT_BUILDPATH}', 
+                source=target_mbn, 
+                sign_id="qdsp6sw",
+                msmid = env['MSM_ID'],
+                sectools_install_base_dir = install_root,  
+                install_file_name = image_name + '.mbn',
+                msm_jtag_mapping_file=msm_jtag_mapping_path)   
+
+
+        #=========================================================================
+        # Define targets needed DEVCFGIMG
+        #=========================================================================
+        devcfg_units += [
+            install_devcfg_elf,
+            elfmergeout_reloc,
+            install_merged_elf,
+            target_mbn,
+            sectools_signed_mbn
+        ]
+
+# add aliases
+for alias in aliases:
+   env.Alias(alias, devcfg_units)

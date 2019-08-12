@@ -1,0 +1,79 @@
+#===============================================================================
+#
+# IMS_COM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/optionsmanager/build/ims_com.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 18-Mar-2015 naga  Initial version	
+#===============================================================================
+
+Import('env')
+
+# Execute the sconsript in which the variables needs to be imported for the Current Script
+# and export the current environment to that script into which the variables will be exported to the it's export list
+
+# Import the required Variables from the export list of the Environment to which the other script file has added
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('IMS_COM', [ "${INC_ROOT}/modem/ims/optionsmanager/src",])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within IMS
+#-------------------------------------------------------------------------------
+IMS_API = ['IMS_COM', 
+		   'IMS_DPL',
+		   'IMS_FRAMEWORK'
+		   'IMS_SIP'
+		   'IMS_IMSCORE']
+
+env.RequireProtectedApi(IMS_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+IMS_COM_FLAGS = ['AEE_STATIC',
+			 'MAF_NO_GLOBALS',
+			 'QP_DONOT_OVERLOAD_NEW_DELETE',
+			 'IMS_AMSS_STATIC_BUILD',
+			 'QMAF',
+			 'QP_ENABLE_MMI_MODULE',
+			 'FORCE_STATIC',
+			 'QP_ENABLE_SIGNALS',
+			 'XDM_INCLUDE_GROUPMEMBER',
+			 'FEATURE_AMSS_DPL',
+			 'USE_SIMPLE_LOGGING']
+
+IMS_COM_LIB_CPP_SOURCES = ['${BUILDPATH}/src/qpCapabilityHandler.cpp',
+                       '${BUILDPATH}/src/qpOptionsManager.cpp',]
+
+env.Append( CPPDEFINES = IMS_COM_FLAGS )
+
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/ims_com', [IMS_COM_LIB_CPP_SOURCES])

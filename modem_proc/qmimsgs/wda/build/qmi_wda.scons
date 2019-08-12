@@ -1,0 +1,77 @@
+#===============================================================================
+#
+# WDA (Wireless Data Administrative Service) QMI APIs
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2011-2014 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/qmimsgs/wda/build/qmi_wda.scons#1 $
+#  $DateTime: 2016/12/13 07:58:26 $
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/12/12   mpa     Add new build tags and update SRCPATH
+# 10/31/11   mpa     QMI services P4 relocation
+# 09/21/11   mpa     Baseline version
+#===============================================================================
+Import('env')
+env = env.Clone()
+from glob import glob
+from os.path import join, basename
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# ------------------------------------------------------------------------------
+# Include Paths
+#---------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# APIs needed to build the WDA APIs
+#-------------------------------------------------------------------------------
+
+# Should be first
+env.RequirePublicApi([
+  'COMMON',
+  'WDA',
+  ])
+
+env.RequirePublicApi([
+  'MPROC',
+  ], area='CORE')
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#============================================================================
+# Support for exporting the WDA QMI API output code from modem to apps
+#============================================================================
+
+# Construct the list of source files by looking for *.c
+WDA_C_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                 for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Add our library to the following build tags:
+#   QMIMSGS_MPSS and MODEM_MODEM(deprecated for QMI) for MPSS images
+#   QMIMSGS_APSS_TN and MODEM_APPS(deprecated for QMI) for APSS.TN images
+env.AddLibrary (['QMIMSGS_MPSS','MODEM_MODEM',
+                 'QMIMSGS_APSS_TN','MODEM_APPS'], 
+                '${BUILDPATH}/interfaces_qmi_wda', [WDA_C_SOURCES])
+
+# Load test units
+env.LoadSoftwareUnits()

@@ -1,0 +1,40 @@
+#include "DDIGPIOInt.h"
+<driver name="GPIOInt">
+<global_def>
+<var_seq name="xo_shutdown" type=DALPROP_DATA_TYPE_STRING>/xo/pxo</var_seq>
+</global_def>
+<device id=DALDEVICEID_GPIOINT>
+<props name="NUMBER_OF_DIRECT_CONNECT_INTERRUPTS" type=DALPROP_ATTR_TYPE_UINT32>
+3
+</props>
+
+#if (DAL_CONFIG_TARGET_ID == 0x8926)
+<props name="GPIOINT_PHYSICAL_ADDRESS" type=DALPROP_ATTR_TYPE_UINT32>
+0xFD500000
+</props>
+#else
+<props name="GPIOINT_PHYSICAL_ADDRESS" type=DALPROP_ATTR_TYPE_UINT32>
+0x1000000
+</props>
+#endif
+
+<props name="PROCESSOR" type=DALPROP_ATTR_TYPE_UINT32>
+GPIOINT_DEVICE_MODEM
+</props>
+<props name="SUMMARY_INTR_ID" type=DALPROP_ATTR_TYPE_UINT32>
+239
+</props>
+<props name="AUD_EXT_VFR_INT_GPIO_MAP_0" type=DALPROP_ATTR_TYPE_BYTE_SEQ>
+61,38,end
+</props>
+<props name="DIRECT_CONNECT_CONFIG_MAP" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+interrupt_config_map
+</props>
+<props name="INTERRUPT_PLATFORM" type=DALPROP_ATTR_TYPE_UINT32>
+2
+</props>
+<props name="XO_SHUTDOWN_RSRC" type=DALPROP_ATTR_TYPE_STRING_PTR>
+xo_shutdown
+</props>
+</device>
+</driver>

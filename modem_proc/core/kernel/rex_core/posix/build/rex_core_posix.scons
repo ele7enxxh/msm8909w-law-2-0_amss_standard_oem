@@ -1,0 +1,25 @@
+#===============================================================================
+#                    Copyright 2011 Qualcomm Technologies Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+# REX Libs
+#-------------------------------------------------------------------------------
+import os
+Import('env')
+env = env.Clone()
+
+# Define feature REX_CORE_TEST used in conditional compilation of REX tests
+if 'REX_CORE_TEST' in env:
+   env.Append(CPPDEFINES=['REX_CORE_TEST'])
+
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_REX'])
+
+if env['PROC'] in ['qdsp6']:
+   script_fname = "qurt/qurt.scons"
+elif env['PROC'] in ['arm']:
+   script_fname = "l4/l4.scons"
+else:
+   script_fname = ""
+
+env.SConscript(script_fname, exports='env')

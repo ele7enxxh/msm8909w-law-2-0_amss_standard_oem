@@ -1,0 +1,92 @@
+#===============================================================================
+#
+# TZ Common Config
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+#===========================================================================
+#  Copyright (c) 2011-2014 Qualcomm Technologies, Incorporated.
+#  All Rights Reserved.
+#  Qualcomm Technologies Confidential and Proprietary
+#===========================================================================
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains configurable changes made to the module.
+#  The config folder will be shipped to customers 
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/21/14   tp      Linked sme_tzcommon_config_lib to DXHDCP2_IMAGE and DXHDCP2DBG_IMAGE
+# 03/03/14   rk      Added new path for app_common_svc_handler.h
+# 01/15/13   cz      removed the drmprov image and used BUILDPATH
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/config/shared"
+
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --arm')
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/config/shared/inc/",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/inc/",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/src/",
+   "${COREBSP_ROOT}/api/securemsm/trustzone/qsee",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/applib/qsee/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/services/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/common/app_common_svc/shared/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES'
+]
+
+env.RequirePublicApi(CBSP_API)
+
+#----------------------------------------------------------------------------
+# CONFIG Shared Library
+#----------------------------------------------------------------------------   
+
+SME_TZCOMMON_CONFIG_SHARED_LIB_SOURCES = [      
+        '${BUILDPATH}/src/tzdrmconfig.c'
+]
+
+sme_tzcommon_config_lib = '${BUILDPATH}/sme_tzcommon_config_shared'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibrary (['PLAYREADY_IMAGE'],sme_tzcommon_config_lib, [SME_TZCOMMON_CONFIG_SHARED_LIB_SOURCES])
+env.AddLibrary (['WIDEVINE_IMAGE'],sme_tzcommon_config_lib, [SME_TZCOMMON_CONFIG_SHARED_LIB_SOURCES])
+env.AddLibrary (['DXHDCP2_IMAGE'],sme_tzcommon_config_lib, [SME_TZCOMMON_CONFIG_SHARED_LIB_SOURCES])
+env.AddLibrary (['DXHDCP2DBG_IMAGE'],sme_tzcommon_config_lib, [SME_TZCOMMON_CONFIG_SHARED_LIB_SOURCES])
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

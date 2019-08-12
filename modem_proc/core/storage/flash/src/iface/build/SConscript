@@ -1,0 +1,88 @@
+#===============================================================================
+#
+# FLASH INTERFACE Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/rel/1.2/boot_images/core/storage/flash/src/hal/build/SConscript#3 $
+#  $DateTime: 2012/02/28 02:46:59 $
+#  $Author: coresvc $
+#  $Change: 2233914 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/01/14   sb      Initial Revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/flash/src/iface"
+
+if not env.SubstPathExists(SRCPATH):
+   SRCPATH = "${BUILD_ROOT}/drivers/flash/src/iface"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'HWENGINES',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+# For include file flash_log.h from tools/src/nand
+env.RequireProtectedApi(['STORAGE_FLASH'])
+
+env.PublishPrivateApi('STORAGE_FLASH_HAL', [
+   "${INC_ROOT}/core/storage/flash/src/hal/config_v1",
+])
+
+#-------------------------------------------------------------------------------
+# FLASH BAM src
+#-------------------------------------------------------------------------------
+
+FLASH_BAM_SRC = [
+  '${BUILDPATH}/flash_bam_wrapper.c',
+]
+
+#------------------------------------------------------------------------------
+# Invoke the target specific sconscript to enable the required feature flags
+#------------------------------------------------------------------------------
+script_fname = '${MSM_ID}.sconscript';
+if env.PathExists(script_fname):
+   env.LoadSConscripts(script_fname);
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+target_images = [
+   'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+   'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'NAND_MBA_DRIVER',
+   ]
+
+if env.has_key('ENABLE_FLASH_BAM') :
+   env.AddLibrary(target_images, '${BUILDPATH}/flash_bam', FLASH_BAM_SRC)

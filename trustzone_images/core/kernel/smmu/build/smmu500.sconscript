@@ -1,0 +1,76 @@
+#===============================================================================
+#
+#                             Edit History
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/kernel/smmu/build/smmu500.sconscript#1 $
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2014/03/07   sc      Create initial version
+#
+#===============================================================================
+# Copyright (c) 2014
+# Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#===============================================================================
+# SMMU Lib
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../smmu500"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'BUSES',
+   'DAL',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL',
+   'SECUREMSM',
+   'TZCHIPSET'
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+#hack:
+env.Prepend(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/arch/${CHIPSET}/cfg/mmu")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/arch/${CHIPSET}/cfg/common")
+env.Append( CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/arch/${CHIPSET}/src")
+env.Append( CPPPATH = "${INC_ROOT}/core/securemsm/trustzone/qsee/include")
+env.Append( CPPPATH = "${INC_ROOT}/core/securemsm/trustzone/qsee/arch/armv7/include")
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within subunit
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = "--gnu")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SMMU_SOURCES = [
+   '${BUILDPATH}/SMMUInit.c',
+   '${BUILDPATH}/HALSMMU.c',
+   '${BUILDPATH}/SMMUTranslation.c',
+]
+
+SMMU_SOURCES += [
+   '${BUILDPATH}/${MSM_ID}/tz/SMMUConfig.c',
+   '${BUILDPATH}/${MSM_ID}/tz/SMMUTrustZone.c',
+   '${BUILDPATH}/${MSM_ID}/tz/SMMUClock.c',
+]
+
+env.AddBinaryLibrary(['TZOS_IMAGE'], '${BUILDPATH}/SMMUTzos', SMMU_SOURCES)

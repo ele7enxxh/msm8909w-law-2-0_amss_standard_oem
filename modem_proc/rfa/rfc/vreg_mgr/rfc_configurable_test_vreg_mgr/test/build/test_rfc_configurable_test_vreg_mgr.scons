@@ -1,0 +1,79 @@
+#===============================================================================
+#
+# OFF TARGET RFA TEST Scons
+#
+# GENERAL DESCRIPTION
+#    build script for test files
+#
+# Copyright (c) 2011 - 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rfa/rfc/vreg_mgr/rfc_configurable_test_vreg_mgr/test/build/test_rfc_configurable_test_vreg_mgr.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/13/12   bmg     No-modem-directory updates
+# 06/28/12   dps     Initial version.
+#===============================================================================
+from glob import glob
+from os.path import join, basename
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+TESTPATH = "modem/rfa/rfc/vreg_mgr/rfc_configurable_test_vreg_mgr/test"
+SRCPATH = "${BUILD_ROOT}/" + TESTPATH
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPDEFINES = 'COMPONENT_PATH=\\"'+TESTPATH+'/\\"')
+
+#-------------------------------------------------------------------------------
+# Necessary Public & Restricted API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi('QTF', area='MOB') # QTF comes from MOB area in no-modem-dir
+
+env.RequirePublicApi(['SERVICES', 'KERNEL', 'DEBUGTOOLS', 'SYSTEMDRIVERS', 'DAL', 'BUSES', 'MPROC', 'POWER'], area='CORE')
+# Need to get access to Modem Public headers
+env.RequirePublicApi(['MMODE', 'ONEX', 'RFA', 'MCS', 'RFDEVICE_INTERFACE'], area='MODEM')
+
+# Need to get access to Modem Restricted headers
+env.RequireRestrictedApi(['MCS', 'NAS', 'MMODE', 'GERAN', 'FW', 'RFA', 'QTF', 'MCS_OFFTARGET', 'RFA_OFFTARGET'])
+
+# Need to get access to RFA Protected headers
+env.RequireProtectedApi(['RFA',
+                         'RF_CDMA_INC',
+                         'RF_GSM_INC',
+                         'RF_LTE_INC',
+                         'RFA_OFFTARGET',
+                         'RFC_COMMON_INC',
+                         'RF_COMMON_INC',
+                         'RF_DEVICE_INC',
+                         'RF_RFNV_INC',
+                         'RFC_TARGET_INC',
+                         'RF_RFD_INC',
+                         'RF_TASK_INC',
+                         'RF_HAL_INC',
+                         'RF_MDSP_INC',
+                         'RFC_RF_CARD_INC',
+                         'RF_WCDMA_INC',
+                         ])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+OFT_RF_CORE_UT_SRC = ['${BUILDPATH}/' + basename(fname) for fname in glob(join(env.subst(SRCPATH), '*.cpp'))]
+
+# UT's must be added as objects
+env.AddObject(['MOB_RFA_UT'], OFT_RF_CORE_UT_SRC)
+

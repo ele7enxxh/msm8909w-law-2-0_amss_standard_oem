@@ -1,0 +1,357 @@
+#===============================================================================
+#
+# HOSTDL Tools build script
+#
+# GENERAL DESCRIPTION
+#    HOSTDL image build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/rel/1.2/boot_images/core/bsp/tools/flash/hostdl/build/SConscript#9 $
+#  $DateTime: 2012/03/08 01:29:17 $
+#  $Author: coresvc $
+#  $Change: 2256571 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/07/14   sb      Enable secboot for flash tools
+# 11/05/14   sb      Update to ELF format from BIN
+# 09/30/14   sb      Update the DDR address for 9x45
+# 06/22/14   sb      Add support for 9x45, 8909
+#===============================================================================
+import os
+import re
+Import('env')
+
+env = env.Clone()
+#------------------------------------------------------------------------------
+# Add new options/arguments to build system
+# Needs to be done before check aliases otherwise help won't be updated
+#------------------------------------------------------------------------------
+vars = Variables(None)
+
+# Defining this to enable PRINTF through command line
+vars.Add(
+   EnumVariable('HOSTDL_USES_PRINTF',
+      'Overide USES_PRINTF flag used in HOSTDL', 'no',
+      allowed_values=('yes', 'no'), map={}, ignorecase=0
+   )
+)
+
+# update environment and read command line variables
+vars.Update(env)
+
+Help(vars.GenerateHelpText(env))
+
+#------------------------------------------------------------------------------
+# Aliases: Determines when to build hostdl
+#------------------------------------------------------------------------------
+# aliases:  first alias is always the target then the other possibles aliases
+# amss      : Alias for AMSS; anything that needs to be build for amss  
+#             as a whole target (componenets from modem + apps)
+# amss_secure: Alias for building images with secure signing process
+# arm11     : Build components that is for ARM11 only 
+# modem     : Only the modem (not applicable to single processor targets)  
+# amss_arm11: amss for arm11 processor 
+# arm9      : Build components that is for ARM9 only
+# amss_arm9 : amss for arm9 processor 
+# all       : Build all components 
+# cbsp      : Build components for building corebsp images
+
+if env['MSM_ID'] in ['8909', '8909w']:
+   aliases = [
+      'hostdl', 'nandprg', 'tools', 'flashtools', 'all',
+   ]
+else:
+   aliases = [
+      'not_supported',
+   ]
+
+if env['MSM_ID'] in ['8909', '8909w']:
+   proc = 'sparrow'
+else:
+   proc = 'not_supported'
+   
+env.InitImageVars(
+   alias_list = aliases,                           # list of aliases, unique name index [0]
+   proc = proc,                                    # proc settings
+   config = 'apps',                                # config settings
+   build_tags = [                                  # list of build tags for sub lib scripts
+   'HOSTDL_IMAGE',
+   'DAL_DEVCFG_TOOLS_IMG'],
+   tools = [
+   '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/hex_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+   '${BUILD_ROOT}/tools/build/scons/sectools/sectools_builder.py',
+   'buildspec_builder.py']
+)
+
+if not env.CheckAlias():
+   Return()
+
+#------------------------------------------------------------------------------
+# Init default values this PROC/Image
+#------------------------------------------------------------------------------
+
+# add environment variables
+env.Replace(BUILD_TOOL_CHAIN = 'yes')
+env.Replace(USES_DEVCFG = 'yes')
+
+#===============================================================================
+# HOSTDL build rules
+#===============================================================================
+
+#------------------------------------------------------------------------------
+# Configure and load in CBSP uses and path variables
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#------------------------------------------------------------------------------
+# Load in tools scripts, and re define our CCCOM string
+#------------------------------------------------------------------------------
+env.LoadToolScript('arm', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+env.LoadToolScript('hostdl_gen_hex', toolpath = ['${BUILD_ROOT}/core/bsp/tools/flash/build'])
+env.LoadToolScript('modem_defs', toolpath = ['${BUILD_SCRIPTS_ROOT}'])   
+
+#change the MBN_ROOT to copy all the binaries to a meaningful directory
+env.Replace(MBN_ROOT = "${BUILD_ROOT}/build/ms/bin/${TARGET_FAMILY}/nand")
+
+# Force debug and symbols for flash tools, required by T32 swbp interface
+env.Replace(ARM_DBG = "-g --dwarf2")            # Enable DWARF2 format debug tables
+
+# After loading default rules, make some optimization changes
+env.Append(ARMCC_CODE = " ${ARM_SPLIT_SECTIONS}")
+env.Replace(ARMLD_NOREMOVE_CMD = "")
+
+# Compile thumb code
+env.Replace(CC = env['TCC'])
+
+#disable unaligned access for c/c++ compiler and assembler
+env.Replace(ARMCC_CODE = "${ARM_END} ${ARM_NO_UNALIGNED_ACCESS}")
+env.Append(ARMCXX_CODE = " ${ARM_NO_UNALIGNED_ACCESS}")
+env.Append(ASFLAGS = " --keep ${ARM_NO_UNALIGNED_ACCESS}")
+
+# Define processor instruction set
+env.Replace(ARM_CPU_KRAIT = "7-A.security")
+env.Replace(ARM_CPU = "${ARM_CPU_CMD} ${ARM_CPU_KRAIT}")
+
+#----------------------------------------------------------------------------
+# Define the PRINT SOURCES.PRINT LOGS will be enabled only if USES_PRINTF is
+# defined on the scons environment, to disable it DON'T define it. As the
+# scripts check to see if the key is present and not the value!!
+#----------------------------------------------------------------------------
+env.Replace(USES_PRINTF = "no")
+env.Replace(TNOISYLEVEL = "3")
+
+#----------------------------------------------------------------------------
+# Define macro NAND_PAGE_SIZE used to pass a value to macro 'MAX_PAGE_SIZE',
+#  which is used by nand tools and flash drivers (when compiled with tools)
+# to size the static buffers.
+#----------------------------------------------------------------------------
+NAND_PAGE_SIZE = "4096"
+
+# ---------------------------------------------------------------------------
+# Determine the platform
+# Please see //source/qcom/qct/core/storage/flash/main/latest/src/README.txt
+# for details on flash configurations.
+# ---------------------------------------------------------------------------
+FLASH_CFG_ID = "UNKNOWN"
+
+if env['MSM_ID'] in ['8909']:
+   FLASH_CFG_ID = "FLASH_8K_CORTEXA7_CFG"
+   MSMID_TYPE = "M8909"
+   FLASH_DAL_CFG = "config_v2"
+   FLASH_HAL_CFG = "config_v1"
+   FLASH_NAND_TOOLS_CFG = "config_v2"
+   FLASH_NOR_TOOLS_CFG = "config_v1"
+   FLASH_HOSTDL_CFG = "config_v1"
+   SRCROOT = "../../../../../.."
+ 
+if env['MSM_ID'] in ['8909w']:
+   FLASH_CFG_ID = "FLASH_8K_CORTEXA7_CFG"
+   MSMID_TYPE = "M8909w"
+   FLASH_DAL_CFG = "config_v2"
+   FLASH_HAL_CFG = "config_v1"
+   FLASH_NAND_TOOLS_CFG = "config_v2"
+   FLASH_NOR_TOOLS_CFG = "config_v1"
+   FLASH_HOSTDL_CFG = "config_v1"
+   SRCROOT = "../../../../../.."
+
+env.Replace(DAL_CONFIG_TARGET_ID = '0x8909')
+  
+#----------------------------------------------------------------------------
+# Overide uses_print setting from cmd line
+#----------------------------------------------------------------------------
+if env['HOSTDL_USES_PRINTF'] == "yes":
+   env.Replace(USES_PRINTF = "yes")
+
+#----------------------------------------------------------------------------
+# Define the PRINT SOURCES.PRINT LOGS will be enabled only if USES_PRINTF is
+# set to YES in the make file
+#----------------------------------------------------------------------------
+if env.has_key('USES_PRINTF') and env['USES_PRINTF'] == "yes": 
+   env.Append(CPPDEFINES = [
+      "FLASH_LOG_H=\\\"flash_log.h\\\"",
+      "NOISY",
+      "TNOISY=" + str(env['TNOISYLEVEL']),
+   ])
+
+#print env.Dump()
+
+CODE_START_ADDR = "0x80000028"
+CODE_HDR_ADDR = "0x80000000"
+HOSTDL_ZI_BASE = "+0"
+DATA_ADDR = "+0x0"
+
+# add extension flags for HOSTDL
+env.Append(CPPDEFINES = [
+   "BUILD_TOOL_CHAIN",
+   "MAX_PAGE_SIZE=" + NAND_PAGE_SIZE,
+   "FLASH_SINGLE_THREADED",
+   "ENDIAN_LITTLE",
+   "BUILD_HOSTDL",
+   "BUILD_NANDPRG",
+   "HOSTDL_PROCESS_USB_BUFFERS",
+   "EXTENDED_NAND_CMDS",
+   "DAL_CONFIG_MMU_SCHEME=DAL_CONFIG_MMU_SCHEME_NONE",
+   "DAL_IMAGE_FLASH_TOOLS",
+   "CODE_START_ADDR=" + CODE_START_ADDR,
+   "CODE_HDR_ADDR=" + CODE_HDR_ADDR,
+   "DATA_ADDR=" + DATA_ADDR,
+   "ZI_ADDR=" + HOSTDL_ZI_BASE,
+   "FEATURE_HS_USB_BASIC",
+   "FLASH_TOOLS_HEAP_SIZE=512000",
+   "FLASH_ENABLE_WDOG_CFG",
+   "FLASH_WATCHDOG_H=\\\"msm.h\\\"",
+   "EHOSTDL_STARTUP_SOURCE=\\\"hostdl_startup.o\\\"",   
+   "DAL_CONFIG_TARGET_ID=${DAL_CONFIG_TARGET_ID}",
+   "TARGET_ID_8K",
+   "USE_USB_ONLY",
+])
+   
+#------------------------------------------------------------------------------
+# Decide which build steps to perform
+#------------------------------------------------------------------------------
+# Regular build steps (no filter) is build everything, once a user starts
+# using filters we have to make decisions depending on user input.
+#
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units, 
+# etc.  This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quartz, stubs, etc.
+
+do_local_files = True
+do_link = True
+do_post_link = True
+
+# Get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# Limit build processing based on filter option
+if filter_opt is not None:
+   do_link = False
+   do_post_link = False
+
+   if not env.FilterMatch(os.getcwd()):
+      do_local_files = False
+
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+hostdl_units = [core_libs, core_objs,]
+
+if do_local_files:
+#-------------------------------------------------------------------------------
+# HOSTDL Environment
+#-------------------------------------------------------------------------------
+   env.RequireRestrictedApi('BOOT')
+
+#-------------------------------------------------------------------------------
+# Begin building HOSTDL
+#-------------------------------------------------------------------------------
+   env.Replace(TARGET_NAME = 'NANDPRG_${MSM_ID}')
+
+#------------------------------------------------------------------------------
+# Generate Scatter Load File (SCL)
+#-------------------------------------------------------------------------------
+   target_scl = env.SclBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', 
+      '${BUILD_ROOT}/core/storage/flash/tools/src/hostdl/hostdl_in.scl')
+
+if do_link:
+#-------------------------------------------------------------------------------
+# Generate nandprg.elf
+#-------------------------------------------------------------------------------
+   libs_path = env['INSTALL_LIBPATH']
+
+   nandprg_elf = env.Program('${SHORT_BUILDPATH}/${TARGET_NAME}', 
+      source=[core_objs], LIBS=[core_libs], LIBPATH=libs_path)
+	
+   env.Depends(nandprg_elf, target_scl)
+
+   Clean(nandprg_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.map'))
+   Clean(nandprg_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.sym'))
+
+# copy elf to needed locations for AMSS tools to load on target
+   install_nandprg_elf = env.Install("${BUILD_ROOT}/core/storage/flash/tools/src/hostdl", 
+      nandprg_elf)
+   
+if do_post_link: 
+#----------------------------------------------------------------------------
+# Generate HOSTDL BIN
+#----------------------------------------------------------------------------
+#   target_bin = env.BinBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', nandprg_elf)
+
+#----------------------------------------------------------------------------
+# Generate HOSTDL mbn
+#----------------------------------------------------------------------------
+   # MbnBuilder will make a copy of the mbn in the build binaries directory
+   env.Replace(MBN_FILE = '${MBN_ROOT}/NPRG${MSM_ID}')
+
+   install_unsigned_root = env.SectoolGetUnsignedInstallPath(install_base_dir = env.subst('${MBN_ROOT}'))
+   env.Replace(MBN_FILE = os.path.join(install_unsigned_root, "NPRG${MSM_ID}"))  
+
+   nandprg_mbn = env.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', nandprg_elf, 
+      IMAGE_TYPE="hostdl", FLASH_TYPE="nand", MBN_TYPE="elf")
+
+   nprg_product = env.BuildProductsFile('${SHORT_BUILDPATH}/${TARGET_NAME}',nandprg_mbn)
+
+#----------------------------------------------------------------------------
+# Sectools signing
+# note: Per sectools team, use sign_id = 'emmcbld'. It is used only to leverage the signing support 
+# for ELF format images.
+#----------------------------------------------------------------------------
+   sectools_signed_mbn = env.SectoolBuilder(
+      target_base_dir = '${SHORT_BUILDPATH}', 
+      source = nandprg_mbn, 
+      sign_id = "emmcbld",
+      msmid = env['MSM_ID'],
+      sectools_install_base_dir = '${MBN_ROOT}',  
+      install_file_name = "NPRG${MSM_ID}.mbn"
+    )
+
+#-------------------------------------------------------------------------------
+# Generate nandprg.hex
+#-------------------------------------------------------------------------------
+
+#===============================================================================
+# Define units that will be built
+#===============================================================================
+   hostdl_units = env.Alias ('cortexa7_hostdl_units', [
+      nprg_product,
+      sectools_signed_mbn, 
+   ])
+
+# add aliases
+for alias in aliases:
+   env.Alias(alias, hostdl_units)

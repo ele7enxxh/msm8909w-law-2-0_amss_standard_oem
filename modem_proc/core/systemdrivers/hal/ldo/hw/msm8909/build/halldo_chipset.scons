@@ -1,0 +1,94 @@
+#===============================================================================
+#
+# HAL LDO CHIPSET LIBRARY
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/hal/ldo/hw/msm8909/build/halldo_chipset.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'DAL',
+   'DEBUGTOOLS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+HAL_LDO_CHIPSET_BUILD_ROOT = os.getcwd();
+
+env.PublishPrivateApi("SYSTEMDRIVERS_HAL_LDO_CHIPSET", [
+  HAL_LDO_CHIPSET_BUILD_ROOT + "/../inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources: HALLDO Chipset Sources
+#-------------------------------------------------------------------------------
+
+HALLDO_CHIPSET_SOURCES = [
+    '${BUILDPATH}/src/mss/HALldoQ6.c',
+    '${BUILDPATH}/src/HALldoMain.c',
+]
+
+#-------------------------------------------------------------------------------
+# Sources: HALLDOChipset Library Creation
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(
+   ['CORE_MODEM'],
+   '${BUILDPATH}/HALldo_chipset',
+   HALLDO_CHIPSET_SOURCES)
+
+#-------------------------------------------------------------------------------
+# HWIO
+#-------------------------------------------------------------------------------
+
+if env.has_key('HWIO_IMAGE'):
+
+  env.AddHWIOFile('HWIO', [
+    {
+      'filename': '${INC_ROOT}/core/systemdrivers/hal/ldo/hw/${CHIPSET}/inc/HALldoHWIO.h',
+      'modules': ['MSS_PERPH', 'MSS_QDSP6SS_PUB'],
+      'filter-exclude': ['RESERVED', 'RESERVE', 'DUMMY'],
+      'output-offsets': True,
+      'header':
+        '/*\n'
+        ' * HWIO base definitions\n'
+        ' */\n'
+        'extern uint32                      HAL_ldo_nHWIOBaseMSS;\n' +
+        '#define MODEM_TOP_BASE             HAL_ldo_nHWIOBaseMSS\n' +
+        '#define MODEM_TOP_BASE_PHYS        0xFC800000\n' +
+        '#define MODEM_TOP_BASE_SIZE        0x002fc000',
+    }
+  ])
+

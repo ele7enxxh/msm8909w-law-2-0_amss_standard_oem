@@ -1,0 +1,72 @@
+#===============================================================================
+#
+# 9x35 Target Specific Scons file for Flash DAL
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/src/dal/build/8909.sconscript#1 $
+#  $DateTime: 2015/09/01 00:30:35 $
+#  $Author: pwbldsvc $
+#  $Change: 8935858 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/19/14   sb      Update to support 8909
+#===============================================================================
+
+Import('env')
+
+nand_dcpu_reduced_images = [
+   ]
+   
+nand_dcpu_images = [
+   'EHOSTDL_IMAGE',
+   ]
+
+nand_bam_reduced_images = [
+   'NAND_BOOT_DRIVER',
+   ]
+
+nand_bam_images = [
+   'HOSTDL_IMAGE', 'NAND_TOOLS_IMAGE',
+   ]
+
+nor_i2c_images = [
+   'I2C_BOOT_DRIVER',
+   'NOR_TOOLS_IMAGE',
+   ]
+
+dictionary_keys = set(env.Dictionary())
+
+
+# Find the intersection
+nand_dcpu_images_result_keys = set(nand_dcpu_images) & dictionary_keys
+nand_dcpu_reduced_images_result_keys = set(nand_dcpu_reduced_images) & dictionary_keys
+nand_bam_images_result_keys = set(nand_bam_images) & dictionary_keys
+nand_bam_reduced_images_result_keys = set(nand_bam_reduced_images) & dictionary_keys
+nor_i2c_images_result_keys = set(nor_i2c_images) & dictionary_keys
+
+
+#Enable the required flags for this image
+if len(nand_dcpu_reduced_images_result_keys) != 0 :
+   env.Replace(ENABLE_NAND_DCPU_REDUCED = 'yes')
+elif len(nand_dcpu_images_result_keys) != 0 :
+   env.Replace(ENABLE_NAND_DCPU = 'yes')
+elif len(nand_bam_reduced_images_result_keys) != 0 :
+   env.Replace(ENABLE_NAND_BAM_REDUCED = 'yes')
+elif len(nand_bam_images_result_keys) != 0 :
+   env.Replace(ENABLE_NAND_BAM = 'yes')
+
+if len(nor_i2c_images_result_keys) != 0 :
+   env.Replace(ENABLE_NOR_I2C = 'yes')

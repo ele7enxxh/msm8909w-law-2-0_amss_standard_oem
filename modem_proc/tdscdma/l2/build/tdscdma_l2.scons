@@ -1,0 +1,292 @@
+# -------------------------------------------------------------------------------- #
+#                       W C D M A _ L 2. S C O N S
+#
+# DESCRIPTION
+#       Scons file for the W subsytem. Defines the existence of L2
+#
+#
+# INITIALIZATION AND SEQUENCING REQUIREMENTS
+#       None.
+#
+#
+# Copyright (c) 2010 Qualcomm Technologies Incorporated.
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //source/qcom/qct/modem/wcdma/l2/main/latest/build/wcdma_l2.scons#9 $
+# $DateTime: 2011/01/06 16:41:53 $
+#
+#  when         who     what, where, why
+# ---------     ---     ------------------------------------------------------------
+#  09/01/10     rmsd    Initial Cut
+#
+#===================================================================================#
+
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------------
+# USES_FLAG :: Do not compile WCDMA_L2 subsystem if
+#              USES_TDSCDMA are not defined.Need to add for TDD PLT also
+#------------------------------------------------------------------------------------
+if 'USES_TDSCDMA' not in env :
+# When its a NO TDS Build we need only the stubs file to compile to solve Link errors.
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+   SRCPATH = '../src'
+   env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Images that this VU is added .
+#-------------------------------------------------------------------------------
+   IMAGES = ['MODEM_MODEM']
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+   TDSCDMA_L2_C_SOURCES = ['${BUILDPATH}/tdsl2stubs.c']
+
+#-------------------------------------------------------------------------------
+# Compile the source
+#-------------------------------------------------------------------------------
+# For HCH
+  #change 8708-2165
+   env.AddBinaryLibrary(IMAGES, '${BUILDPATH}/tdscdma/l2', TDSCDMA_L2_C_SOURCES )
+# Regular build
+
+   Return()
+#TMP PSR shld it be TPLT ?
+#-------------------------------------------------------------------------------
+# VIOLATIONS
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('VIOLATIONS',[
+                          "${INC_ROOT}/modem/tdscdma/l1/src",#l1 src header files accessed
+                                   ])
+# ------------------------------------------------------------------------------
+# Include Paths
+#-------------------------------------------------------------------------------
+
+
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'DEBUGTOOLS', #task.h is needed
+    'DAL', #HALcomdef.h is needed
+    'KERNEL',
+    'STORAGE',
+    'SYSTEMDRIVERS', #timetick.h is needed
+    'SERVICES',
+    # needs to be last also contains wrong comdef.h
+    ]
+
+MODEM_PUBLIC_APIS = [
+     'MCS',
+     'UTILS',
+     'TDSCDMA',
+     'MMODE',
+     'WCDMA',#for uecomdef.h
+    ]
+
+MULTIMEDIA_APIS = [
+    'AUDIO',
+    'ADSPINFO',
+    ]
+
+MODEM_RESTRICTED_APIS =[
+    'MCS',
+    'MDSP',
+    'TDSCDMA',
+    'FW',
+    'UTILS',
+    ]
+
+MULTIMEDIA_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+]
+
+
+#-------------------------------------------------------------------------------
+# We need the Multimedia API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MULTIMEDIA_PUBLIC_APIS, area="MULTIMEDIA")
+
+#----------------------------------------------------------------------------#
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#----------------------------------------------------------------------------#
+REQUIRED_NON_SCONS_APIS = [
+    'BREW',
+    'MODEM_SERVICES',
+    'MULTIMEDIA_AUDIO',
+    'BASE_PATHS', #mdsp/cdma/inc
+    ]
+
+#-------------------------------------------------------------------------------
+# We need the Core BSP API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+#-------------------------------------------------------------------------------
+# We need MODEM PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need different restricted API's within MODEM
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Images that this VU is added .
+#-------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM', 'MOB_TDSCDMA']
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+TDSCDMA_L2_C_SOURCES = [
+	'${BUILDPATH}/tdsl2dltask.c',
+	'${BUILDPATH}/tdsl2ultask.c'
+]
+
+#-------------------------------------------------------------------------------
+# Compile the source
+#-------------------------------------------------------------------------------
+# For HCH
+if env.has_key('USES_TDS_PACK_BLD'):
+  env.AddSourceLibrary(IMAGES, '${BUILDPATH}/tdscdma/l2', TDSCDMA_L2_C_SOURCES)
+else:
+  #env.AddLibrary(IMAGES, '${BUILDPATH}/tdscdma/l2', TDSCDMA_L2_C_SOURCES)
+
+  #change 8708-2165
+  env.AddBinaryLibrary(IMAGES, '${BUILDPATH}/tdscdma/l2', TDSCDMA_L2_C_SOURCES,
+                    pack_exception=['USES_COMPILE_TDSCDMA_AND_ALL_L1_PROTECTED_LIBS','USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'] )
+# Regular build
+
+
+
+
+
+################################################################
+
+# Use AddRcInitFunc to add init functions to rcinit
+#  Required fields:
+#              'sequence_group'
+#              'init_function'
+#  Optional fields:
+#              'dependencies'
+
+# Use AddRcInitTask to add a task to rcinit
+#  Required fields:
+#              'thread_name'
+#              'sequence_group'
+#              'stack_size_bytes'
+#              'priority_amss_order'
+#  Optional fields:
+#              'stack_name'
+#              'thread_entry'
+#              'tcb_name'
+# Note that the optional fields default to 'thread_name'_{stack, entry, task}
+################################################################
+
+#-------------------------------------------------------------------------------
+# Create L2 dl task
+#-------------------------------------------------------------------------------
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM', 'MOB_TDSCDMA']
+   env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+     'sequence_group'             : env.subst('$MODEM_PROTOCOL'),
+     'init_name'                  : 'tds_l2_dl_init',
+     'init_function'              : 'tds_l2_dl_task_init',
+     'dependencies'               : [],
+     'policy_optin'               : ['default', 'ftm', ],
+    })
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM', 'MOB_TDSCDMA']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : env.subst('$MODEM_PROTOCOL'),
+      'thread_name'                : 'tds_l2_dl',
+      'thread_entry'               : 'tds_l2_dl_task',
+      'stack_size_bytes'           : '4608',
+      'priority_amss_order'        : 'TDSCDMA_L2_DL_PRI_ORDER',
+      'tcb_name'                   : 'tds_l2_dl_tcb',
+      'cpu_affinity'	           : env.subst('$MODEM_CPU_AFFINITY'),
+      'policy_optin'               : ['default', 'ftm', ],
+    })
+
+#-------------------------------------------------------------------------------
+#Create L2 UL task
+#-------------------------------------------------------------------------------
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM', 'MOB_TDSCDMA']
+   env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+     'sequence_group'             : env.subst('$MODEM_PROTOCOL'),
+     'init_name'                  : 'tds_l2_ul_init',
+     'init_function'              : 'tds_l2_ul_task_init',
+     'policy_optin'               : ['default', 'ftm', ],
+   })
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM', 'MOB_TDSCDMA']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : env.subst('$MODEM_PROTOCOL'),
+      'thread_name'                : 'tds_l2_ul',
+      'thread_entry'               : 'tds_l2_ul_task',
+      'stack_size_bytes'           : '4608',
+      'priority_amss_order'        : 'TDSCDMA_L2_UL_PRI_ORDER',
+      'tcb_name'                   : 'tds_l2_ul_tcb',
+      'cpu_affinity'	           : env.subst('$MODEM_TDSCDMA_CPU_AFFINITY'),
+      'policy_optin'               : ['default', 'ftm', ],
+    })
+
+# Load test units
+env.LoadSoftwareUnits()

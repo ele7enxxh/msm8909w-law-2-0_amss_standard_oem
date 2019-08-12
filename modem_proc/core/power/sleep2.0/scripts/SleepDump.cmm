@@ -1,0 +1,795 @@
+;---------------------------------------------------------------------------
+;  File: SleepDump.cmm
+;  
+;  Description: Dumps Sleep related data structures, optionally dumps sleep 
+;               ulogs and merge them
+;  
+;               Copyright (c) 2011-2014 Qualcomm Technologies, Inc. (QTI).
+;               All Rights Reserved.
+;               Qualcomm Technologies Confidential and Proprietary
+;---------------------------------------------------------------------------
+
+
+;Path to the output file.
+;The three options are for nolog, nodump, and/or nomerge. any ordering is fine
+ENTRY &op_path &opt1 &opt2 &opt3 &opt4
+
+;ULog time stamp
+GLOBAL &ULogTimestamp &output &curr_dir &resourceStr 
+GLOBAL &str
+
+;Local variables
+LOCAL &temp &lprmName &ulogcall &uSleepulogcall &clprListPtr
+LOCAL &fTable &fCnt &fCore &numElem &eCnt &elem
+LOCAL &numOfCores &numMLUT &coreCounter &scriptDir
+LOCAL &numFLUT &tmpCnt
+LOCAL &logCnt &logName
+
+&curr_dir=os.pwd()
+
+if "&op_path"==""
+(
+  ;Print a help message for srcipt
+  AREA.Create SleepDumpHelp
+  AREA.Select SleepDumpHelp
+  AREA SleepDumpHelp
+
+  ; no path to output provided.
+  PRINT "Use: SleepDump.cmm <output_path> [config] [nolog] [nodump] [nomerge]"
+  PRINT "  Optional arguments, 
+  PRINT "  config - default (for default directory structure)"
+  PRINT "         - qnx (QNX directory structure for multicore environment)"
+  PRINT "  nolog  - Sleep Ulogs will not be dumped"
+  PRINT "           (Will set nomerge implicitly)"
+  PRINT "  nodump - Sleep Data structures will not be dumped"
+  PRINT "  nomerge - Sleep logs will not be merged"
+
+  ENDDO
+)
+
+;---------------------------------------------------------------------------
+; op_path is the path to output the file, 
+; We will see if that directory already exist if not we try to create
+; If it fails, we abort the script
+;---------------------------------------------------------------------------
+if !OS.DIR(&op_path)
+(
+  PRINT "Output path does not exist. Trying to create..."
+  mkdir &op_path
+
+  ; Error while creating output path
+  if !OS.DIR(&op_path)
+  (
+    PRINT "Error: Failed to locate/create &(op_path). Exiting..."
+    ENDDO
+  )
+)
+
+; Opening a file for sleep dump at given output path
+cd &op_path
+&op_path=os.pwd()
+cd &curr_dir
+
+;-------------------------------------------------------------------------
+; Processing the optional arguments
+;
+; Currently we are comparing all combination of last 4 arguments in order 
+; to provide flexibility to specify option in any order. But try to find
+; out if there is a way for command line arguments with varying numbers.
+;-------------------------------------------------------------------------
+&buildConfig="default"
+&merge="true"
+&log="true"
+&dump="true"
+
+;if nomerge is passed as either option param
+if "&opt1"=="nomerge"||"&opt2"=="nomerge"||"&opt3"=="nomerge"||"&opt4"=="nomerge"
+(
+  &merge="false"
+)
+
+;if nolog is passed as either option param
+;merge is implicitly declared as false when log is false, 
+;because then theres only 1 or 0 logs, and there's nothing to merge
+if "&opt1"=="nolog"||"&opt2"=="nolog"||"&opt3"=="nolog"||"&opt4"=="nolog"
+(
+  &log="false"
+  &merge="false"
+)
+
+;if nodump is passed as one of optional param
+if "&opt1"=="nodump"||"&opt2"=="nodump"||"&opt3"=="nodump"||"&opt4"=="nodump" 
+(
+  &dump="false"
+)
+
+; finding out the correct build configuration. For each os we might need
+; a comparison. Find out the better way if exists
+if "&opt1"=="qnx"||"&opt2"=="qnx"||"&opt3"=="qnx"||"&opt4"=="qnx"
+(
+  &buildConfig="qnx"
+)
+
+;-----------------------------------------------------------------------
+; Constructing log call string and calling ulog dump on it based on
+; build configuration
+;-----------------------------------------------------------------------
+&resourceStr=""
+;switching to appropriate directory to get sleep logs
+
+IF symbol.exist(gSleepNumOfCore)
+  &numOfCores=V.VALUE(g_SleepNumOfCores)
+ELSE
+  &numOfCores=1
+
+IF symbol.exist(g_SleepNumOfFreqs)
+  &numMLUT=V.VALUE(g_SleepNumOfFreqs)
+ELSE
+  &numMLUT=1
+
+;Don't run if we passed the nolog param
+if "&log"=="true"
+(
+  ; We may need a function that takes argument as build configuration
+  ; (modem, apps) and number of cores sleep is running. Based on those
+  ; two args, it calls ulog script for all sleep logs before actual 
+  ; dumping starts
+  if &numOfCores==1
+  (
+    if "&buildConfig"=="default"
+    (
+      ;String to call ulog dump
+      &ulogcall="&(curr_dir)\..\..\ulog\scripts\ULogDump.cmm"
+      &uSleepulogcall="&(curr_dir)\..\..\micro_ulog\scripts\micro_ULogDump.cmm"
+      &scriptDir="&(curr_dir)"
+
+      ; Call micro ulog to dump logs from island section
+      if V.VALUE(g_sleepEnabledFeatures & 0x0020)!=0
+      (
+        &logCnt=0
+        while &logCnt<V.VALUE(g_uSleepNumberOfLogs)
+        (      
+          &logName=DATA.STRING(D:V.VALUE(g_uSleepLogs[&logCnt].name))
+          ;print "Dumping Log: &logName"
+          DO &uSleepulogcall &op_path "&logName"
+          &logCnt=&logCnt+1
+        )
+      )
+
+      ;calling ulog script to dump all sleep logs
+      &logCnt=0
+      while &logCnt<V.VALUE(g_sleepNumberOfLogs)
+      (      
+        &logName=DATA.STRING(D:V.VALUE(g_sleepLogNameArray[&logCnt]))
+        ;print "Dumping Log: &logName"
+        DO &ulogcall &op_path "&logName"
+        &logCnt=&logCnt+1
+      )
+    )
+
+    ; different configuration can go here like LPASS, sensors if they
+    ; have different ulog call or logs than what we have for default
+    ; This is for single core environment only. For multicore 
+    ; environment, add at the end of else part
+  )
+  else
+  (
+    ; Check the OS/build for multicore target
+    if "&buildConfig"=="qnx"
+    (
+;     tested on 8660.
+      &ulogcall="&(curr_dir)\..\..\..\common\ulog\scripts\ULogDump_qnx"
+      &scriptDir="&(curr_dir)"
+
+      DO &ulogcall &op_path "powerman_g_Sleep Statistics"
+      DO &ulogcall &op_path "powerman_g_Sleep Requests"
+
+      &coreCounter=0
+      while &coreCounter<&numOfCores
+      (
+        DO &ulogcall &op_path "powerman_g_Sleep Debug_c&(coreCounter)"
+        DO &ulogcall &op_path "powerman_g_Sleep Info_c&(coreCounter)"
+        DO &ulogcall &op_path "powerman_g_Sleep Profiling_c&(coreCounter)"
+        Do &ulogcall &op_path "powerman_g_Sleep WarningError_c&(coreCounter)"
+
+        &coreCounter=&coreCounter+1
+      )
+    )
+  )
+)
+
+;----------------------------------------------------------------------------
+; Running the actual dump for sleep data structures. If we don't have correct
+; time stamp (due to nolog option as input or ulog failed for some reason)
+; we simply set it to all Fs so that during merging, dump will be at the end.
+;----------------------------------------------------------------------------
+if "&ULogTimestamp"==""
+(
+  &ULogTimestamp=0xFFFFFFFF
+)
+
+;Don't run dump if we passed nodump
+if "&dump"=="true"
+(
+  cd &op_path
+  OPEN #1 "SleepDump.ulog" /Create
+  &output="WRITE #1"
+  
+  &coreCounter=0
+  while &coreCounter<&numOfCores
+  (
+    ; Getting List pointer for core 'coreCounter'
+    &output "&(ULogTimestamp): Core &(coreCounter)" 
+    
+    &numFLUT=0
+    &str="&(ULogTimestamp): (Frequency List:"      
+    &fTable=V.VALUE((sleep_fLUT_node *)g_sleepFLUT[&coreCounter])
+    while V.VALUE((sleep_fLUT_node *)&fTable)!=0
+    (             
+      &temp=FORMAT.DECIMAL(0, V.VALUE(((sleep_fLUT_node *)&fTable)->frequency))
+      &str="&(str) &(temp)"
+      
+      if V.VALUE(g_sleepEnabledFeatures & 0x0008)!=0
+      (
+        &tmpCnt=0
+        while &tmpCnt<&numMLUT
+        (
+          &temp=V.VALUE(((sleep_fLUT_node *)&fTable)->frequency)
+          if &temp==V.VALUE(SleepLPR_static_freq_list[&tmpCnt])
+          (
+            &str="&(str)*"
+            &tmpCnt=&numMLUT
+          )
+          &tmpCnt=&tmpCnt+1
+        )
+      )
+      
+      &fTable=V.VALUE(((sleep_fLUT_node *)&fTable)->next)
+      &numFLUT=&numFLUT+1
+    )
+    &output "&(str))"    
+    
+    &clprListPtr=V.VALUE(g_LPRRegistry.synthLPRs[&coreCounter])
+    PRINT &clprListPtr
+    
+    GOSUB DumpCLpr &clprListPtr &coreCounter
+
+    &coreCounter=&coreCounter+1
+    &resourceStr=""
+  )
+  
+  CLOSE #1
+  
+  ;Write statistic dump file
+  OPEN #1 "SleepStatDump.ulog" /Create
+  &output="WRITE #1"
+   
+  GOSUB DumpSleepFeatures
+  GOSUB DumpSleepStats
+  GOSUB DumpSleepPCOverhead
+    
+  &output "&(ULogTimestamp):  Lookup table element statistics:"
+  &coreCounter=0
+  while &coreCounter<&numOfCores
+  (
+    &output "&(ULogTimestamp):  Core &(coreCounter)" 
+    &fCnt=0    
+    while &fCnt<&numMLUT
+    ( 
+      if V.VALUE(g_sleepEnabledFeatures & 0x0008)!=0
+      (
+        &elem=FORMAT.DECIMAL(0, V.VALUE(SleepLPR_static_freq_list[&fCnt]))
+      )
+      else
+      (
+        &elem=0
+      )
+        
+      &output "&(ULogTimestamp):   Table &fCnt, frequency &(elem)"
+
+      &elem=V.VALUE((sleep_mLUT *)SleepLPR_power_lookup_table[&coreCounter][&fCnt])
+      &numElem=V.VALUE(((sleep_mLUT *)&elem)->num_elements)
+      &eCnt=0
+      while &eCnt<&numElem
+      (
+        &temp=V.VALUE(((sleep_mLUT *)&elem).element)
+        &temp=V.VALUE(&((sleep_mLUT_elem *)&temp)[&eCnt])
+        GOSUB DumpLTElemStats &temp
+        &output "&(str)"
+        &eCnt=&eCnt+1
+      )
+
+
+      &fCnt=&fCnt+1
+    )
+    &coreCounter=&coreCounter+1
+  )
+  
+  CLOSE #1  
+)
+
+;End Dump
+PRINT "Completed..."
+
+if "&merge"=="true"
+(
+  do &(scriptDir)\mergeLogs.cmm &(scriptDir) &op_path mergedOutput.ulog
+)
+
+cd &(curr_dir)
+
+ENDDO
+
+
+
+;=================================================================
+;                          Functions
+;=================================================================
+
+;-----------------------------------------------------------------
+; Dumping a synthesized LPR. This function will gets called
+; while dumping list of Syn LPRs.
+;-----------------------------------------------------------------
+
+DumpCLpr:
+  ENTRY &clpr &coreNum
+  LOCAL &ptrClprm &ptrLpr &lprName &temp
+  LOCAL &numCLprms &numComp 
+  LOCAL &it &jt
+
+  &numCLprms=V.VALUE(((sleep_synth_lpr *)&clpr).mode_count)
+  &output "&(ULogTimestamp):  Registered LPRs"
+
+  ; This is somewhat long procedure. We don't store directly registered
+  ; sleep_lpr. We can query the look up table but for that we will have 
+  ; to introduce new variable for its size as cmm script does not know 
+  ; its size at run time. Things may get tricky if binary compatibilty
+  ; is to be introduced.
+
+  &it=0
+  while &it<&numCLprms
+  (
+    &ptrClprm=V.VALUE(((sleep_synth_lpr *)&clpr)->modes + &it)
+    
+    ; Num of expected modes of ptrClprm CLprm
+    &numComp=V.VALUE(((sleep_synth_lprm *)&ptrClprm).num_component_modes)
+    
+    &jt=0
+    while &jt<&numComp
+    (
+      &temp=V.VALUE(((sleep_synth_lprm *)&ptrClprm).component_modes + &jt)
+      &temp=V.VALUE((sleep_lprm *)(*(sleep_lprm **)&temp))
+      &ptrLpr=V.VALUE(((sleep_lprm *)&temp).parent_LPR)
+      IF &ptrLpr!=0 
+      (
+        &lprName=DATA.STRING(D:V.VALUE(((sleep_lpr *)&ptrLpr).resource_name))
+  
+        if STRING.SCAN("&(resourceStr)", "$&(lprName)$", 0)==-1
+        (
+          GOSUB DumpSleepLpr &ptrLpr &coreNum
+          &resourceStr="&(resourceStr) $&(lprName)$"
+        )
+      )
+
+      &jt=&jt+1
+    )
+
+    &it=&it+1
+  )
+
+  &output "&(ULogTimestamp):  Component pre-synthesized modes:"
+
+  &it=0
+  while &it<&numCLprms
+  (
+    &ptrClprm=V.VALUE(((sleep_synth_lpr *)&clpr).modes+&it)
+    
+    GOSUB DumpCLprm &ptrClprm
+    &it=&it+1
+  )
+
+  RETURN
+
+;-----------------------------------------------------------------
+; Dumping individual CLprm
+;-----------------------------------------------------------------
+DumpCLprm:
+  ENTRY &clprm
+  LOCAL &lprmName &componentLprms &status_val &status_string
+
+  &lprmName=DATA.STRING(D:V.VALUE(((sleep_synth_lprm *)&clprm).name))
+  &status_val=V.VALUE(((sleep_synth_lprm *)&clprm).mode_status)
+
+  IF &status_val==0
+    &status_string="Enabled"
+  ELSE
+    &status_string="Disabled"
+
+  &output "&(ULogTimestamp):    (Mode: &(lprmName))"
+  &output "&(ULogTimestamp):       (Status: &(status_string))"
+
+  RETURN
+
+
+;---------------------------------------------------------------------------
+; Dumps the sleep_lpr structure
+;---------------------------------------------------------------------------
+DumpSleepLpr:
+  ENTRY &lprPtr &coreNum
+  LOCAL &aMode &modeAddress &index
+
+  &index=0
+ 
+  &aMode=V.VALUE(((sleep_lpr *)&lprPtr).modes + 1 )
+  &lprName=DATA.STRING(D:V.VALUE(((sleep_lpr *)&lprPtr).resource_name))
+  &modeCount=V.VALUE(((sleep_lpr *)&lprPtr).mode_count)
+  &output "&(ULogTimestamp):    (Resource Name: &(lprName)) (Mode Count: &(modeCount))"
+
+  while &index<&modeCount
+  (
+    &aMode=V.VALUE(((sleep_lpr *)&lprPtr).modes + &index )
+    PRINT &(aMode)
+    GOSUB DumpSleepLprm &aMode &coreNum
+    &index=&index+1
+  )
+
+  RETURN
+
+
+;---------------------------------------------------------------------------
+; Dumps sleep_lprm structure
+;---------------------------------------------------------------------------
+DumpSleepLprm:
+  ENTRY &lprm &coreNum
+  LOCAL &modeName &resourceName
+  LOCAL &modeStatus &intime &attrs &statusStr &registered
+
+  &modeName=DATA.STRING(D:V.VALUE(((sleep_lprm *)&lprm).mode_name))
+  &resourceName=DATA.STRING(D:V.VALUE(((sleep_lprm *)&lprm).parent_LPR.resource_name))
+
+  &modeStatus=V.VALUE(((sleep_lprm *)&lprm).mode_enabled)
+  IF &modeStatus==0
+    &statusStr="Disabled"
+  ELSE
+    &statusStr="Enabled"
+
+  &str="&(ULogTimestamp):       (Mode: &(resourceName).&(modeName)"
+  
+  &registered=V.VALUE( ((sleep_lpr *)(((sleep_lprm *)&lprm)->parent_LPR))->registered )
+  if &registered==0
+    &str="&(str) - NOT REGISTERED)"
+  else
+    &str="&(str))"
+  
+  &str="&(str) (status: &(statusStr))"
+
+  &attrs=FORMAT.HEX(0, V.VALUE(((sleep_lprm *)&lprm).attributes))  
+  &str="&(str) (Attribute: 0x&(attrs))"
+
+  &output "&(str)"
+
+  RETURN
+
+;---------------------------------------------------------------------------
+; Dumps lookup table stats
+;---------------------------------------------------------------------------
+DumpLTElemStats:
+  ENTRY &ltelem  
+  LOCAL &dur &stats &min &max
+  
+  &stats=V.VALUE( (sleepStats_generic *)&(((sleep_mLUT_elem *)&ltelem)->element_stats) )
+  &dur=V.VALUE(((sleep_mLUT_elem *)&ltelem)->duration_thresh)
+  &dur=FORMAT.DECIMAL(0, &dur);
+  &str="&(ULogTimestamp):    (Element: &(dur))"
+  
+  &min=V.VALUE( ((sleepStats_generic *)&stats)->min )
+  &min=FORMAT.DECIMAL(0, &min)
+  &max=V.VALUE( ((sleepStats_generic *)&stats)->max )
+  &max=FORMAT.DECIMAL(0, &max)
+  &str="&(str) (Hit Range: &(min) <-> &(max))"  
+  
+  &tmp=V.VALUE( ((sleepStats_generic *)&stats)->count )
+  &tmp=FORMAT.DECIMAL(0, &tmp)
+  &str="&(str) (Count: &(tmp))"
+  
+  RETURN
+
+;---------------------------------------------------------------------------
+; Dumps sleep feature status
+;---------------------------------------------------------------------------  
+DumpSleepFeatures:
+   
+  &output "&(ULogTimestamp): Sleep Features:"
+  
+  &str="&(ULogTimestamp):                 QDSS :"
+  if V.VALUE(g_sleepEnabledFeatures & 0x0001)!=0
+    &str="&(str) Enabled"
+  else
+    &str="&(str) Disabled"
+  &output "&(str)"
+  
+  &str="&(ULogTimestamp):        LPR Profiling :"
+  if V.VALUE(g_sleepEnabledFeatures & 0x0002)!=0
+    &str="&(str) Enabled"
+  else
+    &str="&(str) Disabled"
+  &output "&(str)"
+  
+  &str="&(ULogTimestamp): Synth Backoff Adjust :"
+  if V.VALUE(g_sleepEnabledFeatures & 0x0004)!=0
+    &str="&(str) Enabled"
+  else
+    &str="&(str) Disabled"
+  &output "&(str)"
+  
+  &str="&(ULogTimestamp):    Frequency Scaling :"
+  if V.VALUE(g_sleepEnabledFeatures & 0x0008)!=0
+    &str="&(str) Enabled"
+  else
+    &str="&(str) Disabled"
+  &output "&(str)"
+  
+  ;Flag is actually "disable modes" when set
+  &str="&(ULogTimestamp):    Sleep allow modes :"
+  if V.VALUE(g_sleepEnabledFeatures & 0x0010)!=0
+    &str="&(str) Disable"
+  else
+    &str="&(str) Enabled"
+  &output "&(str)"
+  
+  &str="&(ULogTimestamp):               uSleep :"
+  if V.VALUE(g_sleepEnabledFeatures & 0x0020)!=0
+    &str="&(str) Enabled"
+  else
+    &str="&(str) Disabled"
+  &output "&(str)"
+
+  &str="&(ULogTimestamp):                  QRT :"
+  if V.VALUE(g_sleepEnabledFeatures & 0x0040)!=0
+    &str="&(str) Enabled"
+  else
+    &str="&(str) Disabled"
+  &output "&(str)"
+
+  &output "&(ULogTimestamp):"  
+  
+  RETURN
+  
+;---------------------------------------------------------------------------
+; Dumps LPR stats
+;---------------------------------------------------------------------------
+DumpSleepStats:
+  LOCAL &SLT &num &numLPRM &i &j &lpr 
+  LOCAL &fCnt &stats &temp &elem
+  LOCAL &count &total &idx &dynData
+
+  &output "&(ULogTimestamp): Sleep Mode Statistics:"
+  
+  ;Check if auto LPR profiling feature is enabled
+  &temp=V.VALUE(g_sleepEnabledFeatures & 2)
+  if &temp!=0
+  (  
+    &num=Var.SIZEOF(SleepLPR_LookupTable)/Var.SIZEOF(SleepLPR_LookupTable[0])
+    &i=0
+    while &i<&num
+    ( 
+      &SLT=V.VALUE((sleep_lpr *)SleepLPR_LookupTable[&i])
+      
+      &j=0
+      &numLPRM=V.VALUE(((sleep_lpr *)&SLT)->mode_count)
+      while &j<&numLPRM
+      (
+        ;Sample line:
+        ;0xC4EEE10: Mode: (cxo.shutdown) (Total time: 123456789) (Last time: 123456) (Cycles 660)
+        
+        &elem=DATA.STRING(D:V.VALUE(((sleep_lpr *)&SLT)->resource_name))
+        &str="&(ULogTimestamp):  Mode: (&elem."
+        &lpr=V.VALUE((sleep_lpr *)&SLT)
+        &elem=V.VALUE((sleep_lprm *)(((sleep_lpr *)&lpr)->modes) + &j)
+              
+        &temp=DATA.STRING(D:V.VALUE(((sleep_lprm *)&elem)->mode_name))
+        &str="&(str)&temp) (Total time: "
+        
+        &temp=FORMAT.DECIMAL(0, V.VALUE(((sleep_lprm *)&elem)->mode_statistics.in_mode_time)) 
+        &str="&(str)&temp) (Last time: "
+        
+        &temp=FORMAT.DECIMAL(0, V.VALUE(((sleep_lprm *)&elem)->mode_statistics.last_mode_time)) 
+        &str="&(str)&temp) (Cycles: "
+        
+        &temp=FORMAT.DECIMAL(0, V.VALUE(((sleep_lprm *)&elem)->mode_statistics.mode_run_cycles))
+        &output "&(str)&temp)"
+        
+        ;Only dump frequency stats if LPR is registered
+        &temp=V.VALUE( ((sleep_lpr *)(((sleep_lprm *)&elem)->parent_LPR))->registered )
+        if &temp!=0
+        (
+          &fCnt=0
+          &fTable=V.VALUE((sleep_fLUT_node *)g_sleepFLUT[0])
+          while V.VALUE((sleep_fLUT_node *)&fTable)!=0
+          ( 
+            ;Sample line:
+            ;0xC4EEE3E:  Freq: (245760 Khz)
+            
+            &dynData=V.VALUE( ((sleep_fLUT_node *)&fTable)->dynamic_data.cLPRM )
+            &idx=V.VALUE( ((sleep_lprm *)&elem)->dynamic_num )
+                      
+            &temp=FORMAT.DECIMAL(0, V.VALUE(((sleep_fLUT_node *)&fTable)->frequency))
+            &str="&(ULogTimestamp):   Freq: (&temp Khz)"            
+            &output "&(str)"
+          
+            ;Sample line:
+            ;0xC4EEE67:      Enter: (Max: 2622) (Min: 2304) (cycles: 1233) (Total: 156114) (Avg: 2401)
+            
+            &stats=V.VALUE( &(((sleep_LPRM_dyn_data *)&dynData)[&idx]))
+            
+            &str="&(ULogTimestamp):      Enter: (Max: "                         
+            &temp=FORMAT.DECIMAL(0, V.VALUE( ((sleep_LPRM_dyn_data *)&stats)->enter.max))
+            &str="&(str)&temp) (Min: "
+            
+            &temp=FORMAT.DECIMAL(0, V.VALUE( ((sleep_LPRM_dyn_data *)&stats)->enter.min))
+            &str="&(str)&temp) (Cycles: "
+            
+            &count=V.VALUE( ((sleep_LPRM_dyn_data *)&stats)->enter.count)
+            &temp=FORMAT.DECIMAL(0, V.VALUE(&count))
+            &str="&(str)&temp) (Total: "
+            
+            &total=V.VALUE( ((sleep_LPRM_dyn_data *)&stats)->enter.total)
+            &temp=FORMAT.DECIMAL(0, V.VALUE(&total))
+            &str="&(str)&temp) (Avg: "
+            
+            if &count!=0
+              &temp=&total/&count
+            else
+              &temp=0
+  
+            &temp=FORMAT.DECIMAL(0, &temp)
+            &str="&(str)&temp)"
+            &output "&(str)"
+            
+            ;Sample line:
+            ;0xC4EEE95:    Backoff: (Max: 2244) (Min: 1152) (cycles: 1233) (Total: 95400)  (Avg: 1467)
+            
+            &str="&(ULogTimestamp):    Backoff: (Max: " 
+            &temp=FORMAT.DECIMAL(0, V.VALUE( ((sleep_LPRM_dyn_data *)&stats)->backoff.max))
+            &str="&(str)&temp) (Min: "
+            
+            &temp=FORMAT.DECIMAL(0, V.VALUE( ((sleep_LPRM_dyn_data *)&stats)->backoff.min))
+            &str="&(str)&temp) (Cycles: "            
+            
+            &count=V.VALUE( ((sleep_LPRM_dyn_data *)&stats)->backoff.count)
+            &temp=FORMAT.DECIMAL(0, V.VALUE(&count))
+            &str="&(str)&temp) (Total: "
+            
+            &total=V.VALUE( ((sleep_LPRM_dyn_data *)&stats)->backoff.total)
+            &temp=FORMAT.DECIMAL(0, V.VALUE(&total))
+            &str="&(str)&temp) (Avg: "
+            
+            if &count!=0
+              &temp=&total/&count
+            else
+              &temp=0
+  
+            &temp=FORMAT.DECIMAL(0, &temp)
+            &str="&(str)&temp)"
+            &output "&(str)"
+                              
+            &fTable=V.VALUE(((sleep_fLUT_node *)&fTable)->next)
+          )
+          &output "&(ULogTimestamp):"
+        )
+        else
+        (
+          &output "&(ULogTimestamp):   NOT REGISTERED"
+          &output "&(ULogTimestamp):"
+        )      
+        &j=&j+1
+      )
+      &i=&i+1
+    )
+  )
+  else
+  (
+    &output "&(ULogTimestamp): Feature disabled"
+  )
+  RETURN  
+  
+;---------------------------------------------------------------------------
+; Dumps power collapse overhead
+;---------------------------------------------------------------------------  
+DumpSleepPCOverhead:
+  LOCAL &numl2Modes &numLPRM &i &cnt &overHead
+  LOCAL &count &total &temp &table  
+  
+  &temp=V.VALUE(g_sleepEnabledFeatures & 2)
+  if &temp!=0
+  (
+    ;print PC overhead    
+    &output "&(ULogTimestamp): Power Collapse Overhead:"
+    &cnt=0
+    &table=V.VALUE((sleep_fLUT_node *)g_sleepFLUT[0])
+    if V.VALUE((sleep_fLUT_node *)&table)==0
+    (
+      &output "&(ULogTimestamp): No frequency tables yet" 
+      return
+    )
+    
+    &numl2Modes=Var.SIZEOF(((sleep_fLUT_node *)&table)->dynamic_data.pcOverhead)/Var.SIZEOF(((sleep_fLUT_node *)&table)->dynamic_data.pcOverhead[0])
+    
+    while &cnt<&numl2Modes
+    (  
+      &str="&(ULogTimestamp):"
+      
+      if &cnt==0
+        &str="&(str) L2 & TCM Retention"
+      else if &cnt==1
+        &str="&(str) L2 & TCM Non-retention"
+      else if &cnt==2
+        &str="&(str) L2 Non-retention, TCM Retention"
+      else
+        &str="&(str) L2 & TCM UNKNOWN"
+            
+      &output "&(str):"
+      
+      &table=V.VALUE((sleep_fLUT_node *)g_sleepFLUT[0])
+      while V.VALUE((sleep_fLUT_node *)&table)!=0
+      (
+        ; Note that if multi-core this routine needs to be updated
+        &overHead=V.VALUE( &(((sleep_fLUT_node *)&table)->dynamic_data.pcOverhead[&cnt]) )
+        
+        &temp=FORMAT.DECIMAL(0, V.VALUE(((sleep_fLUT_node *)&table)->frequency))
+        &output "&(ULogTimestamp):  Freq: (&temp Khz)"
+        
+        &temp=FORMAT.DECIMAL(0, V.VALUE(((power_collapse_overhead *)&overHead)->enter.max))
+        &str="&(ULogTimestamp):   Enter: (Max: &temp)"
+        
+        &temp=FORMAT.DECIMAL(0, V.VALUE(((power_collapse_overhead *)&overHead)->enter.min))
+        &str="&(str) (Min: &temp)"
+        
+        &total=V.VALUE(((power_collapse_overhead *)&overHead)->enter.total)
+        &temp=FORMAT.DECIMAL(0, &total)
+        &str="&(str) (Total: &temp)"
+        
+        &count=V.VALUE(((power_collapse_overhead *)&overHead)->enter.count)
+        &temp=FORMAT.DECIMAL(0, &count)
+        &str="&(str) (Cycles: &temp)"
+                
+        if &count!=0
+          &temp=&total/&count
+        else
+          &temp=0
+          
+        &temp=FORMAT.DECIMAL(0, &temp)
+        &str="&(str) (Avg: &temp)"        
+        &output "&(str)"
+               
+        &temp=FORMAT.DECIMAL(0, V.VALUE(((power_collapse_overhead *)&overHead)->exit.max))
+        &str="&(ULogTimestamp):    Exit: (Max: &temp)"
+        
+        &temp=FORMAT.DECIMAL(0, V.VALUE(((power_collapse_overhead *)&overHead)->exit.min))
+        &str="&(str) (Min: &temp)"
+        
+        &total=V.VALUE(((power_collapse_overhead *)&overHead)->exit.total)
+        &temp=FORMAT.DECIMAL(0, &total)
+        &str="&(str) (Total: &temp)"
+        
+        &count=V.VALUE(((power_collapse_overhead *)&overHead)->exit.count)
+        &temp=FORMAT.DECIMAL(0, &count)
+        &str="&(str) (Cycles: &temp)"
+                
+        if &count!=0
+          &temp=&total/&count
+        else
+          &temp=0
+
+        &temp=FORMAT.DECIMAL(0, &temp)
+        &str="&(str) (Avg: &temp)"
+        
+        &output "&(str)"        
+        
+        &table=V.VALUE(((sleep_fLUT_node *)&table)->next)        
+      )
+      &output "&(ULogTimestamp):"
+      &cnt=&cnt+1
+    )
+  )  
+  RETURN

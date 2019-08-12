@@ -1,0 +1,70 @@
+#===============================================================================
+#
+# NAS Subsystem build script
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/nas/build/nas.scons#1 $
+#  $DateTime: 2016/12/13 08:00:05 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/15/10   pm      Initial revision
+#
+#===============================================================================
+Import('env')
+
+nas_public_api_list = [
+   ('CORE', 'BUSES'),
+   ('CORE', 'POWER'),
+   ('UTILS', 'OSYS'),
+   ('UTILS', 'A2'),
+   ('AVS', 'MVS'),
+   ('UIM', 'UIM'),
+   ('MPOWER', 'MPOWER'),
+   ('WCDMA', 'WCDMA'),
+   ('FW', 'WCDMA'),
+   ('TDSCDMA', 'TDSCDMA'),
+   ('MCFG', 'MCFG'),
+]
+for api_area,api_name in nas_public_api_list:
+     env.RequirePublicApi([api_name], area=api_area)
+
+env.PublishPrivateApi('VIOLATIONS',[
+   '${INC_ROOT}/wcdma/variation/inc',
+   '${INC_ROOT}/wcdma/cust/inc',
+   '${INC_ROOT}/wcdma/l1/offline/inc',
+   '${INC_ROOT}/wcdma/l1/offline/src',
+   '${INC_ROOT}/wcdma/rrc/src',
+   '${INC_ROOT}/wcdma/l2/inc',
+   '${INC_ROOT}/wcdma/mac/inc',
+   '${INC_ROOT}/wcdma/rlc/inc',
+   '${INC_ROOT}/wcdma/rrc/inc',
+   '${INC_ROOT}/utils/osys',
+   '${INC_ROOT}/mcs/hwio/inc',
+   '${INC_ROOT}/mcs/variation/inc',
+   '${INC_ROOT}/mcs/cust/inc',
+   '${INC_ROOT}/mcs/hwio/inc/${CHIPSET}',
+])
+
+env.LoadSoftwareUnits()
+env.PublishProtectedApi('NAS', ["${INC_ROOT}/mmcp/nas/cb/inc"])
+env.PublishProtectedApi('NAS', ["${INC_ROOT}/mmcp/nas/cnm/inc"])
+env.PublishProtectedApi('NAS', ["${INC_ROOT}/mmcp/nas/mbmsm/inc"])
+env.PublishProtectedApi('NAS', ["${INC_ROOT}/mmcp/nas/mm/inc"])
+env.PublishProtectedApi('NAS', ["${INC_ROOT}/mmcp/nas/mn/inc"])
+env.PublishProtectedApi('NAS', ["${INC_ROOT}/mmcp/nas/rabm/inc"])
+env.PublishProtectedApi('NAS', ["${INC_ROOT}/mmcp/nas/reg/inc"])
+env.PublishProtectedApi('NAS', ["${INC_ROOT}/mmcp/nas/services/inc"])
+env.PublishProtectedApi('NAS', ["${INC_ROOT}/mmcp/nas/sm/inc"])
+env.PublishProtectedApi('NAS', ["${INC_ROOT}/mmcp/nas/tc/inc"])
+

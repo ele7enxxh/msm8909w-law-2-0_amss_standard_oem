@@ -1,0 +1,136 @@
+#===============================================================================
+#
+# Sensor Power Manager Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/Sensors/pm/build/pm.scons#1 $
+#  $DateTime: 2016/12/13 08:00:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985213 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who     what, where, why
+# --------    ---     ---------------------------------------------------------
+# 12/10/2014  MW      Fixed HD22 section
+# 08/24/2014  jhh     Split micro and big image functions
+# 07/25/2014  ps      Support for 8996 images
+# 05/29/2014  pn      Restructured to fix libraries with overlapping objects
+# 05/08/2014  jhh     Corrected library name to include sensors
+# 04/18/2014  sc      Added folder for legacy support
+# 04/04/2014  MW      Added SENSORS_DD_DEV_FLAG for HD22
+# 03/03/2014  jhh     Clean up for 8994
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'MPROC',
+   'SERVICES',
+   'POWER',
+   'DAL',
+   'DEBUGTOOLS',
+   'KERNEL',
+   'SYSTEMDRIVERS',
+]
+
+env.RequirePublicApi(CBSP_API, area='core')
+env.RequireRestrictedApi(CBSP_API)
+
+# env.RequirePrivateApi(['POWER_MPM'])
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_SMR',
+   'SNS_QUEUE',
+   'SNS_MEMMGR',
+   'SNS_COMMON',
+   'SNS_INT_SRVC',
+   'SNS_EVMGR',
+   'SENSOR1',
+]
+
+env.RequirePublicApi(SENSORS_API)
+env.RequireRestrictedApi(SENSORS_API)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/pm/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Include path
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/core/api/systemdrivers/pmic",
+   "${BUILD_ROOT}/core/mproc/qmi",
+   "$(BUILD_ROOT}/core/systemdrivers/busywait/inc",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/idl/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/pm/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SNS_PM_SOURCES = [
+        '${BUILDPATH}/sns_pm_unit_test.c',
+        '${BUILDPATH}/sns_pm.c',
+]
+SNS_PM_UIMG_SOURCES = [
+        '${BUILDPATH}/sns_pm_uimg.c',
+]
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   PM_CLEAN_SOURCES = env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/pm/src')
+   PM_CLEAN_SOURCES += env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/pm/src/legacy')
+   PM_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/pm/inc')
+	
+   # Add binary library
+   sns_pm_lib = env.AddBinaryLibrary(
+     ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+     '${BUILDPATH}/pm', SNS_PM_SOURCES)
+   sns_pm_uimg_lib = env.AddBinaryLibrary(
+     ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+     '${BUILDPATH}/pm_uimg', SNS_PM_UIMG_SOURCES)
+	
+   # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], PM_CLEAN_SOURCES)
+else:
+   sns_pm_lib = env.AddLibrary(
+     ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+     '${BUILDPATH}/pm', SNS_PM_SOURCES)
+   sns_pm_uimg_lib = env.AddLibrary(
+     ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+     '${BUILDPATH}/pm_uimg', SNS_PM_UIMG_SOURCES)
+
+# Caluse common to regular build and HD22   
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary('CORE_QDSP6_SENSOR_SW', sns_pm_uimg_lib)
+

@@ -1,0 +1,47 @@
+import os
+
+Import('env')
+env = env.Clone()
+
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#Commenting out --c99 for ARM6 compiler environment
+#this is included by default
+env.Append(CFLAGS = '--c99')
+env.Append(CPPPATH = '../src')
+
+CBSP_API = [
+   'POWER',
+   'SYSTEMDRIVERS',
+   'DAL',
+   'SERVICES',
+   'DEBUGTRACE',
+   'BOOT',
+   'POWER_UTILS'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Generate QFPROM PVS HWIO definitions
+#-------------------------------------------------------------------------------
+if env.has_key('HWIO_IMAGE'):
+    env.AddHWIOFile('HWIO', [
+        {
+            'filename': '${INC_ROOT}/core/power/acc/src/8909/tcsr_hwio.h',
+            'modules': ['TCSR_TCSR_REGS'],
+            'output-offsets': False,
+            'header':
+                '#include "msmhwiobase.h"\n\n'
+        }
+    ])
+
+ACC_SOURCES = [
+	'${BUILDPATH}/acc.c',
+    '${BUILDPATH}/8909/acc_config.c',
+]
+
+env.AddLibrary(['RAILWAY_BOOT_DRIVER'], '${BUILDPATH}/acc.lib', ACC_SOURCES)
+

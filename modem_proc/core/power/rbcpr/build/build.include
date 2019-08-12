@@ -1,0 +1,99 @@
+
+
+Import('env')
+env = env.Clone()
+
+CPR_ROOT = "${BUILD_ROOT}/core/power/rbcpr"
+INC_PATH = CPR_ROOT + '/inc'
+SRC_PATH = CPR_ROOT + '/src'
+
+env.VariantDir('${BUILDPATH}', SRC_PATH, duplicate=0)
+
+if env['HAL_PLATFORM'] in ['8974','9x25','8962','8926','8916']:
+  CPR_VERSION = 'v1'
+elif env['HAL_PLATFORM'] in ['9x35','8994','9x45','8936','8952']:
+  CPR_VERSION = 'v1.1'
+
+#-------------------------------------------------------------------------------
+# Run Sleep LPR tool to create a LPRM definition for CPR.
+#-------------------------------------------------------------------------------
+if 'USES_CORESLEEP_TOOL' in env:
+   xml_file = CPR_ROOT + '/src/common/lpr_definition_cpr.xml'
+   env.AddCoreSleepLPR('CBSP_QDSP6_SW_IMAGE', {'sleep_lpr_xml' : [xml_file]})
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'BUSES',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.PublishPrivateApi('CPR',
+  [INC_PATH,
+   INC_PATH + '/hal/' + CPR_VERSION,
+   INC_PATH + "/hwio/${MSM_ID}",
+   SRC_PATH + "/tgt/${MSM_ID}"])
+
+
+#-------------------------------------------------------------------------------
+# Target-specific setup
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+
+# To disable CPR on targets where it is supported, uncomment this and
+# comment out the other definition:
+# CPR_SOURCES = [
+#    '${BUILDPATH}/common/cpr_stub.c',
+#  ]
+
+# Uncomment this to enable CPR
+CPR_SOURCES = [
+    '${BUILDPATH}/common/cpr.c',
+    '${BUILDPATH}/common/cpr_disabled.c',
+    '${BUILDPATH}/common/cpr_efuses.c',
+    '${BUILDPATH}/common/cpr_enabled.c',
+    '${BUILDPATH}/common/cpr_lpr.c',
+    '${BUILDPATH}/hal/' + CPR_VERSION + '/HAL_cpr.c',
+    '${BUILDPATH}/hal/' + CPR_VERSION + '/HAL_cpr_config.c',
+    '${BUILDPATH}/tgt/${MSM_ID}/cpr_target.c',
+  ]
+
+#-----------------------------------------------------------------------------
+# Add Libraries to image
+#-----------------------------------------------------------------------------
+env.AddLibrary(
+  ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+  '${BUILDPATH}/cpr', CPR_SOURCES)
+
+#-----------------------------------------------------------------------------
+# Register with RCINIT framework so that it can call our init function.
+#-----------------------------------------------------------------------------
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+  env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',
+      'init_name'                  : 'CPR',
+      'init_function'              : 'CprInit',
+      'dependencies'               : ['clk_regime','dalsys'],
+      'policy_optin'               : ['default', 'ftm', ],
+    })
+

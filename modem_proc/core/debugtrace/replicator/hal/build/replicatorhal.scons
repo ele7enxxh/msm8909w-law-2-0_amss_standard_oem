@@ -1,0 +1,36 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for HAL QDSS-REPLICATOR Library.
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:$
+
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.RequirePublicApi(['HAL','DAL','SERVICES','SYSTEMDRIVERS'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+REPLICATOR_HAL_SRC = [
+   '${BUILDPATH}/halqdss_replicator.c',
+]
+
+env.AddLibrary(['RPM_IMAGE','WCN_IMAGE','CBSP_WCN_IMAGE','CORE_GSS','MODEM_PROC','CORE_QDSP6_SW'],'${BUILDPATH}/replicator_hal',REPLICATOR_HAL_SRC)
+
+
+

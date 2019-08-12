@@ -1,0 +1,105 @@
+#===============================================================================
+#
+# cryptoLibs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/unifiedcrypto/environment/sampleapp/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/23/11   jl	     Removed debug/nodebug from build path.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/unifiedcrypto/environment"
+
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+if env.has_key('IMAGE_NAME'):
+   SECUREMSMLIBPATH = '${IMAGE_NAME}/${PROC}/${ARMTOOLS}'
+#   SECUREMSMLIBPATH = '${IMAGE_NAME}/${PROC}/${ARMTOOLS}/${DBUG_MODE}'
+else:
+   SECUREMSMLIBPATH = 'unknown/${PROC}/${ARMTOOLS}'
+#   SECUREMSMLIBPATH = 'unknown/${PROC}/${ARMTOOLS}/${DBUG_MODE}'
+
+#env.Replace(SECUREMSMLIBPATH = SECUREMSMLIBPATH)
+#env.VariantDir('${SECUREMSMLIBPATH}', SRCPATH, duplicate=0)
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+env.Append(ARMCC_CODE = " ${ARM_SPLIT_SECTIONS}")
+env.Replace(ARMLD_NOREMOVE_CMD = "")
+
+env.Append(CPPDEFINES = ['_ARM_', '__arm', 'ARM', 'ARM_BREW_BUILD'])
+env.Append(ARMCC_OPT = ' --loose_implicit_cast ')
+if env.has_key('BUILD_BOOT_CHAIN'):
+   env.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('UC_ENV_SAMPLEAPP_API', [
+   '${BUILD_ROOT}/core/securemsm/unifiedcrypto/environment/sampleapp/inc', 
+   '${BUILD_ROOT}/core/securemsm/unifiedcrypto/environment/inc',
+])
+
+env.PublishPrivateApi('UC_ENV_SAMPLEAPP', [
+   '${INC_ROOT}/core/securemsm/unifiedcrypto/core/sha/inc', 
+   '${INC_ROOT}/core/securemsm/unifiedcrypto/shared/sha/inc',
+   '${INC_ROOT}/core/securemsm/unifiedcrypto/environment/sampleapp/inc', 
+   '${INC_ROOT}/core/securemsm/unifiedcrypto/environment/sampleapp/src', 
+   '${INC_ROOT}/core/securemsm/unifiedcrypto/environment/inc', 
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/applib/common/src",
+   ])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SAMPLEAPP_ENV_LIB_SOURCES = [
+        '${BUILDPATH}/src/uc_env.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddBinaryLibrary('CTZL_IMAGE', '${BUILDPATH}/SAMPLEAPPENV', SAMPLEAPP_ENV_LIB_SOURCES)

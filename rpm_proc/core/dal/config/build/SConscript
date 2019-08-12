@@ -1,0 +1,96 @@
+#===============================================================================
+#
+# DAL CONFIG Lib
+#
+# GENERAL DESCRIPTION
+#    build script for the dal config library on the RPM
+#
+# Copyright (c) 2009-2015 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/rpm/dev/afrantz.vmpm_timer/core/dal/config/build/SConscript#1 $
+#  $DateTime: 2011/12/13 08:46:37 $
+#  $Author: coresvc $
+#  $Change: 2094401 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ----------------------------------------------------------------
+# 01/27/15   sg      creating env text file for adding path for included header files. 
+#===============================================================================
+Import('env')
+import os
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Load dal config builders
+#-------------------------------------------------------------------------------
+env.Tool('dalconfig_builder', toolpath = ['.'])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${DAL_ROOT}/config"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BUSES',
+   'HWENGINES',
+   'SYSTEMDRIVERS',
+   'SYSTEMDRIVERS_DALCONFIG',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'APTTESTS',
+   'KERNEL_MEMORYMANAGER',
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#------------------------------------------------------------------------------
+# Add extension flags doe dal config
+#------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "DAL_NATIVE_PLATFORM"
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+dal_gen_src = ['${BUILDPATH}/DALConfig_rpm', '${BUILDPATH}/DALModDir_rpm']
+
+if env.GetUsesFlag('USES_DEVCFG') is True:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG,
+   {
+     'devcfg_xml'    : '${BUILD_ROOT}/core/dal/config/${MSM_ID}/rpm/dalsystem_rpm.xml'
+   })
+   devcfg_gen_xml = '${BUILDPATH}/DevCfg_master.xml'
+   devcfg_gen_env = '${BUILDPATH}/DevCfg_env.txt'
+   DALConfig_xml = env.DevcfgBuilder([devcfg_gen_xml,devcfg_gen_env], None)
+   DALConfig_src = env.DALConfigSrcBuilder(dal_gen_src, DALConfig_xml[0])
+   if (os.path.exists(env.RealPath(devcfg_gen_env))) :
+         lines = [line.strip() for line in open(env.RealPath(devcfg_gen_env), 'r')]
+         env.get('CPPPATH').extend(lines) 
+else:
+   dal_sys_xml = "${BUILDPATH}/${MSM_ID}/rpm/dalsystem_rpm.xml"
+   dal_gen_xml = "${BUILDPATH}/dal_mod_rpm.xml"
+   DALConfig_xml = env.DALConfigXmlBuilder(dal_gen_xml, dal_sys_xml)
+   DALConfig_src = env.DALConfigSrcBuilder(dal_gen_src, DALConfig_xml)
+
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/DALConfig', DALConfig_src)
+

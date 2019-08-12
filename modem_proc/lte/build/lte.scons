@@ -1,0 +1,528 @@
+#===============================================================================
+#
+# TCXOMGR Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/lte/build/lte.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/15/15    sb     CR 803880: Add scon changes for new PDCP COMP message file
+# 04/11/14    mg     CR647594: QSH Phase 1
+# 09/21/10    ag     Support for logging msg packets.
+# 09/21/10    ag     Added BUSES, UIM and HDR paths.
+# 09/21/10    ag     Initial version.
+#===============================================================================
+Import('env')
+
+# Enable warnings -> errors for all, except LLVM toolchain (6.x.x) during migration
+# Copy the CFLAGS list to a new environment for us
+# (the list is a reference when cloned, so use deepcopy)
+import copy
+orig_env = env
+env = env.Clone()
+env['CFLAGS'] = copy.deepcopy(orig_env['CFLAGS'])
+
+# Remove any "disables" from top-level
+if env['CFLAGS'].count('-Wno-low') > 0:
+  env['CFLAGS'].remove('-Wno-low')
+
+if env['CFLAGS'].count('-Wno-medium') > 0:
+  env['CFLAGS'].remove('-Wno-medium')
+
+if env['CFLAGS'].count('-Wno-high') > 0:
+  env['CFLAGS'].remove('-Wno-high')
+
+if env['CFLAGS'].count('-Wno-error') > 0:
+  env['CFLAGS'].remove('-Wno-error')
+# Enable -Werror
+env.Append(HEXAGONCC_WARN = ' -Werror ')
+env.Append(HEXAGONCXX_WARN = ' -Werror ')
+
+env.Append(CFLAGS = "-DFEATURE_LTE_ELS_ENABLED")
+env.Append(CFLAGS = "-DFEATURE_LTE_UDC_ENABLED")  
+
+# Set -Wdeclaration-after-statement to disallow C99 style variable declarations
+# Required for QTF development
+env.Append(HEXAGONCC_WARN = ' -Wdeclaration-after-statement ')
+
+if env['PRODUCT_LINE'] == 'MPSS.BO.2.1':
+    env.Append(CPPDEFINES = ["FEATURE_LTE_CDRX_IMS_VOLTE_OPT"])
+
+								
+if env.PathExists('${BUILD_ROOT}/lte'):
+    env.Replace(LTE_ROOT = '${INC_ROOT}/lte')
+else:    
+    env.Replace(LTE_ROOT = '${INC_ROOT}/modem/lte')
+
+CHIPSET = env.get('CHIPSET')
+if (CHIPSET == "mdm9607"):
+    env.Append(CFLAGS = "-DLTE_MDM9607")
+
+CHIPSET = env.get('CHIPSET')
+if (CHIPSET == "msm8937"):
+    env.Append(CFLAGS = "-DLTE_MSM8937")
+
+if 'USES_SENSORS_COMPONENT' in env:
+    env.Append(CFLAGS = "-DSENSORS_COMPONENT")
+
+# Load cleanpack script:
+import os
+if os.path.exists(env.subst('${LTE_ROOT}/pack/lte_cleanpack.py')):
+   env.LoadToolScript('${LTE_ROOT}/pack/lte_cleanpack.py')
+
+	
+env.RequirePublicApi([
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_LTE',
+        ],
+        area='FW_LTE')
+        
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='LTE')
+
+env.RequirePublicApi([
+        'MCS',
+        ],
+        area='MCS')
+
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'DAL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MEAS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'CDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'SERVICES',
+        'SYSTEMDRIVERS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'GSM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'RF',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_CCS',
+        ],
+        area='FW_CCS')
+
+env.RequirePublicApi([
+        'FW_COMMON',
+        ],
+        area='FW_COMMON')
+
+env.RequirePublicApi([
+        'MEMORY',
+        'MPROC',
+        'POWER',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_GERAN',
+        ],
+        area='FW_GERAN')
+
+env.RequirePublicApi([
+        'DEBUGTOOLS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'OSYS',
+        'RTXSRC',
+        'RTPERSRC',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'GNSS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'STORAGE',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'HDR',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'LM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'TDSCDMA',
+        ],
+        area='TDSCDMA')
+
+env.RequirePublicApi([
+        'MPOWER',
+        ],
+        area='MPOWER')
+
+env.RequirePublicApi([
+        'A2',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'ONEX',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'CFM',
+        'COMMON',
+        'QSH',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_WCDMA',
+        ],
+        area='FW_WCDMA')
+
+env.RequirePublicApi([
+        'DATAMODEM',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'SECUREMSM',
+        'WIREDCONNECTIVITY',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'C2K',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_C2K',
+        ],
+        area='FW_C2K')
+        
+env.RequirePublicApi([
+        'TDSCDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GPS',
+		],
+		area='GPS')
+		
+env.RequirePublicApi([
+        'MCFG',
+		],
+		area='MCFG')
+
+env.RequirePublicApi([
+        'UIM',
+		],
+		area='UIM')
+		
+env.RequirePublicApi([
+        'MVS',
+		],
+		area='AVS')
+
+env.RequirePublicApi([
+        'RFTECH_LTE',
+        ],
+        area='RFTECH_LTE')
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+
+env.PublishProtectedApi('LTE', [
+        '${LTE_ROOT}/cust/inc',
+        '${LTE_ROOT}/variation/inc',
+        '${LTE_ROOT}/ML1/l1_common/inc',
+        '${LTE_ROOT}/ML1/mclk/inc',
+        '${LTE_ROOT}/ML1/schdlr/inc',
+        '${LTE_ROOT}/ML1/manager/inc',
+        '${LTE_ROOT}/ML1/search/inc',
+        '${LTE_ROOT}/RRC/src',
+        '${LTE_ROOT}/cust/inc',
+        '${LTE_ROOT}/ML1/sleepmgr/inc',
+        '${LTE_ROOT}/ML1/msmgr/inc',
+        '${LTE_ROOT}/ML1/dlm/inc',
+        '${LTE_ROOT}/common/inc',
+        '${LTE_ROOT}/ML1/rfmgr/inc',
+        '${LTE_ROOT}/ML1/search/src',
+        '${LTE_ROOT}/variation/inc',
+        '${LTE_ROOT}/ML1/md/inc',
+        '${LTE_ROOT}/ML1/gapmgr/inc',
+        '${LTE_ROOT}/ML1/gm/inc',
+        '${LTE_ROOT}/L2/rlc/src',
+        '${LTE_ROOT}/ML1/gm/src',
+        '${LTE_ROOT}/ML1/cxm/inc',
+        '${LTE_ROOT}/L2/common/inc',
+        '${LTE_ROOT}/ML1/dlm/src',
+        '${LTE_ROOT}/L2/mac/src',
+        '${LTE_ROOT}/L2/rlc/inc',
+        '${LTE_ROOT}/L2/pdcp/src',
+        '${LTE_ROOT}/ML1/manager/src',
+        '${LTE_ROOT}/L2/mac/inc',
+        '${LTE_ROOT}/ML1/bplmn/inc',
+        '${LTE_ROOT}/L2/pdcp/inc',
+        '${LTE_ROOT}/ML1/ulm/inc',
+        '${LTE_ROOT}/ML1/schdlr/src',
+        '${LTE_ROOT}/ML1/ulm/src',
+        '${LTE_ROOT}/ML1/pos/inc',
+        '${LTE_ROOT}/ML1/afc/inc',
+        '${LTE_ROOT}/ML1/bplmn/src',
+        '${LTE_ROOT}/PLT/src',
+        '${LTE_ROOT}/ML1/gapmgr/src',
+        '${LTE_ROOT}/ML1/cxm/src',
+        '${LTE_ROOT}/ML1/sleepmgr/src',
+        '${LTE_ROOT}/ML1/msmgr/src',
+        '${LTE_ROOT}/ML1/rfmgr/src',
+        '${LTE_ROOT}/PLT/inc',
+        '${LTE_ROOT}/tlb/src',
+        '${LTE_ROOT}/ML1/afc/src',
+        '${LTE_ROOT}/RRC/inc',
+        ])
+
+env.RequireProtectedApi(['LTE'])
+
+
+if 'USES_MSGR' in env:
+   env.AddUMID('${BUILDPATH}/lte.umid', ['${LTE_ROOT}/api/lte_cphy_ftm_msg.h',
+                                         '${LTE_ROOT}/api/lte_cphy_irat_meas_msg.h',
+                                         '${LTE_ROOT}/api/lte_cphy_msg.h',
+                                         '${LTE_ROOT}/api/lte_cphy_rssi_msg.h',
+                                         '${LTE_ROOT}/api/lte_ind_msg.h',
+                                         '${LTE_ROOT}/api/lte_mac_msg.h',
+                                         '${LTE_ROOT}/api/lte_pdcp_msg.h',
+                                         '${LTE_ROOT}/api/lte_pdcp_offload_msg.h',
+                                          #ifndef FEATURE_LTE_UDC_DISABLED 
+                                         '${LTE_ROOT}/api/lte_pdcp_comp_msg.h',
+                                          #endif /*FEATURE_LTE_UDC_DISABLED*/
+                                         '${LTE_ROOT}/api/lte_rlc_msg.h',
+                                         '${LTE_ROOT}/api/lte_rrc_ext_msg.h',
+                                         '${LTE_ROOT}/api/lte_rrc_irat_msg.h',
+                                         '${LTE_ROOT}/api/lte_tlb_msg.h',
+                                         '${LTE_ROOT}/api/lte_cxm_msg.h',
+                                     ])
+
+
+
+#remove all blocks to end of file when modem folder is removed
+
+
+env.PublishPrivateApi('VIOLATIONS', [
+                                     '${INC_ROOT}/modem/geran/variation/inc',
+                                     '${INC_ROOT}/modem/geran/cust/inc',
+                                     '${INC_ROOT}/modem/hdr/variation/inc',
+                                     '${INC_ROOT}/modem/hdr/cust/inc',
+                                     '${INC_ROOT}/modem/mcs/variation/inc',
+                                     '${INC_ROOT}/modem/mcs/cust/inc',
+                                     ])
+
+
+#-------------------------------------------------------------------------------
+# Publish protected API's for LTE
+#-------------------------------------------------------------------------------
+# cust file relocation
+# Protected is "private within the SU" vs. Restricted with is visible to other SUs
+env.PublishProtectedApi('LTE', ['${INC_ROOT}/modem/lte/common/inc',
+                                '${INC_ROOT}/modem/lte/L2/common/inc',
+                                '${INC_ROOT}/modem/lte/common/inc',
+                                '${INC_ROOT}/modem/lte/cxm/inc',
+                                '${INC_ROOT}/modem/lte/L2/common/inc',
+                                '${INC_ROOT}/modem/lte/L2/inc',
+                                '${INC_ROOT}/modem/lte/L2/mac/inc',
+                                '${INC_ROOT}/modem/lte/L2/pdcp/inc',
+                                '${INC_ROOT}/modem/lte/L2/rlc/inc',
+                                '${INC_ROOT}/modem/lte/ML1/afc/inc',
+                                '${INC_ROOT}/modem/lte/ML1/bplmn/inc',
+                                '${INC_ROOT}/modem/lte/ML1/dlm/inc',
+                                '${INC_ROOT}/modem/lte/ML1/fwd/inc',
+                                '${INC_ROOT}/modem/lte/ML1/gapmgr/inc',
+                                '${INC_ROOT}/modem/lte/ML1/gm/inc',
+                                '${INC_ROOT}/modem/lte/ML1/gps/inc',
+                                '${INC_ROOT}/modem/lte/ML1/hrpdmeas/inc',
+                                '${INC_ROOT}/modem/lte/ML1/l1_common/inc',
+                                '${INC_ROOT}/modem/lte/ML1/mclk/inc',
+                                '${INC_ROOT}/modem/lte/ML1/inc',
+                                '${INC_ROOT}/modem/lte/ML1/manager/inc',
+                                '${INC_ROOT}/modem/lte/ML1/md/inc',
+                                '${INC_ROOT}/modem/lte/ML1/pos/inc',
+                                '${INC_ROOT}/modem/lte/ML1/rfmgr/inc',
+                                '${INC_ROOT}/modem/lte/ML1/schdlr/inc',
+                                '${INC_ROOT}/modem/lte/ML1/search/inc',
+                                '${INC_ROOT}/modem/lte/ML1/sleepmgr/inc',
+                                '${INC_ROOT}/modem/lte/ML1/msmgr/inc',
+                                '${INC_ROOT}/modem/lte/ML1/ulm/inc',
+		                '${INC_ROOT}/modem/lte/ML1/cxm/inc',
+                                '${INC_ROOT}/modem/lte/PLT/inc',
+                                '${INC_ROOT}/modem/lte/RRC/ASN1/inc',
+                                '${INC_ROOT}/modem/lte/RRC/inc',
+                                '${INC_ROOT}/modem/lte/security/inc',
+                                '${INC_ROOT}/modem/lte/tlb/inc',
+                                '${INC_ROOT}/modem/lte/cust/inc',
+                                '${INC_ROOT}/modem/lte/variation/inc',
+                                # Off-target paths (won't show up in target builds
+                                '${LTE_ROOT}/integration/vst/qal/inc',
+                                ])
+
+
+
+#----------------------------------------------------.---------------------------
+# Continue loading software units
+#-------------------------------------------------------------------------------
+
+
+env.RequirePublicApi([
+               'DAL',
+               'DEBUGTOOLS',
+               'MPROC',
+               'SERVICES',
+               'SYSTEMDRIVERS',
+               'KERNEL',          # needs to be last
+               ], area='core')
+
+
+# Need to get access to Modem Public headers
+env.RequirePublicApi([
+               'MCS',
+               'MPROC',
+               'UTILS',
+               'MMODE',
+               'NAS',
+               ])
+
+# Need to get access to Modem Restricted headers
+env.RequireRestrictedApi([
+               'MCS',
+               'MMODE',
+               'NAS',
+               'LTE',
+               'UTILS',
+			   'FW',
+               ])
+
+if 'LTE_ENABLE_LLVM_STATIC_ANALYZER' in env:
+  env.Replace(LTE_SA_DIR = '${INC_ROOT}/lte/sa/')
+  env.Append(CFLAGS = '--compile-and-analyze ${LTE_SA_DIR}')
+
+if 'USES_LTE' in env:
+  env.LoadSoftwareUnits()

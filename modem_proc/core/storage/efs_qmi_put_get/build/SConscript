@@ -1,0 +1,163 @@
+#===============================================================================
+#
+# EFS_QMI_PUT_GET Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2013 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$  $DateTime$  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who    what, where, why
+# --------   ---    -----------------------------------------------------------
+# 2013-03-28 dks    Added support to query commands/TLVs supported by service.
+# 2013-02-22 nr     Bring in changes to remove deprecated api "AddLibsToImage".
+# 2012-08-12 dks    Add qmi_fw dependency for client RCINIT initialization.
+# 2012-06-20 dks    Make fs_qmi_client be started by RCINIT
+# 2012-03-23 dks    Add remote processor access check for paths.
+# 2012-01-30 dks    Move fs_qmi_service task to grp 1 to depend on fs_task.
+# 2012-01-04 dks    Update api path to include common.
+# 2011-10-04 dks    Removed dependency on FEATURE_RCINIT.
+# 2011-10-04 dks    Create.
+#
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_FS'])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/efs_qmi_put_get"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('EFS_QMI_PUT_GET_PRIVATE', [
+    '${BUILD_ROOT}/core/storage/efs_qmi_put_get/common/inc',
+])
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+# add support for qmimsgs so api folder can rename to qmimsgs
+qmimsgs_path = env.RealPath('${BUILD_ROOT}/qmimsgs')
+if env.PathExists(qmimsgs_path): 
+   env.RequirePublicApi(['COMMON', 'MFS'], area='QMIMSGS')
+
+api_path = env.RealPath('${BUILD_ROOT}/api')
+if env.PathExists(api_path):
+   env.RequirePublicApi(['COMMON', 'MFS'], area='api')
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'EFS_QMI_PUT_GET_PRIVATE',
+   # needs to be last as it may contain wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+EFS_QMI_PUT_GET_COMMON_SOURCES  =  [
+  '${BUILDPATH}/common/src/fs_qmi_util.c'
+]
+
+EFS_QMI_PUT_GET_CLIENT_SOURCES = [
+  '${BUILDPATH}/client/src/fs_qmi_client.c'
+]
+
+EFS_QMI_PUT_GET_SERVICE_SOURCES = [
+  '${BUILDPATH}/service/src/fs_qmi_service.c',
+  '${BUILDPATH}/service/src/fs_qmi_service_access_check.c',
+  '${BUILDPATH}/service/src/fs_qmi_service_task.c',
+  '${BUILDPATH}/service/src/modem_filesystem_impl_v01.c'
+]
+
+#-------------------------------------------------------------------------------
+# Configuartions
+#-------------------------------------------------------------------------------
+if 'USES_EFS_QMI_PUT_GET_SERVICE' in env:
+  env.Append(CPPDEFINES = ["FEATURE_EFS_QMI_PUT_GET_SERVICE"])
+if 'USES_EFS_QMI_PUT_GET_CLIENT' in env:
+  env.Append(CPPDEFINES = ["FEATURE_EFS_QMI_PUT_GET_CLIENT"])
+if 'USES_RCINIT' in env:
+  env.Append(CPPDEFINES = ["FEATURE_EFS_USE_RCINIT"])
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+
+EFS_QMI_PUT_GET_CLIENT_IMAGES = [
+   'APPS_IMAGE',
+   'CBSP_APPS_IMAGE',
+   'QDSP6_SW_IMAGE',
+   'CBSP_QDSP6_SW_IMAGE',
+]
+
+if 'USES_EFS_QMI_PUT_GET_CLIENT' in env:
+   env.AddLibrary(EFS_QMI_PUT_GET_CLIENT_IMAGES,'${BUILDPATH}/common', EFS_QMI_PUT_GET_COMMON_SOURCES)
+   env.AddLibrary(EFS_QMI_PUT_GET_CLIENT_IMAGES,'${BUILDPATH}/client', EFS_QMI_PUT_GET_CLIENT_SOURCES)
+
+
+EFS_QMI_PUT_GET_SERVICE_IMAGES = [
+   'MODEM_IMAGE',
+   'CBSP_MODEM_IMAGE',
+   'APPS_IMAGE',
+   'CBSP_APPS_IMAGE',
+   'QDSP6_SW_IMAGE',
+   'CBSP_QDSP6_SW_IMAGE'
+]
+
+if 'USES_EFS_QMI_PUT_GET_SERVICE' in env:
+   env.AddLibrary(EFS_QMI_PUT_GET_SERVICE_IMAGES,'${BUILDPATH}/common', EFS_QMI_PUT_GET_COMMON_SOURCES)
+   env.AddLibrary(EFS_QMI_PUT_GET_SERVICE_IMAGES,'${BUILDPATH}/service', EFS_QMI_PUT_GET_SERVICE_SOURCES)
+
+
+
+if ('USES_RCINIT' in env) and ('USES_EFS_QMI_PUT_GET_SERVICE' in env):
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitTask(                # EFS_QMI_PUT_GET_SERVICE
+    RCINIT_IMG,                      # define TMC_RCINIT_REXTASK_FS_QMI_SERVICE
+    {
+      'sequence_group'             : 'RCINIT_GROUP_1',      #depends on fs_task
+      'thread_name'                : 'fs_qmi_service',
+      'thread_entry'               : 'fs_qmi_service_task',
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'FS_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+
+if ('USES_RCINIT' in env) and ('USES_EFS_QMI_PUT_GET_CLIENT' in env):
+   RCINIT_IMG = ['APPS_IMAGE', 'CBSP_APPS_IMAGE']
+   env.AddRCInitFunc(                  # FS_QMI_CLIENT
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',
+      'init_name'                  : 'fs_qmi_client',
+      'init_function'              : 'fs_qmi_client_init',
+      'dependencies'               : ['time', 'dog', 'qmi_fw']
+    })

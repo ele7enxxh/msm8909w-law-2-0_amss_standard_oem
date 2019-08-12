@@ -1,0 +1,342 @@
+#===============================================================================
+#
+# QMI Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2015 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: 2010/09/22 18:42:11 $
+#  $Author: coresvc $
+#  $Change: 1450404 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import os.path
+Import('env')
+env = env.Clone()
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_ONCRPC'])
+
+#-------------------------------------------------------------------------------
+# Static Configuration
+#-------------------------------------------------------------------------------
+# Set to true if the QMI client is required
+QMI_PING_CLIENT = False
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/mproc/qmi"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+QMI_PRIVATE_API = [
+    '${BUILD_ROOT}/core/mproc/qmi/qcci',
+    '${BUILD_ROOT}/core/mproc/qmi/qcsi',
+    '${BUILD_ROOT}/core/mproc/qmi/qsap',
+    '${BUILD_ROOT}/core/mproc/qmi/common',
+    '${BUILD_ROOT}/core/mproc/qmi/core_server'
+]
+
+# Support the REX API and smem log and messaging only in the root PD.
+if 'CORE_USER_PD' in env:
+   QMI_PRIVATE_API += ['${BUILD_ROOT}/core/mproc/qmi/qcci/qurt', '${BUILD_ROOT}/core/mproc/qmi/qcsi/qurt']
+else:
+   QMI_PRIVATE_API += ['${BUILD_ROOT}/core/mproc/qmi/qcci/rex', '${BUILD_ROOT}/core/mproc/qmi/qcsi/rex']
+   env.Append(CPPDEFINES=['FEATURE_QMI_SMEM_LOG', 'FEATURE_QMI_MSG', 'FEATURE_QMI_CCI_REX_SUPPORTED', 'FEATURE_QMI_CSI_REX_SUPPORTED'])
+
+env.PublishPrivateApi('MPROC_QMI_PRIVATE', QMI_PRIVATE_API)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+    'DSM',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DEBUGTOOLS',
+   'DAL',
+   'MPROC',
+   'DIAG',
+   'STORAGE',
+   'SERVICES',
+   'MEMORY',
+   'SYSTEMDRIVERS',
+   'MPROC_QMI_PRIVATE',
+   'WIREDCONNECTIVITY',
+   'KERNEL',
+]
+
+
+#-------------------------------------------------------------------------------
+# Convert warnings to errors
+#-------------------------------------------------------------------------------
+if 'ARMTOOLS' in env:
+   env.Append(CFLAGS = "--diag_error=warning ")
+   env.Append(CFLAGS = "--diag_error=77")
+   env.Append(CFLAGS = "--diag_error=117")
+   env.Append(CFLAGS = "--diag_error=940")
+
+if 'HEXAGON_TOOLS' in env:
+   env.Append(CFLAGS = "-Werror ")
+
+env.RequirePublicApi(CBSP_API)
+env.RequirePublicApi(['SAP','TEST','COMMON'], area='API')
+env.RequireRestrictedApi(CBSP_API)
+
+# WCN uses native rex thus enable it.
+if env.has_key('WCN_IMAGE'):
+   env.Append(CPPDEFINES=['FEATURE_QMI_NATIVE_REX'])
+
+# QMUX for TN targets. QMUX owned by MBIM
+if 'USES_QCCI_QBI_QMUX' in env:
+   env.RequirePublicApi('QMI_QMUX', area='mbim') 
+   env.Append(CPPDEFINES=['FEATURE_QMUX_HANDLE'])
+   env.Append(CPPDEFINES=['FEATURE_QCCI_QBI_QMUX'])
+
+# QMUX for SGLTE targets. QMUX owned by DATA
+if 'USES_QCCI_QMUX_XPORT' in env:
+   env.RequirePublicApi(['DATAMODEM'], area='modem')
+   env.Append(CPPDEFINES=['FEATURE_QCCI_QMUX_XPORT'])
+
+# If QMUX supports the NEW_SRVC functionality
+if 'USES_QCCI_QMUX_NEW_SRVC' in env:
+   env.Append(CPPDEFINES=['FEATURE_QCCI_QMUX_NEW_SRVC'])
+
+# Support QSAP on APPS and MODEM only
+if 'USES_QMI_SAP' in env:
+   env.Append(CPPDEFINES = ['FEATURE_QMI_SAP'])
+   if env.has_key('USES_QDSP6'):
+      # Ping service registers with QSAP only on the Modem (QDSP6)
+      env.Append(CPPDEFINES=['QMI_PING_SERVICE_SAP'])
+      # Support the qsap remote reg server on the MDM modem only
+      if 'CHIPSET' in env:
+         if env['CHIPSET'].lower().find("mdm") == 0:
+            env.Append(CPPDEFINES = ['FEATURE_QSAP_REMOTE_REG_SERVICE'])
+      elif 'MSM_ID' in env:
+         if (env['MSM_ID'].lower().find("9x") == 0) or (env['MSM_ID'].lower().find("96") == 0):
+            env.Append(CPPDEFINES = ['FEATURE_QSAP_REMOTE_REG_SERVICE'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+QMI_QCCI_SOURCES  =  [
+  '${BUILDPATH}/qcci/qmi_cci_common.c',
+  '${BUILDPATH}/qcci/qmi_cci_xport_ipc.c',
+]
+
+if os.path.isfile("../qcci/qmi_cci_target.c") :
+   QMI_QCCI_SOURCES += ['${BUILDPATH}/qcci/qmi_cci_target.c']
+
+if 'USES_QCCI_QMUX_XPORT' in env or 'USES_QCCI_QBI_QMUX' in env:
+   QMI_QCCI_SOURCES +=  ['${BUILDPATH}/qcci/qmi_cci_xport_qmuxd.c']
+
+QMI_QSAP_SERVICE_SOURCES  =  [
+   '${BUILDPATH}/qsap/qmi_sap_common.c',
+   '${BUILDPATH}/qsap/qmi_sap_service.c', 
+] 
+
+QMI_QSAP_CLIENT_SOURCES  =  [
+   '${BUILDPATH}/qsap/qmi_sap_client.c', 
+] 
+
+QMI_QSAP_FILTER_SOURCES = [
+   '${BUILDPATH}/qsap/qmi_sap_filter_common.c',
+   '${BUILDPATH}/qsap/qmi_sap_filter_xport_sio.c', 
+]
+
+QMI_PING_CLIENT_SOURCES = [
+  '${BUILDPATH}/qcci/qmi_ping_clnt.c',
+]
+
+QMI_QCSI_SOURCES = [
+  '${BUILDPATH}/qcsi/qmi_csi_common.c',
+  '${BUILDPATH}/qcsi/qmi_csi_xport_ipc.c',
+]
+
+if os.path.isfile("../qcsi/qmi_csi_target.c") :
+   QMI_QCSI_SOURCES += ['${BUILDPATH}/qcsi/qmi_csi_target.c']
+
+QMI_PING_SERVICE_SOURCES = [
+  '${BUILDPATH}/qcsi/qmi_ping_svc.c',
+  '${BUILDPATH}/qcsi/qmi_ping_svc_main.c',
+]
+
+QMI_FW_INIT_SOURCES = [
+  '${BUILDPATH}/common/qmi_fw_init.c',
+]
+
+QMI_FW_INIT_USER_SOURCES = [
+  '${BUILDPATH}/common/qmi_fw_init_user.c',
+]
+
+QMI_BRINGUP_SOURCES = [
+  '${BUILDPATH}/common/common_v01.c',
+  '${BUILDPATH}/common/test_service_v01.c',
+]
+
+QMI_ENCDEC_SOURCES = [
+  '${BUILDPATH}/encdec/qmi_idl_accessor.c',
+  '${BUILDPATH}/encdec/qmi_idl_lib.c',
+]
+
+QMI_SI_SOURCES = [
+  '${BUILDPATH}/qmi_si/qmi_si_database.c',
+  '${BUILDPATH}/qmi_si/qmi_si_impl.c',
+]
+
+QMI_SI_LOG_SOURCES = [
+  '${BUILDPATH}/qmi_si/qmi_si_log.c',
+]
+
+QMI_CORE_SERVER_SOURCES = [
+    '${BUILDPATH}/core_server/qmi_container_service.c',
+    '${BUILDPATH}/core_server/qmi_dispatch_service.c',
+    '${BUILDPATH}/core_server/qmi_indication_service.c',
+    '${BUILDPATH}/core_server/qmi_task_service.c',
+    '${BUILDPATH}/core_server/qmi_task_service_rex.c',
+    '${BUILDPATH}/core_server/qmi_core_server.c',
+    '${BUILDPATH}/core_server/qmi_ping_server_rex.c',
+    '${BUILDPATH}/core_server/qmi_ping_server.c',
+]
+
+QMI_MB_SOURCES = [
+    '${BUILDPATH}/qmb/qmi_mb_common.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+MODEM_ONLY_IMAGES = ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_GSS']
+APPS_ONLY_IMAGES = ['APPS_IMAGE', 'CBSP_APPS_IMAGE']
+WCN_ONLY_IMAGES = ['WCN_IMAGE']
+USER_PD_IMAGES = ['CORE_USER_PD']
+
+# All images which execute in root context (same context as smd)
+ALL_ROOT_IMAGES      = MODEM_ONLY_IMAGES + APPS_ONLY_IMAGES + WCN_ONLY_IMAGES
+# All root iamges which get the full QMI release
+FULL_REL_ROOT_IMAGES = MODEM_ONLY_IMAGES + APPS_ONLY_IMAGES
+# All images
+ALL_IMAGES          = ALL_ROOT_IMAGES + USER_PD_IMAGES
+
+# Base QMI libraries
+env.AddLibrary(ALL_IMAGES, '${BUILDPATH}/qcsi', QMI_QCSI_SOURCES)
+env.AddLibrary(ALL_IMAGES, '${BUILDPATH}/qcci', QMI_QCCI_SOURCES)
+env.AddLibrary(ALL_IMAGES, '${BUILDPATH}/encdec', QMI_ENCDEC_SOURCES)
+env.AddLibrary(ALL_ROOT_IMAGES, '${BUILDPATH}/fw_init', QMI_FW_INIT_SOURCES)
+env.AddLibrary(USER_PD_IMAGES, '${BUILDPATH}/fw_init', QMI_FW_INIT_USER_SOURCES)
+
+# Optional libraries released only to images with larger capacity
+env.AddLibrary(FULL_REL_ROOT_IMAGES, '${BUILDPATH}/qmi_si', QMI_SI_SOURCES)
+env.AddLibrary(FULL_REL_ROOT_IMAGES, '${BUILDPATH}/qmb', QMI_MB_SOURCES)
+env.AddLibrary(FULL_REL_ROOT_IMAGES, '${BUILDPATH}/core_server', QMI_CORE_SERVER_SOURCES)
+
+# Test libraries, currently released to all images, but this can be changed
+env.AddLibrary(ALL_ROOT_IMAGES, '${BUILDPATH}/ping_svc', QMI_PING_SERVICE_SOURCES)
+if QMI_PING_CLIENT == True:
+   env.AddLibrary(ALL_ROOT_IMAGES, '${BUILDPATH}/ping_clnt', QMI_PING_CLIENT_SOURCES)
+   env.Append(CPPDEFINES = ['FEATURE_QMI_PING_CLIENT'])
+
+# QMI Libs compiled only during bringups
+if 'USES_QMI_BRINGUP' in env:
+   env.AddLibrary(ALL_IMAGES, '${BUILDPATH}/bringup', QMI_BRINGUP_SOURCES)
+
+# 'Modem' only components
+if 'USES_QMI_SI_LOG' in env:
+   env.AddLibrary(MODEM_ONLY_IMAGES, '${BUILDPATH}/si_log', QMI_SI_LOG_SOURCES)
+
+# QSAP Components
+if 'USES_QMI_SAP' in env:
+   env.AddLibrary(MODEM_ONLY_IMAGES, '${BUILDPATH}/qsap_service', QMI_QSAP_SERVICE_SOURCES)
+   env.AddLibrary(APPS_ONLY_IMAGES, '${BUILDPATH}/qsap_client', QMI_QSAP_CLIENT_SOURCES)
+   env.AddLibrary(APPS_ONLY_IMAGES, '${BUILDPATH}/qsap_filter', QMI_QSAP_FILTER_SOURCES)
+
+#-------------------------------------------------------------------------------
+# RCINIT
+#-------------------------------------------------------------------------------
+MODEM_ROOT_RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+ALL_ROOT_RCINIT_IMG = MODEM_ROOT_RCINIT_IMG + ['CORE_GSS', 'WCN_IMAGE', 'CBSP_APPS_IMAGE', 'APPS_IMAGE']
+USER_PD_RCINIT_IMG = ['CORE_USER_PD']
+ALL_RCINIT_IMG = ALL_ROOT_RCINIT_IMG + USER_PD_RCINIT_IMG
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(           # Code Fragment in TMC: NO
+    ALL_RCINIT_IMG,             # define TMC_RCINIT_INIT_QMI_FW_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+     'init_name'                  : 'qmi_fw',                           # required
+     'init_function'              : 'qmi_fw_init',                      # required
+     'dependencies'               : ['smd','ipc_router', 'ipc_router_user']
+    })
+   if 'USES_QMI_SI_LOG' in env:
+      env.AddRCInitFunc(
+       MODEM_ROOT_RCINIT_IMG,
+       {
+        'sequence_group'             : 'RCINIT_GROUP_2',                   # required
+        'init_name'                  : 'qmi_sil',                          # required
+        'init_function'              : 'qmi_sil_powerup_init',             # required
+        'dependencies'               : ['diag','qmi',]
+       })
+   if 'USES_QCCI_QMUX_XPORT' in env:
+      env.AddRCInitFunc(           
+       ALL_ROOT_RCINIT_IMG,                 
+       {
+        'sequence_group'             : 'RCINIT_GROUP_5',                   # required
+        'init_name'                  : 'qmi_qmux_fw',                      # required
+        'init_function'              : 'qmi_qmux_fw_init',                 # required
+        'dependencies'               : ['qmux',]
+       })
+   env.AddRCInitFunc(
+    ALL_ROOT_RCINIT_IMG,
+    {
+     'sequence_group'             : 'RCINIT_GROUP_1',                   # required
+     'init_name'                  : 'qmi_fw_service',                   # required
+     'init_function'              : 'qmi_fw_service_init',              # required
+     'dependencies'               : ['qmi',]
+    })
+
+
+#-------------------------------------------------------------------------------
+# Register dynamic threads with RCInit 
+
+if 'USES_RCINIT' in env and 'USES_CENTRALIZED_THREAD_PRIORITY' in env:
+  env.Append(CPPDEFINES=['QMI_RCINIT_CENTRALIZED_THREAD_PRIORITY'])
+  # Register dynamic thread
+  env.AddRCInitTask(
+   ALL_ROOT_RCINIT_IMG,
+   {
+    'sequence_group'             : 'RCINIT_GROUP_7',
+    'thread_name'                : 'QMI_PING_SVC',
+    'thread_entry'               : 'RCINIT_NULL',
+    'stack_size_bytes'           : '2048',
+    'priority_amss_order'        : 'QMI_MPROC_SVC_PRI_ORDER',
+   })
+
+  if 'USES_QMI_SAP' in env:
+    env.AddRCInitTask(
+     ALL_ROOT_RCINIT_IMG,
+     {
+      'sequence_group'           : 'RCINIT_GROUP_7',
+      'thread_name'              : 'QMI_SAP_SVC',
+      'thread_entry'             : 'RCINIT_NULL',
+      'stack_size_bytes'         : '2048',
+      'priority_amss_order'      : 'QMI_MPROC_SVC_PRI_ORDER',
+     })
+

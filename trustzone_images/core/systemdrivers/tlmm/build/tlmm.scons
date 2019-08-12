@@ -1,0 +1,147 @@
+#=============================================================================
+# TLMM LIBRARY
+#
+# Target:    All
+# Processor: All
+#
+#=============================================================================
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/systemdrivers/tlmm/build/tlmm.scons#1 $
+#=============================================================================
+#  Copyright 2011 Qualcomm Technologies Incorporated.
+#  All Rights Reserved.
+#  QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+import os
+
+Import('env')
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Add API folders
+#------------------------------------------------------------------------------
+
+if os.path.isfile(env['BUILD_ROOT'] + '/core/systemdrivers/tlmm/config/' + env['CHIPSET'] + '/TLMMChipset.xml') :
+  env.PublishPrivateApi("SYSTEMDRIVERS_TLMM", [
+     "${INC_ROOT}/core/systemdrivers/tlmm/inc",
+     "${INC_ROOT}/core/api/systemdrivers/hwio/${CHIPSET}",
+     "${INC_ROOT}/core/systemdrivers/tlmm/config",
+     "${INC_ROOT}/core/systemdrivers/tlmm/config/${CHIPSET}"
+  ])
+else:
+  env.PublishPrivateApi("SYSTEMDRIVERS_TLMM", [
+      "${INC_ROOT}/core/systemdrivers/tlmm/inc",
+     "${INC_ROOT}/core/api/systemdrivers/hwio/msm8909",
+     "${INC_ROOT}/core/systemdrivers/tlmm/config",
+     "${INC_ROOT}/core/systemdrivers/tlmm/config/msm8909"
+  ])
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+SRCPATHSCRIPTS = env['BUILD_ROOT'] + '/core/systemdrivers/tlmm/scripts/'
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8909','8909w']:
+  env.Append(CPPPATH = [
+     "${INC_ROOT}/core/systemdrivers/tlmm/src",
+     "${INC_ROOT}/core/systemdrivers/tlmm/config",
+     "${INC_ROOT}/core/systemdrivers/tlmm/config/msm8909",
+     "${INC_ROOT}/core/systemdrivers/tlmm/hw/v2"
+  ])
+else:
+  env.Append(CPPPATH = [
+     "${INC_ROOT}/core/systemdrivers/tlmm/src",
+     "${INC_ROOT}/core/systemdrivers/tlmm/config",
+     "${INC_ROOT}/core/systemdrivers/tlmm/config/${CHIPSET}",
+     "${INC_ROOT}/core/systemdrivers/tlmm/hw/v2"
+  ])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+
+HAL_TLMM_V1_SOURCES =  [
+   '${BUILDPATH}/hw/v1/HALtlmm.c'
+]
+
+HAL_TLMM_V2_SOURCES =  [
+   '${BUILDPATH}/hw/v2/HALtlmm.c'
+]
+
+TLMM_COMMON_SOURCES =  [
+   '${BUILDPATH}/src/Tlmm.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+if env['MSM_ID'] not in ['8909','8909w']:
+  env.AddBinaryLibrary(['TZOS_IMAGE'], '${BUILDPATH}/HALtlmmV1', HAL_TLMM_V1_SOURCES, pack_exception=['USES_L1_ADD_SOURCE'])
+else:
+  env.AddBinaryLibrary(['TZOS_IMAGE'], '${BUILDPATH}/HALtlmmV2', HAL_TLMM_V2_SOURCES, pack_exception=['USES_L1_ADD_SOURCE'])
+
+env.AddBinaryLibrary(['TZOS_IMAGE'], '${BUILDPATH}/Tlmm', TLMM_COMMON_SOURCES, pack_exception=['USES_L1_ADD_SOURCE'])
+
+
+#---------------------------------------------------------------------------
+# Invoke document generation SConscript
+#---------------------------------------------------------------------------
+
+if os.path.exists(env['BUILD_ROOT'] + '/core/api/systemdrivers/docsrc/tlmm/SConscript') :
+  env.SConscript(
+    '${BUILD_ROOT}/core/api/systemdrivers/docsrc/tlmm/SConscript',
+    exports='env')
+
+
+#---------------------------------------------------------------------------
+# Add DAL XML file
+#---------------------------------------------------------------------------
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   if env['MSM_ID'] in ['8909','8909w']:
+     env.AddDevCfgInfo(DEVCFG_IMG, 
+     {
+         'devcfg_xml' : '${BUILD_ROOT}/core/systemdrivers/tlmm/config/msm8909/TLMMChipset.xml'
+     })
+
+   else:
+     env.AddDevCfgInfo(DEVCFG_IMG, 
+     {
+         'devcfg_xml' : '${BUILD_ROOT}/core/systemdrivers/tlmm/config/${CHIPSET}/TLMMChipset.xml'
+     })
+
+
+
+#-------------------------------------------------------------------------------
+# Add CMM Scripts to T32 Menu
+#-------------------------------------------------------------------------------
+
+CMM_ARGUMENT = ''
+
+try:
+    env.AddCMMScripts ('ADSP', [SRCPATHSCRIPTS], { 'tlmm_gpio_hw.cmm' : ['TLMM', CMM_ARGUMENT] }, 'SystemDrivers')
+except:
+  pass
+

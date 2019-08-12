@@ -1,0 +1,68 @@
+#===============================================================================
+#
+# t-base-300 Build Script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsapps/tbase/tbase/SecureIntegration/t-base/Bin/MobiCore/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+vars = Variables()
+
+# set defaults for values
+if 'tzbsp_with_mmu' not in env:
+  vars.Add(BoolVariable('tzbsp_with_mmu',   'mmu',   1))
+vars.Update(env)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/tbase/tbase/SecureIntegration/t-base/Bin/MobiCore/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --arm')
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tbase/tbase/SecureIntegration/t-base/Bin/MobiCore/src/Release"
+])
+
+#----------------------------------------------------------------------------
+# App core Objects
+#----------------------------------------------------------------------------
+APP_CORE_ENTRY_SOURCES = [
+   '${BUILDPATH}/tbase_entry.s',
+]
+
+app_core_obj = env.Object(APP_CORE_ENTRY_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibsToImage('TBASE_IMAGE', app_core_obj)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

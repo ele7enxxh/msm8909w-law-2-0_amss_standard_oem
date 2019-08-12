@@ -1,0 +1,91 @@
+#===============================================================================
+# UIM COMMON Subsystem build script
+# GENERAL DESCRIPTION
+#    build script for modem_proc/uim/common
+#
+#                       COPYRIGHT INFORMATION
+#
+# Copyright (c) 2014 - 2015 QUALCOMM Technologies, Inc (QTI) and its licensors.
+# All Rights Reserved.  QUALCOMM Technologies Proprietary.
+# Export of this technology or software
+# is regulated by the U.S. Government. Diversion contrary to U.S. law prohibited.
+# 
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/uim/common/build/uim_common.scons#1 $ $DateTime: 2016/12/13 08:00:05 $ $Author: mplcsds1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/04/16   ar      Add selective logging logic
+# 11/25/15   sp      Updated copyright
+# 07/15/14   yt      Initial version
+#
+#===============================================================================
+
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+# Verify that USES_RUIM is set, otherwise bail out now
+if 'USES_RUIM' not in env:
+    Return()
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-----------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-----------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_RUIM",
+])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'SECUREMSM',
+    'DAL',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+# We need the Core BSP API's
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+# We need the UIM API's
+env.RequirePublicApi(['UIM', 'MCS'])
+
+# We need our "inc" dir too + other UIM "inc" dirs
+env.RequireRestrictedApi(['UIM', 'MCS'])
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+UIMCOMMON_C_SOURCES = [
+    '${BUILDPATH}/uim_common_efs.c',
+    '${BUILDPATH}/uim_selective_logging.c'
+]
+
+# Add our library to the MODEM_AMSS image
+env.AddLibrary(['MODEM_MODEM','MOB_UIM'], '${BUILDPATH}/uim_common', UIMCOMMON_C_SOURCES)
+
+# Load test units
+env.LoadSoftwareUnits()

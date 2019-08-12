@@ -1,0 +1,77 @@
+;============================================================================
+;  Name:
+;    JINIT_8660.CMM - JTAG CMM script with the required initialization
+;    steps for 8660 specific configuration
+;
+;  Description:
+;    Mainly target specific configurations
+;
+;
+; Copyright (c) 2010 Qualcomm Technologies Incorporated.
+; All Rights Reserved.
+; Qualcomm Confidential and Proprietary
+;
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+;  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/tools/jsdcc/bsp/jinit_7x30.cmm#1 $ 
+;  $DateTime: 2015/09/01 00:30:35 $ 
+;  $Author: pwbldsvc $
+;
+;when         who     what, where, why
+;----------   ---     ----------------------------------------------------------
+;2010-08-17   rh      Workaround for the incorrect power-on value 
+;2010-04-16   rcc     Changed the processor from ARM9 ro ARM11
+;2010-02-22   rh      Initial Creation
+;
+;
+;============================================================================;
+
+;============================================================================
+; Declare variables used
+;============================================================================
+
+;-------------------------------------------------------------------------------
+; Turbo mode of debug state accesses - CPU makes no checks of memory access in
+; debug mode
+;-------------------------------------------------------------------------------
+ sys.o.TURBO off
+ sys.o.ResBreak on
+ sys.o.EnReset on
+ sys.o.TRST on
+ sys.o.CFLUSH on
+
+;-------------------------------------------------------------------------------
+; Disassembler selection - Automatically selects correct one.
+;-------------------------------------------------------------------------------
+ sys.o.DisMode Auto
+
+;-------------------------------------------------------------------------------
+; select CPU type
+;-------------------------------------------------------------------------------
+ sys.CPU ARM1136J
+ sys.jtagclock RTCK
+
+;-------------------------------------------------------------------------------
+; restart CPU with debug mode
+;-------------------------------------------------------------------------------
+system.down
+SYSTEM.POLLING SLOW
+SYSTEM.OPTION RESBREAK OFF
+System.Option TURBO off
+SYSTEM.OPTION ENRESET ON
+system.up
+
+
+
+data.set 0xAB800208 %long 0x0
+data.set 0xAB800214 %long 0xFF1FDFBF         ; ROW_RESET Disable IMEM RESET 
+data.set 0xAB800084 %long 0x4A00             ; GRP_NS_REG Enable IMEM clock branch 
+data.set 0xAB500000 %long 0x1                ; IMEM_CONFIG Enable IMEM mapping
+
+
+enddo
+ 
+

@@ -1,0 +1,536 @@
+//   Title: std_memorymap
+
+//   License: License
+//   Copyright 2012 Qualcomm Technologies Inc
+
+//   Description: This script setup the memory map for the target
+
+//   Input: None
+
+//   Output: None
+
+//   Usage: do std_memorymap
+
+//   Team: CoreBSP Products 8974
+
+//   Target: MSM8974
+
+//   Author: Author
+//   $Author: pwbldsvc $
+
+//   Location: Perforce Revision
+//   $Header: 
+//
+//   Edits : 		Edits
+//   AJC   :    Removed the change needed for Aragorn   : 05/16/2013
+//   AJC   :	Relocatable image support		: 02/20/2013
+//   AJC   : 	Updated DDR addresses			: 04/02/2013
+//   AJC   : 	Correct RPM addresses			: 01/10/2013
+//   AJC   : 	Added more debug cookies		: 10/19/2012
+//   AJC   :	Added debug cookies to map		: 10/10/2012
+//   AJC   :	Corrected addresses				: 08/03/2012
+//   AJC   : 	First version for MSM8974		: 05/03/2012
+//	 AJC   :	Re-written for B-family			: 05/03/2012
+
+ENTRY &ARGUMENT0
+
+LOCAL &IMAGE_TYPE
+&IMAGE_TYPE="&ARGUMENT0"
+
+// RPM Code RAM - 128 KB
+GLOBAL &CODERAM_start
+GLOBAL &CODERAM_RPM_start
+GLOBAL &CODERAM_end
+GLOBAL &CODERAM_size
+GLOBAL &CODERAM_log
+GLOBAL &CODERAM_USB_log
+GLOBAL &CODERAM_RPM_end
+GLOBAL &CODERAM_RPM_size
+
+&CODERAM_start=0x200000
+&CODERAM_RPM_start=0x000000
+&CODERAM_end=0X21FFFF
+&CODERAM_size=0X20000
+&CODERAM_RPM_end=0x1FFFF
+&CODERAM_RPM_size=0x20000
+&CODERAM_log="CODERAM_log.bin"
+&CODERAM_USB_log="CODERAM.bin"
+
+// RPM Data RAM - 64 kB 
+GLOBAL &DATARAM_start
+GLOBAL &DATARAM_RPM_start
+GLOBAL &DATARAM_end
+GLOBAL &DATARAM_size
+GLOBAL &DATARAM_log
+GLOBAL &DATARAM_USB_log
+GLOBAL &DATARAM_RPM_size
+GLOBAL &DATARAM_RPM_end
+
+&DATARAM_start=0x290000
+&DATARAM_RPM_start=0x90000
+&DATARAM_RPM_end=0x9FFFF
+&DATARAM_RPM_size=0x10000
+&DATARAM_end=0x29FFFF
+&DATARAM_size=0X10000
+&DATARAM_log="DATARAM_log.bin"
+&DATARAM_USB_log="DATARAM.bin"
+
+
+// RPM Message RAM - 16KB
+GLOBAL &MSGRAM_start
+GLOBAL &MSGRAM_end
+GLOBAL &MSGRAM_size
+GLOBAL &MSGRAM_log
+GLOBAL &MSGRAM_USB_log
+&MSGRAM_start=0x60000
+&MSGRAM_end=0x67FFF
+&MSGRAM_size=0x8000
+&MSGRAM_log="MSGRAM_log.bin"
+&MSGRAM_USB_log="MSGRAM.bin"
+
+
+// Debug Image - 12 kB
+;GLOBAL &DBI_start
+;GLOBAL &DBI_end
+;GLOBAL &DBI_size
+;GLOBAL &DBI_log
+;&DBI_start=0XFE800000
+;&DBI_end=0XFE802FFF
+;&DBI_size=0X3000
+;&DBI_log="DBI_log.bin"
+
+
+GLOBAL &HLOS_1_start
+GLOBAL &HLOS_1_end
+GLOBAL &HLOS_1_size
+GLOBAL &HLOS_1_log
+&HLOS_1_start=0X80000000
+&HLOS_1_end=0X90000000
+&HLOS_1_size=0X10000000
+&HLOS_1_log="HLOS_1_log.bin"
+
+
+GLOBAL &HLOS_2_start
+GLOBAL &HLOS_2_end
+GLOBAL &HLOS_2_size
+GLOBAL &HLOS_2_log
+&HLOS_2_start=0X90000000
+&HLOS_2_end=0XA0000000
+&HLOS_2_size=0X10000000
+&HLOS_2_log="HLOS_2_log.bin"
+
+
+//GLOBAL &HLOS_3_start
+//GLOBAL &HLOS_3_end
+//GLOBAL &HLOS_3_size
+//GLOBAL &HLOS_3_log
+//&HLOS_3_start=0X10000000
+//&HLOS_3_end=0X1FFFFFFF
+//&HLOS_3_size=0X10000000
+//&HLOS_3_log="HLOS_3_log.bin"
+
+
+//GLOBAL &HLOS_4_start
+//GLOBAL &HLOS_4_end
+//GLOBAL &HLOS_4_size
+//GLOBAL &HLOS_4_log
+//&HLOS_4_start=0X20000000
+//&HLOS_4_end=0X3FFFFFFF
+//&HLOS_4_size=0X20000000
+//&HLOS_4_log="HLOS_4_log.bin"
+
+GLOBAL &MBA_Meta_start
+GLOBAL &MBA_Meta_end
+GLOBAL &MBA_Meta_size
+GLOBAL &MBA_Meta_log
+&MBA_Meta_start=0XD1FC000
+&MBA_Meta_end=0XD1FFFFF
+&MBA_Meta_size=0X4000
+&MBA_Meta_log="MBA_Meta_log.bin"
+
+
+GLOBAL &MBA_SW_start
+GLOBAL &MBA_SW_end
+GLOBAL &MBA_SW_size
+GLOBAL &MBA_SW_log
+&MBA_SW_start=0X8E580000
+&MBA_SW_end=0X8E6E0000
+&MBA_SW_size=0X160000
+&MBA_SW_log="MBA_SW_log.bin"
+
+
+GLOBAL &MPSS_EFS_start
+GLOBAL &MPSS_EFS_end
+GLOBAL &MPSS_EFS_size
+GLOBAL &MPSS_EFS_log
+&MPSS_EFS_start=0x87C00000
+&MPSS_EFS_end=0x87CDFFFF
+&MPSS_EFS_size=0xE0000
+&MPSS_EFS_log="MPSS_EFS_log.bin"
+
+
+// MPSS Image - 90 MB
+GLOBAL &MPSS_SW_start
+GLOBAL &MPSS_SW_end
+GLOBAL &MPSS_SW_size
+GLOBAL &MPSS_SW_log
+&MPSS_SW_start=0X88000000
+&MPSS_SW_end=0X8D9FFFFF
+&MPSS_SW_size=0X5A00000
+&MPSS_SW_log="MPSS_SW_log.bin"
+
+GLOBAL &MPSS_TCM_start
+GLOBAL &MPSS_TCM_size
+GLOBAL &MPSS_TCM_log
+GLOBAL &MPSS_SW_end
+
+&MPSS_TCM_start=0x04400000
+&MPSS_TCM_size=0x80000
+&MPSS_SW_end=0X0447FFFF
+&MPSS_TCM_log="MPSS_TCM_log.bin"
+
+// QDSS Image - 16 MB
+GLOBAL &QDSS_SW_start
+GLOBAL &QDSS_SW_end
+GLOBAL &QDSS_SW_size
+GLOBAL &QDSS_SW_log
+&QDSS_SW_start=0x9000000
+&QDSS_SW_end=0X9FFFFFF
+&QDSS_SW_size=0x1000000
+&QDSS_SW_log="QDSS_SW_log.bin"
+
+
+GLOBAL &SMEM_start
+GLOBAL &SMEM_end
+GLOBAL &SMEM_size
+GLOBAL &SMEM_log
+&SMEM_start=0X87D00000
+&SMEM_end=0X87DFFFFF
+&SMEM_size=0X100000
+&SMEM_log="SMEM_log.bin"
+
+
+GLOBAL &TZ_SW_start
+GLOBAL &TZ_SW_end
+GLOBAL &TZ_SW_size
+GLOBAL &TZ_SW_log
+&TZ_SW_start=0X87E80000
+&TZ_SW_end=0X87FFFFFF
+&TZ_SW_size=0X180000
+&TZ_SW_log="TZ_SW_log.bin"
+
+// WCNSS Image - 7 MB
+GLOBAL &WCNSS_SW_start
+GLOBAL &WCNSS_SW_end
+GLOBAL &WCNSS_SW_size
+GLOBAL &WCNSS_SW_log
+&WCNSS_SW_start=0X8DA00000
+&WCNSS_SW_end=0X8E000000
+&WCNSS_SW_size=0X600000
+&WCNSS_SW_log="WCNSS_SW_log.bin"
+
+// WCNSS uBSP Image - Part of the 7MB 
+// main image when loaded. Runs out of CMEM
+GLOBAL &WCNSS_CMEM_start
+GLOBAL &WCNSS_CMEM_end
+GLOBAL &WCNSS_CMEM_size
+GLOBAL &WCNSS_CMEM_log
+&WCNSS_CMEM_start=0x0A280000  
+&WCNSS_CMEM_end=0x0A288000  
+&WCNSS_CMEM_size=0x00008000
+&WCNSS_CMEM_log="WCNSS_CMEM_log.bin"
+
+
+// DDR memory - combined space used by all images
+GLOBAL &DDR_1_start
+GLOBAL &DDR_1_end
+GLOBAL &DDR_1_size
+GLOBAL &DDR_1_log
+GLOBAL &DDR_1_USB_log
+&DDR_1_start=0x80000000
+&DDR_1_end=0xC0000000
+&DDR_1_size=0x40000000
+&DDR_1_log="DDRCS0.BIN"
+&DDR_1_USB_log="DDRCS0.BIN"
+
+;GLOBAL &DDR_2_start
+;GLOBAL &DDR_2_end
+;GLOBAL &DDR_2_size
+;GLOBAL &DDR_2_log
+;GLOBAL &DDR_2_USB_log
+;&DDR_2_start=0x20000000
+;&DDR_2_end=0x3FFFFFFF
+;&DDR_2_size=0x40000000
+;&DDR_2_log="DDRCS1.BIN"
+;&DDR_2_USB_log="DDRCS1.BIN"
+
+// This region is in the Shared IMEM block
+// These are the cookies used to debug any image
+// Allocation varies from target to target
+GLOBAL &DEBUG_REGION_START
+GLOBAL &DEBUG_REGION_END
+GLOBAL &DEBUG_REGION_SIZE
+GLOBAL &DEBUG_COOKIE_VALUE
+GLOBAL &SBL1_DEBUG_COOKIE
+GLOBAL &MBA_DEBUG_COOKIE
+GLOBAL &MPSS_DEBUG_COOKIE
+GLOBAL &ADSP_DEBUG_COOKIE
+GLOBAL &WCNSS_DEBUG_COOKIE
+GLOBAL &APPSBOOT_DEBUG_COOKIE
+GLOBAL &RPM_DEBUG_COOKIE
+&DEBUG_COOKIE_VALUE=0x53444247
+&DEBUG_REGION_START=0x8600AF8
+&DEBUG_REGION_END=0xFE80594C
+&DEBUG_REGION_SIZE=0x18
+&SBL1_DEBUG_COOKIE=0x8600944
+&MBA_DEBUG_COOKIE=0x8600938
+&MPSS_DEBUG_COOKIE=0x8600934
+&WCNSS_DEBUG_COOKIE=0x860093C
+&APPSBOOT_DEBUG_COOKIE=0x8600948
+&RPM_DEBUG_COOKIE=0x8600B18
+
+
+// OCIMEM section
+GLOBAL &OCIMEM_start
+GLOBAL &OCIMEM_end
+GLOBAL &OCIMEM_size
+GLOBAL &OCIMEM_log
+GLOBAL &OCIMEM_USB_log
+&OCIMEM_start=0x8600000
+&OCIMEM_end=0x8603FFF
+&OCIMEM_size=0x4000
+&OCIMEM_log="OCIMEM.bin"
+&OCIMEM_USB_log="OCIMEM.bin"
+
+// Shared IMEM section
+GLOBAL &SHARED_IMEM_start
+GLOBAL &SHARED_IMEM_end
+GLOBAL &SHARED_IMEM_size
+GLOBAL &SHARED_IMEM_log
+GLOBAL &SHARED_IMEM_USB_log
+&SHARED_IMEM_start=0x8600000
+&SHARED_IMEM_end=&SHARED_IMEM_start+0xFFF
+&SHARED_IMEM_size=0x1000
+&SHARED_IMEM_log="SHARED_IMEM.bin"
+
+
+// Relocatable Image support
+GLOBAL &RELOCATION_DATA_start
+GLOBAL &RELOCATION_DATA_end
+GLOBAL &RELOCATION_DATA_size
+&RELOCATION_DATA_start=&SHARED_IMEM_start+0x94C
+&RELOCATION_DATA_end=&RELOCATION_DATA_start+0xC7
+&RELOCATION_DATA_size=0xC8
+// Each entry in the table is in the following format
+// 8 bytes - image name
+// 8 bytes - image start address
+// 4 bytes - image size
+
+
+GLOBAL &WCNSS_regs
+GLOBAL &WCNSS_mmu
+&WCNSS_regs="WCNSS_regs.cmm"
+&WCNSS_mmu="WCNSS_mmu.cmm"
+
+GLOBAL &RPM_regs
+GLOBAL &RPM_mmu
+&RPM_regs="RPM_regs.cmm"
+&RPM_mmu="RPM_regs.cmm"
+
+GLOBAL &MPSS_Thread0_regs
+&MPSS_Thread0_regs="MPSS_Thread0_regs.cmm"
+GLOBAL &MPSS_Thread1_regs
+&MPSS_Thread1_regs="MPSS_Thread1_regs.cmm"
+GLOBAL &MPSS_Thread2_regs
+&MPSS_Thread2_regs="MPSS_Thread2_regs.cmm"
+GLOBAL &MPSS_Thread3_regs
+&MPSS_Thread3_regs="MPSS_Thread3_regs.cmm"
+
+GLOBAL &APPS_Core0_regs
+GLOBAL &APPS_Core0_mmu
+&APPS_Core0_regs="APPS_Core0_regs.cmm"
+&APPS_Core0_mmu="APPS_Core0_mmu.cmm"
+
+GLOBAL &APPS_Core1_regs
+GLOBAL &APPS_Core1_mmu
+&APPS_Core1_regs="APPS_Core1_regs.cmm"
+&APPS_Core1_mmu="APPS_Core1_mmu.cmm"
+
+GLOBAL &APPS_Core2_regs
+GLOBAL &APPS_Core2_mmu
+&APPS_Core2_regs="APPS_Core2_regs.cmm"
+&APPS_Core2_mmu="APPS_Core2_mmu.cmm"
+
+GLOBAL &APPS_Core3_regs
+GLOBAL &APPS_Core3_mmu
+&APPS_Core3_regs="APPS_Core3_regs.cmm"
+&APPS_Core3_mmu="APPS_Core3_mmu.cmm"
+
+MAIN:
+	// Change any defaults
+	IF (!SIMULATOR())
+	(
+		IF (("&IMAGE_TYPE"=="WCNSS")||("&IMAGE_TYPE"=="wcnss"))
+		(
+			GOSUB PARSE_IMAGE_RELOCATION_WCNSS
+		)
+		ELSE IF (("&IMAGE_TYPE"=="MPSS")||("&IMAGE_TYPE"=="mpss"))
+		(	
+		// Get relocated image info again
+		GOSUB PARSE_IMAGE_RELOCATION
+		)
+		
+	)
+	ELSE
+	(
+		// Do both together on simulator
+		GOSUB RELOC_SIMEM_N_PARSE_IMAGE_RELOC
+	)
+
+
+	GOTO EXIT
+
+EXIT:
+	ENDDO
+
+
+
+// Function to parse relocated image data that is 
+// saved in internal memory
+// This function will be run once only unless a new 
+// session has started
+PARSE_IMAGE_RELOCATION:
+	LOCAL &HEAD &TAIL &IMG_NAME &IMG_START &IMG_SIZE
+
+	&HEAD=&RELOCATION_DATA_start
+	&TAIL=&RELOCATION_DATA_end
+
+	WHILE (&HEAD<=&TAIL)
+	(
+		// Null terminate the string
+		DATA.SET EA:&HEAD+0x4 %LONG DATA.LONG(EA:&HEAD+0x4)&0xFFFFFF
+	 	&IMG_NAME=DATA.STRING(EA:&HEAD)
+		&IMG_START=DATA.LONG(EA:&HEAD+0xC)<<32.|DATA.LONG(EA:&HEAD+0x8)
+		&IMG_SIZE=DATA.LONG(EA:&HEAD+0x10)
+
+		// We have 5 images supported. No error if an image is not present
+	
+		IF ("&IMG_NAME"=="modem")
+		(
+			&MPSS_SW_start=&IMG_START
+			&MPSS_SW_size=&IMG_SIZE
+			&MPSS_SW_end=&IMG_START+&IMG_SIZE-1
+		)
+
+		IF ("&IMG_NAME"=="wcnss")
+		(
+			&WCNSS_SW_start=&IMG_START
+			&WCNSS_SW_size=&IMG_SIZE
+			&WCNSS_SW_end=&IMG_START+&IMG_SIZE-1
+		)
+
+		// Move to the next entry
+		&HEAD=&HEAD+0x14
+	)
+
+	RETURN
+PARSE_IMAGE_RELOCATION_WCNSS:
+	LOCAL &HEAD &TAIL &IMG_NAME &IMG_START &IMG_SIZE
+	&HEAD=&RELOCATION_DATA_start
+	&TAIL=&RELOCATION_DATA_end
+	WHILE (&HEAD<=&TAIL)
+	(
+		// Null terminate the string
+		DATA.SET EAXI:&HEAD+0x4 %LONG DATA.LONG(EAXI:&HEAD+0x4)&0xFFFFFF
+	 	&IMG_NAME=DATA.STRING(EAXI:&HEAD)
+		&IMG_START=DATA.LONG(EAXI:&HEAD+0xC)<<32.|DATA.LONG(EAXI:&HEAD+0x8)
+		&IMG_SIZE=DATA.LONG(EAXI:&HEAD+0x10)
+
+		IF ("&IMG_NAME"=="modem")
+		(
+			&MPSS_SW_start=&IMG_START
+			&MPSS_SW_size=&IMG_SIZE
+			&MPSS_SW_end=&IMG_START+&IMG_SIZE-1
+		)
+
+		IF ("&IMG_NAME"=="wcnss")
+		(
+			&WCNSS_SW_start=&IMG_START
+			&WCNSS_SW_size=&IMG_SIZE
+			&WCNSS_SW_end=&IMG_START+&IMG_SIZE-1
+		)
+
+		// Move to the next entry
+		&HEAD=&HEAD+0x14
+	)
+
+	RETURN
+
+
+// Function to parse relocated image data that is 
+// saved in internal memory and identify shared IMEM location
+// This function will be run once only unless a new debug
+// session has started	
+RELOC_SIMEM_N_PARSE_IMAGE_RELOC:
+	LOCAL &HEAD &TAIL &IMG_NAME &IMG_START &IMG_SIZE 
+	LOCAL &RELOCATED &COUNT
+
+	// Init locals
+	&RELOCATED=0
+	&COUNT=0
+
+	// Start with default location for shared IMEM
+	WHILE ((&RELOCATED==0)&&(&COUNT<1))
+	(
+		&HEAD=&RELOCATION_DATA_start
+		&TAIL=&RELOCATION_DATA_end
+		WHILE (&HEAD<=&TAIL)
+		(
+			// Null terminate the string
+			DATA.SET EA:&HEAD+0x4 %LONG DATA.LONG(EA:&HEAD+0x4)&0xFFFFFF
+		 	&IMG_NAME=DATA.STRING(EA:&HEAD)
+			&IMG_START=DATA.LONG(EA:&HEAD+0xC)<<32.|DATA.LONG(EA:&HEAD+0x8)
+			&IMG_SIZE=DATA.LONG(EA:&HEAD+0x10)
+
+			// We have 5 images supported. No error if an image is not present
+	
+			IF ("&IMG_NAME"=="modem")
+			(
+				&MPSS_SW_start=&IMG_START
+				&MPSS_SW_size=&IMG_SIZE
+				&MPSS_SW_end=&IMG_START+&IMG_SIZE-1
+				&RELOCATED=1
+			)
+
+			IF ("&IMG_NAME"=="wcnss")
+			(
+				&WCNSS_SW_start=&IMG_START
+				&WCNSS_SW_size=&IMG_SIZE
+				&WCNSS_SW_end=&IMG_START+&IMG_SIZE-1
+				&RELOCATED=1
+			)
+
+			// Move to the next entry
+			&HEAD=&HEAD+0x14
+		)
+
+		// Increment count
+		&COUNT=&COUNT+1
+
+	)
+
+	// If we reach this point without finding relocated data, it means 911 time !
+	IF (&RELOCATED==0)
+	(
+		PRINT "Relocated data not found at : &RELOCATION_DATA_start"
+	)
+	ELSE
+	(
+		PRINT "Relocated data found at : &RELOCATION_DATA_start"
+	)
+
+	RETURN
+
+
+	
+

@@ -1,0 +1,121 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 
+#===============================================================================
+Import('env')
+
+if 'USES_IMS_UT' not in env:
+	Return()
+	
+
+# Execute the sconsript in which the variables needs to be imported for the Current Script
+# and export the current environment to that script into which the variables will be exported to the it's export list
+
+# Import the required Variables from the export list of the Environment to which the other script file has added
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# ------------------------------------------------------------------------------
+# Sepcify the list of required include Paths
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('IMS_UT_INC', [ 
+"${INC_ROOT}/ims/ut/inc",
+"${INC_ROOT}/ims/ut/src",
+])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within IMS
+#-------------------------------------------------------------------------------
+IMS_API = ['IMS_DPL',
+		   'IMS_FRAMEWORK',
+		   'IMS_IMSCORE',
+		   'IMS_SIP',
+		   'IMS_REGMGR',
+		   'IMS_QIPCALL',
+		   'IMS_PS_MEDIA_SDP',
+		   'IMS_SETTINGS',
+		   'IMS_PRESENCE',
+		   'IMS_XML']
+		   
+env.RequireProtectedApi(IMS_API)
+
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(['BREW',
+						'MODEM_API',
+						'MODEM_DATA',
+						'MODEM_HDR',
+						'MODEM_SERVICES',
+						'MODEM_UIM'])
+
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+IMS_UT_FLAGS = ['MAF_NO_GLOBALS',
+						'QP_DONOT_OVERLOAD_NEW_DELETE',
+						'QMAF',
+						'QP_ENABLE_MMI_MODULE',
+						'FORCE_STATIC',
+						'AEE_STATIC',
+						'USE_SIMPLE_LOGGING',
+						'IMS_AMSS_STATIC_BUILD',
+						'FEATURE_AMSS_DPL',
+						'QP_ENABLE_SIGNALS',
+						'XDM_INCLUDE_GROUPMEMBER']
+
+IMS_UT_LIB_CPP_SOURCES = [
+	'${BUILDPATH}/imsserviceconfig.cpp',
+	'${BUILDPATH}/imsserviceconfigGBA.cpp',
+	'${BUILDPATH}/IMSSupplementaryService.cpp',
+	'${BUILDPATH}/imsut_enabler.cpp',
+	'${BUILDPATH}/PDPHandler.cpp',		
+	'${BUILDPATH}/qpXCAPUri.cpp',
+	'${BUILDPATH}/SingoIMSServConfigEvManager.cpp',
+	'${BUILDPATH}/UTCommunicationDiversion.cpp',
+	'${BUILDPATH}/UTCommunicationWaiting.cpp',
+	'${BUILDPATH}/UTConflictErrorHandling.cpp',
+	'${BUILDPATH}/UTOprtCommunicationDiversion.cpp',
+	'${BUILDPATH}/UTIncomingCommunicationBarring.cpp',
+	'${BUILDPATH}/UTOutgoingCommunicationBarring.cpp',
+	'${BUILDPATH}/UTOriginatingIdentityPresentation.cpp',
+	'${BUILDPATH}/UTTerminatingIdentityPresentation.cpp',
+	'${BUILDPATH}/UTSupplementaryServiceFactory.cpp',
+	'${BUILDPATH}/qpIMSServConfigGBAAuth.cpp',
+	'${BUILDPATH}/UTRootNodeSimservs.cpp',    
+    '${BUILDPATH}/UTTerminatingIdentityPresentationRestriction.cpp',
+    '${BUILDPATH}/UTOriginatingIdentityPresentationRestriction.cpp'
+]
+
+# Append the list of Macro Definitions as flags to the Compiler so that it will do a conditional compilation
+env.Append( CPPDEFINES = IMS_UT_FLAGS )
+
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/ims_ut', [IMS_UT_LIB_CPP_SOURCES])

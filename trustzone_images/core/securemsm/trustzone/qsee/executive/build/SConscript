@@ -1,0 +1,72 @@
+#===============================================================================
+#
+# TZBSP executive lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/18/10   cap     initial version
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/executive/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(['SYSTEMDRIVERS', 'DAL', 'SERVICES'])
+env.RequireRestrictedApi([
+   'TZSSD',
+   'TZKS',
+   'TZIMGAUTH',
+   'TZCHIPSET',              #< tzbsp_target.h
+   'TZLIBARMV7',             #< tzbsp_sys.h
+   'TZCRYPTO',               #< keystore
+   'KERNEL',                 #< HALxpu2.h
+   'SYSTEMDRIVERS',          #< HALqgic.h
+   'BOOT',                   #< miprogressive.h
+])
+
+env.PublishPrivateApi('TZEXEC', [
+   '${INC_ROOT}/core/securemsm/trustzone/monitor/common/inc'
+])
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SOURCES = [
+   '${BUILDPATH}/src/tzbsp_exec.c',
+   '${BUILDPATH}/src/tzbsp_exec_asm.s',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddBinaryLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_exec', SOURCES)

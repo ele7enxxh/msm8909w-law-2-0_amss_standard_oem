@@ -1,0 +1,344 @@
+#====include path optimized=====================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011 - 2014 Qualcomm Technologies, Inc. All Rights Reserved
+#
+# Qualcomm Technologies Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies, Inc. and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies, Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rftech_wcdma/build/modem_rfa_wcdma.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/14/15   vs      Treat only high warnings as errors
+# 12/16/14   tod     - O2 compiler optimization on hexagon 6.4.04 and greater toolchains
+# 10/28/14   chenh   Enabled compiler warings to errors
+# 10/16/14   dej     Clean-up SCons and add support for TABASCO
+# 09/11/14   ndb     Add 'USES_JOLOKIA_MODEM' for 'FEATURE_RF_HAS_QTUNER'
+# 09/02/14   dr      Added featurization for Non-W builds
+# 06/26/14   aa      Added support for FBRX APIs
+# 03/03/14   kg      Treat warnings as errors 
+# 01/06/14   adk     Added support for antenna tuners
+# 10/18/13   kg      Remove FEATURE_WCDMA_DB_DC_HSDPA since its target level now
+# 09/20/13   dw      Add support for D3925 
+# 09/10/13   aa      removed W RX cal optimization flag
+# 08/29/13   dw      Add RFLM API
+# 08/20/13   vbh     Add FEATURE_RF_BOLT_PRE_SILICON for bolt rumi
+# 08/05/13   ac      Added DI.2.1 to DBDC feature
+# 07/29/13   pl      Add FEATURE_RF_ASDIV depending on if MODEM_ANTENNA_SWITCH_DIVERSITY is defined
+# 07/28/13   dyc     Added DI.2.1 to DBDC feature
+# 07/13/13   aro     support for core/inc
+# 07/10/13   aro     Published RF Factory API
+# 07/10/13   aa      RX calibration optimization using NBEE
+# 06/20/13   ra      Disable QTuner for Bolt
+# 06/07/13   vs      Updated changes for generic tuner QTUNER flag for dime 1.1
+# 05/20/13   ra      Add support for Bolt
+# 05/20/13   vbh     Enabled XPT feature in Dime 2.0 
+# 02/20/13   lp      Enabled XPT feature TR.DSDA
+# 02/05/13   kai     Undefine XPT feature for Triton
+# 10/30/12   sar     Created
+#===============================================================================
+
+Import('env')
+
+if ('USES_UMTS' not in env):
+   Return() 
+   
+import os
+
+#usage:  ENV_UPDATE_RFA=CHIPSET,=mdm9x15,USES_NO_DEBUG,delete,USES_HI_SPEED,add
+if ARGUMENTS.get('ENV_UPDATE_RFA'):
+
+        env_update_string = ARGUMENTS.get('ENV_UPDATE_RFA')
+        
+        env_update_list = env_update_string.split(',')
+        
+        item_total = len(env_update_list)
+        
+        list_index = 0
+        
+        #note if list is not even number of items, last odd item is ignored
+        while list_index < item_total-1:
+                
+                item            = env_update_list[list_index]  
+                value           = env_update_list[list_index+1]
+                list_index      += 2
+                                
+                if(value == 'add'):
+                          env[str(item)] = 'yes'
+                          print "adding",item,"to env"                                          
+                          
+                elif(value == 'delete'):
+                          del env[str(item)]
+                          print "deleting",item,"from env"
+                
+                else:
+                        if(value[0] != '='):
+                                print "missing leading = in",value
+                                print "not updating ",item
+                                
+                        else:
+                                value2 = value[1:len(value)]
+                                env[str(item)] = value2
+                                print "now setting",item,value
+
+#end command line option processing
+								
+
+
+#The order of APIs in the rfa_public_api_list determines the order the paths are listed on the build command line.
+#To optimize build times the API list is sorted in descending order of use.
+
+rfa_public_api_list = [
+#        ('CORE',                'SYSTEMDRIVERS'),
+#        ('CORE',                'KERNEL'),
+        ('RFA',                 'COMMON'),
+        ('CORE',                'DAL'),
+        ('RFDEVICE_INTERFACE',  'RFDEVICE_INTERFACE'),
+        ('RFA',                 'CDMA'),
+#        ('MMCP',                'PUBLIC'),
+        ('MCS',                 'MCS'),
+        ('LTE',                 'LTE'),
+        ('MMCP',                'MMCP'),
+        ('FW',                  'RF'),
+        ('FW',                  'WCDMA'),
+        ('FW',                  'C2K'),
+        ('FW_CCS',              'FW_CCS'),
+        ('FW_COMMON',           'FW_COMMON'),
+        ('FW_WCDMA',            'FW_WCDMA'),
+        ('FW_C2K',              'FW_C2K'),
+        ('RFA',                 'MEAS'),
+        ('CORE',                'DEBUGTOOLS'),
+        ('GERAN',               'GERAN'),
+#        ('GERAN_RFA',           'DEPRECATED'),
+        ('RFA',                 'GSM'),
+        ('RFA',                 'LM'),
+        ('RFA',                 'LTE'),
+#        ('FW',                  'TARGET'),
+        ('FW',                  'GERAN'),
+        ('FW_GERAN',            'FW_GERAN'),
+        ('CORE',                'MPROC'),
+        ('CORE',                'MEMORY'),
+        ('CORE',                'SERVICES'),
+        ('RFA',                 'WCDMA'),
+        ('CORE',                'POWER'),
+        ('ONEX',                'PUBLIC'),
+        ('RFNV',                'RFNV'),
+        ('RFFACTORY',           'RFFACTORY'),
+#        ('RFDEVICE_WTR1605',    'RFDEVICE_WTR1605'),
+        ('FW',                  'LTE'),
+        ('FW_LTE',              'FW_LTE'),
+        ('WCDMA',               'WCDMA'),
+#        ('FW',                  'TDSCDMA'),
+#        ('FW_TDSCDMA',          'FW_TDSCDMA'),
+        ('RFA',                 'GNSS'),
+        ('UTILS',               'OSYS'),
+        ('AVS',                 'MVS'),
+        ('HDR',                 'HDR'),
+#        ('TDSCDMA',             'TDSCDMA'),
+#        ('RFA',                 'TDSCDMA'),
+        ('ONEX',                'ONEX'),
+        ('CORE',                'BUSES'),
+        ('WCDMA',               'PUBLIC'),
+        ('UIM',                 'UIM'),
+#        ('CORE',                'STORAGE'),
+#        ('RFDEVICE_QFE1320',    'RFDEVICE_QFE1320'),
+        ('UTILS',               'A2'),
+        ('UIM',                 'PUBLIC'),
+        ('GPS',                 'GPS'),
+#        ('RFDEVICE_WTR2605',    'RFDEVICE_WTR2605'),
+        ('MCS',                 'PUBLIC'),
+        ('HDR',                 'PUBLIC'),
+        ('MPOWER',              'MPOWER'),
+#        ('TDSCDMA',             'PUBLIC'),
+#        ('RFDEVICE_WFR2600',    'RFDEVICE_WFR2600'),
+#        ('CORE',                'HWENGINES'),
+#        ('RFA_RF',              'TUNER'),
+#        ('QMIMSGS',             'RFRPE'),
+        ('UTILS',               'COMMON'),
+#        ('RFA_GSM',             'RFA_GSM'),
+        ('RFTECH_GSM',        'RFTECH_GSM'),
+        ('RFLM',                    'RFLM'),
+        ('UTILS',               'QSH'),
+        ]
+
+for api_area,api_name in rfa_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+env.RequireRestrictedApi(['RFTECH_WCDMA_VIOLATIONS'])
+
+env.RequirePublicApi([
+        'RFTECH_WCDMA',
+        ],
+        area='RFTECH_WCDMA')
+
+env.RequirePublicApi([
+        'RFLM',
+        ],
+        area='RFLM')
+		
+env.RequirePublicApi([
+        'MCFG',
+        ],
+        area='MCFG')
+
+env.RequirePublicApi(['RFMODEM','FBRX','HAL'], area=env.get('RF_GLOBALS')['RFMODEM_AREA'])
+
+if env.PathExists('${INC_ROOT}/rftech_wcdma'):
+    env.Replace(RFTECH_WCDMA_ROOT = '${INC_ROOT}/rftech_wcdma')
+else:
+    env.Replace(RFTECH_WCDMA_ROOT = '${INC_ROOT}/modem/rfa/rf/wcdma')
+
+if env.PathExists('${INC_ROOT}/rftech_wcdma'):
+    env.Replace(RFA_ROOT = '${INC_ROOT}/rfa')
+else:
+    env.Replace(RFA_ROOT = '${INC_ROOT}/modem/rfa')
+
+if 'USES_FEATURE_QFE1320' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1320'])
+		
+if 'USES_FEATURE_QFE2320' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE2320'])		
+
+if 'USES_FEATURE_QFE1510_HDET' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1510_HDET'])
+
+if ('USES_FEATURE_QTUNER' in env):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+
+if 'USES_FEATURE_DPD' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_DPD'])
+
+if 'USES_FEATURE_XPT' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_XPT_SUPPORT'])
+   
+#if 'USES_FEATURE_WCDMA_RXCAL_OPTIMIZED' in env:
+#        env.Append(CPPDEFINES = ['FEATURE_WCDMA_RXCAL_OPTIMIZED'])
+   
+if 'USES_FEATURE_XPT_CDMA_TEMP' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_XPT_CDMA_TEMP'])
+
+if 'USES_1X_EPT_CAL' in env:
+        env.Append(CPPDEFINES = ['RF_1X_EPT_CAL_TEMP'])
+   
+if 'USES_1X_DIME_SAMPLE_CAPTURE' in env:
+        env.Append(CPPDEFINES = ['RF_1X_DIME_SAMPLE_CAPTURE'])
+   
+if 'USES_COMMON_DIME_SAMPLE_CAPTURE' in env:
+        env.Append(CPPDEFINES = ['RF_COMMON_DIME_SAMPLE_CAPTURE'])
+           
+if 'USES_FEATURE_RFA_TP_CARDS' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_TP_CARDS'])
+                
+if 'USES_FTM_HWTC_DEBUG_ONLY_SECURITY_HOLE' in env:
+                print "Add USES_FTM_HWTC"
+                env.Replace(USES_FTM_HWTC = 'yes')
+                print "Enable FEATURE_FTM_HWTC"
+                env.Append(CPPDEFINES = ['FEATURE_FTM_HWTC'])
+
+if 'USES_FEATURE_TX_INT_CAL' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_SUPPORTS_TX_INT_CAL'])
+
+if ( 'USES_DIME_1_0' in env ) or ('USES_BOLT_1_0' in env) or ('USES_JOLOKIA_MODEM' in env) or ('USES_TABASCO_MODEM' in env):        
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+
+if ('USES_DIME_1_1' in env) and ('USES_BOLT_1_0' not in env) :
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+
+#if 'USES_DIME_1_0' in env:
+#        env.Append(CPPDEFINES = ['FEATURE_WCDMA_RXCAL_OPTIMIZED'])
+
+#if 'USES_DIME_1_1' in env:
+#        env.Append(CPPDEFINES = ['FEATURE_WCDMA_RXCAL_OPTIMIZED'])
+
+#if 'USES_DIME_2_0' in env:
+#        env.Append(CPPDEFINES = ['FEATURE_WCDMA_RXCAL_OPTIMIZED'])
+
+
+if (('USES_DIME_1_0' in env or 'USES_DIME_1_1' in env or 'USES_DUAL_ACTIVE' in env or 'USES_DIME_2_0' in env) and ('USES_TRITON_1_0' not in env and 'USES_BOLT_1_0' not in env)):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_XPT_SUPPORT'])
+		
+# Bolt Pre-Silicon  
+if('USES_BOLT_1_0' in env):
+  env.Append(CPPDEFINES = ['FEATURE_RF_BOLT_PRE_SILICON'])
+
+if ('USES_RFA_D3925' in env):
+  env.Append(CPPDEFINES = ['FEATURE_RFA_D3925'])
+
+# antenna switch diversity
+if ('USES_MODEM_ANTENNA_SWITCH_DIVERSITY' in env ):
+        env.Append(CPPDEFINES = ['FEATURE_RF_ASDIV'])
+
+# Bolt Pre-Silicon  
+if('USES_BOLT_1_0' in env):
+        env.Append(CPPDEFINES = ['FEATURE_RF_BOLT_PRE_SILICON'])
+
+#-------------------------------------------------------------------------------
+# Enable warnings -> errors
+if 'USES_INTERNAL_BUILD' in env:
+   env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror-high", 
+                   HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror-high")		
+		
+#----------------------------------------------------------------------------#
+# Remove this line and if statement once 6.4.04 toolchain has been released
+if env['HEXAGON_RTOS_RELEASE'] >= '6.4.04':
+   # Enable -O2 optimization
+   env.Replace(HEXAGONCC_OPT = "${HEXAGON_OPT_2}")
+#----------------------------------------------------------------------------#
+
+# Export Protected API to RFA folder. This will be visible only within
+# RFA folder
+#----------------------------------------------------------------------------#
+
+env.PublishProtectedApi( 'RFTECH_WCDMA_INC', [
+    '${RFTECH_WCDMA_ROOT}/ftm/inc',
+    '${RFTECH_WCDMA_ROOT}/hwtc/inc',
+    '${RFTECH_WCDMA_ROOT}/rf/mc/inc',
+    '${RFTECH_WCDMA_ROOT}/rf/core/inc',
+    '${RFTECH_WCDMA_ROOT}/rf/meas/inc',
+    '${RFTECH_WCDMA_ROOT}/rf/nv/inc',
+    '${RFTECH_WCDMA_ROOT}/rf/rfc/inc',
+    ])
+
+env.PublishProtectedApi( 'RFTECH_WCDMA_SRC', [
+#    '${RFTECH_WCDMA_ROOT}/ftm/src',
+    '${RFTECH_WCDMA_ROOT}/rf/core/src',
+#    '${RFTECH_WCDMA_ROOT}/rf/mc/src',
+#    '${RFTECH_WCDMA_ROOT}/rf/meas/src',
+#    '${RFTECH_WCDMA_ROOT}/rf/nv/src',
+#    '${RFTECH_WCDMA_ROOT}/rf/rfc/src',
+    ])
+
+env.PublishProtectedApi( 'RFTECH_WCDMA_PROTECTED', [
+    '${RFTECH_WCDMA_ROOT}/ftm/protected',
+#    '${RFTECH_WCDMA_ROOT}/hwtc/protected',
+#    '${RFTECH_WCDMA_ROOT}/rf/meas/protected',
+    ])
+
+env.RequireProtectedApi(['RFTECH_WCDMA_INC'])
+
+env.RequireRestrictedApi(['RFTECH_WCDMA_VIOLATIONS'])
+
+#env.RequireProtectedApi(['RFC_TARGET_INC'])
+
+env.LoadSoftwareUnits( ) 

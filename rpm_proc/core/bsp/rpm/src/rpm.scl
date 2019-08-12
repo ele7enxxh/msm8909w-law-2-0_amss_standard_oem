@@ -1,0 +1,51 @@
+/*
+#====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+#
+#                     SCATTER LOADING DESCRIPTION FILE
+#
+#  Copyright (c) 2014 by QUALCOMM Incorporated. All Rights Reserved.
+#
+#  GENERAL DESCRIPTION
+#
+#  The scatter loading description file is used to define the RPM memory map.
+#
+#*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*/
+
+#if defined(MDM9x45_IMAGE_LAYOUT)
+#define RPMSS_DATA_SIZE     0x14000     // 80KB
+#else
+#define RPMSS_DATA_SIZE     0x10000     // 64KB
+#endif
+
+#define RPMSS_DATA_START    0x90000
+#define RPMSS_DATA_END      (RPMSS_DATA_START + RPMSS_DATA_SIZE)
+
+RPMSS_CODE 0x000000
+{
+  CODE_RAM 0x000000 0x1FFFF
+  {
+    startup.o(RPM_ENTRY, +FIRST)
+    * (InRoot$$Sections)
+    * (+RO-CODE)
+    * (+RO-DATA)
+  }
+}
+
+RPMSS_DATA RPMSS_DATA_START RPMSS_DATA_SIZE
+{
+  DATA_RAM RPMSS_DATA_START NOCOMPRESS ZEROPAD
+  {
+    * (+RW)
+    * (+ZI)
+  }
+
+  OTHER_SECTIONS +0x0 EMPTY 0x0
+  {
+    // See image_layout.c for how this OTHER_SECTIONS part is laid out
+  }
+
+  INIT_DATA_RAM_STACK_END RPMSS_DATA_END EMPTY 0x0
+  {
+  }
+}
+

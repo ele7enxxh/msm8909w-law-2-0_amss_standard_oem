@@ -1,0 +1,130 @@
+#===============================================================================
+#
+# cryptoLibs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/securemsm/unifiedcrypto/shared/ecc/build/SConscript#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/22/14   nk       Scon cleanup 
+# 07/16/13   yk	     Initial version
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/unifiedcrypto/shared/ecc"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'HWENGINES',
+   'POWER',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+SME_PROTECTED_API = [
+                      'SME_SMECOM',
+]
+env.RequireProtectedApi(SME_PROTECTED_API)
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('SECUREMSM', [
+   "${BUILD_ROOT}/core/securemsm/unifiedcrypto/shared/ecc/src",
+])
+
+
+env.PublishPrivateApi('ECCSHARED', [
+       "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/ecc/inc",
+       "${INC_ROOT}/core/securemsm/unifiedcrypto/core/ecc/inc",
+       "${INC_ROOT}/core/securemsm/unifiedcrypto/environment/inc",
+       ])
+
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+env.Append(ARMCC_CODE = " ${ARM_SPLIT_SECTIONS}")
+env.Replace(ARMLD_NOREMOVE_CMD = "")
+
+env.Append(CPPDEFINES = ['_ARM_', '__arm', 'ARM', 'ARM_BREW_BUILD'])
+env.Append(ARMCC_OPT = ' -EC --loose_implicit_cast ')
+env.Append(ARMCPP_OPT = ' -EC --loose_implicit_cast ')
+if env.has_key('BUILD_BOOT_CHAIN'):
+   env.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+
+env.AddUsesFlags('USES_QDSP6')
+if env.has_key('USES_MBA'):
+  if env.has_key('USES_QDSP6'):
+    env.Append(CCFLAGS = " -O3 ")
+    env.Append(CFLAGS = " -O3 ")
+  else:
+    env.Append(CCFLAGS = " --restrict  -O3 -OTime ")
+    env.Append(CFLAGS = " --restrict  -O3 -OTime ")
+else:
+  if env.has_key('USES_QDSP6'):
+    env.Append(CCFLAGS = " -O2 -hexagon-predef-argset=modem-sw ")
+    env.Append(CFLAGS = " -O2 -hexagon-predef-argset=modem-sw ")
+  else:
+    env.Append(CCFLAGS = " --restrict  -O2 -OTime ")
+    env.Append(CFLAGS = " --restrict  -O2 -OTime ")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+ECCSHARED_LIB_SOURCES = [
+        '${BUILDPATH}/src/ecc_shared.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddBinaryLibrary(['SINGLE_IMAGE', 
+                      'CBSP_SINGLE_IMAGE',
+                      'MODEM_IMAGE',
+                      'CBSP_MODEM_IMAGE',
+                      'APPS_IMAGE',
+                      'CBSP_APPS_IMAGE',
+                      'QDSP6_SW_IMAGE',
+                      'CBSP_QDSP6_SW_IMAGE',
+      'MBA_CORE_SW'], 
+      '${BUILDPATH}/ECCSHARED', ECCSHARED_LIB_SOURCES)

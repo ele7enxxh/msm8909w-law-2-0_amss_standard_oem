@@ -1,0 +1,820 @@
+;============================================================================
+;  Name:
+;    NOR_TOOLS.CMM
+;
+;  Description:
+;    Internal FLASH Programming Script.
+;
+;
+;  Copyright (c) 2010-2011, 2014 Qualcomm Technologies Incorporated.
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nor/config_v1/nor_tools.cmm#1 $ 
+; $DateTime: 2015/09/01 00:30:35 $ 
+; $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 03/19/14   whc     Added Multiple device support
+; 03/21/11   jz      Updated to support new T32 versions
+; 09/02/10   sv      Initial revision 
+;============================================================================;
+
+;============================================================================
+; Declare global variables used
+;============================================================================
+global &BinDir
+global &Platform
+
+;============================================================================
+; Declare Local variables used
+;============================================================================
+; These Indexes are used to store the menu Indexes.
+; The Menu index is set to -1, if the menu is not available,
+; otherwise the menu will be set to the valid index    
+local &exitId
+local &singleId
+local &custId  
+local &lastId
+
+; Boolean Type
+&true=(0==0)
+&false=(0==1)
+
+;Set the following menu indexes to not available.
+;These menu indexes will be set to the correct ID later based on the target
+;support
+&singleId=-1.
+&custId=-1.  
+&lastId=3.
+&PrompFile=&false
+
+LOCAL &CurDir
+&CurDir=os.pwd()
+
+;============================================================================
+; Get the arguments passed in.
+;============================================================================
+ENTRY &arg1 &arg2 &arg3 &arg4 &arg5 &arg6
+
+;--------------------------------------------------------
+;  Variables for binaries to program
+;--------------------------------------------------------
+&SingleBin="*.mbn"
+&CustomBin="*.mbn"
+&BuildID=""
+
+;============================================================================
+; Set up some defaults for some variables
+;============================================================================
+&MenuMode="STD"        ; Present normal NOR_TOOLS menu
+&DoDebug="no"          ; Do not do debugging      
+&ProcessBinName="yes"  ; Processs the binary file name
+&Verbose="yes"         ; Present status messages as we process
+&ClearWin="yes"        ; Remove all windows before starting
+&SymbolArg="/NOSYMBOL" ; Don't load any symbols
+&DoVerify="yes"        ; Do not do verify step
+&ImageDir="."          ; Directory to find images in
+&CheckStatusFailed="no"
+&TermBlipBreak="no"    ; set to yes to use buffered IO
+&BinDialog="yes"       ; Do not use hard coded binaries, use dialog and path
+&SecureBoot="no"       ; Do not program PBL in Secure Boot mode
+
+;============================================================================
+; Initialze PATH with Current directory only. Other directory paths will be 
+; appended later in respective modules
+;============================================================================
+PATH .
+
+;============================================================================
+; Set some MSM specific variables used later in flash.target command
+;    &NorCodeAddr=
+;    &NorParamAddr=
+;    &NorCpuType=
+;============================================================================
+;do nor_param
+
+; Set the default path to the folder containing binaries
+ &BinDir="&NorSrcRoot/build/ms/bin"
+
+;============================================================================
+; For normal use set up the screen with only area window for reports
+; For debug purposes, don't clear
+; In both cases, make sure we have an area window
+;============================================================================
+if "&ClearWin"=="yes"
+(
+  WinCLEAR
+  WinPage.Reset
+)
+
+WINPOS 0. 0. 50% 100%
+area
+
+if "&ClearWin"=="yes"
+(
+  area.RESET
+)
+
+;============================================================================
+; Process the command line arguments and create image names or wildcards
+;============================================================================
+gosub ProcessCmdLine
+
+gosub AdjustBinNames
+
+;-------------------------------------------------------------------------------
+; Set some variables used later on to peek and poke parameter block
+;   This script file is sourced by both nor.cmm and nortest.cmm
+;-------------------------------------------------------------------------------
+;do nor_init.cmm
+
+
+;============================================================================
+; 1) Set variables used to set up the JTAG debugger for this MSM
+; 2) Init important MSM/ASB registers
+;    use existing external script that is MSM specific
+;============================================================================
+;do &NorConfigDir/nor_msm_init
+
+;============================================================================
+; Load our flash programming routine and prepare flash
+;============================================================================
+;data.load.elf "nor_tools.elf"
+;data.load.elf "nor_tools.elf" /VERIFY
+
+;--------------------------------------------------------
+; Need this breakpoint as per Lauterbach Spec so that we
+; can hand back control to the Debugger.
+;--------------------------------------------------------
+break.delete /ALL
+break.set swbp /onchip /program
+
+;--------------------------------------------------------
+; Create the ROM mapping to be used with all commands
+;--------------------------------------------------------
+&RomBegin=&NorCodeRomBegin
+&RomEnd=&NorCodeRomEnd
+gosub CreateRom
+
+;============================================================================
+; Possibly put up terminal window
+;============================================================================
+if "&UseTerm"=="YES"  
+(  
+  term.close
+  winclear MYTERM
+  term.size 60 1000
+  term.scroll on
+  WinPOS 50% 0% 50% 100% ,, MYTERM
+  if "&TermBlipBreak"=="yes" 
+  (
+    print "Using buffered terminal IO"
+    term.protocol bs
+    term output_port input_port
+    print "Setting TermBlip breakpoint"
+    b.s term_blip /s /onchip /program
+  )
+  else
+  (
+    term.view
+    ;term.write c:/temp/term.out
+  )
+
+  on error gosub
+  (
+    term.close
+    print "terminal output closed"
+    end     ; Terminate here if there is an error
+  )
+)
+
+;============================================================================
+; Setup default Menus
+;============================================================================
+; 0. Exit Menu 
+; 1. Single(Unified) Image
+; 2. Custom Image
+
+&exitId=0.
+&singleId=1. 
+&custId=2.
+
+;============================================================================
+; Invoke the correct menu
+;============================================================================
+
+if "&MenuMode"=="NOMENU"
+(
+  ; Load all images
+  gosub DoNoMenu
+)
+else if "&MenuMode"=="STD"
+(
+  gosub DetectDeviceType
+  gosub NormalMenu
+)
+else
+(
+  print "Invalid menu mode &MenuMode selected"
+  end
+)
+
+; Close terminal and flush contents if it was in use
+if "&UseTerm"=="YES"  
+(  
+  term.close
+)
+enddo
+
+;;======================================================;; 
+;;    _____                 _   _                       ;;
+;;   |  ___|   _ _ __   ___| |_(_) ___  _ __  ___       ;;
+;;   | |_ | | | | '_ \ / __| __| |/ _ \| '_ \/ __|      ;;
+;;   |  _|| |_| | | | | (__| |_| | (_) | | | \__ \      ;;
+;;   |_|   \__,_|_| |_|\___|\__|_|\___/|_| |_|___/      ;;
+;;                                                      ;;
+;;======================================================;; 
+
+;============================================================================
+; Present user with normal main menu for NOR_TOOLS.  Manual selection is done.
+;============================================================================
+NormalMenu:
+
+if "&ClearWin"=="yes"
+(
+  area.RESET
+)
+
+MainMenu:
+
+  print
+  print
+  print "/---------------------------------------------\"
+  print "|              _   _  ___  ____               |"
+  print "|             | \ | |/ _ \|  _ \              |"
+  print "|             |  \| | | | | |_) |             |"
+  print "|             | |\  | |_| |  _ <              |"
+  print "|             |_| \_|\___/|_| \_\             |"
+  print "|                                             |"
+  print "|                                             |"
+  print "|              Flash Programmer               |"
+  print "|                                             |"
+  print "|                                             |"
+  print "|     Copyright (c) 2010 by QUALCOMM, Inc     |"
+  print "|                                             |"
+  print "-----------------------------------------------"
+  print
+  print "  &exitId Exit"
+
+  if "&singleId"!="-1."
+  (      
+    print "  &singleId Program Single(Unified) Image"
+  )
+  if "&custId"!="-1."    
+  (      
+    print "  &custId Program Custom Image (Requires partition name)"
+  )    
+  print
+  print " Please make a choice: "
+
+  &t32_cmm_stopped=1
+  enter &Choice
+  &t32_cmm_stopped=0
+  print
+  print
+  if "&ClearWin"=="yes"
+  (
+    area.RESET
+  )
+
+  if "&Choice."=="&exitId"
+  (
+    print "...exiting NOR  Flash Programmer"
+    gosub CleanUp
+    gosub CleanUpExit
+    return
+  )
+
+  if "&Choice."=="&singleId"
+  (
+    print "Programming Single image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub ProgramSingle
+    goto MainMenu
+  )
+
+  if "&Choice."=="&custId"&&"&custId"!="-1."
+  (
+    print "Programming CUSTOM image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub ProgramCUSTOM
+    goto MainMenu
+  )
+
+  goto MainMenu
+
+  return  ; NormalMenu
+
+
+;============================================================================
+; Do not present user with menu.  Program both BootLoader and Code Images
+;============================================================================
+
+DoNoMenu:
+  gosub SendSecurityMode
+  gosub ProgramSingle
+  gosub CleanUp
+  gosub CleanUpExit
+  return  ; DoNoMenu
+
+;=========================================================
+; --- Function to program Single Image
+;=========================================================
+ProgramSingle:
+
+  goSub StartTime "Programming Single(Unified) Image"
+
+  print "Please enter Single image: "
+  local &filename
+  dialog.file &BinDir/&BuildID/*.mbn
+  entry &filename
+  if "&filename"==""
+  (
+    print "Failed to select Single image"
+    enddo   
+  )
+  &SingleBin="&filename" 
+  ;--------------------------------------------------------
+  ; Initialize the NOR_TOOLS program - must succeed
+  ;  will probe flash and set up first block for writing
+  ;  We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for Single Image Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &SingleImg
+  &CurrentCmd=&InitImgCmd
+
+  r.s pc &StartAddr
+  go
+
+  &CheckStatusExit="yes"
+  gosub check_status  ;; will not return if error 
+
+  &PbnImage="&SingleBin"
+
+  &ImageName="Single"
+  gosub DoProgramming  
+
+  goSub EndTime "Programming Single(Unified) Image"
+
+  return
+
+;=========================================================
+; --- Function to program Image to a Custom Partition
+;=========================================================
+ProgramCUSTOM:
+
+  local &PartiChoice
+  local &PartiNameLen
+
+  goSub StartTime "Programming CUSTOM Image"
+  if "&MenuMode"=="STD"
+  (
+    ;--------------------------------------------------------
+    ; Initialize the NOR program - must succeed
+    ;  will probe flash and set up first block for writing
+    ; We have to set this command up by hand as it is one
+    ;  that we added to the flash.* protocol and JTAG does
+    ;  not know about it.
+    ;--------------------------------------------------------
+    ;
+    if "&Verbose"=="yes"
+    (
+      print "Probing flash and setting up"
+      print ""
+      print ""
+    )
+    
+    ; Prompt user for a partition name that will be programmed with this image
+    print "Please enter partition name to program (0:ALL): "
+    &t32_cmm_stopped=1
+    enter &PartiChoice
+    &t32_cmm_stopped=0
+  
+    &PartiChoice=STRING.UPR("&PartiChoice")
+    &PartiNameLen=STRING.LEN("&PartiChoice")
+  
+    if (&PartiNameLen<3)
+    (
+      print "Partition Name '&PartiChoice' is too short a name!"
+      print "Press any key to return to Main menu"
+      print ""
+ 
+      INKEY
+ 
+      print "Going back to Main menu..."
+      print
+      print
+      return
+    )
+    print "Please enter Customer image: "
+    local &filename
+    dialog.file &BinDir/&BuildID/*.mbn
+    entry &filename
+    if "&filename"==""
+    (
+      print "Failed to select Customer image"
+      enddo   
+    )
+    &CustomBin="&filename" 
+  )
+
+  if (!os.file(&CustomBin))
+  (
+    print "&CustomBin image not found - Skipping "
+    print "Press any key to return to Main menu"
+    print ""
+
+    INKEY
+
+    print "Going back to Main menu..."
+    print
+    print
+  )
+  else
+  (
+    print " Download &CustomBin  image"
+    data.set &ParmData "&PartiChoice" 0x0
+
+    ;Set the correct size for the string
+    data.set &ParmSize %LONG &PartiNameLen
+
+    if "&Verbose"=="yes"
+    (
+      print
+      print "Programming partition &PartiChoice"
+    )
+   
+    &Command="Flash Initialize for CUSTOM Image Programming"
+    data.set &ParmCmd %LONG &InitImgCmd
+    data.set &ParmReserved %LONG &CustomImg
+    
+    &CurrentCmd=&InitImgCmd
+
+    r.s pc &StartAddr
+    go
+    
+    &CheckStatusExit="yes"
+    gosub check_status  ;; will not return if error
+
+    &PbnImage="&CustomBin"
+
+    &ImageName="CUSTOM"
+    
+    print "Programming &ImageName &PbnImage"
+    gosub DoProgramming
+    goSub EndTime "Programming CUSTOM Image"
+  )
+  return
+
+;=====================================================
+; --- Function to Program flash part but not verify
+;=====================================================
+DoProgramming:
+
+  ;--------------------------------------------------------
+  ; put into program mode 
+  ;--------------------------------------------------------
+  flash.program all
+
+  ;--------------------------------------------------------
+  ; actual flash programming happens here
+  ;--------------------------------------------------------
+  &Command="Flash Program"
+  &CurrentCmd=&ProgramCmd
+
+  if "&Verbose"=="yes"
+  (
+    print "Choose &ImageName Binary"
+  )
+  data.load.binary &PbnImage /NOSYMBOL
+
+  &CheckStatusExit="yes"
+  gosub check_status  ;; will not return if error
+
+  ;--------------------------------------------------------
+  ; OK we're finished, turn off programming mode.
+  ; If we do not turn it off, any data writes within
+  ; the address range of the defined ROM will be taken
+  ; as flash programming commands and this will cause
+  ; failures if the code size overlaps the parameter
+  ; block address.
+  ;--------------------------------------------------------
+  flash.program off
+
+  return
+
+;=====================================================
+; Function to check command status return
+; and exit if 0x100
+;=====================================================
+check_status:
+  wait !run()
+
+  &Result=data.long(A:&ParmStatus)
+  if &Result==0x100
+  (
+    print " "
+    print "---- &Command failed"
+    &Result=data.long(A:&ParmReserved)
+    do flash_prog_error &Result
+    print " "
+
+    if "&CheckStatusExit"=="yes"
+    (
+      print "EXITING due to failed command:: &Command"
+
+      if "&UseTerm"=="YES"
+      (
+        print "Closing teminal window on error"
+        term.close
+      )
+      end
+    )
+    else
+    (
+      &CheckStatusFailed="yes"
+    )
+  )
+  else
+  (
+    if (&Result==&CurrentCmd)
+    (
+      print " "
+      print "----  DID NOT COMPLETE &Command"
+      print " "
+      print "EXITING due to failed command:: &Command"
+
+      if "&UseTerm"=="YES"
+      (
+        print "Closing teminal window on error"
+        term.close
+      )
+      end
+    )
+    else
+    (
+      if "&Verbose"=="yes"
+      (
+        print "+++++ &Command Succeeded"
+      )
+    )
+  )
+  return
+
+;=====================================================
+; Function to create the FLASH map
+;=====================================================
+CreateRom:
+  ;======================================================
+  ; Map flash readonly - must encompass the addresse
+  ; of the image being loaded
+  ;======================================================
+  map.readonly &RomBegin--&RomEnd
+
+  ;--------------------------------------------------------
+  ; reset our flash command
+  ;--------------------------------------------------------
+  flash.res
+
+  ;--------------------------------------------------------
+  ; Let flash command know where our routine and buffer is located
+  ; code at &NorCodeAddr, data at &NorParamAddr, buffer size = 16K
+  ; Earlier versions of JTAG s/w would allow larger buffer of 64k
+  ; but now we seem to be limited to 16k
+  ;--------------------------------------------------------
+  flash.target &NorCodeAddr &NorParamAddr 4000
+
+  ;--------------------------------------------------------
+  ; Define our flash range and tell flash command we're using
+  ; our own flash programming routine via keyword "target"
+  ; right now, we are defining 3 MBytes for code which in
+  ; the NOR environment is meaningless, as this has to do
+  ; with memory mapping in the flash, but we have to use it
+  ; to use the other FLASH.* functions
+  ;--------------------------------------------------------
+  flash.create &RomBegin--&RomEnd target byte
+
+  return
+
+;=====================================================
+; Function to clean up the FLASH map after each
+; iteration of the loop
+;=====================================================
+CleanUp:
+  ;--------------------------------------------------------
+  ; ok we're finished, turn off programming mode
+  ;--------------------------------------------------------
+  flash.program off
+  FLASH.Reset
+  MAP.Reset
+  return
+
+;=====================================================
+; Function to clean up just before exit
+;=====================================================
+CleanUpExit:
+  ;--------------------------------------------------------
+  ; ok we're finished completely, clean up for exit
+  ;--------------------------------------------------------
+  b.delete /all
+  if "&SecureBoot"!="yes"  
+  (  
+    ; Generate a reset
+    sys.d
+    sys.u
+  )   
+  if "&UseTerm"=="YES"  
+  (  
+    term.close
+  )
+  return
+
+;=====================================================
+; Function to print start time
+;=====================================================
+StartTime:
+  LOCAL &msg
+  ENTRY &msg
+
+  if "&Verbose"=="yes"
+  (
+    &DateStart=CLOCK.DATE()
+    &TimeStart=CLOCK.TIME()
+    PRINT " "
+    PRINT "Start &msg at &DateStart at &TimeStart"
+  )
+
+  return
+
+;=====================================================
+; Function to print end time
+;=====================================================
+EndTime:
+  LOCAL &msg
+  ENTRY &msg
+  if "&Verbose"=="yes"
+  (
+    &DateEnd=CLOCK.DATE()
+    &TimeEnd=CLOCK.TIME()
+    PRINT " "
+    PRINT "End &msg at &DateEnd at &TimeEnd"
+    print " "                                             
+  )
+  return
+
+;============================================================================
+; Process the arguments and set modes accordingly
+;============================================================================
+ProcessCmdLine:
+
+  ; Any mode can take DEBUG, must be first, process it first
+  if "&arg1"=="DEBUG"
+  (
+    print "NOR_TOOLS called with arg1 = &arg1 arg2 = &arg2  arg3 = &arg3"
+    print "arg4 = &arg4 "
+
+    ; Strip out DEBUG and shift arguments
+    &DoDebug="yes"
+    &arg1="&arg2"
+    &arg2="&arg3"
+    &arg3="&arg4"
+  )
+
+  ; Any mode can take TRUSTED, must be second if with DEBUG, otherwise first
+  if "&arg1"=="TRUSTED"
+  (
+    ; Strip out TRUSTED and shift arguments
+    &SecureBoot="yes"
+    &arg1="&arg2"
+    &arg2="&arg3"
+    &arg3="&arg4"
+  )
+
+  if "&arg1"=="NOMENU"
+  (
+    ; NOMENU mode needs a BUILDID argument
+    &MenuMode="&arg1"
+    &BuildID="&arg2"
+
+    if "&BuildID"==""
+    (
+      print "Fatal Error:  Parameter NOMENU requires a valid Build ID"
+      gosub CleanUp
+      gosub CleanUpExit
+      end
+    )
+    &Verbose="no"
+
+    if "&arg5"=="1"
+    (
+      gosub LoadI2C
+
+      if "&arg6"=="1"
+      (
+        gosub SelectCDT
+      )
+      else if "&arg6"=="2"
+      (
+        gosub SelectRF
+      )
+      else if "&arg6"=="3"
+      (
+        gosub Select3rd
+      )
+      else
+      (
+        print "Fatal Error:  unsupported device"
+        gosub CleanUpExit
+        enddo
+      )
+    )
+    else if "&arg5"=="2"
+    ( 
+      gosub LoadSPI
+    )
+    else
+    (
+      print "Fatal Error:  unsupported device type"
+      gosub CleanUpExit
+      enddo
+    )
+  )
+  else
+  (
+    &BuildID="&arg1"
+    if "&BuildID"==""
+    (
+      &BuildID="."
+    )
+  )
+
+  if "&DoDebug"=="yes"
+  (
+    print "MenuMode is &MenuMode"
+    print "Debug is &DoDebug"
+    print "SecureBoot is &SecureBoot"
+    print "Verbose is &Verbose"
+    print "BuildID is &BuildID"
+  )
+
+return  ; ProcessCmdLine
+
+;============================================================================
+; process the elf name, helping the user all we can so that they 
+; have as little work to do as possible.
+;============================================================================
+AdjustBinNames:
+
+  ; If we have no BuildID name, have user choose an elf file
+  if "&BuildID"==""
+  (
+    &SingleBin="&BinDir/*.mbn"
+    &CustomBin="&BinDir/*.mbn"
+  )
+  else
+  (
+    &SingleBin="&BinDir/&BuildID/&SingleBin"
+    &CustomBin="&BinDir/&BuildID/&CustomBin"
+  )
+
+  if "&DoDebug"=="yes"
+  (
+    print "SingleBin   is &SingleBin"
+    print "CustomBin   is &CustomBin"
+  )
+
+  return   ;AdjustBinNames
+
+;=====================================================
+; Function to send the security mode
+;=====================================================
+SendSecurityMode:
+
+return

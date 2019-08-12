@@ -1,0 +1,32 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+
+sub fromfor( $client, $start, $end)
+{
+    while ( $start <= $end) {
+        my $read_req = slnew_req( "reg", "single_read", { item => $start});
+        my $read_resp = slsend_recv( $client, $read_req, 1);
+        my ( $err, $item, $len, $data) = slget( $read_resp, { err, item, length, data});
+        if ( !defined( $read_resp)) {
+            break;
+        }
+        print( "registry item: $item, err $err, len $len, data $data\n");
+        $start += 1;
+    }
+}
+
+sub main( @argv)
+{
+    my $client = slopen();
+
+    fromfor( $client, 0, 6);   // accel
+
+    fromfor( $client, 300, 306);   // gyro
+
+    fromfor( $client, 100, 110);   // als/prox
+
+    slclose( $client);
+}

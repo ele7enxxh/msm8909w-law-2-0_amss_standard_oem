@@ -1,0 +1,71 @@
+#===============================================================================
+#
+# SystemFeatures Test Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$
+#  $DateTime$
+#  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/dal/drivers/TestDrivers"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DEBUGTOOLS',
+   'SERVICES',
+   'DAL',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireRestrictedApi('DAL')
+
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+Test_Device_One_Src =  [ 
+   '${BUILDPATH}/src/DevCfgTest.c' 
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+IMAGES = [
+   'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 
+   'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+   'APPS_IMAGE', 'CBSP_APPS_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'CORE_SPS', 'CORE_RPM', 'RPM_IMAGE', 
+   'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN']
+
+if 'DEVCFG_BOOT_TEST' in env:
+   env.AddLibrary(IMAGES, '${BUILDPATH}/DALString', Test_Device_One_Src)
+   env.LoadSoftwareUnits(level=1)

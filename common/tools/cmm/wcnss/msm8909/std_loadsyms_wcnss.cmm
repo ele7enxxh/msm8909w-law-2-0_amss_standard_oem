@@ -1,0 +1,103 @@
+//============================================================================
+//  Name:                                                                     
+//    std_loadsyms_wcnss.cmm 
+//
+//  Description:                                                              
+//    Script to load WCNSS symbols
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/19/2013 JBILLING		Added support for reloc images
+// 08/28/2012 AJCheriyan	Created for B-family
+//
+
+// ARG0 - Build from which symbols have to loaded
+//
+ENTRY &ARG0
+
+LOCAL &WCNSSBUILD
+&WCNSSBUILD="&ARG0"
+
+MAIN:
+	// If a build is not provided, we assume the meta build has provided everything and use that
+	// information. 
+	// Load the elf file first. 
+	IF ("&WCNSSBUILD"=="")
+	(
+		;D.LOAD.ELF "&WCNSS_BUILDROOT/wcnss_proc/build/ms/*.elf" /nocode /noclear
+		D.LOAD.ELF "&WCNSS_BUILDROOT/wcnss_proc/build/ms/*.elf"  EAHB: /nocode /strippart "wcnss_proc" /sourcepath "&WCNSS_BUILDROOT/wcnss_proc"
+		menu.reset
+	    // Load anything else from the build
+	    // Load the relative path info for the build
+    	do std_utils EXECUTESCRIPT EXIT &WCNSS_BUILDROOT/wcnss_proc/core/products/scripts/std_toolsconfig.cmm
+		
+		// Program the menus for general debugging
+		do std_utils EXECUTESCRIPT EXIT &WCNSS_BUILDROOT/wcnss_proc/core/products/scripts/std_scripts.men
+		
+		// Load the extensions for the system
+    	do std_utils EXECUTESCRIPT EXIT &WCNSS_BUILDROOT/wcnss_proc/core/products/scripts/std_extensions.cmm
+
+	)
+	ELSE
+	(
+		;D.LOAD.ELF "&WCNSS_BUILDROOT/wcnss_proc/build/ms/*.elf" /nocode /noclear
+		D.LOAD.ELF "&WCNSSBUILD/wcnss_proc/build/ms/*.elf"  EAHB: /nocode /strippart "wcnss_proc" /sourcepath "&WCNSSBUILD/wcnss_proc"
+		
+		menu.reset
+		
+		// Load the relative path info for the build
+	    do std_utils EXECUTESCRIPT EXIT &WCNSSBUILD/wcnss_proc/core/products/scripts/std_toolsconfig.cmm
+		
+		// Program the menus for general debugging
+		do std_utils EXECUTESCRIPT EXIT &WCNSSBUILD/wcnss_proc/core/products/scripts/std_scripts.men
+		
+		// Load the extensions for the system
+	    do std_utils EXECUTESCRIPT EXIT &WCNSSBUILD/wcnss_proc/core/products/scripts/std_extensions.cmm
+	)
+
+	// Setup MMU
+     GOSUB SETUPMMU
+	
+	 GOTO EXIT
+
+// Sub-routine to setup the MMU
+SETUPMMU:
+	LOCAL &Vir_TTBR &TTBR &RelocOffset 
+	GLOBAL &Vir_Start_ADDR
+	// We need to get the start address of the WCNSS image from
+	// the memory map
+	do std_memorymap
+	IF Y.EXIST("reset_vector")
+	(
+		&Vir_Start_ADDR=ADDRESS.OFFSET(reset_vector)
+	)
+	ELSE
+	(
+		&Vir_Start_ADDR=0xd200000
+	)
+	&RelocOffset=&WCNSS_SW_start-&Vir_Start_ADDR
+	&Vir_TTBR=ADDRESS.OFFSET(PAGETABLE_L1)
+	&TTBR=&Vir_TTBR+&RelocOffset
+	PER.S C15:0x2 %LONG &TTBR
+	mmu.on
+//	mmu.SCAN.PT
+	RETURN
+   
+FATALEXIT:
+    END
+
+EXIT:
+    ENDDO
+
+
+
+

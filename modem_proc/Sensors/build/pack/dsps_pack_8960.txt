@@ -1,0 +1,520 @@
+beginCMTEST
+beginPROD
+
+
+#-------------------------------------------------------------------------------
+#---  Required files added in the root dir by release engineer
+#-------------------------------------------------------------------------------
+beginRequired
+swrelfrm.txt  #--- Software Release Form (CM Document)
+[]_notes.txt  #--- Software Release Notes
+readme.rls    #--- Readme file for HK11, EXE (CM Document to track idents)
+readmem.rls   #--- Readme file for HM11, SOURCE (CM Document to track idents)
+readmey_1.rls #--- Readme file for HY11_1, Stripped Source (CM Document to track idents)
+endRequired
+
+
+#-------------------------------------------------------------------------------
+#---  Package the HM11 unstripped source directory
+#-------------------------------------------------------------------------------
+beginCopy
+readmem.rls HM11\readme.rls
+endCopy
+#--- Create the self extracting executable
+beginAdd HM11\[]s.exe
+HM11\*.*
+endAdd HM11
+#--- Create the list of files in the self extracting executable
+packList HM11\[]s.exe HM11\pack_s.lst
+#--- Change permissions to read only
+chmod 0444 HM11\*.*
+
+
+#-------------------------------------------------------------------------------
+#---  Package HY11_1 directory - DMSS source, object and build files.
+#-------------------------------------------------------------------------------
+chmod 0777 HY11_1\*.*
+beginCopy
+readmey_1.rls HY11_1\readme.rls
+endCopy
+
+
+beginCopying
+  .\dsps_proc HY11_1\.\dsps_proc
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\core\sensors\api\idl\*
+.\dsps_proc\core\sensors\common\core\src\8660\*
+.\dsps_proc\core\sensors\common\core\inc\sns_dsps_profile.h
+.\dsps_proc\core\sensors\common\core\src\common\sns_dsps_profile.c
+.\dsps_proc\core\sensors\common\sam\algo\common\src\*
+.\dsps_proc\core\sensors\dd\src\lsm303dlhc_ddf_drv.c
+.\dsps_proc\core\sensors\dd\src\lsm303dlhc_ddf_drv.h
+.\dsps_proc\core\sensors\dd\src\sns_dd_accel_adxl_calib.c
+.\dsps_proc\core\sensors\dd\src\sns_dd_accel_adxl350_test.c
+.\dsps_proc\core\sensors\dd\src\sns_dd_accel_adxl_calib.h
+.\dsps_proc\core\sensors\dd\src\sns_dd_accel_calib.c
+.\dsps_proc\core\sensors\dd\src\sns_dd_accel_calib.h
+.\dsps_proc\core\sensors\dd\src\sns_dd_alsprx_test.c
+.\dsps_proc\core\sensors\dd\src\sns_dd_alt_bmp085.c
+.\dsps_proc\core\sensors\dd\src\sns_dd_alt_bmp085_priv.h
+.\dsps_proc\core\sensors\dd\src\sns_dd_alt_bmp085_test.c
+.\dsps_proc\core\sensors\dd\src\sns_dd_gyro_test.c
+.\dsps_proc\core\sensors\dd\src\sns_dd_mag_akm8975_test.c
+.\dsps_proc\core\sensors\dd\src\sns_test_accel.c
+.\dsps_proc\core\sensors\dd\src\sns_test_accel.h
+.\dsps_proc\core\sensors\ddf\src\8660\*
+.\dsps_proc\core\sensors\dsps\src\8660\*
+.\dsps_proc\core\sensors\dsps\src\common\dal_test.c
+.\dsps_proc\core\sensors\sam\algo\qmd\src\*
+.\dsps_proc\core\sensors\sam\framework\src\8660\*
+.\dsps_proc\core\sensors\sam\framework\src\common\sns_sam_test.c
+.\dsps_proc\core\sensors\scm\algo\src\*
+.\dsps_proc\core\sensors\smgr\src\8660\*
+.\dsps_proc\core\sensors\smgr\src\common\sns_smgr_test_main.c
+.\dsps_proc\build\ms\bin\*
+.\dsps_proc\core\bsp\tools\python\*
+endDelete HY11_1
+
+beginCopying
+  .\dsps_proc\core\api\dal HY11_1\.\dsps_proc\core\api\dal
+  .\dsps_proc\core\dal HY11_1\.\dsps_proc\core\dal
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\core\dal\dirs
+.\dsps_proc\core\dal\Makefile
+.\dsps_proc\core\dal\wm_dal.lst
+.\dsps_proc\core\dal\make.d\*
+.\dsps_proc\core\dal\wmtargetlibs\*
+.\dsps_proc\core\dal\config\blastconfig.mak
+.\dsps_proc\core\dal\config\dal.bib
+.\dsps_proc\core\dal\config\dal.reg
+.\dsps_proc\core\dal\config\DALConfig.def
+.\dsps_proc\core\dal\config\makefile
+.\dsps_proc\core\dal\config\makefile.inc
+.\dsps_proc\core\dal\config\q6config.mak
+.\dsps_proc\core\dal\config\sources
+.\dsps_proc\core\dal\config\spsconfig
+.\dsps_proc\core\dal\config\boot_wm7\*
+.\dsps_proc\core\dal\config\oal_wm7\*
+.\dsps_proc\core\dal\config\wm7\*
+.\dsps_proc\core\dal\drivers\dal0\*
+.\dsps_proc\core\dal\drivers\dirs
+.\dsps_proc\core\dal\drivers\InterruptController\dal.cfg
+.\dsps_proc\core\dal\drivers\InterruptController\dirs
+.\dsps_proc\core\dal\drivers\InterruptController\src\dirs
+.\dsps_proc\core\dal\drivers\InterruptController\src\dalnative\*
+.\dsps_proc\core\dal\drivers\InterruptController\src\pichal\*
+.\dsps_proc\core\dal\drivers\InterruptController\src\sim\*
+.\dsps_proc\core\dal\drivers\InterruptController\src\wm\*
+.\dsps_proc\core\dal\drivers\remote_test\dal.cfg
+.\dsps_proc\core\dal\drivers\sim\*
+.\dsps_proc\core\dal\drivers\SystemCall\dirs
+.\dsps_proc\core\dal\drivers\SystemCall\src\dirs
+.\dsps_proc\core\dal\drivers\SystemCall\src\rexnative\*
+.\dsps_proc\core\dal\drivers\SystemCall\src\wm\*
+.\dsps_proc\core\dal\drivers\Timer\dal.cfg
+.\dsps_proc\core\dal\drivers\Timer\dirs
+.\dsps_proc\core\dal\drivers\Timer\src\dirs
+.\dsps_proc\core\dal\drivers\Timer\src\dalnative\*
+.\dsps_proc\core\dal\drivers\Timer\src\rexnative\*
+.\dsps_proc\core\dal\drivers\Timer\src\sim\*
+.\dsps_proc\core\dal\drivers\Timer\src\wm\*
+.\dsps_proc\core\dal\framework\dirs
+.\dsps_proc\core\dal\framework\Makefile
+.\dsps_proc\core\dal\framework\mod\dirs
+.\dsps_proc\core\dal\framework\mod\empty_mod\*
+.\dsps_proc\core\dal\framework\mod\src\dirs
+.\dsps_proc\core\dal\framework\mod\src\wm\*
+.\dsps_proc\core\dal\framework\src\dirs
+.\dsps_proc\core\dal\framework\src\sim\*
+.\dsps_proc\core\dal\framework\src\wm\*
+.\dsps_proc\core\dal\framework\sys\dirs
+.\dsps_proc\core\dal\framework\sys\src\dirs
+.\dsps_proc\core\dal\framework\sys\src\rex\*
+.\dsps_proc\core\dal\framework\sys\src\rexnative\*
+.\dsps_proc\core\dal\framework\sys\src\sim\*
+.\dsps_proc\core\dal\framework\sys\src\wm\*
+.\dsps_proc\core\dal\framework\sys\src\wm_oal\*
+.\dsps_proc\core\dal\remote\dirs
+.\dsps_proc\core\dal\remote\Makefile
+.\dsps_proc\core\dal\remote\src\dirs
+.\dsps_proc\core\dal\remote\src\sim\*
+.\dsps_proc\core\dal\remote\src\sps\*
+.\dsps_proc\core\dal\remote\src\wm\*
+.\dsps_proc\core\dal\tools\templates\*
+endDelete HY11_1
+
+beginCopying
+  .\dsps_proc\core\mproc\build HY11_1\.\dsps_proc\core\mproc\build
+  .\dsps_proc\core\api\mproc HY11_1\.\dsps_proc\core\api\mproc
+endCopying
+
+beginCopying
+  .\dsps_proc\core\mproc\smd\build\SConscript HY11_1\.\dsps_proc\core\mproc\smd\build\SConscript
+  .\dsps_proc\core\mproc\smem\build\SConscript HY11_1\.\dsps_proc\core\mproc\smem\build\SConscript
+  .\dsps_proc\core\mproc\smd\build\sensorsimg\arm7\smd_lite.lib HY11_1\.\dsps_proc\core\mproc\smd\build\sensorsimg\arm7\smd_lite.lib
+  .\dsps_proc\core\mproc\smem\build\sensorsimg\arm7\smem.lib HY11_1\.\dsps_proc\core\mproc\smem\build\sensorsimg\arm7\smem.lib
+  .\dsps_proc\core\mproc\smd\smd_bridge.h HY11_1\.\dsps_proc\core\mproc\smd\smd_bridge.h
+  .\dsps_proc\core\mproc\smd\smd_rex.h HY11_1\.\dsps_proc\core\mproc\smd\smd_rex.h
+  .\dsps_proc\core\mproc\smd\smd_sio.h HY11_1\.\dsps_proc\core\mproc\smd\smd_sio.h
+  .\dsps_proc\core\mproc\smem\smem_diag.h HY11_1\.\dsps_proc\core\mproc\smem\smem_diag.h
+  .\dsps_proc\core\mproc\smem\smem_ext.c HY11_1\.\dsps_proc\core\mproc\smem\smem_ext.c
+  .\dsps_proc\core\mproc\smem\smem_ext.h HY11_1\.\dsps_proc\core\mproc\smem\smem_ext.h
+  .\dsps_proc\core\mproc\smem\smem_log_v.h HY11_1\.\dsps_proc\core\mproc\smem\smem_log_v.h
+  .\dsps_proc\core\mproc\smem\smem_target.h HY11_1\.\dsps_proc\core\mproc\smem\smem_target.h
+  .\dsps_proc\core\mproc\smem\smem_v.h HY11_1\.\dsps_proc\core\mproc\smem\smem_v.h
+  .\dsps_proc\core\mproc\smem\spinlock.h HY11_1\.\dsps_proc\core\mproc\smem\spinlock.h
+  .\dsps_proc\core\mproc\smem\smsm_v.h HY11_1\.\dsps_proc\core\mproc\smem\smsm_v.h
+endCopying
+
+beginCopying
+  .\dsps_proc\core\power\build HY11_1\.\dsps_proc\core\power\build
+  .\dsps_proc\core\power\dcvs HY11_1\.\dsps_proc\core\power\dcvs
+  .\dsps_proc\core\power\dem HY11_1\.\dsps_proc\core\power\dem
+  .\dsps_proc\core\power\mpm HY11_1\.\dsps_proc\core\power\mpm
+  .\dsps_proc\core\power\npa HY11_1\.\dsps_proc\core\power\npa
+  .\dsps_proc\core\power\rpm HY11_1\.\dsps_proc\core\power\rpm
+  .\dsps_proc\core\power\sleep HY11_1\.\dsps_proc\core\power\sleep
+  .\dsps_proc\core\power\sleepctl HY11_1\.\dsps_proc\core\power\sleepctl
+  .\dsps_proc\core\power\spm HY11_1\.\dsps_proc\core\power\spm
+  .\dsps_proc\core\power\ulog HY11_1\.\dsps_proc\core\power\ulog
+  .\dsps_proc\core\power\utils HY11_1\.\dsps_proc\core\power\utils
+endCopying
+
+beginCopying
+  .\dsps_proc\core\api\power HY11_1\.\dsps_proc\core\api\power
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\core\power\dcvs\src\tgt\7x30
+.\dsps_proc\core\power\dcvs\src\tgt\9x00
+.\dsps_proc\core\power\dcvs\src\tgt\pc
+.\dsps_proc\core\power\dcvs\src\tgt\scmm
+endDelete HY11_1
+
+beginDelete HY11_1
+.\dsps_proc\core\power\npa\src\target\7x30
+.\dsps_proc\core\power\npa\src\target\9x00
+.\dsps_proc\core\power\npa\src\target\6695
+endDelete HY11_1
+
+beginDelete HY11_1
+.\dsps_proc\core\power\sleep\src\asic\8660
+.\dsps_proc\core\power\sleep\src\asic\offtarget
+.\dsps_proc\core\power\sleep\src\os\WM7
+.\dsps_proc\core\api\power\WM7
+endDelete HY11_1
+
+beginDelete HY11_1
+.\dsps_proc\core\power\spm\hal\bsp\source\8660
+endDelete HY11_1
+
+beginCopying
+  .\dsps_proc\core\api\systemdrivers HY11_1\.\dsps_proc\core\api\systemdrivers
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\inc\msmhwioregp.h
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\inc\msmshadowp.h
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\inc\proc\apps\msmhwioreg_procp.h
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\inc\proc\modem\msmhwioreg_procp.h
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\inc\proc\lpass\msmhwioreg_procp.h
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\inc\proc\modem\msmhwioreg_procp.h
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\inc\proc\riva\msmhwioreg_procp.h
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\inc\proc\rpm\msmhwioreg_procp.h
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\t32\hwiop.cmm
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\t32\hwiovirtp.cmm
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\t32\hwioregp.men
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\t32\hwioregp.per
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\t32\hwioregp.cmm
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\ARM_ADDRESS_FILE.FLAT
+.\dsps_proc\core\api\systemdrivers\hwio\msm8960\msmreg.cfg
+.\dsps_proc\core\api\systemdrivers\docsrc\*
+endDelete HY11_1
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\build HY11_1\.\dsps_proc\core\systemdrivers\build
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\bio HY11_1\.\dsps_proc\core\systemdrivers\bio
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\busywait HY11_1\.\dsps_proc\core\systemdrivers\busywait
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\chipinfo HY11_1\.\dsps_proc\core\systemdrivers\chipinfo
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\clk HY11_1\.\dsps_proc\core\systemdrivers\clk
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\clkregim HY11_1\.\dsps_proc\core\systemdrivers\clkregim
+  .\dsps_proc\build\ms\setupclk.cmm HY11_1\.\dsps_proc\build\ms\setupclk.cmm
+  .\dsps_proc\build\ms\setupclk_48mhz.cmm HY11_1\.\dsps_proc\build\ms\setupclk_48mhz.cmm
+  .\dsps_proc\build\ms\setupclk_128mhz.cmm HY11_1\.\dsps_proc\build\ms\setupclk_128mhz.cmm
+  .\dsps_proc\build\ms\testclock.cmm HY11_1\.\dsps_proc\build\ms\testclock.cmm
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\core\systemdrivers\clkregim\dirs
+.\dsps_proc\core\systemdrivers\clkregim\build\8660
+.\dsps_proc\core\systemdrivers\clkregim\build\8672
+.\dsps_proc\core\systemdrivers\clkregim\build\wm7
+.\dsps_proc\core\systemdrivers\clkregim\src\common\clkrgm_bsp_8672.c
+.\dsps_proc\core\systemdrivers\clkregim\src\proc\apps\clkrgm_apps_npa_7630.c
+.\dsps_proc\core\systemdrivers\clkregim\src\proc\apps\wm_boot\*
+.\dsps_proc\core\systemdrivers\clkregim\src\proc\apps\wm_drv\*
+.\dsps_proc\core\systemdrivers\clkregim\src\proc\apps\wm_intf\*
+.\dsps_proc\core\systemdrivers\clkregim\src\proc\apps\wm_oal\*
+.\dsps_proc\core\systemdrivers\clkregim\src\proc\mpss\clkrgm_mpss_npa_7630.c
+.\dsps_proc\core\systemdrivers\clkregim\t32\determineownership_7630.cmm
+endDelete HY11_1
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\clock\build HY11_1\.\dsps_proc\core\systemdrivers\clock\build
+  .\dsps_proc\core\systemdrivers\clock\chipset\build HY11_1\.\dsps_proc\core\systemdrivers\clock\chipset\build
+  .\dsps_proc\core\systemdrivers\clock\chipset\msm8960\bsp HY11_1\.\dsps_proc\core\systemdrivers\clock\chipset\msm8960\bsp
+  .\dsps_proc\core\systemdrivers\clock\chipset\msm8960\build HY11_1\.\dsps_proc\core\systemdrivers\clock\chipset\msm8960\build
+  .\dsps_proc\core\systemdrivers\clock\chipset\msm8960\image\sps HY11_1\.\dsps_proc\core\systemdrivers\clock\chipset\msm8960\image\sps
+  .\dsps_proc\core\systemdrivers\clock\config HY11_1\.\dsps_proc\core\systemdrivers\clock\config
+  .\dsps_proc\core\systemdrivers\clock\shared HY11_1\.\dsps_proc\core\systemdrivers\clock\shared
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\fpga HY11_1\.\dsps_proc\core\systemdrivers\fpga
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\GPIOInt HY11_1\.\dsps_proc\core\systemdrivers\GPIOInt
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hal\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\hal\build\SConscript
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hal\pic\src\8660\* HY11_1\.\dsps_proc\core\systemdrivers\hal\pic\src\8660\*
+  .\dsps_proc\core\systemdrivers\hal\pic\src\common\* HY11_1\.\dsps_proc\core\systemdrivers\hal\pic\src\common\*
+  .\dsps_proc\core\systemdrivers\hal\pic\inc\* HY11_1\.\dsps_proc\core\systemdrivers\hal\pic\inc\*
+  .\dsps_proc\core\systemdrivers\hal\pic\build\* HY11_1\.\dsps_proc\core\systemdrivers\hal\pic\build\*
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hal\clk\api HY11_1\.\dsps_proc\core\systemdrivers\hal\clk\api
+  .\dsps_proc\core\systemdrivers\hal\clk\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\hal\clk\build\SConscript
+  .\dsps_proc\core\systemdrivers\hal\clk\build\8960 HY11_1\.\dsps_proc\core\systemdrivers\hal\clk\build\8960
+  .\dsps_proc\core\systemdrivers\hal\clk\chipset\build HY11_1\.\dsps_proc\core\systemdrivers\hal\clk\chipset\build
+  .\dsps_proc\core\systemdrivers\hal\clk\chipset\msm8960 HY11_1\.\dsps_proc\core\systemdrivers\hal\clk\chipset\msm8960
+  .\dsps_proc\core\systemdrivers\hal\clk\shared HY11_1\.\dsps_proc\core\systemdrivers\hal\clk\shared
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hal\gpioint\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\hal\gpioint\build\SConscript
+  .\dsps_proc\core\systemdrivers\hal\gpioint\inc HY11_1\.\dsps_proc\core\systemdrivers\hal\gpioint\inc
+  .\dsps_proc\core\systemdrivers\hal\gpioint\src\8960 HY11_1\.\dsps_proc\core\systemdrivers\hal\gpioint\src\8960
+  .\dsps_proc\core\systemdrivers\hal\gpioint\src\common_v2 HY11_1\.\dsps_proc\core\systemdrivers\hal\gpioint\src\common_v2
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hal\hwrev\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\hal\hwrev\build\SConscript
+  .\dsps_proc\core\systemdrivers\hal\hwrev\build\8960 HY11_1\.\dsps_proc\core\systemdrivers\hal\hwrev\build\8960
+  .\dsps_proc\core\systemdrivers\hal\hwrev\inc HY11_1\.\dsps_proc\core\systemdrivers\hal\hwrev\inc
+  .\dsps_proc\core\systemdrivers\hal\hwrev\src HY11_1\.\dsps_proc\core\systemdrivers\hal\hwrev\src
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hal\ipcint\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\hal\ipcint\build\SConscript
+  .\dsps_proc\core\systemdrivers\hal\ipcint\build\8960\SConscript HY11_1\.\dsps_proc\core\systemdrivers\hal\ipcint\build\8960\SConscript
+  .\dsps_proc\core\systemdrivers\hal\ipcint\inc HY11_1\.\dsps_proc\core\systemdrivers\hal\ipcint\inc
+  .\dsps_proc\core\systemdrivers\hal\ipcint\src\8960 HY11_1\.\dsps_proc\core\systemdrivers\hal\ipcint\src\8960
+  .\dsps_proc\core\systemdrivers\hal\ipcint\src\common HY11_1\.\dsps_proc\core\systemdrivers\hal\ipcint\src\common
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hal\avs\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\hal\avs\build\SConscript
+  .\dsps_proc\core\systemdrivers\hal\avs\build\8960 HY11_1\.\dsps_proc\core\systemdrivers\hal\avs\build\8960
+  .\dsps_proc\core\systemdrivers\hal\avs\inc HY11_1\.\dsps_proc\core\systemdrivers\hal\avs\inc
+  .\dsps_proc\core\systemdrivers\hal\avs\src\8960 HY11_1\.\dsps_proc\core\systemdrivers\hal\avs\src\8960
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hal\qgic\build HY11_1\.\dsps_proc\core\systemdrivers\hal\qgic\build
+  .\dsps_proc\core\systemdrivers\hal\qgic\inc HY11_1\.\dsps_proc\core\systemdrivers\hal\qgic\inc
+  .\dsps_proc\core\systemdrivers\hal\qgic\src HY11_1\.\dsps_proc\core\systemdrivers\hal\qgic\src
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hal\tlmm\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\hal\tlmm\build\SConscript
+  .\dsps_proc\core\systemdrivers\hal\tlmm\build\8960 HY11_1\.\dsps_proc\core\systemdrivers\hal\tlmm\build\8960
+  .\dsps_proc\core\systemdrivers\hal\tlmm\inc HY11_1\.\dsps_proc\core\systemdrivers\hal\tlmm\inc
+  .\dsps_proc\core\systemdrivers\hal\tlmm\src\8960 HY11_1\.\dsps_proc\core\systemdrivers\hal\tlmm\src\8960
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hal\timer\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\hal\timer\build\SConscript
+  .\dsps_proc\core\systemdrivers\hal\timer\build\8960\SConscript HY11_1\.\dsps_proc\core\systemdrivers\hal\timer\build\8960\SConscript
+  .\dsps_proc\core\systemdrivers\hal\timer\inc HY11_1\.\dsps_proc\core\systemdrivers\hal\timer\inc
+  .\dsps_proc\core\systemdrivers\hal\timer\src\8960 HY11_1\.\dsps_proc\core\systemdrivers\hal\timer\src\8960
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hw\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\hw\build\SConscript
+  .\dsps_proc\core\systemdrivers\hw\inc HY11_1\.\dsps_proc\core\systemdrivers\hw\inc
+  .\dsps_proc\core\systemdrivers\hw\src HY11_1\.\dsps_proc\core\systemdrivers\hw\src
+  .\dsps_proc\build\ms\hw_chipset.cmm HY11_1\.\dsps_proc\build\ms\hw_chipset.cmm
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\core\systemdrivers\hw\src\hw_modem_9x00.c
+.\dsps_proc\core\systemdrivers\hw\src\hw_modem_6695.c
+.\dsps_proc\core\systemdrivers\hw\src\hw_modem_7600.c
+endDelete HY11_1
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\hwio HY11_1\.\dsps_proc\core\systemdrivers\hwio
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\core\systemdrivers\hwio\build\wm
+endDelete HY11_1
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\ipcint\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\ipcint\build\SConscript
+  .\dsps_proc\core\systemdrivers\ipcint\config HY11_1\.\dsps_proc\core\systemdrivers\ipcint\config
+  .\dsps_proc\core\systemdrivers\ipcint\src HY11_1\.\dsps_proc\core\systemdrivers\ipcint\src
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\core\systemdrivers\services\msmsupport\dirs
+.\dsps_proc\core\systemdrivers\services\msmsupport\src\makefile
+.\dsps_proc\core\systemdrivers\services\msmsupport\src\sources
+endDelete HY11_1
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\services\msmsupport HY11_1\.\dsps_proc\core\systemdrivers\services\msmsupport
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\core\systemdrivers\services\msmsupport\dirs
+.\dsps_proc\core\systemdrivers\services\msmsupport\src\makefile
+.\dsps_proc\core\systemdrivers\services\msmsupport\src\sources
+endDelete HY11_1
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\softwareswitches HY11_1\.\dsps_proc\core\systemdrivers\softwareswitches
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\timetick HY11_1\.\dsps_proc\core\systemdrivers\timetick
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\tlmm\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\tlmm\build\SConscript
+  .\dsps_proc\core\systemdrivers\tlmm\build\8960\SConscript HY11_1\.\dsps_proc\core\systemdrivers\tlmm\build\8960\SConscript
+  .\dsps_proc\core\systemdrivers\tlmm\inc HY11_1\.\dsps_proc\core\systemdrivers\tlmm\inc
+  .\dsps_proc\core\systemdrivers\tlmm\src HY11_1\.\dsps_proc\core\systemdrivers\tlmm\src
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\core\systemdriver\\tlmm\dirs
+.\dsps_proc\core\systemdrivers\tlmm\inc\TLMMGpio6695.h
+.\dsps_proc\core\systemdrivers\tlmm\inc\TLMMGpio7625.h
+.\dsps_proc\core\systemdrivers\tlmm\inc\TLMMGpio7630.h
+.\dsps_proc\core\systemdrivers\tlmm\inc\TLMMGpio8650b.h
+.\dsps_proc\core\systemdrivers\tlmm\inc\TLMMGpio8900.h
+.\dsps_proc\core\systemdrivers\tlmm\inc\TLMMGpio9x00.h
+.\dsps_proc\core\systemdrivers\tlmm\inc\tlmm_remote_atom.h
+.\dsps_proc\core\systemdrivers\tlmm\src\bsp\*
+.\dsps_proc\core\systemdrivers\tlmm\src\wrapper\*
+.\dsps_proc\core\systemdrivers\tlmm\src\DALTLMM_stubs.c
+.\dsps_proc\core\systemdrivers\tlmm\src\DALTLMMBsp.h
+.\dsps_proc\core\systemdrivers\tlmm\src\dirs
+.\dsps_proc\core\systemdrivers\tlmm\src\Makefile
+.\dsps_proc\core\systemdrivers\tlmm\src\sources
+.\dsps_proc\core\systemdrivers\tlmm\src\TLMMBsp.h
+.\dsps_proc\core\systemdrivers\tlmm\src\TLMMDxe.c
+.\dsps_proc\core\systemdrivers\tlmm\src\TLMMDxe.inf
+.\dsps_proc\core\systemdrivers\tlmm\src\tlmm.min
+.\dsps_proc\core\systemdrivers\tlmm\src\tlmm_incpaths.min
+endDelete HY11_1
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\tramp HY11_1\.\dsps_proc\core\systemdrivers\tramp
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\core\systemdrivers\tramp\build\wm\*
+.\dsps_proc\core\systemdrivers\tramp\src\modem\*
+.\dsps_proc\core\systemdrivers\tramp\src\platform\qgic\*
+.\dsps_proc\core\systemdrivers\tramp\src\platform\qube\*
+.\dsps_proc\core\systemdrivers\tramp\src\platform\wm\*
+.\dsps_proc\core\systemdrivers\tramp\src\gpio\gpio_int.c
+.\dsps_proc\core\systemdrivers\tramp\src\gpio\tramp_gpio.c
+.\dsps_proc\core\systemdrivers\tramp\src\gpio\tramp_gpioint.c
+.\dsps_proc\core\systemdrivers\tramp\src\platform\pic\6615\tramp_pic_bsp_mss.c
+.\dsps_proc\core\systemdrivers\tramp\src\platform\pic\6695\tramp_pic_bsp_mss.c
+.\dsps_proc\core\systemdrivers\tramp\src\platform\pic\8660\tramp_pic_bsp_sps.c
+.\dsps_proc\core\systemdrivers\tramp\src\platform\pic\tramp_pic_l4.c
+.\dsps_proc\core\systemdrivers\tramp\src\platform\pic\tramp_pic_l4_3x.c
+.\dsps_proc\core\systemdrivers\tramp\src\platform\pic\tramp_pic_rex.c
+.\dsps_proc\core\systemdrivers\tramp\src\platform\pic\tramp_pic_wm.c
+endDelete HY11_1
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\platforminfo\config HY11_1\.\dsps_proc\core\systemdrivers\platforminfo\config
+  .\dsps_proc\core\systemdrivers\platforminfo\src HY11_1\.\dsps_proc\core\systemdrivers\platforminfo\src
+  .\dsps_proc\core\systemdrivers\platforminfo\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\platforminfo\build\SConscript
+endCopying
+
+beginCopying
+  .\dsps_proc\core\systemdrivers\chippower\config HY11_1\.\dsps_proc\core\systemdrivers\chippower\config
+  .\dsps_proc\core\systemdrivers\chippower\src HY11_1\.\dsps_proc\core\systemdrivers\chippower\src
+  .\dsps_proc\core\systemdrivers\chippower\build\SConscript HY11_1\.\dsps_proc\core\systemdrivers\chippower\build\SConscript
+endCopying
+
+beginCopying
+  .\dsps_proc\tools\build\scons HY11_1\.\dsps_proc\tools\build\scons
+endCopying
+
+beginDelete HY11_1
+.\dsps_proc\tools\build\scons\tcfg\tools
+endDelete HY11_1
+
+beginEXE
+clean DSPSBLDZ
+endEXE
+
+
+beginDelete HY11_1
+.\dsps_proc\core\bsp\build\tools\*.pyc
+.\dsps_proc\core\bsp\build\scripts\*.pyc
+.\dsps_proc\core\bsp\build\*.txt
+.\BuildProducts.txt
+.\static_analysis
+endDelete HY11_1
+
+#-------------------------------------------------------------------------------
+#---  Package HK11 directory
+#-------------------------------------------------------------------------------
+beginCopy
+readme.rls HK11\readme.rls
+endCopy
+
+
+beginCopying
+dsps_proc\build\ms\bin HK11\dsps_proc\build\ms\bin
+endCopying
+
+
+
+
+endPROD
+endCMTEST

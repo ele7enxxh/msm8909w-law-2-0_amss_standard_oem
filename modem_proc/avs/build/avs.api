@@ -1,0 +1,58 @@
+#===============================================================================
+#
+# Core APIs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2015 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Qualcomm Technologies, Inc. Confidential and Proprietary.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/avs/build/avs.api#1 $
+#  $DateTime: 2016/12/13 07:59:59 $
+#  $Author: mplcsds1 $
+#  $Change: 11985186 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/11/13   sre     Added support to make VOICECFG public API.
+#===============================================================================
+Import('env')
+
+if env.PathExists('${BUILD_ROOT}/avs'):
+   env.Replace(AVS_ROOT = '${INC_ROOT}/avs')
+else:    
+   env.Replace(AVS_ROOT = '${INC_ROOT}/multimedia/avs')
+
+env.PublishPublicApi('COMMON',           [ '${AVS_ROOT}/api/common',])
+env.PublishPublicApi('AVS',              [ '${AVS_ROOT}/api',])
+env.PublishPublicApi('AUDIOINIT',        [ '${AVS_ROOT}/api/audioinit',])
+env.PublishPublicApi('CVAINIT',          [ '${AVS_ROOT}/api/cvainit',])
+env.PublishPublicApi('CVD',              [ '${AVS_ROOT}/api/cvd',])
+env.PublishPublicApi('MMUTILS',          [ '${AVS_ROOT}/api/mmutils',])
+env.PublishPublicApi('MVS',              [ '${AVS_ROOT}/api/mvs',])
+env.PublishPublicApi('VS',               [ '${AVS_ROOT}/api/vs',])
+env.PublishPublicApi('VOICEMEM',         [ '${AVS_ROOT}/api/voicemem',])
+env.PublishPublicApi('VOICECFG',         [ '${AVS_ROOT}/api/voicecfg',])
+
+env.PublishRestrictedApi('VIOLATIONS',[
+        '${INC_ROOT}/apr/utils/inc',
+        '${INC_ROOT}/apr/osal/inc',
+        '${INC_ROOT}/apr/domain/inc',
+        '${INC_ROOT}/apr/example/toyserver/inc',
+        ])
+
+
+#env.PublishRestrictedApi('ADSP', [
+#   "${INC_ROOT}/multimedia/api/adsp/core",
+#   "${INC_ROOT}/multimedia/api/adsp/voice",
+#])
+
+env.LoadAPIUnits()

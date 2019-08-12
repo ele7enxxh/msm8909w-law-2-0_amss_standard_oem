@@ -1,0 +1,203 @@
+#===============================================================================
+#
+# tbase build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/bsp/trustzone/qsapps/tbase/tbase/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias - First alias is always the target then the other possible aliases
+aliases = [
+   'tbase', 'tbase_32', 'all'
+]
+
+
+env.InitImageVars(
+   alias_list = aliases,       # list of aliases, unique name index [0]
+   proc = 'scorpion',          # proc settings
+   config = 'apps',            # config settings
+   build_tags = ['APPS_PROC',
+        'TBASE_IMAGE'],  # list of build tags for sub lib scripts
+   tools =[
+      "${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py",
+      "${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py",
+      "buildspec_builder.py",
+      "${BUILD_ROOT}/tools/build/scons/sectools/sectools_builder.py",       
+   ]
+)
+
+if not env.CheckAlias():
+   Return()
+
+#------------------------------------------------------------------------------
+# Init default values for this PROC/Image
+#------------------------------------------------------------------------------
+
+#===============================================================================
+# tbase build rules
+#===============================================================================
+
+#------------------------------------------------------------------------------
+# Configure and load in USES and path variables
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('arm', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+env.LoadToolScript('apps_defs', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+
+#------------------------------------------------------------------------------
+# Add extension flags for tbase
+#------------------------------------------------------------------------------
+if env['BUILD_VER'] == "":
+   env.Replace(BUILD_VER = '0')
+
+env.Append(CFLAGS = ' --apcs=/ropi/rwpi --lower_ropi --lower_rwpi')
+env.Append(ASFLAGS = ' --apcs=/ropi/rwpi ')
+
+env.Append(CPPDEFINES = [
+   "TBASE"
+])
+
+#------------------------------------------------------------------------------
+# Decide which build steps to perform
+#------------------------------------------------------------------------------
+# Regular build steps (no filter) is build everything, once a user starts
+# using filters we have to make decisions depending on user input.
+#
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units,
+# etc.  This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quartz, stubs, etc.
+
+do_local_files = True
+do_link = True
+do_post_link = True
+
+# Get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# Limit build processing based on filter option
+if filter_opt is not None:
+   do_link = False
+   do_post_link = False
+
+   if not env.FilterMatch(os.getcwd()):
+      do_local_files = False
+
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+tbase_units = [core_objs, core_libs]
+
+if do_local_files:
+   #============================================================================
+   # tbase Environment
+   #============================================================================
+
+   #----------------------------------------------------------------------------
+   # Begin building tbase
+   #----------------------------------------------------------------------------
+   env.Replace(TARGET_NAME = 'tbase')
+   env.Replace(TBASE_ROOT = '${BUILD_ROOT}/core/securemsm/trustzone/qsapps/tbase/tbase')
+
+   #----------------------------------------------------------------------------
+   # Generate Scatter Load File (SCL)
+   #----------------------------------------------------------------------------
+   target_scl = env.SclBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}',
+      '${TBASE_ROOT}/SecureIntegration/t-base/Bin/MobiCore/build/tbase.scl')
+
+   tbase_units.extend(target_scl)
+
+if do_link:
+   #----------------------------------------------------------------------------
+   # Generate tbase ELF
+   #----------------------------------------------------------------------------
+   libs_path = env['INSTALL_LIBPATH']
+
+   tbase_elf = env.Program('${SHORT_BUILDPATH}/${TARGET_NAME}',
+      source=[core_objs], LIBS=[core_libs], LIBPATH=libs_path)
+
+   env.Depends(tbase_elf, target_scl)
+
+   env.Clean(tbase_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.map'))
+   env.Clean(tbase_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.sym'))
+
+if do_post_link:
+   #----------------------------------------------------------------------------
+   # Generate tbase MBN
+   #----------------------------------------------------------------------------
+   tbase_pbn = env.InstallAs('${SHORT_BUILDPATH}/${TARGET_NAME}.pbn',
+      tbase_elf)
+   
+   install_root = env.subst('${MBN_ROOT}')
+   image_name = "tbase"
+   install_unsigned_root = env.SectoolGetUnsignedInstallPath(install_base_dir = install_root)
+   env.Replace(MBN_FILE = os.path.join(install_unsigned_root, image_name))      
+
+   tbase_mbn = env.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}',
+      tbase_pbn, IMAGE_TYPE="tbase", MBN_TYPE="elf",
+      IMAGE_ID=4, FLASH_TYPE="sdcc")
+      
+   #----------------------------------------------------------------------------
+   # Sectools signing
+   #----------------------------------------------------------------------------
+   sectools_signed_mbn = env.SectoolBuilder(
+            target_base_dir = '${SHORT_BUILDPATH}', 
+            source=tbase_mbn, 
+            sign_id=image_name,
+            msmid = env.subst('${MSM_ID}'),
+            sectools_install_base_dir = install_root,  
+            install_file_name = image_name + ".mbn",
+            config='${BUILD_ROOT}/core/bsp/trustzone/qsapps/build/secimage.xml')    
+                       
+   featureflags = ['USES_SEC_POLICY_INSTALL_DEFAULT_SIGN', 'USES_SEC_POLICY_INSTALL_DEFAULT_SIGN_ENCRYPT']
+   if env.SectoolIsEnabled(featureflags=featureflags) is False:
+     default_tbase_mbn = tbase_mbn
+   else:
+     default_tbase_mbn = sectools_signed_mbn
+     
+   #-------------------------------------------------------------------------
+   # Build files for PIL driver
+   #-------------------------------------------------------------------------
+   env.LoadToolScript('pil_splitter_builder', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+   tbase_pil = env.PilSplitterBuilder('${BUILD_ROOT}/build/ms/bin/PIL_IMAGES/SPLITBINS_${QC_SHORT_BUILDPATH}/tbase.mdt', default_tbase_mbn)
+
+   #============================================================================
+   # Define units that will be built
+   #============================================================================
+   tbase_units = env.Alias ('arm11_tbase_units', [
+      tbase_elf,
+      tbase_mbn,
+      tbase_pil,
+      sectools_signed_mbn
+   ])
+
+      
+# Add aliases
+for alias in aliases:
+   env.Alias(alias, tbase_units)

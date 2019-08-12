@@ -1,0 +1,402 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/datacommon/tasks/rel/10.02.02/build/datacommon_tasks.scons#3 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env or 'USES_DATAMODEM_TASKS' not in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+	
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Multimedia Public API's
+#-------------------------------------------------------------------------------
+MM_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+    ]
+
+env.RequirePublicApi(MM_PUBLIC_APIS, area='multimedia')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    'GPS',
+    'ECALL',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    'FW',
+    'GPS',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+#MODEM_PROTECTED_APIS = [
+#    'DATA_ATCOP',
+#    ]
+#env.RequireProtectedApi(MODEM_PROTECTED_APIS)
+
+#-------------------------------------------------------------------------------
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#-------------------------------------------------------------------------------
+REQUIRED_NON_SCONS_APIS = [
+    'WCONNECT', 
+    'BREW',
+    ]
+
+if REQUIRED_NON_SCONS_APIS != []:
+  env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Non-compliant Private Header Include Paths (Must be removed for CRM builds)
+#-------------------------------------------------------------------------------
+#if ARGUMENTS.get('SCONS_VIOLATIONS_LEVEL',0) > 99:
+#		print "SCONS VIOLATIONS enabled" 
+#		
+#		env.PublishPrivateApi('VIOLATIONS',[
+#			'${INC_ROOT}/modem/data/1x/707/src',
+#			])
+#		
+#		env.RequirePrivateApi('VIOLATIONS')
+
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+DATAMODEM_TASKS_AMSS_C_SOURCES = [
+	'${BUILDPATH}/src/dcc_task.c',
+	'${BUILDPATH}/src/dcc_task_svc.c',
+	'${BUILDPATH}/src/dcc_taski.c',
+  	'${BUILDPATH}/src/qmi_modem_task.c',
+  	'${BUILDPATH}/src/qmi_modem_taski.c',
+  	'${BUILDPATH}/src/qmi_modem_task_svc.c',
+	'${BUILDPATH}/src/ds_sig_task.c',
+	'${BUILDPATH}/src/ds_sig_taski.c',
+	'${BUILDPATH}/src/ds_sig_svc.c',
+	'${BUILDPATH}/src/ps.c',
+	'${BUILDPATH}/src/ps_svc.c',
+	'${BUILDPATH}/src/psi.c',
+	'${BUILDPATH}/src/ps_rm_svc.c',
+	'${BUILDPATH}/src/ps_rm_task.c',
+	'${BUILDPATH}/src/ps_rm_taski.c',
+	]
+
+DATAMODEM_TASKS_QMI_SOURCES = [
+   '${BUILDPATH}/src/ds_qmimsglib_task.c',
+   ]
+   
+if 'USES_DATA_QMI_QMUX' in env:
+   DATAMODEM_TASKS_AMSS_C_SOURCES += DATAMODEM_TASKS_QMI_SOURCES
+
+# Build image for which this task belongs
+RCINIT_PS_RM = ['MODEM_MODEM', 'MOB_DATAMODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_PS_RM = {
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'init_name'           : 'ps_rm_init',
+            'init_function'       : 'ps_rm_powerup',
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_PS_RM = {
+            'thread_name'         : 'PS_RM',
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'stack_size_bytes'    : env.subst('$PS_RM_STKSZ'),
+            'priority_amss_order' : 'PS_RM_PRI_ORDER',
+            'stack_name'          : 'ps_rm_stack',
+            'thread_entry'        : 'ps_rm_task',
+            'tcb_name'            : 'ps_rm_tcb',
+            'policy_optin'        : ['default', 'ftm', ],
+            'cpu_affinity'        : 'REX_ANY_CPU_AFFINITY_MASK'
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+	    env.AddRCInitFunc(RCINIT_PS_RM, RCINIT_INIT_PS_RM)
+	    env.AddRCInitTask(RCINIT_PS_RM, RCINIT_TASK_PS_RM)
+
+# Build image for which this task belongs
+RCINIT_QMI = ['MODEM_MODEM', 'MOB_DATAMODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_QMI = {
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'init_name'           : 'qmi_init',
+	    'init_function'       : 'qmi_powerup_init'
+    }
+	
+# RC Init Task Dictionary
+RCINIT_TASK_QMI = {
+	    'thread_name'         : 'QMI',
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'stack_size_bytes'    : env.subst('$QMI_STKSZ'),
+	    'priority_amss_order' : 'QMI_PRI_ORDER',
+	    'stack_name'          : 'qmi_stack',
+	    'thread_entry'        : 'qmi_task',
+	    'tcb_name'            : 'qmi_tcb',
+      'cpu_affinity'	      : env.subst('$MODEM_CPU_AFFINITY')
+    }
+
+# Add init function to RCInit
+if 'USES_DATA_QMI_QMUX' in env:
+   if 'USES_MODEM_RCINIT' in env:
+	    env.AddRCInitFunc(RCINIT_QMI, RCINIT_INIT_QMI)
+	    env.AddRCInitTask(RCINIT_QMI, RCINIT_TASK_QMI)
+
+# Build image for which this task belongs
+RCINIT_QMI_MODEM = ['MODEM_MODEM', 'MOB_DATAMODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_QMI_MODEM = {
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'init_name'           : 'qmi_modem_init',
+            'init_function'       : 'qmii_powerup',
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_QMI_MODEM = {
+            'thread_name'         : 'QMI_MODEM',
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'stack_size_bytes'    : env.subst('$QMI_MODEM_STKSZ'),
+            'priority_amss_order' : 'QMI_MODEM_PRI_ORDER',
+            'stack_name'          : 'qmi_modem_stack',
+            'thread_entry'        : 'qmi_modem_task',
+            'tcb_name'            : 'qmi_modem_tcb',
+            'policy_optin'        : ['default', 'ftm', ],
+            'cpu_affinity'        : env.subst('$MODEM_CPU_AFFINITY')
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+	env.AddRCInitFunc(RCINIT_QMI_MODEM, RCINIT_INIT_QMI_MODEM)
+	env.AddRCInitTask(RCINIT_QMI_MODEM, RCINIT_TASK_QMI_MODEM)
+
+# Build image for which this task belongs
+RCINIT_DS_SIG = ['MODEM_MODEM', 'MOB_DATAMODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_DS_SIG= {
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'init_name'           : 'ds_sig_init',
+            'init_function'       : 'ds_sigi_powerup',
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_DS_SIG = {
+            'thread_name'         : 'DS_SIG',
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'stack_size_bytes'    : env.subst('$DS_SIG_STKSZ'),
+            'priority_amss_order' : 'DS_SIG_PRI_ORDER',
+            'stack_name'          : 'ds_sig_stack',
+            'thread_entry'        : 'ds_sig_task',
+            'tcb_name'            : 'ds_sig_tcb',
+            'policy_optin'        : ['default', 'ftm', ],
+            'cpu_affinity'        : env.subst('$MODEM_CPU_AFFINITY')
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+		env.AddRCInitFunc(RCINIT_DS_SIG, RCINIT_INIT_DS_SIG)
+		env.AddRCInitTask(RCINIT_DS_SIG, RCINIT_TASK_DS_SIG)
+    
+
+# Build image for which this task belongs
+RCINIT_DS_ONTARGET_TEST, = ['MODEM_MODEM', ]
+
+# RC Init Function Dictionary
+RCINIT_INIT_DS_ONTARGET_TEST= {
+	    'sequence_group'      : 'RCINIT_GROUP_7',
+	    'init_name'           : 'ds_ontarget_test_init',
+	    'init_function'       : 'ds_ontarget_testi_powerup'
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_DS_ONTARGET_TEST = {
+	    'thread_name'         : 'DS_ONTARGET_TEST',
+	    'sequence_group'      : 'RCINIT_GROUP_7',
+	    'stack_size_bytes'    : '8192',
+	    'priority_amss_order' : '100',
+	    'stack_name'          : 'ds_ontarget_test_stack',
+	    'thread_entry'        : 'ds_ontarget_test_task',
+	    'tcb_name'            : 'ds_ontarget_test_tcb'
+    }
+
+# Add init function to RCInit
+if 'USES_RCINIT' in env and 'USES_DATAMODEM_DS_API_TEST' in env:
+		env.RequirePublicApi(['OTDT'], area='API')
+		DATAMODEM_TASKS_AMSS_C_SOURCES += [
+			'${BUILDPATH}/src/ds_ontarget_test_task.c',
+			'${BUILDPATH}/src/ds_ontarget_test_taski.c',
+			'${BUILDPATH}/src/ds_ontarget_test_svc.c',
+		]
+	
+		env.AddRCInitFunc(RCINIT_DS_ONTARGET_TEST, RCINIT_INIT_DS_ONTARGET_TEST)
+		env.AddRCInitTask(RCINIT_DS_ONTARGET_TEST, RCINIT_TASK_DS_ONTARGET_TEST)
+
+
+# Build image for which this task belongs
+RCINIT_DCC = ['MODEM_MODEM', 'MOB_DATAMODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_DCC= {
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'init_name'           : 'dcc_init',
+            'init_function'       : 'dcci_powerup',
+            'policy_optin'        : ['default', 'ftm', ],
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_DCC = {
+            'thread_name'         : 'DCC',
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'stack_size_bytes'    : env.subst('$DCC_STKSZ'),
+            'priority_amss_order' : 'DCC_PRI_ORDER',
+            'stack_name'          : 'dcc_stack',
+            'thread_entry'        : 'dcc_task',
+            'tcb_name'            : 'dcc_tcb',
+            'cpu_affinity'        : env.subst('$MODEM_CPU_AFFINITY'),
+            'policy_optin'        : ['default', 'ftm', ],
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+		env.AddRCInitFunc(RCINIT_DCC, RCINIT_INIT_DCC)
+		env.AddRCInitTask(RCINIT_DCC, RCINIT_TASK_DCC)
+
+# Build image for which this task belongs
+RCINIT_PS = ['MODEM_MODEM', 'MOB_DATAMODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_PS= {
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'init_name'           : 'ps_init',
+            'init_function'       : 'psi_powerup',
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_PS = {
+            'thread_name'         : 'PS',
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'stack_size_bytes'    : env.subst('$PS_STKSZ'),
+            'priority_amss_order' : 'PS_PRI_ORDER',
+            'stack_name'          : 'ps_stack',
+            'thread_entry'        : 'ps_task',
+            'tcb_name'            : 'ps_tcb',
+            'policy_optin'        : ['default', 'ftm', ],
+            'cpu_affinity'        : 'REX_ANY_CPU_AFFINITY_MASK'
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+		env.AddRCInitTask(RCINIT_PS, RCINIT_TASK_PS)
+		env.AddRCInitFunc(RCINIT_PS, RCINIT_INIT_PS)
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/tasks',[DATAMODEM_TASKS_AMSS_C_SOURCES, ])
+

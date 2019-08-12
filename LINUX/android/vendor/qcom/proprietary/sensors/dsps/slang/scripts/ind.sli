@@ -1,0 +1,66 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub main( @argv)
+{
+    my $rc;
+    my $timeout = 1;    // seconds
+
+    my ( $sensor, $rate, $seconds) = @argv;
+
+    sloption( "script_handles_indications");
+
+    my $client = slopen();
+    print( "slopen() client handle $client\n");
+
+    $timeout = 3;
+    my $add_req = slnew_req( "smgr", "report", { report_id => 1, action => "add", report_rate => $rate,
+                             item => 0, sensor_id => $sensor});
+    my $add_resp = slsend_recv( $client, $add_req, $timeout);
+    if ( !defined( $add_resp)) {
+        print( "add_resp not defined\n");
+    }
+
+    my ( $x, $y, $z, $sscts, $flags, $quality);
+
+    my $total_count = 0;
+    my $ind_count = 0;
+    my $quantity = $seconds * $rate;
+    while ( $ind_count < $quantity) {
+        my $indication = slrecv( $timeout);
+//        print ( "slrecv\n");
+        if ( !defined( $indication)) {
+            print( "indication not defined\n");
+            break;
+        }
+//        my ( $msg_type) = slget( $indication, {msg_type});
+//        print ( "slget msg_type $msg_type\n");
+        $total_count += 1;
+
+//      if ( $msg_type == 2) {
+            $ind_count += 1;
+
+            ( $x, $y, $z, $sscts, $flags, $quality) = slget( $indication, { item.0, datax, datay, dataz, sscts, flags, quality});
+            $x /= 65536.0;
+            $y /= 65536.0;
+            $z /= 65536.0;
+            $sscts *= ( 1000.0 / 32768.0);
+            print( "$ind_count: $x, $y, $z, $sscts, $flags, $quality\n");
+//      }
+    }
+
+    print( "total count $total_count, ind count $ind_count\n");
+
+    my $del_req = slnew_req( "smgr", "report", { report_id => 1, action => "delete"});
+    my $del_resp = slsend_recv( $client, $del_req, $timeout);
+    if ( !defined( $del_resp)) {
+        print( "$del_resp not defined\n");
+    }
+    my ( $del_type) = slget( $del_resp, {msg_type});
+    print( "del_resp msg_type $del_type\n");
+
+    $rc  = slclose( $client);
+    print( "slclose() rc $rc\n");
+}

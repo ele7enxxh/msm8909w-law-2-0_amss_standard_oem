@@ -1,0 +1,100 @@
+#===============================================================================
+#  Copyright (c) 2013 Qualcomm Technologies, Inc.
+#  All Rights Reserved.
+#  Qualcomm Technologies Proprietary and Confidential.
+#===============================================================================
+# Time RAPI Libs
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/remotefs/src" 
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'MODEM_DATA',
+   'MODEM_HDR',
+])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'MODEM_DATA',
+   'DEBUGTOOLS',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'SECUREMSM',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequirePublicApi(['COMMON', 'RMTFS'], area='QMIMSGS')
+env.RequirePublicApi(['COMMON', 'RFSA'], area='QMIMSGS')
+
+
+#-------------------------------------------------------------------------------
+# Add remotefs init function to rcinit
+#-------------------------------------------------------------------------------
+if 'USES_RCINIT' in env:
+ if 'USES_REMOTEFS_QMI' in env:
+   RCINIT_REMOTEFS = ['CORE_MODEM','CORE_QDSP6_SW'] 
+   env.AddRCInitFunc(
+      RCINIT_REMOTEFS,
+      {
+      'sequence_group'             : 'RCINIT_GROUP_0',
+      'init_name'                  : 'remotefs',
+      'init_function'              : 'rmts_rc_init',
+      'dependencies'               : ['ipc_router','qmi_fw']
+      })
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+if 'USES_REMOTEFS_QMI' in env:
+  cpp_flags = []
+  cpp_flags += ['MSG_BT_SSID_DFLT=MSG_SSID_RMTS']
+  cpp_flags += ["FEATURE_REMOTEFS_USES_QMI"]
+  env.Append(CPPDEFINES = cpp_flags)
+  REMOTEFS_CLI_WRAPPER_SOURCES = [
+     '${BUILDPATH}/rmts_api.c',
+  ]
+else:
+  REMOTEFS_SRV_WRAPPER_SOURCES = [
+     '${BUILDPATH}/remotefs_cli.c',
+  ]
+  REMOTEFS_CLI_WRAPPER_SOURCES = [
+     '${BUILDPATH}/remotefs_srv.c',
+  ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+if 'USES_REMOTEFS_QMI' in env:
+  env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'CORE_QDSP6_SW'],
+     '${BUILDPATH}/remotefs_cli_wrapper', 
+     REMOTEFS_CLI_WRAPPER_SOURCES)
+else:
+  env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'],
+     '${BUILDPATH}/remotefs_srv_wrapper', 
+     REMOTEFS_SRV_WRAPPER_SOURCES)
+  env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE'],
+     '${BUILDPATH}/remotefs_cli_wrapper', 
+     REMOTEFS_CLI_WRAPPER_SOURCES)

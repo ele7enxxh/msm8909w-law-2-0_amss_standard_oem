@@ -1,0 +1,88 @@
+#===============================================================================
+#
+#                 QUEUE SERVICES For High Performance Needs
+#
+# Copyright (c) 2014 Qualcomm Technologies Incorporated.
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/memory/qservices/build/qservices.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/9/14    sko    Added Queue services for data path needs based on
+#                   existing queue data structures
+#===============================================================================
+from glob import glob
+from os.path import join, basename
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/memory/qservices/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Necessary Public API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+    'DAL',
+    'DEBUGTOOLS',
+    'SERVICES',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ], area='core')
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+    'BREW',
+])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+QSERVICES_C_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                 for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Add our library to the following build tags:
+#   MOB_MCS for MOB
+#   MODEM_APPS for Apps proc
+#   MODEM_MODEM for Modem proc
+#   MODEM_WCN for Riva proc on 8960
+#   CBSP_QDSP6_SW and CBSP_QDSP6_SW_IMAGE for CoreImage
+env.AddLibrary( ['MOB_MCS', 'MODEM_APPS', 'MODEM_MODEM', 'MODEM_WCN',
+                 'CBSP_QDSP6_SW', 'CBSP_QDSP6_SW_IMAGE'],
+                 '${BUILDPATH}/mcs_dsm', [QSERVICES_C_SOURCES] )
+
+# Load test units
+env.LoadSoftwareUnits()
+
+#-------------------------------------------------------------------------------

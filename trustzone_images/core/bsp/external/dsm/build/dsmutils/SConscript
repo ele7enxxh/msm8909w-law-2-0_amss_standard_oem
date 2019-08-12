@@ -1,0 +1,65 @@
+#===============================================================================
+#
+# DSM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/external/msm7x30/main/latest/dsm/build/SConscript#3 $
+#  $DateTime: 2009/09/16 15:25:44 $
+#  $Author: wduembeg $
+#  $Change: 1028098 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPDEFINES = [
+   "MSG_SSID_DS=5000",
+   "MSG_BUILD_MASK_MSG_SSID_DS=MSG_BUILD_MASK_DFLT",
+])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/modem/utils/dsmutils"
+
+env.VariantDir('${BUILDPATH}', SRCPATH , duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+DSMUTIL_SOURCES = [
+   '${BUILDPATH}/src/dsmutil.c',
+]
+
+dsmutil_objs = env.Object(DSMUTIL_SOURCES)
+dsmutil_lib = env.Library('${BUILDPATH}/usmutil', dsmutil_objs)
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage (['CBSP_APPS_IMAGE', 'CBSP_MODEM_IMAGE'], dsmutil_lib)

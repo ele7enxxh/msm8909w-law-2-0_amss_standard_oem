@@ -1,0 +1,43 @@
+#===============================================================================
+#
+# Buses Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/buses/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/06/12   PS      Added change for converting all warnings to error
+# 01/12/12   PS      Initial release
+#
+#===============================================================================
+Import('env')
+
+#if 'ARMTOOLS' in env:
+   #-------------------------------------------------------------------------------
+   # Convert warnings to errors in all Buses components
+   #-------------------------------------------------------------------------------
+   #env.Append(CFLAGS = "--diag_error=warning ")
+
+if 'HEXAGON_TOOLS' in env:
+   #-------------------------------------------------------------------------------
+   # Convert warnings to errors in all buses components
+   #-------------------------------------------------------------------------------
+   env.Append(CFLAGS = "-Werror ")
+
+env.LoadSoftwareUnits()

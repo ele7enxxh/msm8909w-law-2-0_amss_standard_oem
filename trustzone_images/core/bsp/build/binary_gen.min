@@ -1,0 +1,73 @@
+#============================================================================
+#
+#  Description:
+#    This file specifies the make file rules that are common across all
+#    targets and makefiles
+#
+# Copyright (c) 2009, by QUALCOMM, Incorporated. All Rights Reserved.
+#----------------------------------------------------------------------------
+#============================================================================
+#
+#			EDIT HISTORY FOR MODULE
+#
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/bsp/build/binary_gen.min#1 $
+#
+# when       who     what, where, why
+# --------   ---     --------------------------------------------------------
+# 06/02/09   cjb     Created
+#============================================================================
+
+#============================================================================
+#			      LIBRARIES
+#============================================================================
+
+#============================================================================
+#			      APPS PROC ONLY LIBRARIES
+#============================================================================
+
+#-------------------------------------------------------------------------------
+# SCONs build rules
+#-------------------------------------------------------------------------------
+
+HAL_PLAT := 8660
+BUILD_ASIC := $(ASIC:m%=%)
+BUILDID := $(BUILD:%D=%)
+PLATFORM := amss
+NUM_THREADS := 8
+VERBOSE := 0
+TARGET_FAMILY := 8660
+BUILD_MSM_ID := $(MSM_ID)
+BUILD_LC := $(shell echo $(BUILD) | tr A-Z a-z)
+CHIPSET := msm8660
+
+ifeq ($(IMAGE), MODEM_PROC)makefile="
+	PLATFORM := amss_modem
+	BUILDID := $(BUILD:%M=%)
+	NUM_THREADS := 8
+endif
+
+ifeq ($(IMAGE), APPS_PROC)
+	PLATFORM := amss_apps
+	BUILDID := $(BUILD:%A=%)
+endif
+
+#===================================================================
+
+ifeq ($(BUILD_UNIX), yes)
+   SCONS_EXT =
+else
+   SCONS_EXT = .bat
+endif
+
+define amss_bin_gen
+@echo running 'amss_bin_gen' on $(TARGET_NAME).$(EXETYPE) 
+	-chmod +x $(COREBSP_BUILD)/../tools/SCons/scons
+	cd $(COREBSP_BUILD); \
+	../tools/SCons/scons$(SCONS_EXT) $(PLATFORM) CHIPSET=$(CHIPSET) BUILD_ID=$(BUILDID) BUILD_VER=$(VERSION) \
+	MSM_ID=$(BUILD_MSM_ID) HAL_PLATFORM=$(HAL_PLAT) BUILD_ASIC=$(BUILD_ASIC) TARGET_FAMILY=$(TARGET_FAMILY) \
+	--verbose=$(VERBOSE) --frommake amss_elf=$(TARGET_NAME).$(EXETYPE) $(MAKE_FLAGS) 
+@echo Done running 'amss_bin_gen'
+endef  
+
+
+

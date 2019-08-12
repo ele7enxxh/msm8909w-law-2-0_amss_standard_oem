@@ -1,0 +1,74 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: 
+#  $DateTime: 2015/09/01 00:30:35 $
+#  $Author: pwbldsvc $
+#  $Change: 8935858 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/14/2014  sm     Initial Version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.PublishPublicApi('SECUREMSM', [
+   "${INC_ROOT}/core/api/securemsm/seccfg",
+])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/seccfg"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPPATH = "${BUILD_ROOT}/core/boot/secboot3/src")
+#-------------------------------------------------------------------------------
+# Internal depends within SecBoot
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   'BOOT',
+   'SERVICES',
+   'BUSES',
+   'HAL',
+   'SYSTEMDRIVERS',
+   'DAL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(['SECUREMSM'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SECBOOT_SOURCES = [
+        '${BUILDPATH}/src/seccfg_memset_pheripheral.c',
+]
+
+SECBOOT_LIB_SOURCES = [
+        '${BUILDPATH}/src/seccfg.c',
+        '${BUILDPATH}/src/seccfg_memzi.s',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to MBA Image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary(['SBL1_BOOT'], '${BUILDPATH}/seccfg',  SECBOOT_LIB_SOURCES)
+env.AddObject(['SBL1_BOOT'],  SECBOOT_SOURCES)
+

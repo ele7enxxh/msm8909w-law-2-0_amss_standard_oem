@@ -1,0 +1,58 @@
+#===============================================================================
+#
+# Kernel INC PATHs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/riva/rel/1.0/core/kernel/build/paths.sconscript#1 $
+#  $DateTime: 2010/11/04 21:49:20 $
+#  $Author: coresvc $
+#  $Change: 1506170 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/18/11   sho     Kernel paths for boot loader images
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# these are accecible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('KERNEL', [
+   "${INC_ROOT}/core/kernel/lk/tzos",
+   "${INC_ROOT}/core/api/kernel",
+   "${INC_ROOT}/core/api/kernel/libstd",
+])
+
+##-------------------------------------------------------------------------------
+# Publish Restricted APIs
+# these are accecible only within CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishRestrictedApi('KERNEL', [
+   "${INC_ROOT}/core/kernel/lk/tzos",
+   "${INC_ROOT}/core/kernel/lk/kernel/inc",
+   "${INC_ROOT}/core/kernel/lk/arch/inc",
+   "${INC_ROOT}/core/kernel/lk/platform/inc",
+   "${INC_ROOT}/core/kernel/vmidmt/hal/inc",
+   "${INC_ROOT}/core/kernel/vmidmt/hal/inc/${MSM_ID}",
+   "${INC_ROOT}/core/kernel/xpu2/hal/inc",
+   "${INC_ROOT}/core/kernel/xpu2/hal/inc/${MSM_ID}",
+   '${INC_ROOT}/core/kernel/mmu/inc',
+   '${INC_ROOT}/core/kernel/hypervisor/inc',
+   '${INC_ROOT}/core/kernel/hypervisor/inc/${MSM_ID}',
+   '${INC_ROOT}/core/kernel/smmu/smmu500',
+   '${INC_ROOT}/core/kernel/smmu/smmu500/${MSM_ID}/tz',   
+])

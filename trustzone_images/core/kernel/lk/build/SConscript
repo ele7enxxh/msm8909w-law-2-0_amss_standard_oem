@@ -1,0 +1,83 @@
+#===============================================================================
+#
+#                             Edit History
+# $Header: //source/qcom/qct/core/kernel/lk/rel/1h10/build/SConscript#3 $
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011/07/12   spa     Create initial version
+#
+#===============================================================================
+#                    Copyright (c) 2011 - 2013 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+# LK Lib
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+#SRCPATH = ".."
+SRCPATH = "${BUILD_ROOT}/core/kernel/lk"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'SECUREMSM',
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+env.RequirePrivateApi(CBSP_APIS)
+
+env.PublishPrivateApi('KERNEL', [
+   '${INC_ROOT}/core/kernel/lk/kernel/inc',
+   '${INC_ROOT}/core/kernel/lk/arch/inc',
+   '${INC_ROOT}/core/kernel/lk/platform/inc',
+])
+
+INC_PATH_QSEE = ["${INC_ROOT}/core/securemsm/trustzone/qsee/kernel/inc",
+                 "${INC_ROOT}/core/securemsm/trustzone/qsee/include"]
+env.Append(CPPPATH = INC_PATH_QSEE)
+
+env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+env.Append(ASFLAGS = " --diag_suppress=1786,2523 ")
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = "--gnu")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+LK_SOURCES = [
+   '${BUILDPATH}/kernel/src/thread.c',
+   '${BUILDPATH}/kernel/src/event.c',
+   '${BUILDPATH}/kernel/src/mutex.c',
+   '${BUILDPATH}/kernel/src/dpc.c',
+   '${BUILDPATH}/kernel/src/timer.c',
+   '${BUILDPATH}/arch/src/archthread.c',
+   '${BUILDPATH}/platform/src/stubs.c',
+   '${BUILDPATH}/arch/src/switch.s',
+   '${BUILDPATH}/arch/src/ops.s',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary(['TZOS_IMAGE'], '${BUILDPATH}/LK', LK_SOURCES)

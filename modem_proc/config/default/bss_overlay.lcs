@@ -1,0 +1,61 @@
+  /*========================================================================
+     BSS overlay.
+     Share this memory region between buffers which will never coexist. 
+     These are also overwritten on power collapse and fatal error, due to 
+     memory dump - so do not place anything here which is required for debug.
+    ======================================================================== */
+  __bss_overlay_size = 0;
+  __bss_overlay_start = . ;
+  
+  .bss.overlay.mem_dump __bss_overlay_start (NOLOAD) : 
+  {
+    *(.bss.overlay.mem_dump)
+  } :BSS_OVERLAY
+  __bss_overlay_size = MAX(__bss_overlay_size, SIZEOF(.bss.overlay.mem_dump));
+
+  .bss.overlay.common_fw __bss_overlay_start (NOLOAD) : 
+  {
+    *(.bss.overlay.common_fw)
+  } :BSS_OVERLAY
+  __bss_overlay_size = MAX(__bss_overlay_size, SIZEOF(.bss.overlay.common_fw));
+
+  .bss.overlay.c2k __bss_overlay_start (NOLOAD) : 
+  {
+    *(.bss.overlay.c2k)  
+  } :BSS_OVERLAY
+  __bss_overlay_size = MAX(__bss_overlay_size, SIZEOF(.bss.overlay.c2k));
+
+  .bss.overlay.geran __bss_overlay_start (NOLOAD) : 
+  {
+    *(.bss.overlay.geran)  
+  } :BSS_OVERLAY
+  __bss_overlay_size = MAX(__bss_overlay_size, SIZEOF(.bss.overlay.geran));
+
+  .bss.overlay.lte __bss_overlay_start (NOLOAD) : 
+  {
+    *(.bss.overlay.lte)  
+  } :BSS_OVERLAY
+  __bss_overlay_size = MAX(__bss_overlay_size, SIZEOF(.bss.overlay.lte));
+
+  .bss.overlay.tdscdma __bss_overlay_start (NOLOAD) : 
+  {
+    *(.bss.overlay.tdscdma)  
+  } :BSS_OVERLAY
+  __bss_overlay_size = MAX(__bss_overlay_size, SIZEOF(.bss.overlay.tdscdma));
+
+  .bss.overlay.wcdma __bss_overlay_start (NOLOAD) : 
+  {
+    *(.bss.overlay.wcdma)  
+  } :BSS_OVERLAY
+  __bss_overlay_size = MAX(__bss_overlay_size, SIZEOF(.bss.overlay.wcdma));
+
+  .bss.overlay.ftm __bss_overlay_start (NOLOAD) : 
+  {
+    *(.bss.overlay.ftm)  
+  } :BSS_OVERLAY
+  __bss_overlay_size = MAX(__bss_overlay_size, SIZEOF(.bss.overlay.ftm));
+  
+  . = __bss_overlay_start + __bss_overlay_size ;   /* Max size of all */
+ 
+  . = ALIGN (64);
+

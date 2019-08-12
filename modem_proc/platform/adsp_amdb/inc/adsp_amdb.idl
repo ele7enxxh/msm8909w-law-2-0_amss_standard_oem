@@ -1,0 +1,129 @@
+//==============================================================================
+/// @file adsp_amdb_mgr.idl
+///
+                                                           //qidl copyright
+//% Copyright (c) 2012 QUALCOMM Incorporated.
+                                                           //qidl nested=false
+//% All Rights Reserved.
+//% Qualcomm Confidential and Proprietary
+//==============================================================================
+
+#include "AEEStdDef.idl"
+
+/*******************************************************************************
+  When working with CAPI and CAPI_V2 modules use the following table to
+  determine the values of id1 and id2
+
+  Type       | id2           | id1
+  -----------+---------------+---------------
+  Generic    | Module id Set | Set to zero
+  Encoder    | Output format | Set to zero
+  Decoder    | Input format  | Set to zero
+  Converter  | Input format  | Output format
+  Packetizer | Input format  | Set to zero
+*******************************************************************************/
+const long AMDB_MODULE_TYPE_GENERIC = 0;
+const long AMDB_MODULE_TYPE_DECODER = 1;
+const long AMDB_MODULE_TYPE_ENCODER = 2;
+const long AMDB_MODULE_TYPE_CONVERTER = 3;
+const long AMDB_MODULE_TYPE_PACKETIZER = 4;
+
+interface adsp_amdb {
+
+  /***************************************************************************** 
+    Add a dynamic CAPI module to the database
+   
+    id - module id
+    preload - true if the shared object should be loaded during the add process
+              false if the shared object should be loaded only when a module
+              is queried that requires it
+    filename_str - name of the shared object file (absolute path)
+    getsize_str - name of the module's getsize()
+    ctor_str - name of the module's ctor() function
+  *****************************************************************************/
+  long add_capi(in long id, in boolean preload, in string filename_str,
+                in string getsize_str, in string ctor_str);
+
+  /***************************************************************************** 
+    Add a dynamic APPI module to the database
+ 
+    id - module id
+    preload - true if the shared object should be loaded during the add process
+              false if the shared object should be loaded only when a module
+              is queried that requires it
+    filename_str - name of the shared object file (absolute path)
+    getsize_str - name of the module's getsize()
+    init_str - name of the module's init() function
+  *****************************************************************************/
+  long add_appi(in long id, in boolean preload, in string filename_str,
+                in string getsize_str, in string init_str);
+
+  /***************************************************************************** 
+    Remove an APPI or CAPI module from the database based on module ID.  if
+    filename_str is an empty string ("") then the module matching the id will
+    be removed.  Otherwise all the APPI or CAPI associated with the shared
+    object listed in filename_str will be removed.
+
+    id - module id
+    filename_str - name of the shared object, must not be NULL
+  *****************************************************************************/
+  long remove_capi(in long id, in string filename_str);
+  long remove_appi(in long id, in string filename_str);
+  
+  /***************************************************************************** 
+    Remove all CAPI or APPI modules from the database
+  *****************************************************************************/
+  long remove_all_capi();
+  long remove_all_appi();
+
+  /***************************************************************************** 
+    Print all CAPI or APPI modules via diagnostic messages
+  *****************************************************************************/
+  long print_all_capi();
+  long print_all_appi();
+
+  /***************************************************************************** 
+    Add a dynamic CAPI and CAPI_V2 module to the database
+   
+    type - type of module to be added (encoder, decoder, etc...)
+    id1, id2 - depends on type
+    preload - true if the shared object should be loaded during the add process
+              false if the shared object should be loaded only when a module
+              is queried that requires it
+    filename_str - name of the shared object file (absolute path)
+    getsize/getstatic properties_str - name of the module's getsize() or
+                                       get_static_properties_str()
+    ctor/init_str - name of the module's ctor() or init() function
+  *****************************************************************************/
+  long add_capi_ex(in long type, in long id1, in long id2, in boolean preload,
+                   in string filename_str, in string getsize_str,
+                   in string ctor_str);
+  long add_capi_v2(in long type, in long id1, in long id2, in boolean preload,
+                   in string filename_str, in string get_static_properties_str,
+                   in string init_str);
+
+  /***************************************************************************** 
+    Remove an CAPI or CAPI_V2 module from the database.  if
+    filename_str is an empty string ("") then the module matching the type/ids
+    will be removed.  Otherwise all the CAPI or CAPI_V2 associated with the
+    shared object listed in filename_str will be removed.
+
+    type - type of module to be added
+    id1, id2 - depends on type
+    filename_str - name of the shared object, must not be NULL
+  *****************************************************************************/
+  long remove_capi_ex(in long type, in long id1, in long idt, in string filename_str);
+  long remove_capi_v2(in long type, in long id1, in long id2, in string filename_str);
+
+ /***************************************************************************** 
+    Remove all CAPI_V2 modules from the database
+  *****************************************************************************/
+  long remove_all_capi_v2();
+
+  /***************************************************************************** 
+    Print all CAPI_V2 modules
+  *****************************************************************************/
+  long print_all_capi_v2();
+
+};
+

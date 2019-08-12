@@ -1,0 +1,105 @@
+#===============================================================================
+#
+# LTE RRC ASN1 Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/21/10   cguo    Initial version.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+if 'USES_MOB' in env:
+    if 'USES_FEATURE_LTE_ELS_ENABLED' in env:
+        SRCPATH = "../ELS/off_target"
+    else:
+        SRCPATH = "../R10/off_target"
+else: 
+    if 'USES_FEATURE_LTE_ELS_ENABLED' in env:
+        SRCPATH = "../ELS/on_target"
+    else:
+        SRCPATH = "../R10/on_target"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Necessary Public and Restricted API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+    'HWENGINES',
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'DAL',
+    'POWER',
+    'BUSES',
+    'KERNEL',                             # needs to be last 
+    ], area='core')
+
+# Need to get access to Modem Public headers
+env.RequirePublicApi([
+    'ONEX',
+    'GPS',      
+    'HDR',      
+    'MCS',
+    'MMODE',    
+    'RFA',      
+    'UIM',
+	'UTILS',
+    ])
+
+# Need get access to Modem Restricted headers
+env.RequireRestrictedApi([
+    'MMODE',    
+    'NAS',      
+    'RFA',      
+    'MDSP',     
+    'MDSPSVC',  
+    'GERAN',    
+    'GPS',      
+    'ONEX',     
+    'HDR',      
+    'UTILS',
+    'MCS',
+	'LTE',
+	'QTF',
+    ])
+
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+LTE_RRC_ASN1_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                   for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Compile the LTE RRC ASN1 source and convert to a binary library
+env.AddBinaryLibrary(['MODEM_MODEM', 'MOB_LTE'], '${BUILDPATH}/lte_rrc_asn1', LTE_RRC_ASN1_SOURCES, pack_exception=['USES_COMPILE_LTE_L3_L2_PROTECTED_LIBS', 'USES_FEATURE_LTE_PACKBUILD_GENERATE_PROTECTED_LIBS', 'USES_CUST_1'])
+
+#-------------------------------------------------------------------------------
+# Look for test build files
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

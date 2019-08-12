@@ -1,0 +1,204 @@
+# --------------------------------------------------------------------------- #
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/hdr/cp/build/hdr_cp.scons#1 $
+# --------------------------------------------------------------------------- #
+# Copyright (c) 2012 - 2015 Qualcomm Technologies Incorporated.
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------- #
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/05/15   tnp     Remove RCINIT tcb_name
+# 11/07/14   mbs     Added support for FEATURE_OPTIMIZED_FTM_CALIBRATION
+# 10/09/12   cnx     Added Qchat support
+# 09/11/12   cnx     Removed modem folder.
+# 03/05/12   arm     Fixed RCINIT bugs found during integration.
+# 10/10/11   arm     Added support for RCINIT.
+# 05/03/11   cnx     Added 'CNE' as Public API.
+# 02/26/11   cnx     Added more API path.
+# 12/17/10   kss     Further api updates.
+# 12/16/10   kss     Updated core and restricted apis.
+# 10/26/10   cnx     Added violated path.
+# 10/12/10   cnx     Updated 'USES' flag.
+# 09/30/10   cnx     Added Top-level 'USES' flag and DEBUG support.
+# 09/22/10   cnx     Created this file.
+# --------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------- #
+# Import path				                                      
+# --------------------------------------------------------------------------- #
+from glob import glob
+from os.path import join, basename
+
+# --------------------------------------------------------------------------- #
+# Import and clone the SCons environment				      
+# --------------------------------------------------------------------------- #
+Import('env')
+env = env.Clone()
+
+# --------------------------------------------------------------------------- #
+# Verify that USES is set, otherwise bail out now				      
+# --------------------------------------------------------------------------- #
+if 'USES_WPLT' in env or 'USES_CDMA' not in env or 'USES_HDR' not in env:
+    Return()
+
+# --------------------------------------------------------------------------- #
+# Turn off/on debug if requested 			      
+# --------------------------------------------------------------------------- # 
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+
+# --------------------------------------------------------------------------- #
+# Setup source path                                               
+# --------------------------------------------------------------------------- #
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# --------------------------------------------------------------------------- #
+# Set MSG_BT_SSID_DFLT for legacy MSG macros				
+# --------------------------------------------------------------------------- #
+# HDR uses MSG 2.0 macros and does not need this
+
+# --------------------------------------------------------------------------- #
+# Necessary APIs						      
+# --------------------------------------------------------------------------- #
+# CoreBSP public APIs
+CORE_APIS = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'KERNEL',
+    'MPROC',
+    'POWER',
+    'SECUREMSM',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY'
+    ]
+env.RequirePublicApi(CORE_APIS, area="CORE")
+env.RequirePublicApi(['AUDIO'], area='MULTIMEDIA')
+
+# MODEM public APIs
+MODEM_PUBLIC_APIS = [
+    'CNE',
+    'DATA', 
+    'DATACOMMON', 
+    'HDR', 
+    'LTE',
+    'MCS', 
+    'MMODE', 
+    'ONEX', 
+    'PBM',
+    'RFA', 
+    'UIM',
+    'UTILS',
+    'QCHAT',
+    'WMS'
+    ]
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+# MODEM restricted APIs
+MODEM_RESTRICTED_APIS = [
+    'DATA',
+    'DATACOMMON',
+    'FW', 
+    'GERAN', 
+    'HDR',
+    'LTE',
+    'MCS', 
+    'MDSP', 
+    'MMODE', 
+    'NAS', 
+    'ONEX', 
+    'RFA', 
+    'UIM',
+    'UTILS',
+    'QCHAT',
+    'WMS'
+    ]
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+# HDR protected APIs
+HDR_PROTECTED_APIS = [
+    'BC',
+    'COMMON',
+    'CP',
+    'DRIVERS',
+    'MAC',
+    'SRCH',
+    'TAP'
+    ]
+env.RequireProtectedApi(HDR_PROTECTED_APIS)
+
+# Violations
+env.PublishPrivateApi('VIOLATIONS', ['${INC_ROOT}/core/systemdrivers/clk/inc'])
+
+# --------------------------------------------------------------------------- #
+# External APIs not built with SCons   		
+# --------------------------------------------------------------------------- #
+env.RequireExternalApi(['BREW'])
+
+# --------------------------------------------------------------------------- #
+# Generate the library and add to an image		
+# --------------------------------------------------------------------------- #
+# Source files
+CP_C_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Add library for code shipped as source
+env.AddLibrary(['MODEM_MODEM'], '${BUILDPATH}/cp', CP_C_SOURCES) 
+
+# Build image for which this task belongs
+RCINIT_HDRMC = ['MODEM_MODEM'] 
+
+# RC Init Function Dictionary
+RCINIT_INIT_HDRMC  = {
+ 'sequence_group'             : env.subst('$MODEM_PROTOCOL'), 
+ 'init_name'                  : 'hdrmc_init',      
+ 'init_function'              : 'hdrmc_task_init',
+ 'policy_optin'               : ['default', 'ftm', ]
+ #'dependencies'               : ['one,two,three'],
+}
+
+# RC Init Task Dictionary
+RCINIT_TASK_HDRMC = {
+ 'thread_name'                : 'hdrmc', 
+ 'sequence_group'             : env.subst('$MODEM_UPPERLAYER'),
+ 'stack_size_bytes'           : env.subst('$HDRMC_STKSZ'), 
+ 'priority_amss_order'        : 'HDRMC_PRI_ORDER',
+ 'stack_name'                 : 'hdrmc_stack',
+ 'thread_entry'               : 'hdrmc_task',
+ 'cpu_affinity'	              : env.subst('$MODEM_CPU_AFFINITY'),
+ 'policy_optin'               : ['default', 'ftm', ]
+}
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+            env.AddRCInitFunc(RCINIT_HDRMC, RCINIT_INIT_HDRMC)
+            env.AddRCInitTask(RCINIT_HDRMC, RCINIT_TASK_HDRMC)
+
+
+

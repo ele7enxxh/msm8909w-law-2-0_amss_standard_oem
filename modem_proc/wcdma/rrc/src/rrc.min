@@ -1,0 +1,186 @@
+#============================================================================
+#  Name:
+#    RRC.MIN
+#
+#  Description:
+#    An includable component of the makefile to build the DMSS software,
+#    this file lists the source files for the RRC feature.
+#
+# Copyright (c) 2001-2008 by QUALCOMM, Incorporated.  All Rights Reserved.
+#============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/wcdma/rrc/src/rrc.min#1 $
+#
+#when       who     what, where, why
+#-------    ---     --------------------------------------------------------
+#02/15/11   rl      Merged with VU_MODEM_WCDMA_RRC.01.91.50
+#02/02/11   sk      Modified support for non W GPS builds to be under 
+#                   $ifndef of USES_UMTS
+#01/04/11   rl      Merged with VU_MODEM_WCDMA_RRC.01.87.50
+#11/16/10   rm      Added support to build OSS objects for non W GPS builds
+#11/09/10   rl      Merged with VU_MODEM_WCDMA_RRC.01.84.50
+#09/20/10   prk/kp  Added code to support FEATURE_WCDMA_HS_FACH
+#11/03/10   rl      Added few files as RRC_PRIVATE_SOURCES
+#05/24/10   ss      Removed rrcdormancy.c from RRC_PRIVATE_SOURCES and adeed to RRC_SOURCES
+#04/29/10   ss      Removed rrcdormancy.c from RRC_SOURCES and adeed to RRC_PRIVATE_SOURCES
+#04/26/10   ss      Added file rrcdormancy.c for Fast Dormancy Feature
+#03/12/10   rm      Added rrcwrm.c procedure to RRC_PRIVATE_SOURCES
+#10/07/09   gkg     Changes for ASN.1 migration of C to CPP.
+#06/17/09   rm      Made changes to include compiler specific folders.
+#05/08/09   kp      Fixed compilation issue, missing # in header.
+#05/08/09   ss      Updated Copyright Information
+#01/13/09   bd      Moved source files from RRC_PRIVATE_SOURCES to RRC_SOURCES
+#                   since these source files have always been shipped to customers.
+#09/24/08   ps      Added code to pickup rrcasn1_ads.c if the ARM compiler
+#                   used is ADS, for RVCT pickup rrcasn1.c
+#09/12/08   ps      Added code to pickup rrcasn1_q6.c if Modem is on QDSP6
+#                    else rrcasn1.c should be picked up.
+#02/05/08   bd      Put tabs back in the min file - caused compilation issues on LCU
+#01/14/08   da      Removed oss_isprint.c
+#01/11/08   bd      Added rrcmbmsproc.c and rrcmbmscfg.c files under RRC_MBMS_PRIVATE
+#08/29/07   ps      Removed rrcgps.c file, as it is moved to rrcgpsmeas.c
+#08/08/07   ps      Added rrcgps procedure in RRC_SOURCES
+#07/06/06   kc      Replaced printf.c with rrcprintf.c 
+#============================================================================
+
+#-------------------------------------------------------------------------------
+# Security services
+#-------------------------------------------------------------------------------
+
+RRC_SOURCES=\
+        rrcccm.c \
+	rrccho.c \
+	rrcchk.c \
+        rrccmd.c \
+        rrccu.c \
+        rrcdata.c \
+        rrcdiag.c \
+        rrcdispatcher.c \
+        rrcdt.c \
+        rrcifreq.c \
+        rrclbt.c \
+        rrclog.c \
+        rrcnv.c \
+        rrcpcreconfig.c \
+        rrcpg1.c \
+        rrcpg2.c \
+        rrcrbcommon.c \
+        rrcrbe.c \
+        rrcrbr.c \
+        rrcrbreconfig.c \
+        rrcrce.c \
+        rrcrcr.c \
+        rrcscmgr.c \
+        rrcsend.c \
+        rrctask.c \
+        rrctcreconfig.c \
+        rrctmr.c \
+        rrcuece.c \
+        rrcueci.c \
+        rrcumi.c \
+        rrcasu.c \
+        rrcbmc.c \
+        rrccsp.c \
+        rrccspdb.c \
+        rrccspfscan.c \
+        rrccsputil.c \
+        rrciho.c \
+        rrcirat.c \
+        rrclcm.c \
+        rrcllc.c \
+        rrcllcmsgie.c \
+        rrcllcoc.c \
+        rrcllcpcie.c \
+        rrcllcrbie.c \
+        rrcllctrchie.c \
+        rrcmcm.c \
+        rrcmeas.c \
+        rrcmisc.c \
+        rrcqm.c \
+        rrcsibcollect.c \
+        rrcsibdb.c \
+        rrcsibproc.c \
+        rrcsmc.c \
+        rrctvm.c \
+	rrctfcc.c \
+	rrcf9driver.c \
+        rrcgpsmeas.c \
+        rrcueimeas.c \
+	rrcdormancy.c \
+        rrcenhstatecfg.c \
+        rrcenhstateproc.c
+
+RRC_OSS_SOURCES=\
+        rrcossinit.c
+
+#RRC_OSS_SOURCES get compiled on GSM only and multimode builds due to GPS.
+#RRC_SOURCES gets compiled only in multimode builds
+#USES_UMTS is not TRUE for non WCDMA builds,
+#For USES_UMTS TRUE builds, rrcossinit.c and rrcprintf.c are needed
+ifeq ($(USES_UMTS),yes)
+  RRC_SOURCES+=\
+  	rrcprintf.c
+
+  RRC_OSS_SOURCES+=\
+        rrcasn1util.c
+else
+  RRC_OSS_SOURCES+=\
+    	rrcprintf.c
+
+  RRC_SOURCES+=\
+        rrcasn1util.c
+endif
+
+
+
+
+RRC_PRIVATE_SOURCES=\
+        rrcwrm.c \
+        rrcasn1_ieDec.c \
+        rrcasn1_ieEnc.c \
+        rrcasn1_pdudec.c \
+        rrcasn1_pduEnc.c \
+        rrcasn1Dec.c \
+        rrcasn1Enc.c
+
+RRC_MBMS_PRIVATE_SOURCES = \
+        rrcmbmsproc.c \
+        rrcmbmscfg.c
+
+vpath %.c $(RRC) 
+vpath %.cpp $(RRC) 
+vpath %.cpp $(RRC_ADS)
+vpath %.cpp $(RRC_RVCT)
+vpath %.cpp $(RRC_Q6)
+
+ifeq ($(BIG),yes)
+	RRC_OBJS  := $(TARGETDIR)/rrc.lib	#NEW
+	RRC_OSS_OBJS := $(addprefix $(TARGETDIR)/, $(RRC_OSS_SOURCES:%.c=%.o))
+     	RRC_OSS_OBJS := $(addprefix $(TARGETDIR)) $(RRC_OSS_OBJS)
+	RRC_PRIVATE_OBJS  := $(TARGETDIR)/rrc.lib
+	RRC_MBMS_PRIVATE_OBJS :=$(TARGETDIR)/rrc.lib
+
+#	RRC_OBJS  := $(TARGETDIR)/rrc.lib	#OLD 
+#	RRC_OSS_OBJS := $(TARGETDIR)/rrc.lib
+#	RRC_PRIVATE_OBJS  := $(TARGETDIR)/rrc.lib
+
+else
+	RRC_OBJS :=  $(addprefix $(TARGETDIR)/, $(RRC_SOURCES:%.c=%.o))
+	RRC_OSS_OBJS :=  $(addprefix $(TARGETDIR)/, $(RRC_OSS_SOURCES:%.c=%.o))
+     	RRC_OSS_OBJS := $(addprefix $(TARGETDIR)) $(RRC_OSS_OBJS)
+	RRC_PRIVATE_OBJS :=  $(addprefix $(TARGETDIR)/, $(RRC_PRIVATE_SOURCES:%.c=%.o))
+	RRC_MBMS_PRIVATE_OBJS := $(addprefix $(TARGETDIR)/, $(RRC_MBMS_PRIVATE_SOURCES:%.c=%.o))
+endif
+
+ifneq ($(USES_QDSP6),yes)
+
+$(RRC_OSS_OBJS): CC := $(ARMCC) 
+$(RRC_OSS_OBJS): TCPP := $(ARMCPP)
+
+endif
+
+$(TARGETDIR)/rrc.lib : $(RRC_SOURCES) $(RRC_PRIVATE_SOURCES) $(RRC_MBMS_PRIVATE_SOURCES)
+	$(group_c_compile)
+

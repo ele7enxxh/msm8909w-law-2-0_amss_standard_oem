@@ -1,0 +1,64 @@
+#===============================================================================
+#
+# Services Paths
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: 2010/09/14 17:32:48 $
+#  $Author: irenes $
+#  $Change: 1439454 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/19/12   rh      Added F3 Trace to things to build
+#
+#===============================================================================
+Import('env')
+
+# Public APIs these are accessible by anyone internal or external to CoreBSP
+env.PublishPublicApi('SERVICES', [
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/services/diag/diag_mask_tbl/src",
+   "${INC_ROOT}/core/api/rapi/services/inc",
+   "${INC_ROOT}/core/api/kernel/rex",
+   "${INC_ROOT}/core/api/systemdrivers",
+   "${INC_ROOT}/api/time/api",
+])
+
+# Restricted APIs these are accessible by anyone within CoreBSP
+env.PublishRestrictedApi('SERVICES', [
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/services/diag/DCM/rtos/src",
+   "${INC_ROOT}/core/services/diag/LSM/common/src",
+   "${INC_ROOT}/core/services/diag/platform/bmp/src",
+   "${INC_ROOT}/core/services/diag/platform/riva/src",
+   "${INC_ROOT}/core/services/diag/DCM/common/src",
+   "${INC_ROOT}/core/services/ondevice_diag/src",
+   "${INC_ROOT}/core/services/nv/src",
+   "${INC_ROOT}/core/services/time/src",
+   "${INC_ROOT}/core/services/time_qmi/src",
+   "${INC_ROOT}/core/services/utils/src",
+   "${INC_ROOT}/core/services/osal/inc",
+   "${INC_ROOT}/core/services/diag/f3_trace/src",
+   "${INC_ROOT}/core/services/rlc/src",
+])
+
+if env.has_key('USES_MBA'):
+      env.PublishRestrictedApi('SERVICES', [
+         "${INC_ROOT}/core/services/osal/qurt/inc",
+      ])
+else:
+	env.PublishRestrictedApi('SERVICES', ["${INC_ROOT}/core/services/osal/rex/inc",
+	])

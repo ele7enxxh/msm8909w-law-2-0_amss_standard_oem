@@ -1,0 +1,90 @@
+// do ... while (0);
+// This is a recongized cliche for wrapping multiple statements in a
+// macro to retain the behavior of a single statement.  
+// It's useful, not dangerous, and we intend to use it.
+// Note that DIAG's old mSG macros also have +e717 which will force this on.
+-e717
+
+// Tell lint that we are OK with the fact that pkt_len and req_ptr are not
+// used in some of the packets
+-esym(715,pkt_len,req_ptr)
+
+// This field (bogus_count) is just padding for alignment.  It is unused.
+-esym(754,node_data::bogus_count)
+
+// This unused external reference is needed to prevent empty file warnings
+-esym(752,__dont_complain_about_empty_file)
+
+// We happily ignore the return value of strcpy, which adds no useful information
+-e534
+
+// while (1).  Think of it as for(;;) if you prefer, but it's valid C.
+-e716
+
+// Any code after ERR_FATAL is unreachable, yes.
+// The extra "return;" is there for the benefit of the ARM Compiler, 
+// which can not be taught that ERR_FATAL does not return.
+// Take your pick -- lint warning or compiler warning
+-e527
+
+// Null pointer checks
+-fpn
+
+// Extraneous comma ignored
+// This is allowed by the language
+-e726
+
+// Loss of precision.
+// Lint is warning me that a uint16 argument is only 16 bits. Wow.
+-e734
+
+// Extraneous comma ignored.
+-e288
+
+// Converting enum to int.
+-e641
+
+// "Pointer parameter could be declared as pointing to const"
+-e818
+
+// "Use of goto is deprecated"
+// Fortunately, it still works great and is sometimes the best tool.
+// Let's leave it up to the code author to decide.
+-e801
+
+// "Suspicious pointer-to-pointer conversion (area too small)"
+// Seems to happen anytime the code wants to cast a buffer of data to a
+// different type.
+-e826
+
+// "Operator '-' followed by operator '-' is confusing"
+// As in:  (5 - i - j)
+-e834
+
+// These can no longer be supressed because they are considered "Critical"
+// -e413
+// -e650
+
+// And these we didn't have time to look at
+-e64
+-e506
+-e522
+-e550
+-e570
+-e573
+-e574
+-e578
+-e613
+-e668
+-e701
+-e702
+-e704
+-e713
+-e731
+-e732
+-e737
+-e744
+-e750
+-e766
+-e771
+-e774

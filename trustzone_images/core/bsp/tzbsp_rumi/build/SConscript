@@ -1,0 +1,343 @@
+#===============================================================================
+#
+# TZBSP build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/12/11   nkazi   Changes to support Version Rollback prevention and qfprom
+#                    drivers in TZ.
+# 04/18/11   jct     Generated different scl files depending on build flavor
+# 04/17/11   jct     Added flags for different build flavors
+# 04/21/10   ejt     Removed BOOT environment variables
+# 02/23/10   sl      First cut of Scons build script for TZBSP
+#===============================================================================
+import os
+import string
+import re
+Import('env')
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias - First alias is always the target then the other possibles aliases
+aliases = [
+   'tz_rumi', 'tz_rumi_no_xpu', 'tz_rumi_with_test', 'tz_rumi_no_mmu', 'genboot', 'boot', 'boot_arm11',
+   'amss', 'amss_arm11',
+   'arm11', 'all'
+]
+
+env.InitImageVars(
+   alias_list=aliases,           # aliases
+   proc='cortexA7',              # proc
+   config='apps',                # config type, proc_name
+   plat='boot',
+   target='TZ_IMG_${BUILD_ID}',# target (elf, image file name)
+   build_tags = ['APPS_PROC','TZOS_IMAGE','DAL_DEVCFG_IMG'],
+   tools = ['${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/hex_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py',
+            'buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/kernel_builders.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py']
+)
+
+if not env.CheckAlias():
+   Return()
+
+intersect_list = list(set( SConscript.BuildTargets) & set(aliases))
+if len(intersect_list) == 0:
+   Return()
+
+if len(intersect_list) != 1:
+   Return()
+
+# Set this to the correct image_name
+image_name = intersect_list[0]
+
+if image_name == "tz_rumi":
+  build_cfg_file = "tzbsp_def.cfg"
+elif image_name == "tz_rumi_no_xpu":
+  build_cfg_file = "tzbsp_no_xpu.cfg"
+elif image_name == "tz_rumi_with_test":
+  build_cfg_file = "tzbsp_def_with_test.cfg"
+elif image_name == "tz_rumi_no_mmu":
+  build_cfg_file = "tzbsp_def_no_mmu.cfg"
+else:
+  Return()
+
+#------------------------------------------------------------------------------
+# Init default values for this PROC/Image
+#------------------------------------------------------------------------------
+env.Replace(USES_RUMI = 'yes')
+env.Replace(USES_DM = 'yes')
+# enable devcfg feature
+env.Replace(USES_DEVCFG = False)
+
+#===============================================================================
+# TZBSP build rules
+#===============================================================================
+
+#------------------------------------------------------------------------------
+# Configure and load in USES and path variables
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#------------------------------------------------------------------------------
+# Configure default feature values
+#------------------------------------------------------------------------------
+path = env['BUILD_ROOT']+'/core/bsp/tzbsp/build/'+ build_cfg_file
+vars = Variables()
+if not os.path.isfile(path):
+   raise Exception("Path %s must be a file" % path)
+file = open(path)
+try:
+   lines = file.readlines()
+   for line in lines:
+      # delete all whitespace
+      re.sub(r'\s', '', line)
+      # ignore all comments
+      if line.find("#") == 0:
+        continue
+      ay = line.split("=")
+      if (len(ay) <> 2):
+        raise Exception("Unknown option: "  + line)
+      vars.Add(BoolVariable(ay[0], ay[0], int(ay[1])))
+finally:
+    file.close()
+vars.Update(env)
+
+# set defaults for values if they're not in the .cfg file
+if 'tzbsp_with_pil' not in env:
+  vars.Add(BoolVariable('tzbsp_with_pil',        'pil',           1))
+if 'tzbsp_with_secboot' not in env:
+  vars.Add(BoolVariable('tzbsp_with_secboot',    'secboot',       1))
+if 'tzbsp_with_mmu' not in env:
+  vars.Add(BoolVariable('tzbsp_with_mmu',        'mmu',           1))
+if 'tzbsp_with_ce' not in env:
+  vars.Add(BoolVariable('tzbsp_with_ce',         'crypto',        1))
+if 'tzbsp_with_ssd' not in env:
+  vars.Add(BoolVariable('tzbsp_with_ssd',        'ssd',           1))
+
+if 'tzbsp_no_xpu' not in env:
+  vars.Add(BoolVariable('tzbsp_no_xpu',          'no pil xpus',   0))
+if 'tzbsp_with_pil_timing' not in env:
+  vars.Add(BoolVariable('tzbsp_with_pil_timing', 'pil profiling', 0))
+if 'tzbsp_with_test_svc' not in env:
+  vars.Add(BoolVariable('tzbsp_with_test_svc',   'unit tests',    1))
+vars.Update(env)
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('arm', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+env.LoadToolScript('apps_defs', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+
+#---------------------------------------------------------------------------
+# Override some of the bootloader settings so we build "almost" like a
+# bootloader
+#---------------------------------------------------------------------------
+# TODO The optimization for size is removed, because it generates Thumb-2
+# instruction stm r0, {r6, r7, r13}. This instruction is illegal as it cannot
+# contain r13 in the register list. Most likely this is due to a compiler bug
+# --> size optimization cannot be enabled until the compiler is fixed.
+env.Replace(ARMCC_OPT = "${ARM_OPT_SPACE} ${ARM_OPT_2}")
+
+#----------------------------------------------------------------------------
+# Enable Stack protection
+#----------------------------------------------------------------------------
+env.Append(CCFLAGS = " --protect_stack ")
+
+#------------------------------------------------------------------------------
+# Add extension flags for TZBSP
+#------------------------------------------------------------------------------
+if env['BUILD_VER'] == "":
+   env.Replace(BUILD_VER = '0')
+
+env.Append(CPPDEFINES = [
+   "BUILD_BOOT_CHAIN",
+   "BUILD_BOOT_CHAIN_SPBL",
+   "BOOT_LOADER",
+   "BOOT_WATCHDOG_DISABLED",
+   "FLASH_NAND_SINGLE_THREADED",
+   "FLASH_CLIENT_BOOT",
+   "FLASH_USE_DM_PAGES",
+   "FEATURE_HS_USB_BASIC",
+   "BOOT_SBL_H=\\\"boot_comdef.h\\\"",
+   "BOOT_CUSTSBL_H=\\\"custsbl.h\\\"",
+   "BOOT_MODULE_BUILD_VERSION=" + env['BUILD_VER'],
+   "FEATURE_USES_TURBO",
+   "RUMIBUILD",
+   "DAL_CONFIG_IMAGE_TZ",
+   "DAL_CONFIG_HLOS_ENV=DALPROP_HLOS_ENV_LINUX"
+])
+
+env.Append(CCFLAGS = " -DTZBSP_RUMI ")
+env.Append(CPPDEFINES = "TZBSP_RUMI")
+env.Append(AFLAGS = " -DTZBSP_RUMI ")
+
+if env['MSM_ID'] in ['9x25']:
+   env.Append(CPPDEFINES = [
+      "DAL_CONFIG_TARGET_ID=0x9625",
+   ])
+elif env['MSM_ID'] in ['9x35']:
+   env.Append(CPPDEFINES = [
+      "DAL_CONFIG_TARGET_ID=0x9635",
+   ])
+elif env['MSM_ID'] in ['8x26']:
+   env.Append(CPPDEFINES = [
+      "DAL_CONFIG_TARGET_ID=0x8626",
+   ])
+elif env['MSM_ID'] in ['8x10']:
+   env.Append(CPPDEFINES = [
+      "DAL_CONFIG_TARGET_ID=0x8626",
+   ])
+else:
+   env.Append(CPPDEFINES = [
+      "DAL_CONFIG_TARGET_ID=0x${MSM_ID}",
+   ])
+
+if env['tzbsp_no_xpu'] == 1:
+   env.Append(CPPDEFINES = [
+      "FEATURE_NO_XPU",
+      "TZBSP_NO_ABT",
+   ])
+#------------------------------------------------------------------------------
+# Decide which build steps to perform
+#------------------------------------------------------------------------------
+# Regular build steps (no filter) is build everything, once a user starts
+# using filters we have to make decisions depending on user input.
+#
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units, 
+# etc.  This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quartz, stubs, etc.
+
+do_local_files = True
+do_link = True
+do_post_link = True
+
+# Get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# Limit build processing based on filter option
+if filter_opt is not None:
+   do_link = False
+   do_post_link = False
+
+   if not env.FilterMatch(os.getcwd()):
+      do_local_files = False
+      
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+tzbsp_units = [core_objs, core_libs]
+
+if env.get('ARMTOOLSVERSION', 0) >= 4:
+   arm_libs = [
+      # ARM Libs (this needs to be last, otherwise linker will use ARMlibs functions
+      # which we want to override)
+      File(env.SubstRealPath('${ARMLIB}/armlib/c_5.l')),
+      File(env.SubstRealPath('${ARMLIB}/armlib/g_5s.l')),
+      File(env.SubstRealPath('${ARMLIB}/armlib/m_5s.l'))
+   ]
+else:
+   arm_libs = [
+      # ARM Libs (this needs to be last, otherwise linker will use ARMlibs functions
+      # which we want to override)
+      File(env.SubstRealPath('${ARMLIB}/armlib/c_t__un.l')),
+      File(env.SubstRealPath('${ARMLIB}/armlib/g_t_p.l')),
+      File(env.SubstRealPath('${ARMLIB}/armlib/m_t_pu.l'))
+   ]
+
+# Extend core library to include standard libraries
+core_libs.extend(arm_libs)
+
+if do_local_files:
+   #============================================================================
+   # TZBSP Environment
+   #============================================================================
+   if env['tzbsp_with_test_svc'] == 1:
+      env.Append(CCFLAGS = " -O0 ")
+   #----------------------------------------------------------------------------
+   # Begin building TZBSP
+   #----------------------------------------------------------------------------
+   env.Replace(TARGET_NAME = 'tz_rumi')
+   env.Replace(TZBSP_ROOT = '${COREBSP_ROOT}/securemsm/tzbsp')
+   env.Replace(FLASH_TYPE = 'sdcc')
+
+   #----------------------------------------------------------------------------
+   # Generate Scatter Load File (SCL)
+   #----------------------------------------------------------------------------
+   if env['tzbsp_with_mmu'] == 1:
+     tzbsp_scl = env.SclBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}',
+       '${TZBSP_ROOT}/chipset/${CHIPSET}/cfg/mmu/tzbsp_${FLASH_TYPE}.scl')   
+   else:
+     tzbsp_scl = env.SclBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}',
+       '${TZBSP_ROOT}/chipset/${CHIPSET}/cfg/no_mmu/tzbsp_${FLASH_TYPE}.scl')
+
+   tzbsp_units.extend(tzbsp_scl)
+   
+if do_link:
+   #----------------------------------------------------------------------------
+   # Generate TZBSP ELF
+   #----------------------------------------------------------------------------
+   libs_path = env['INSTALL_LIBPATH']
+   
+   tzbsp_elf = env.Program('${SHORT_BUILDPATH}/${TARGET_NAME}', 
+      source=[core_objs], 
+      LIBS=[core_libs], LIBPATH=libs_path)
+      
+   env.Depends(tzbsp_elf, tzbsp_scl)
+
+   tzbsp_map = env.SideEffect(env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.map'), tzbsp_elf)
+   tzbsp_sym = env.SideEffect(env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.sym'), tzbsp_elf)
+
+   env.Clean(tzbsp_elf, tzbsp_map)
+   env.Clean(tzbsp_elf, tzbsp_sym)
+
+if do_post_link:   
+   #----------------------------------------------------------------------------
+   # Generate TZBSP MBN
+   #----------------------------------------------------------------------------
+   tzbsp_mbn = env.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', tzbsp_elf,
+      MBN_TYPE="elf", IMAGE_TYPE='tz_rumi', FLASH_TYPE='sdcc', ENABLE_ENCRYPT=True)
+
+
+   #----------------------------------------------------------------------------
+   # Install generated files for debugging
+   #----------------------------------------------------------------------------
+   install_dbg_files = Install(env.subst("${TZBSP_ROOT}"),
+      [tzbsp_elf, tzbsp_map, tzbsp_sym])
+
+   #============================================================================
+   # Define units that will be built
+   #============================================================================
+   tzbsp_units = env.Alias ('arm11_tzbsp_units', [
+      tzbsp_elf,
+      tzbsp_mbn,
+      install_dbg_files,
+   ])
+
+# Add aliases
+for alias in aliases:
+   env.Alias(alias, tzbsp_units)

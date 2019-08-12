@@ -1,0 +1,26 @@
+Import('env')
+env = env.Clone()
+
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPPATH = '../inc')
+env.Append(CFLAGS = '--c99')
+
+CBSP_API = [
+   'DAL',
+]
+
+env.RequirePublicApi(CBSP_API)
+
+UTILS_SOURCES = [
+	'${BUILDPATH}/checksum.c',
+]
+
+#
+# To compile this library, add 'POWER_UTILS_BOOT' tag to:
+#
+#   boot_images\core\bsp\bootloaders\sbl1\build\<target>.scons
+#
+env.AddLibrary(['POWER_UTILS_BOOT'], '${BUILDPATH}/power_utils_boot.lib', UTILS_SOURCES)
+

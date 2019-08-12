@@ -1,0 +1,150 @@
+//===========================================================================
+//
+// FILE:         i2c_mpss_mdm9607.xml
+//
+// DESCRIPTION:  This file contains the DAL XML properties for the QUPI2CPD
+//               Device Access Library.
+//
+//===========================================================================
+//
+//                             Edit History
+//
+// $Header: $
+//
+// when       who     what, where, why
+// --------   ---     -------------------------------------------------------
+// 09/22/2015  vg     Added PNOC vote enable Entry
+// 08/04/14   vg      Created  for 9607
+//===========================================================================
+//             Copyright c 2010-2015 QUALCOMM Incorporated.
+//                    All Rights Reserved.
+//                  QUALCOMM Proprietary/GTDR
+//===========================================================================
+#include "icbarb.h" /*Chip Bus interface ids for PNOC vote*/
+
+<driver name="NULL">
+   <global_def>
+      
+      <string name="PERIPH_SS"                type=DALPROP_DATA_TYPE_STRING>   BLSP1_BLSP                    </string>
+      <string name="blsp1_i2c_qup1_appsclk"   type=DALPROP_DATA_TYPE_STRING>   gcc_blsp1_qup1_i2c_apps_clk   </string>      
+      <string name="blsp1_i2c_qup2_appsclk"   type=DALPROP_DATA_TYPE_STRING>   gcc_blsp1_qup2_i2c_apps_clk   </string>           
+      <string name="blsp1_i2c_qup3_appsclk"   type=DALPROP_DATA_TYPE_STRING>   gcc_blsp1_qup3_i2c_apps_clk   </string>            
+      <string name="blsp1_i2c_qup4_appsclk"   type=DALPROP_DATA_TYPE_STRING>   gcc_blsp1_qup4_i2c_apps_clk   </string>      
+      <string name="blsp1_i2c_qup5_appsclk"   type=DALPROP_DATA_TYPE_STRING>   gcc_blsp1_qup5_i2c_apps_clk   </string>
+      <string name="blsp1_i2c_qup6_appsclk"   type=DALPROP_DATA_TYPE_STRING>   gcc_blsp1_qup6_i2c_apps_clk   </string>  
+      
+      <string name="blsp1_i2c_qup_ahb_clk"    type=DALPROP_DATA_TYPE_STRING>   gcc_blsp1_ahb_clk             </string>
+      
+   </global_def>
+   
+   <device id="I2CDRV_I2C_1">
+      <props name="NUM_DEVICES"              type=DALPROP_ATTR_TYPE_UINT32>     6                  </props>
+      <props name="GPIO_I2C_SDA" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c0e3                           </props>
+      <props name="GPIO_I2C_SCL" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c0f3                           </props>
+      <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>            0x35000                              </props>
+      <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR> PERIPH_SS                            </props>
+      <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>           blsp1_i2c_qup_ahb_clk                  </props>
+      <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        blsp1_i2c_qup1_appsclk                  </props>
+      <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>        19200                                </props>
+      <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>          0x1                                  </props>
+      <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>                  0x0                                  </props>
+      <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>         1                                    </props>  
+      <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>          ICBID_MASTER_BLSP_1                  </props>
+      <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_SLAVE_EBI1                     </props>
+   </device>
+
+   <device id="I2CDRV_I2C_2">
+      <props name="NUM_DEVICES"              type=DALPROP_ATTR_TYPE_UINT32>     6                  </props>
+      <props name="GPIO_I2C_SDA" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c063                           </props>
+      <props name="GPIO_I2C_SCL" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c073                           </props>
+      <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>            0x36000                              </props>
+      <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR> PERIPH_SS                            </props>
+      <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>           blsp1_i2c_qup_ahb_clk                  </props>
+      <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        blsp1_i2c_qup2_appsclk                  </props>
+      <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>        19200                                </props>
+      <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>          0x1                                  </props>
+      <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>                  0x0                                  </props>
+      <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>         1                                    </props>  
+      <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>          ICBID_MASTER_BLSP_1                  </props>
+      <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_SLAVE_EBI1                     </props>
+   </device>
+
+   <device id="I2CDRV_I2C_3">
+      <props name="NUM_DEVICES"              type=DALPROP_ATTR_TYPE_UINT32>     6                  </props>
+      <props name="GPIO_I2C_SDA" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c022                           </props>
+      <props name="GPIO_I2C_SCL" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c032                           </props>
+      <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>            0x37000                              </props>
+      <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR> PERIPH_SS                            </props>
+      <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>           blsp1_i2c_qup_ahb_clk                  </props>
+      <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        blsp1_i2c_qup3_appsclk                  </props>
+      <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>        19200                                </props>
+      <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>          0x1                                  </props>
+      <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>                  0x0                                  </props>
+      <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>         0x1                                  </props>  
+      <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>          ICBID_MASTER_BLSP_1                  </props>
+      <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_SLAVE_EBI1                     </props>
+   </device>
+
+   <device id="I2CDRV_I2C_4">
+      <props name="NUM_DEVICES"              type=DALPROP_ATTR_TYPE_UINT32>     6                  </props>
+      <props name="GPIO_I2C_SDA" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c123                           </props>
+      <props name="GPIO_I2C_SCL" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c133                           </props>
+      <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>            0x38000                              </props>
+      <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR> PERIPH_SS                            </props>
+      <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>           blsp1_i2c_qup_ahb_clk                  </props>
+      <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        blsp1_i2c_qup4_appsclk                  </props>
+      <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>        19200                                </props>
+      <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>          0x1                                  </props>
+      <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>                  0x0                                  </props>
+      <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>         1                                    </props>  
+      <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>          ICBID_MASTER_BLSP_1                  </props>
+      <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_SLAVE_EBI1                     </props>
+   </device>
+
+   <device id="I2CDRV_I2C_5">
+      <props name="NUM_DEVICES"              type=DALPROP_ATTR_TYPE_UINT32>     6                                    </props>
+      <props name="GPIO_I2C_SDA" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c0a2                           </props>
+      <props name="GPIO_I2C_SCL" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c0b2                           </props>
+      <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>            0x39000                              </props>
+      <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR> PERIPH_SS                            </props>
+      <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>           blsp1_i2c_qup_ahb_clk                  </props>
+      <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        blsp1_i2c_qup5_appsclk                  </props>
+      <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>        19200                                </props>
+      <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>          0x1                                  </props>
+      <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>                  0x0                                  </props>
+      <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>                 1   </props>  
+      <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>          ICBID_MASTER_BLSP_1                  </props>
+      <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_SLAVE_EBI1                     </props>
+   </device>                           
+
+   <device id="I2CDRV_I2C_6">
+      <props name="NUM_DEVICES"              type=DALPROP_ATTR_TYPE_UINT32>     6                                    </props>
+      <props name="GPIO_I2C_SDA" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c164                           </props>
+      <props name="GPIO_I2C_SCL" type=DALPROP_ATTR_TYPE_UINT32>                 0x2001c174                           </props>
+      <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>            0x3A000                              </props>
+      <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR> PERIPH_SS                            </props> 
+      <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>           blsp1_i2c_qup_ahb_clk                  </props>
+      <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        blsp1_i2c_qup6_appsclk                  </props>
+      <props name="CHIP_APP_CLK_FREQ_KHZ" type=DALPROP_ATTR_TYPE_UINT32>        19200                                </props>
+      <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>          0x1                                  </props>
+      <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>                  0x0                                  </props>
+      <props name="I2C_PNOC_VOTE_ENABLE" type=DALPROP_ATTR_TYPE_UINT32>         1                                    </props>  
+      <props name="I2C_PNOC_IB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_AB_VAL" type=DALPROP_ATTR_TYPE_UINT32>              150000                               </props>
+      <props name="I2C_PNOC_ARB_MASTER" type=DALPROP_ATTR_TYPE_UINT32>          ICBID_MASTER_BLSP_1                  </props>
+      <props name="I2C_PNOC_ARB_SLAVE" type=DALPROP_ATTR_TYPE_UINT32>           ICBID_SLAVE_EBI1                     </props>
+   </device>
+
+</driver>
+
+

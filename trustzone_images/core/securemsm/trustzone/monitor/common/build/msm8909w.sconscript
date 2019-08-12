@@ -1,0 +1,80 @@
+#===============================================================================
+#
+# Monitor common
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2013 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/monitor/common/build/msm8909w.sconscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/11/12   tk      initial version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/monitor/common/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#------------------------------------------------------------------------------
+# Addition of target header file to the path
+#------------------------------------------------------------------------------
+
+env.Prepend(CPPPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/arch/msm8909/cfg/mmu")
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BUSES',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(['CBSP_API', 'TZCHIPSET'])
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+TZ_MONITOR_LIB_SOURCES = [
+  '${BUILDPATH}/src/tzbsp_context_util.c',
+]
+
+TZ_MONITOR_SOURCES = [
+  '${BUILDPATH}/src/tzbsp_dcvs.c',
+  '${BUILDPATH}/src/tzbsp_ns_debug_fiq.c',
+  '${BUILDPATH}/src/tzbsp_qdss.s',
+  '${BUILDPATH}/src/tzbsp_msmdcvs.c',
+  '${BUILDPATH}/src/qsee_spmi_bus_disable.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddBinaryLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_monitor_common', TZ_MONITOR_LIB_SOURCES)
+env.AddObject('TZOS_IMAGE', TZ_MONITOR_SOURCES)

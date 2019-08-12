@@ -1,0 +1,196 @@
+/*****************************************************************************
+  @FILE     sns_sam_fast_amd.idl
+
+  @BRIEF    Message definition for Fast-AMD.
+
+  @DESCRIPTION
+  This file defines QMI messages provided to clients interested in
+  Fast Absolute Motion Detection (Fast-AMD) related algorithm services.
+
+  Copyright (c) 2014-2015 Qualcomm Technologies, Inc.  All Rights Reserved
+  Qualcomm Technologies Proprietary and Confidential.
+
+*****************************************************************************/
+
+include "sns_sam_common_v01.idl";
+
+revision 0;
+
+const SNS_SAM_FAST_AMD_SUID = 0xa28cb1431bcb2a77;
+
+//! @ENUM   SNS_SAM_FAST_AMD_MOTION_STATE_ENUM
+enum {
+  SNS_SAM_FAST_AMD_MOTION_UNKNOWN    = 0,
+  SNS_SAM_FAST_AMD_MOTION_REST       = 1,
+  SNS_SAM_FAST_AMD_MOTION_MOVE       = 2
+} sns_sam_fast_amd_motion_state_e;
+
+//============================================================================
+/** @COMMAND SNS_SAM_FAST_AMD_ENABLE
+    @BRIEF This command enables Fast-AMD algorithm.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_FAST_AMD_ENABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_sam_report_e report_mode;
+  /**<
+    Client requested report mode.
+    Fast-AMD will support two reporting mode:
+      SNS_SAM_ASYNC_REPORT = 0x02, which can report on every motion state change.
+      SNS_SAM_SYNC_REPORT  = 0x04, which can report on every algo batch processing.
+  */
+  mandatory uint32 detection_period_in_motion_state;
+  /**<
+    Client defined detection period in motion state, in microsecond.
+    The algorithm may run more often than the specified window size.
+  */
+  mandatory uint32 detection_period_in_stationary_state;
+  /**<
+    Client defined detection period in stationary state , in microsecond.
+    The algorithm may run more often than the specified window size.
+  */
+  optional uint32 state_detection_threshold;
+  /**< Specify the threshold of motion/stationary output required to
+       generate an Fast-AMD motion event, in unit of percentage. Default
+       value defined in registry, Item ID 5702. */
+} sns_sam_fast_amd_enable_req_msg;
+
+//! @MSG     SNS_SAM_FAST_AMD_ENABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s                resp = 2;
+  optional uint8                             instance_id;
+  /**<
+    Instance ID is assigned by SAM.
+    The client shall use this instance ID for future messages associated with
+    this algorithm instance.
+  */
+} sns_sam_fast_amd_enable_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_FAST_AMD_DISABLE
+    @BRIEF This command disables an Fast-AMD algorithm.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_FAST_AMD_DISABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8                            instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_sam_fast_amd_disable_req_msg;
+
+//! @MSG     SNS_SAM_FAST_AMD_DISABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s                resp = 2;
+  optional uint8                            instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_sam_fast_amd_disable_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_FAST_AMD_REPORT
+    @BRIEF Report containing FAST_AMD algorithm output
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_FAST_AMD_REPORT_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8                            instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+  mandatory uint32                           timestamp;
+  /**<
+    Timestamp of the last accel samples in the batched accel data used to
+    generate the algorithm output. */
+  mandatory sns_sam_fast_amd_motion_state_e           state;
+  /**<
+    Motion state output of Fast-AMD algorithm instance.
+    This output is the final determination of Fast-AMD motion state, based on
+    processing batched accel data. */
+} sns_sam_fast_amd_report_ind_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_FAST_AMD_ERROR
+    @BRIEF Asynchronous error indication for a Fast-AMD algorithm.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_FAST_AMD_ERROR_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//============================================================================
+
+message {
+  mandatory uint8                            error;
+  /**< Sensor1 error code.  */
+  mandatory uint8                            instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_sam_fast_amd_error_ind_msg;
+
+//============================================================================
+// Service definition
+//============================================================================
+service SNS_SAM_FAST_AMD_SVC {
+  //! @ID SNS_COMMON_CANCEL
+  sns_common_cancel_req_msg        SNS_SAM_FAST_AMD_CANCEL_REQ,
+  sns_common_cancel_resp_msg       SNS_SAM_FAST_AMD_CANCEL_RESP
+    = 0x00;
+
+  //! @ID SNS_COMMON_VERSION
+  sns_common_version_req_msg       SNS_SAM_FAST_AMD_VERSION_REQ,
+  sns_common_version_resp_msg      SNS_SAM_FAST_AMD_VERSION_RESP
+    = 0x01;
+
+  //! @ID SNS_SAM_FAST_AMD_ENABLE
+  sns_sam_fast_amd_enable_req_msg       SNS_SAM_FAST_AMD_ENABLE_REQ,
+  sns_sam_fast_amd_enable_resp_msg      SNS_SAM_FAST_AMD_ENABLE_RESP
+    = 0x02;
+
+  //! @ID SNS_SAM_FAST_AMD_DISABLE
+  sns_sam_fast_amd_disable_req_msg      SNS_SAM_FAST_AMD_DISABLE_REQ,
+  sns_sam_fast_amd_disable_resp_msg     SNS_SAM_FAST_AMD_DISABLE_RESP
+    = 0x03;
+
+  //! @ID SNS_SAM_FAST_AMD_REPORT
+  sns_sam_fast_amd_report_ind_msg       SNS_SAM_FAST_AMD_REPORT_IND
+    = 0x05;
+
+  //! @ID SNS_SAM_FAST_AMD_ERROR
+  sns_sam_fast_amd_error_ind_msg        SNS_SAM_FAST_AMD_ERROR_IND
+    = 0x06;
+
+  //! @ID SNS_SAM_GET_ALGO_ATTRIBUTES
+  sns_sam_get_algo_attrib_req_msg     SNS_SAM_FAST_AMD_GET_ATTRIBUTES_REQ,
+  sns_sam_get_algo_attrib_resp_msg    SNS_SAM_FAST_AMD_GET_ATTRIBUTES_RESP
+    = 0x24;
+
+} = SNS_QMI_SVC_ID_52;
+//============================================================================
+// File footer
+//============================================================================
+/**
+@FOOTER
+*/
+
+//============================================================================
+// End of Module
+//============================================================================

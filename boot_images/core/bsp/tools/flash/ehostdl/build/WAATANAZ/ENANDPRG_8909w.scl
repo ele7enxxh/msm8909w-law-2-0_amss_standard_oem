@@ -1,0 +1,23 @@
+RAM 0x08006050
+{
+   CODE 0x08006050 
+   {
+      "hostdl_startup.o" (BootRom, +FIRST)
+   }
+   CODE_ALL +0
+   {
+      * (+RO)
+   }
+   APP_RAM +0x0
+   {
+      * (.constdata)   ; Relocate all constdata to RAM since accessing
+                       ; string literals and other unaligned
+                       ; data in ADSP IRAM could cause issues
+      * (+RW, +ZI)
+   }
+   ZI_RAM  0x00210000
+   {
+      qhsusb_*.o (+ZI)
+      * (FLASH_TOOLS_HEAP_ZONE)
+   }
+}

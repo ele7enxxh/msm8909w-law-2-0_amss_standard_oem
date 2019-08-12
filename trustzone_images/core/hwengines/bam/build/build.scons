@@ -1,0 +1,242 @@
+#===============================================================================
+#
+# Bam Libs
+#
+# GENERAL DESCRIPTION
+#    BAM Libs build script
+#
+# Copyright (c) 2011-2015 by QUALCOMM Technologies Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime:  $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/04/15   PR      8909 wearable support
+# 06/23/14   PR      Added 8909/8208/9x09 support
+# 12/11/13   SA      Added 8936 support
+# 12/11/13   SA      Added 8916 support
+# 08/08/13   SS      Added 8962 Support
+# 05/14/13   SS      Added 9x35 support
+# 01/25/13   SS      Added 8x10 Support
+# 10/30/12   SS      Made changes for B family binary compatibility
+# 09/13/11   MK      Created
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8962', '9x35', '8084', '8092']:
+   env.PublishPrivateApi('HWENGINES_BAM', [
+       "${INC_ROOT}/core/hwengines/bam/core4",
+       "${INC_ROOT}/core/hwengines/bam"
+   ])
+elif env['MSM_ID'] in ['8916', '8936', '8909', '8208', '9x09', '9x07','8909w']:
+   env.PublishPrivateApi('HWENGINES_BAM', [
+       "${INC_ROOT}/core/hwengines/bam/core5",
+       "${INC_ROOT}/core/hwengines/bam"
+   ])
+
+#-------------------------------------------------------------------------------
+# Defines
+#-------------------------------------------------------------------------------
+
+#TZOS image
+if env.has_key('TZOS_IMAGE'):
+    env.Append(CPPDEFINES = [ 'BAM_TZOS' ])
+
+if env.has_key('MBA_CORE_SW'):
+    env.Append(CPPDEFINES = [ 'BAM_MBA' ])
+else : 
+	 env.Append(CPPDEFINES = [ 'BAM_XML_PROPS' ])
+
+#To enable debug messages uncomment the line below:
+if not (env.has_key('BUILD_TOOL_CHAIN') or env.has_key('BUILD_BOOT_CHAIN')):
+    env.Append(CPPDEFINES = ['BAM_OSAL_DEBUG'])
+    env.Append(CPPDEFINES = [ 'BAM_OSAL_MSG_LEVEL=MSG_ERR' ])
+
+#Include this from here if tgt cfg compatibility not required.
+if not env.has_key('BAM_XML_PROPS'):
+    if env['MSM_ID'] in ['8962', '9x35','8084', '8092', '8916', '8936', '8909', '9x07']:
+        if env.has_key('BUILD_TOOL_CHAIN') or env.has_key('BUILD_BOOT_CHAIN'):
+            env.Append(CPPDEFINES = [ '"BAM_TGT_CFGDATA_H=\\\"${MSM_ID}/bamtgtcfgdata_boot.h\\\""'  ])
+        elif env.has_key('MODEM_PROC'):
+            env.Append(CPPDEFINES = [ '"BAM_TGT_CFGDATA_H=\\\"${MSM_ID}/bamtgtcfgdata_mpss.h\\\""'  ])
+        elif env.has_key('ADSP_PROC'):
+            env.Append(CPPDEFINES = [ '"BAM_TGT_CFGDATA_H=\\\"${MSM_ID}/bamtgtcfgdata_lpass.h\\\""' ])
+        elif env.has_key('TZOS_IMAGE'):
+            env.Append(CPPDEFINES = [ '"BAM_TGT_CFGDATA_H=\\\"${MSM_ID}/bamtgtcfgdata_tz.h\\\""'  ])
+        elif env.has_key('APPS_PROC'):
+            env.Append(CPPDEFINES = [ '"BAM_TGT_CFGDATA_H=\\\"${MSM_ID}/bamtgtcfgdata_apss.h\\\""' ])
+    if env['MSM_ID'] in ['8208', '9x09','8909w']:
+        if env.has_key('BUILD_TOOL_CHAIN') or env.has_key('BUILD_BOOT_CHAIN'):
+            env.Append(CPPDEFINES = [ '"BAM_TGT_CFGDATA_H=\\\"8909/bamtgtcfgdata_boot.h\\\""'  ])
+        elif env.has_key('MODEM_PROC'):
+            env.Append(CPPDEFINES = [ '"BAM_TGT_CFGDATA_H=\\\"8909/bamtgtcfgdata_mpss.h\\\""'  ])
+        elif env.has_key('ADSP_PROC'):
+            env.Append(CPPDEFINES = [ '"BAM_TGT_CFGDATA_H=\\\"8909/bamtgtcfgdata_lpass.h\\\""' ])
+        elif env.has_key('TZOS_IMAGE'):
+            env.Append(CPPDEFINES = [ '"BAM_TGT_CFGDATA_H=\\\"8909/bamtgtcfgdata_tz.h\\\""'  ])
+        elif env.has_key('APPS_PROC'):
+            env.Append(CPPDEFINES = [ '"BAM_TGT_CFGDATA_H=\\\"8909/bamtgtcfgdata_apss.h\\\""' ])
+
+if env['MSM_ID'] in ['9x25', '9x35']:
+    env.Append(CPPDEFINES = [ "BAM_PIPE_MEM_CLOCK_ID=\\\"cc_pmem_aclk\\\""  ])
+else:
+    env.Append(CPPDEFINES = [ "BAM_PIPE_MEM_CLOCK_ID=NULL"  ])
+
+# Bam config
+if env['MSM_ID'] in ['8962', '9x35','8084', '8092', '8916', '8936', '8909', '8208', '9x09', '9x07', '8909w']:
+    if env.has_key('MODEM_PROC'):
+       env.Append(CPPDEFINES = ['BAM_MODEM_CONFIG'])
+    elif env.has_key('ADSP_PROC'):
+       env.Append(CPPDEFINES = ['BAM_ADSP_CONFIG'])
+    elif env.has_key('TZOS_IMAGE'):
+       env.Append(CPPDEFINES = ['BAM_TZOS_CONFIG'])
+    elif env.has_key('APPS_PROC'):
+       env.Append(CPPDEFINES = ['BAM_APPS_CONFIG'])
+
+if env['MSM_ID'] in ['8974']:
+    if env.has_key('TZOS_IMAGE'):
+       env.Append(CPPDEFINES = ['BAM_API_NOPAGED_IMEM'])
+
+if env['MSM_ID'] in ['8909w']:
+    if env.has_key('TZOS_IMAGE'):
+       env.Append(CPPDEFINES = ['BAM_BLSP_WEARABLE_CFG'])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/hwengines/bam/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'HAL',
+   'HWENGINES',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',   
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+   'POWER',
+   'TZCHIPSET'
+]
+
+if env.has_key('TZOS_IMAGE'):
+    CBSP_API += ['SECUREMSM']
+else:
+    CBSP_API += ['DEBUGTOOLS']
+
+#specific to SS
+if env.has_key('tzbsp_disable_spi') and env['tzbsp_disable_spi'] == 1:
+    env.Append(CPPDEFINES=["BAM_TZ_DISABLE_SPI"])
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.Append(CPPPATH = "${INC_ROOT}/core/securemsm/trustzone/qsee/include")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/arch/${CHIPSET}/src/")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8962', '9x35','8084', '8092']:
+	BAM_COMMON_SOURCES =  [
+	   '${BUILDPATH}/bam.c',
+	   '${BUILDPATH}/bamosal.c',
+      '${BUILDPATH}/bam_debug.c',
+	   '${BUILDPATH}/core4/bamcore.c',
+	]
+elif env['MSM_ID'] in ['8916', '8936', '8909', '8208', '9x09', '9x07', '8909w']:
+	BAM_COMMON_SOURCES =  [
+	   '${BUILDPATH}/bam.c',
+	   '${BUILDPATH}/bamosal.c',
+       '${BUILDPATH}/bam_debug.c',
+	   '${BUILDPATH}/core5/bamcore.c',
+   ]
+else:
+   BAM_COMMON_SOURCES =  [
+	   '${BUILDPATH}/stub/bam_stub.c',
+	]
+	
+# if not env.has_key('TZOS_IMAGE'):	
+	# BAM_COMMON_SOURCES += ['${BUILDPATH}/bam_debug.c']
+
+if env['MSM_ID'] in ['8962', '9x35','8084', '8092', '8916', '8936', '8909', '9x07']:
+    BAM_COMMON_SOURCES += ['${BUILDPATH}/${MSM_ID}/bamtgtcfg.c']
+
+if env['MSM_ID'] in ['8208', '9x09', '8909w']:
+    BAM_COMMON_SOURCES += ['${BUILDPATH}/8909/bamtgtcfg.c']
+
+if env['MSM_ID'] in ['8x30', '8064', '8960']:
+    BAM_COMMON_SOURCES += ['${BUILDPATH}/bamtgtcfg.c']
+
+# for 8960 and 8064 have to include bamtgtconfig_props.c to the source list.
+if env['MSM_ID'] in ['8960','8064']:
+   BAM_COMMON_SOURCES.append('${BUILDPATH}/bamtgtconfig_props.c')
+
+bam_obj = env.Object([BAM_COMMON_SOURCES])
+bam_lib = env.Library('${BUILDPATH}/bam', bam_obj)
+
+env.AddLibsToImage(['APPS_IMAGE', 'CBSP_APPS_IMAGE', 'MBA_CORE_SW','TZOS_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], [bam_lib])
+
+if env['MSM_ID'] in ['9x25', '9x35', '9x09']:
+  env.AddLibsToImage(['NAND_TOOLS_IMAGE', 'BAM_BOOT_DRIVER'], [bam_lib])
+
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['MODEM_IMAGE',    'CBSP_MODEM_IMAGE',  'CORE_APPS',
+                'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+  env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',
+      'init_name'                  : 'bam_drv',
+      'init_function'              : 'bam_drv_init',
+      'dependencies'               : ['clk_regime']
+    })
+	
+#-------------------------------------------------------------------------------
+# DEVCFG - BAM XML
+#-------------------------------------------------------------------------------
+
+if (env.get('USES_DEVCFG', False) is True) and not (env.has_key('BUILD_TOOL_CHAIN') or env.has_key('BUILD_BOOT_CHAIN')):
+   if env['MSM_ID'] in ['8962', '9x35','8084', '8092', '8916', '8936', '8909', '9x07']:
+	   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+	   env.AddDevCfgInfo(DEVCFG_IMG, 
+	   {
+		  'devcfg_xml'    : '${BUILD_ROOT}/core/hwengines/bam/${MSM_ID}/bam_config.xml'
+	   })
+   if env['MSM_ID'] in ['8208', '9x09', '8909w']:
+	   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+	   env.AddDevCfgInfo(DEVCFG_IMG, 
+	   {
+		  'devcfg_xml'    : '${BUILD_ROOT}/core/hwengines/bam/8909/bam_config.xml'
+	   })
+
+if env['MSM_ID'] in ['8962', '9x35','8084', '8092', '8916', '8936', '8909', '9x07']:
+    BAM_CONFIG_SOURCES = ['${BUILDPATH}/${MSM_ID}/bamconfig_props.c']
+    bam_cfg_obj = env.Object([BAM_CONFIG_SOURCES])
+    bam_cfg_lib = env.Library('${BUILDPATH}/bam_cfg', bam_cfg_obj)
+    env.AddLibsToImage(['DAL_DEVCFG_IMG', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], [bam_cfg_lib])
+elif env['MSM_ID'] in ['8208', '9x09', '8909w']:
+    BAM_CONFIG_SOURCES = ['${BUILDPATH}/8909/bamconfig_props.c']
+    bam_cfg_obj = env.Object([BAM_CONFIG_SOURCES])
+    bam_cfg_lib = env.Library('${BUILDPATH}/bam_cfg', bam_cfg_obj)
+    env.AddLibsToImage(['DAL_DEVCFG_IMG', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], [bam_cfg_lib])
+
+   
+	

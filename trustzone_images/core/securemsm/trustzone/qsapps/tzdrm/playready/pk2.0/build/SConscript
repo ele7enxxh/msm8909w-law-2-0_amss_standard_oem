@@ -1,0 +1,733 @@
+#===============================================================================
+#
+# TZ PLAYREADY Porting Kit
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/07/14    rk     Added path for fs_msg.h/time_msg.h
+# 02/11/13    cz     Turned on the DRM_SUPPORT_HDSBLOCKHEADERCACHE_VIA_PROFILE feature
+# 01/15/13   cz      Used BUILDPATH
+# 11/06/12    cz     Removed USES_PR_2_0 condition check as TZ 2.0 only uses PR 2.0
+# 07/17/12    rk     Initial Revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0"
+
+#-------------------------------------------------------------------------------
+# Setting Library PATHS
+#-------------------------------------------------------------------------------
+
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --loose_implicit_cast -W ')
+env.Append(ARMCPP_OPT = ' --loose_implicit_cast -W')
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES',
+   'SECUREMSM'
+]
+
+env.RequirePublicApi(CBSP_API)
+
+#----------------------------------------------------------------------------
+# Private Path's
+#----------------------------------------------------------------------------
+env.PublishPrivateApi('SECUREMSM', [
+   "${INC_ROOT}/core/api/securemsm/trustzone/qsee",      
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/include/crypto/",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/include/",   
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/services/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/intgr",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/config",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/crypto/bignum",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/crypto/drmcrypto",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/oem/ansi/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/oem/common/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/oem/common/aes",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/certs",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/xmr",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/core",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/initiators",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/results",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/keyfile",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0/source/keyfileformat",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pkwrapper/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/core/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/build/",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/time/shared/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/config/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/config/shared/inc",
+])
+
+
+
+#----------------------------------------------------------------------- --------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------
+# PLAYREADY Porting Kit Integration Module
+#----------------------------------------------------------------------------
+
+SME_PLAYREADY_PK_INTGR_SOURCES = [
+   '${BUILDPATH}/intgr/mcf_intgr_svc.c',
+   '${BUILDPATH}/intgr/mcf_log_svc.c'
+]
+
+sme_playready_pk_intgr_lib = '${BUILDPATH}/sme_playready_pk_intgr'
+
+
+#----------------------------------------------------------------------------
+# PLAYREADY Porting Kit OEM Module
+#----------------------------------------------------------------------------
+
+SME_PLAYREADY_PK_OEM_SOURCES = [
+                '${BUILDPATH}/source/oem/ansi/oemcriticalsection.c',
+                '${BUILDPATH}/source/oem/ansi/oemdebug.c',
+                '${BUILDPATH}/source/oem/ansi/oemfileio.c',
+                '${BUILDPATH}/source/oem/ansi/oemimpl.c',
+                '${BUILDPATH}/source/oem/ansi/oeminfo.c',
+                '${BUILDPATH}/source/oem/ansi/oemprofile.c',
+                '${BUILDPATH}/source/oem/ansi/oemtime.c',
+                '${BUILDPATH}/source/oem/common/AES/aes128.c',
+                '${BUILDPATH}/source/oem/common/AES/aesbox.c',
+                '${BUILDPATH}/source/oem/common/AES/oemaes.c',
+                '${BUILDPATH}/source/oem/common/AES/oemaesmulti.c',
+                '${BUILDPATH}/source/oem/common/bignum/bignum.c',
+                '${BUILDPATH}/source/oem/common/bignum/bignumnoinline.c',
+                '${BUILDPATH}/source/oem/common/bignum/digitogcd.c',
+                '${BUILDPATH}/source/oem/common/bignum/divide.c',
+                '${BUILDPATH}/source/oem/common/bignum/divisibility.c',
+                '${BUILDPATH}/source/oem/common/bignum/ecex2001.c',
+                '${BUILDPATH}/source/oem/common/bignum/ecexpon.c',
+                '${BUILDPATH}/source/oem/common/bignum/ecppq.c',
+                '${BUILDPATH}/source/oem/common/bignum/ecurve.c',
+                '${BUILDPATH}/source/oem/common/bignum/field.c',
+                '${BUILDPATH}/source/oem/common/bignum/kdiv.c',
+                '${BUILDPATH}/source/oem/common/bignum/kinitpr.c',
+                '${BUILDPATH}/source/oem/common/bignum/kinvert.c',
+                '${BUILDPATH}/source/oem/common/bignum/kmuladd.c',
+                '${BUILDPATH}/source/oem/common/bignum/lucas.c',
+                '${BUILDPATH}/source/oem/common/bignum/modexp.c',
+                '${BUILDPATH}/source/oem/common/bignum/modmulch1.c',
+                '${BUILDPATH}/source/oem/common/bignum/modsqrt.c',
+                '${BUILDPATH}/source/oem/common/bignum/modular.c',
+                '${BUILDPATH}/source/oem/common/bignum/mpaddsubcmp.c',
+                '${BUILDPATH}/source/oem/common/bignum/mpalloc.c',
+                '${BUILDPATH}/source/oem/common/bignum/mpgcdex.c',
+                '${BUILDPATH}/source/oem/common/bignum/mpmul22.c',
+                '${BUILDPATH}/source/oem/common/bignum/mprand.c',
+                '${BUILDPATH}/source/oem/common/bignum/multlow.c',
+                '${BUILDPATH}/source/oem/common/cbc/oemcbcimpl.c',
+                '${BUILDPATH}/source/oem/common/cipher/oemcipher.c',
+                '${BUILDPATH}/source/oem/common/des/deskey.c',
+                '${BUILDPATH}/source/oem/common/ecc/base/oemeccp160.c',
+                '${BUILDPATH}/source/oem/common/ecc/base/oemeccp256.c',
+                '${BUILDPATH}/source/oem/common/ecc/baseimpl/oemeccp160impl.c',
+                '${BUILDPATH}/source/oem/common/ecc/baseimpl/oemeccp256impl.c',
+                '${BUILDPATH}/source/oem/common/keyfile/oemkeyfile.c',
+                '${BUILDPATH}/source/oem/common/lib/oemimpl_common.c',
+                '${BUILDPATH}/source/oem/common/lib/oeminfo_common.c',
+                '${BUILDPATH}/source/oem/common/lib/oemxmlhash.c',
+                '${BUILDPATH}/source/oem/common/md5/oemmd5.c',
+                '${BUILDPATH}/source/oem/common/pkcrypto/oempkcrypto.c',
+                '${BUILDPATH}/source/oem/common/profile/oemprofile_common.c',
+                '${BUILDPATH}/source/oem/common/rc4/lib/rc4.c',
+                '${BUILDPATH}/source/oem/common/RSA/base/oemrsa.c',
+                '${BUILDPATH}/source/oem/common/RSA/base/oemrsakeygen.c',
+                '${BUILDPATH}/source/oem/common/RSA/oaeppss/oemrsaoaeppss.c',
+                '${BUILDPATH}/source/oem/common/RSA/oaeppssimpl/oemrsaoaeppssimpl.c',
+                '${BUILDPATH}/source/oem/common/sha/hash/oemshahash.c',
+                '${BUILDPATH}/source/oem/common/sha/hmac/oemshahmac.c',
+                '${BUILDPATH}/source/oem/common/sha/sha1/oemsha1.c',
+                '${BUILDPATH}/source/oem/common/sha/sha256/oemsha256.c',
+]
+
+sme_playready_pk_oem_lib = '${BUILDPATH}/sme_playready_pk_oem'
+
+
+#----------------------------------------------------------------------------
+# PLAYREADY Porting Kit Src Module
+#----------------------------------------------------------------------------   
+DRM_SUPPORT_APPREVOCATION_VIA_PROFILE=0
+DRM_SUPPORT_CERTCACHE_VIA_PROFILE=0
+DRM_SUPPORT_CONTENTREVOCATION_VIA_PROFILE=0
+DRM_SUPPORT_CONTRACT_VIA_PROFILE=0
+DRM_SUPPORT_DELETEDSTORE_VIA_PROFILE=0
+DRM_SUPPORT_HDSBLOCKHEADERCACHE_VIA_PROFILE=1
+DRM_SUPPORT_LICENSE_SYNC_VIA_PROFILE=0
+DRM_SUPPORT_METERCERTREVOCATION_VIA_PROFILE=0
+DRM_SUPPORT_METERING_VIA_PROFILE=0
+DRM_SUPPORT_PERFORMANCE_VIA_PROFILE=0
+DRM_SUPPORT_PROFILING_VIA_PROFILE=0
+DRM_SUPPORT_SECURE_CLOCK_VIA_PROFILE=0
+DRM_SUPPORT_SYMOPT_VIA_PROFILE=0
+DRM_SUPPORT_WMDRMNET_VIA_PROFILE=0
+DRM_SUPPORT_XMLHASH_VIA_PROFILE=0
+
+if not env.has_key('USES_PLAYREADY_PACK'):
+    DRM_SUPPORT_ANTIROLLBACK_CLOCK_VIA_PROFILE=1    
+    DRM_SUPPORT_CERTPARSERCACHE_VIA_PROFILE=1
+    DRM_SUPPORT_CLEANSTORE_VIA_PROFILE=1
+    DRM_SUPPORT_CRT_VIA_PROFILE=1
+    DRM_SUPPORT_DEVICEREVOCATION_VIA_PROFILE=1
+    DRM_SUPPORT_DLA_VIA_PROFILE=1
+    DRM_SUPPORT_DOMAIN_VIA_PROFILE=1
+    DRM_SUPPORT_HDS_VIA_PROFILE=1        
+    DRM_SUPPORT_VIEWRIGHTS_VIA_PROFILE=1
+    DRM_SUPPORT_WMDRM_VIA_PROFILE=1
+    DRM_SUPPORT_EST_VIA_PROFILE=1
+else:
+    DRM_SUPPORT_ANTIROLLBACK_CLOCK_VIA_PROFILE=0
+    DRM_SUPPORT_CERTPARSERCACHE_VIA_PROFILE=0
+    DRM_SUPPORT_CLEANSTORE_VIA_PROFILE=0
+    DRM_SUPPORT_CRT_VIA_PROFILE=0
+    DRM_SUPPORT_DEVICEREVOCATION_VIA_PROFILE=0
+    DRM_SUPPORT_DLA_VIA_PROFILE=0
+    DRM_SUPPORT_DOMAIN_VIA_PROFILE=0
+    DRM_SUPPORT_HDS_VIA_PROFILE=0
+    DRM_SUPPORT_MODELREVOCATION_VIA_PROFILE=0
+    DRM_SUPPORT_MOVE_VIA_PROFILE=0        
+    DRM_SUPPORT_VIEWRIGHTS_VIA_PROFILE=0
+    DRM_SUPPORT_WMDRM_VIA_PROFILE=0
+    DRM_SUPPORT_EST_VIA_PROFILE=0
+
+if DRM_SUPPORT_ANTIROLLBACK_CLOCK_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_ANTIROLLBACK_SOURCES = [
+                '${BUILDPATH}/source/modules/antirollbackclock/real/antirollbackclockimplreal.c',
+                '${BUILDPATH}/source/modules/antirollbackclock/real/antirollbackclockutilreal.c',
+]
+elif DRM_SUPPORT_ANTIROLLBACK_CLOCK_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_ANTIROLLBACK_SOURCES = [
+                '${BUILDPATH}/source/modules/antirollbackclock/stub/antirollbackclockimplstub.c',
+                '${BUILDPATH}/source/modules/antirollbackclock/stub/antirollbackclockutilstub.c',
+]
+
+if DRM_SUPPORT_APPREVOCATION_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_APPREVOCATION_SOURCES = [
+                '${BUILDPATH}/source/modules/apprevocation/real/apprevocationimplreal.c',
+                '${BUILDPATH}/source/modules/apprevocation/real/apprevocationutilreal.c',
+]
+elif DRM_SUPPORT_APPREVOCATION_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_APPREVOCATION_SOURCES = [
+                '${BUILDPATH}/source/modules/apprevocation/stub/apprevocationimplstub.c',
+                '${BUILDPATH}/source/modules/apprevocation/stub/apprevocationutilstub.c',
+]
+
+if DRM_SUPPORT_CERTCACHE_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_CERTCACHE_SOURCES = [
+                '${BUILDPATH}/source/modules/certcache/real/certcachereal.c',
+                '${BUILDPATH}/source/modules/certcache/real/certcacheutilreal.c',
+]
+elif DRM_SUPPORT_CERTCACHE_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_CERTCACHE_SOURCES = [
+                '${BUILDPATH}/source/modules/certcache/stub/certcachestub.c',
+                '${BUILDPATH}/source/modules/certcache/stub/certcacheutilstub.c',
+]
+
+if DRM_SUPPORT_CERTPARSERCACHE_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_CERTPARSERCACHE_SOURCES = [
+                '${BUILDPATH}/source/modules/certparsercache/real/certparsercacheimplreal.c',
+                '${BUILDPATH}/source/modules/certparsercache/real/certparsercacheutilreal.c',
+]
+elif DRM_SUPPORT_CERTPARSERCACHE_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_CERTPARSERCACHE_SOURCES = [
+                '${BUILDPATH}/source/modules/certparsercache/stub/certparsercacheimplstub.c',
+                '${BUILDPATH}/source/modules/certparsercache/stub/certparsercacheutilstub.c',
+]
+
+if DRM_SUPPORT_CLEANSTORE_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_CLEANSTORE_SOURCES = [
+                '${BUILDPATH}/source/modules/cleanstore/real/cleanstorereal.c',
+                '${BUILDPATH}/source/modules/cleanstore/real/cleanstoreutilreal.c',
+]
+elif DRM_SUPPORT_CLEANSTORE_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_CLEANSTORE_SOURCES = [
+                '${BUILDPATH}/source/modules/cleanstore/stub/cleanstorestub.c',
+                '${BUILDPATH}/source/modules/cleanstore/stub/cleanstoreutilstub.c',
+]
+
+if DRM_SUPPORT_CONTENTREVOCATION_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_CONTENTREVOCATION_SOURCES = [
+                '${BUILDPATH}/source/modules/contentrevocation/real/contentrevocationlevlreal.c',
+                '${BUILDPATH}/source/modules/contentrevocation/real/contentrevocationlicreal.c',
+                '${BUILDPATH}/source/modules/contentrevocation/real/contentrevocationutilreal.c',
+]
+elif DRM_SUPPORT_CONTENTREVOCATION_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_CONTENTREVOCATION_SOURCES = [
+                '${BUILDPATH}/source/modules/contentrevocation/stub/contentrevocationlevlstub.c',
+                '${BUILDPATH}/source/modules/contentrevocation/stub/contentrevocationlicstub.c',
+                '${BUILDPATH}/source/modules/contentrevocation/stub/contentrevocationutilstub.c',
+]
+
+if DRM_SUPPORT_CONTRACT_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_CONTRACT_SOURCES = [
+                '${BUILDPATH}/source/modules/contract/real/contractutilreal.c',
+                '${BUILDPATH}/source/modules/contract/real/drmcontract.c',
+]
+elif DRM_SUPPORT_CONTRACT_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_CONTRACT_SOURCES = [
+                '${BUILDPATH}/source/modules/contract/stub/contractutilstub.c',
+                '${BUILDPATH}/source/modules/contract/stub/drmcontractstub.c',
+]
+
+if DRM_SUPPORT_CRT_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_CRT_SOURCES = [
+                '${BUILDPATH}/source/modules/crt/drmcrtcommon.c',
+                '${BUILDPATH}/source/modules/crt/real/crtimplreal.c',
+                '${BUILDPATH}/source/modules/crt/real/crtutilreal.c',
+]
+elif DRM_SUPPORT_CRT_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_CRT_SOURCES = [
+                '${BUILDPATH}/source/modules/crt/drmcrtcommon.c',
+                '${BUILDPATH}/source/modules/crt/stub/crtimplstub.c',
+                '${BUILDPATH}/source/modules/crt/stub/crtutilstub.c',
+]
+
+if DRM_SUPPORT_DELETEDSTORE_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_DELETEDSTORE_SOURCES = [
+                '${BUILDPATH}/source/modules/deletedstore/real/deletedstoreimplreal.c',
+                '${BUILDPATH}/source/modules/deletedstore/real/deletedstoreutilreal.c',
+]
+elif DRM_SUPPORT_DELETEDSTORE_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_DELETEDSTORE_SOURCES = [
+                '${BUILDPATH}/source/modules/deletedstore/stub/deletedstoreimplstub.c',
+                '${BUILDPATH}/source/modules/deletedstore/stub/deletedstoreutilstub.c',
+]
+
+if DRM_SUPPORT_DEVICEREVOCATION_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_DEVICEREVOCATION_CRT_SOURCES = [
+                '${BUILDPATH}/source/modules/devicerevocation/real/devicerevocationimplreal.c',
+                '${BUILDPATH}/source/modules/devicerevocation/real/devicerevocationutilreal.c',
+]
+elif DRM_SUPPORT_DEVICEREVOCATION_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_DEVICEREVOCATION_CRT_SOURCES = [
+                '${BUILDPATH}/source/modules/devicerevocation/stub/devicerevocationimplstub.c',
+                '${BUILDPATH}/source/modules/devicerevocation/stub/devicerevocationutilstub.c',
+]
+
+if DRM_SUPPORT_DLA_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_DLA_SOURCES = [
+                '${BUILDPATH}/source/modules/dla/real/dlautilreal.c',
+                '${BUILDPATH}/source/modules/dla/real/drmdlaimplreal.c',
+]
+elif DRM_SUPPORT_DLA_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_DLA_SOURCES = [
+                '${BUILDPATH}/source/modules/dla/stub/dlautilstub.c',
+                '${BUILDPATH}/source/modules/dla/stub/drmdlaimplstub.c',
+]
+
+if DRM_SUPPORT_DOMAIN_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_DOMAIN_SOURCES = [
+                '${BUILDPATH}/source/modules/domain/real/drmdomainapi.c',
+                '${BUILDPATH}/source/modules/domain/real/drmdomainimp.c',
+                '${BUILDPATH}/source/modules/domain/real/drmdomainkeyxmrparser.c',
+                '${BUILDPATH}/source/modules/domain/real/drmdomainstore.c',
+]
+elif DRM_SUPPORT_DOMAIN_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_DOMAIN_SOURCES = [
+                '${BUILDPATH}/source/modules/domain/stub/drmdomainstub.c',
+]
+
+if DRM_SUPPORT_EST_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_EST_SOURCES = [
+                '${BUILDPATH}/source/modules/est/real/drmestimplreal.c',
+]
+elif DRM_SUPPORT_EST_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_EST_SOURCES = [
+                '${BUILDPATH}/source/modules/est/stub/drmestimplstub.c',
+]
+
+if DRM_SUPPORT_HDS_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_HDS_SOURCES = [
+                '${BUILDPATH}/source/modules/hds/real/drmhdsimplreal.c',
+                '${BUILDPATH}/source/modules/hds/real/drmhdsutilreal.c',
+]
+elif DRM_SUPPORT_HDS_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_HDS_SOURCES = [
+                '${BUILDPATH}/source/modules/hds/stub/drmhdsimplstub.c',
+                '${BUILDPATH}/source/modules/hds/stub/drmhdsutilstub.c',
+]
+
+if DRM_SUPPORT_HDSBLOCKHEADERCACHE_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_HDSBLOCKHEADERCACHE_SOURCES = [
+                '${BUILDPATH}/source/modules/hdsblockheadercache/real/hdsblockheadercacheutilreal.c',
+]
+elif DRM_SUPPORT_HDSBLOCKHEADERCACHE_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_HDSBLOCKHEADERCACHE_SOURCES = [
+                '${BUILDPATH}/source/modules/hdsblockheadercache/stub/hdsblockheadercacheutilstub.c',
+]
+
+if DRM_SUPPORT_LICENSE_SYNC_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_LICENSESYNC_SOURCES = [
+                '${BUILDPATH}/source/modules/licensesync/real/drmgensyncchallenge.c',
+                '${BUILDPATH}/source/modules/licensesync/real/drmsyncstore.c',
+                '${BUILDPATH}/source/modules/licensesync/real/licensesyncutilreal.c',
+]
+elif DRM_SUPPORT_LICENSE_SYNC_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_LICENSESYNC_SOURCES = [
+                '${BUILDPATH}/source/modules/licensesync/stub/drmgensyncchallengestub.c',
+                '${BUILDPATH}/source/modules/licensesync/stub/drmsyncstorestub.c',
+                '${BUILDPATH}/source/modules/licensesync/stub/licensesyncutilstub.c',
+]
+
+if DRM_SUPPORT_METERCERTREVOCATION_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_METERCERTREVOCATION_SOURCES = [
+                '${BUILDPATH}/source/modules/metercertrevocation/real/metercertrevocationutilreal.c',
+]
+elif DRM_SUPPORT_METERCERTREVOCATION_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_METERCERTREVOCATION_SOURCES = [
+                '${BUILDPATH}/source/modules/metercertrevocation/stub/metercertrevocationutilstub.c',
+]
+
+if DRM_SUPPORT_METERING_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_METERING_SOURCES = [
+                '${BUILDPATH}/source/modules/metering/real/drmmeterapi.c',
+                '${BUILDPATH}/source/modules/metering/real/drmmetercertstore.c',
+                '${BUILDPATH}/source/modules/metering/real/drmmeterimp.c',
+                '${BUILDPATH}/source/modules/metering/real/drmmeterimpv1.c',
+                '${BUILDPATH}/source/modules/metering/real/meteringutilreal.c',
+]
+elif DRM_SUPPORT_METERING_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_METERING_SOURCES = [
+                '${BUILDPATH}/source/modules/metering/stub/drmmeterapistub.c',
+                '${BUILDPATH}/source/modules/metering/stub/drmmetercertstorestub.c',
+                '${BUILDPATH}/source/modules/metering/stub/drmmeterimpstub.c',
+                '${BUILDPATH}/source/modules/metering/stub/meteringutilstub.c',
+]
+
+if DRM_SUPPORT_PERFORMANCE_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_PERFORMANCE_SOURCES = [
+                '${BUILDPATH}/source/modules/performance/real/drmperformancereal.c',
+]
+elif DRM_SUPPORT_PERFORMANCE_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_PERFORMANCE_SOURCES = [
+                '${BUILDPATH}/source/modules/performance/stub/drmperformancestub.c',
+]
+
+if DRM_SUPPORT_PROFILING_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_PROFILING_SOURCES = [
+                '${BUILDPATH}/source/modules/profiling/real/drmprofilingimplreal.c',
+]
+elif DRM_SUPPORT_PROFILING_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_PROFILING_SOURCES = [
+                '${BUILDPATH}/source/modules/profiling/stub/drmprofilingimplstub.c',
+]
+
+if DRM_SUPPORT_SECURE_CLOCK_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_SECURE_CLOCK_SOURCES = [
+                '${BUILDPATH}/source/modules/secure_clock/real/secureclockmanager.c',
+                '${BUILDPATH}/source/modules/secure_clock/real/secureclockrequest.c',
+                '${BUILDPATH}/source/modules/secure_clock/real/secureclockresponse.c',
+                '${BUILDPATH}/source/modules/secure_clock/real/secureclockutil.c',
+]
+elif DRM_SUPPORT_SECURE_CLOCK_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_SECURE_CLOCK_SOURCES = [
+                '${BUILDPATH}/source/modules/secure_clock/stub/secureclockmanagerstub.c',
+                '${BUILDPATH}/source/modules/secure_clock/stub/secureclockrequeststub.c',
+                '${BUILDPATH}/source/modules/secure_clock/stub/secureclockresponsestub.c',
+                '${BUILDPATH}/source/modules/secure_clock/stub/secureclockutilstub.c',
+]
+
+if DRM_SUPPORT_SYMOPT_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_SYMOPT_SOURCES = [
+                '${BUILDPATH}/source/modules/symopt/real/symoptdevicedevcertreal.c',
+                '${BUILDPATH}/source/modules/symopt/real/symoptlacqreal.c',
+                '${BUILDPATH}/source/modules/symopt/real/symoptlicreal.c',
+                '${BUILDPATH}/source/modules/symopt/real/symoptutilreal.c',
+]
+elif DRM_SUPPORT_SYMOPT_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_SYMOPT_SOURCES = [
+                '${BUILDPATH}/source/modules/symopt/stub/symoptdevicedevcertstub.c',
+                '${BUILDPATH}/source/modules/symopt/stub/symoptlacqstub.c',
+                '${BUILDPATH}/source/modules/symopt/stub/symoptlicstub.c',
+                '${BUILDPATH}/source/modules/symopt/stub/symoptutilstub.c',
+]
+
+if DRM_SUPPORT_VIEWRIGHTS_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_VIEWRIGHTS_SOURCES = [
+                '${BUILDPATH}/source/modules/viewrights/real/drmviewrightsimplreal.c',
+                '${BUILDPATH}/source/modules/viewrights/real/drmviewrightsutilreal.c',
+]
+elif DRM_SUPPORT_VIEWRIGHTS_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_VIEWRIGHTS_SOURCES = [
+                '${BUILDPATH}/source/modules/viewrights/stub/drmviewrightsimplstub.c',
+                '${BUILDPATH}/source/modules/viewrights/stub/drmviewrightsutilstub.c',
+]
+
+if DRM_SUPPORT_WMDRM_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_WMDRM_SOURCES = [
+                '${BUILDPATH}/source/modules/wmdrm/real/drmdevcert.c',
+                '${BUILDPATH}/source/modules/wmdrm/real/drmwmdrmexprevalreal.c',
+                '${BUILDPATH}/source/modules/wmdrm/real/drmwmdrmexprfuncreal.c',
+                '${BUILDPATH}/source/modules/wmdrm/real/drmwmdrmexprvariablereal.c',
+                '${BUILDPATH}/source/modules/wmdrm/real/drmwmdrmlicacqrespreal.c',
+                '${BUILDPATH}/source/modules/wmdrm/real/drmwmdrmlicchainreal.c',
+                '${BUILDPATH}/source/modules/wmdrm/real/drmwmdrmlicenseparserreal.c',
+                '${BUILDPATH}/source/modules/wmdrm/real/drmwmdrmlicevalreal.c',
+                '${BUILDPATH}/source/modules/wmdrm/real/drmwmdrmoplreal.c',
+                '${BUILDPATH}/source/modules/wmdrm/real/drmwmdrmutilreal.c',
+]
+elif DRM_SUPPORT_WMDRM_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_WMDRM_SOURCES = [
+                '${BUILDPATH}/source/modules/wmdrm/stub/drmdevcertstub.c',
+                '${BUILDPATH}/source/modules/wmdrm/stub/drmwmdrmexprevalstub.c',
+                '${BUILDPATH}/source/modules/wmdrm/stub/drmwmdrmexprfuncstub.c',
+                '${BUILDPATH}/source/modules/wmdrm/stub/drmwmdrmexprvariablestub.c',
+                '${BUILDPATH}/source/modules/wmdrm/stub/drmwmdrmlicacqrespstub.c',
+                '${BUILDPATH}/source/modules/wmdrm/stub/drmwmdrmlicchainstub.c',
+                '${BUILDPATH}/source/modules/wmdrm/stub/drmwmdrmlicenseparserstub.c',
+                '${BUILDPATH}/source/modules/wmdrm/stub/drmwmdrmlicevalstub.c',
+                '${BUILDPATH}/source/modules/wmdrm/stub/drmwmdrmoplstub.c',
+                '${BUILDPATH}/source/modules/wmdrm/stub/drmwmdrmutilstub.c',
+]
+
+if DRM_SUPPORT_WMDRMNET_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_WMDRMNET_SOURCES = [
+                '${BUILDPATH}/source/modules/wmdrmnet/real/drmndcertbuilder.c',
+                '${BUILDPATH}/source/modules/wmdrmnet/real/drmnddevicecert.c',
+                '${BUILDPATH}/source/modules/wmdrmnet/real/drmxmlrsakeys.c',
+                '${BUILDPATH}/source/modules/wmdrmnet/real/wmdrmnetimplreal.c',
+                '${BUILDPATH}/source/modules/wmdrmnet/real/wmdrmnetutilreal.c',
+]
+elif DRM_SUPPORT_WMDRMNET_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_WMDRMNET_SOURCES = [
+                '${BUILDPATH}/source/modules/wmdrmnet/stub/wmdrmnetimplstub.c',
+                '${BUILDPATH}/source/modules/wmdrmnet/stub/wmdrmnetutilstub.c',
+]
+
+if DRM_SUPPORT_XMLHASH_VIA_PROFILE == 1:
+    SME_PLAYREADY_PK_XMLHASH_SOURCES = [
+                '${BUILDPATH}/source/modules/xmlhash/real/xmlhashimplreal.c',
+                '${BUILDPATH}/source/modules/xmlhash/real/xmlhashutilreal.c',
+]
+elif DRM_SUPPORT_XMLHASH_VIA_PROFILE == 0:
+    SME_PLAYREADY_PK_XMLHASH_SOURCES = [
+                '${BUILDPATH}/source/modules/xmlhash/stub/xmlhashimplstub.c',
+                '${BUILDPATH}/source/modules/xmlhash/stub/xmlhashutilstub.c',
+]
+
+if not env.has_key('USES_PLAYREADY_PACK'):
+    SME_PLAYREADY_PK_SOURCES = [
+                '${BUILDPATH}/source/blackbox/blackbox.c', 
+                '${BUILDPATH}/source/certs/drmbcertbuilder.c', 
+                '${BUILDPATH}/source/certs/drmbcertparser.c', 
+                '${BUILDPATH}/source/constants/drmactivationconstants.c', 
+                '${BUILDPATH}/source/constants/drmantirollbackclockconstants.c', 
+                '${BUILDPATH}/source/constants/drmconstants.c',  
+                '${BUILDPATH}/source/constants/drmcontentrevocationconstants.c', 
+                '${BUILDPATH}/source/constants/drmdevcertconstants.c', 
+                '${BUILDPATH}/source/constants/drmdlaconstants.c',  
+                '${BUILDPATH}/source/constants/drmdomainconstants.c', 
+                '${BUILDPATH}/source/constants/drmhdrbuilderconstants.c', 
+                '${BUILDPATH}/source/constants/drmheaderparserconstants.c',  
+                '${BUILDPATH}/source/constants/drmlicacqv3constants.c', 
+                '${BUILDPATH}/source/constants/drmlicensesyncconstants.c', 
+                '${BUILDPATH}/source/constants/drmmanagerconstants.c',
+                '${BUILDPATH}/source/constants/drmmeterconstants.c', 
+                '${BUILDPATH}/source/constants/drmmoveconstants.c', 
+                '${BUILDPATH}/source/constants/drmndcertconstants.c',  
+                '${BUILDPATH}/source/constants/drmplayreadyobjconstants.c', 
+                '${BUILDPATH}/source/constants/drmpubkeydeviceexclusion.c', 
+                '${BUILDPATH}/source/constants/drmrevocationconstants.c',
+                '${BUILDPATH}/source/constants/drmsecureclockconstants.c', 
+                '${BUILDPATH}/source/constants/drmsoapxmlconstants.c', 
+                '${BUILDPATH}/source/constants/drmsymoptconstants.c',  
+                '${BUILDPATH}/source/constants/drmtoolsconstants.c', 
+                '${BUILDPATH}/source/constants/drmversionconstants.c', 
+                '${BUILDPATH}/source/constants/drmviewrightsconstants.c',  
+                '${BUILDPATH}/source/constants/drmwmdrmconstants.c', 
+                '${BUILDPATH}/source/constants/drmwmdrmnetconstants.c', 
+                '${BUILDPATH}/source/constants/drmxmlbuilderconstants.c',  
+                '${BUILDPATH}/source/constants/drmxmlparserconstants.c', 
+                '${BUILDPATH}/source/constants/drmxmlsigconstants.c', 
+                '${BUILDPATH}/source/core/drmbcrlparser.c', 
+                '${BUILDPATH}/source/core/drmblobcache.c', 
+                '${BUILDPATH}/source/core/drmchain.c', 
+                '${BUILDPATH}/source/core/drmcleanstore.c', 
+                '${BUILDPATH}/source/core/drmdebug.c', 
+                '${BUILDPATH}/source/core/drmembedding.c',
+                '${BUILDPATH}/source/core/drmhdrbuilder.c',
+                '${BUILDPATH}/source/core/drmint64.c',
+                '${BUILDPATH}/source/core/drmkeygen.c', 
+                '${BUILDPATH}/source/core/drmlicacqresp.c', 
+                '${BUILDPATH}/source/core/drmlicacqv3.c',
+                '${BUILDPATH}/source/core/drmliceval.c', 
+                '${BUILDPATH}/source/core/drmrevocation.c', 
+                '${BUILDPATH}/source/core/drmrevocationstore.c',
+                '${BUILDPATH}/source/core/drmsecstore.c', 
+                '${BUILDPATH}/source/core/drmsoapxmlutility.c',
+                '${BUILDPATH}/source/devicedevcert/devicedevcert.c',
+                '${BUILDPATH}/source/drmmanager/real/drmmanager.c',
+                '${BUILDPATH}/source/drmmanager/real/drmpolicystate.c',
+                '${BUILDPATH}/source/initiators/drminitparser.c',
+                '${BUILDPATH}/source/keyfile/drmkeyfile.c',
+                '${BUILDPATH}/source/keyfileformat/drmkeyfileformat.c',
+                '${BUILDPATH}/source/results/drmerror.c',
+                '${BUILDPATH}/source/results/drmresults.c',
+                '${BUILDPATH}/source/results/drmresultsinc.c',
+                '${BUILDPATH}/source/wmdrmcert/certparser/drmcertparser.c',
+                '${BUILDPATH}/source/xmr/drmxmr.c',
+                '${BUILDPATH}/source/xmr/drmxmrbuilder.c',
+                '${BUILDPATH}/source/xmr/drmxmrparser.c',
+                '${BUILDPATH}/source/modules/activation/stub/drmactivationimpstub.c',
+                '${BUILDPATH}/source/modules/activation/stub/drmactivationutilstub.c',
+                '${BUILDPATH}/source/modules/apppolicy/stub/apppolicyimplstub.c',
+                '${BUILDPATH}/source/modules/apppolicy/stub/apppolicyutilstub.c',
+                '${BUILDPATH}/source/modules/base64/real/drmbase64implreal.c',
+                '${BUILDPATH}/source/modules/bytemanip/real/drmbytemanipimplreal.c',
+                '${BUILDPATH}/source/modules/copyopl/stub/copyoplimplstub.c',
+                '${BUILDPATH}/source/modules/copyopl/stub/copyoplutilstub.c',
+                '${BUILDPATH}/source/modules/datastore/real/drmdatastore.c',
+                '${BUILDPATH}/source/modules/devcertkeygen/real/devcertkeygenimplreal.c',
+                '${BUILDPATH}/source/modules/headerparser/real/drmheaderparser.c',
+                '${BUILDPATH}/source/modules/licstore/real/drmlicstore.c',
+                '${BUILDPATH}/source/modules/modelrevocation/stub/modelrevocationimplstub.c',
+                '${BUILDPATH}/source/modules/modelrevocation/stub/modelrevocationutilstub.c',
+                '${BUILDPATH}/source/modules/move/stub/drmmoveimplstub.c',
+                '${BUILDPATH}/source/modules/move/stub/moveutilstub.c',
+                '${BUILDPATH}/source/modules/noncestore/real/drmnoncestore.c',
+                '${BUILDPATH}/source/modules/playreadyobj/real/drmplayreadyobj.c',
+                '${BUILDPATH}/source/modules/removaldatestore/real/drmremovaldatestore.c',
+                '${BUILDPATH}/source/modules/stkalloc/real/drmstkallocimplreal.c',
+                '${BUILDPATH}/source/modules/strsafe/real/drmstrsafeimplreal.c',
+                '${BUILDPATH}/source/modules/thumbnail/stub/thumbnailutilstub.c',
+                '${BUILDPATH}/source/modules/utf/real/drmutf.c',
+                '${BUILDPATH}/source/modules/utilities/crypto/drmutilitiescrypto.c',
+                '${BUILDPATH}/source/modules/utilities/general/drmutilitiesgeneral.c',
+                '${BUILDPATH}/source/modules/xbinary/real/drmxb.c',
+                '${BUILDPATH}/source/modules/xbinary/real/drmxbbuilder.c',
+                '${BUILDPATH}/source/modules/xbinary/real/drmxbparser.c',
+                '${BUILDPATH}/source/modules/xmlbuilder/crypto/drmxmlbuildercrypto.c',
+                '${BUILDPATH}/source/modules/xmlbuilder/general/drmxmlbuildergeneralansi.c',
+                '${BUILDPATH}/source/modules/xmlbuilder/general/drmxmlbuildergeneralunicode.c',
+                '${BUILDPATH}/source/modules/xmlparser/crypto/drmxmlparsercrypto.c',
+                '${BUILDPATH}/source/modules/xmlparser/general/drmxmlparsergeneral.c',
+                '${BUILDPATH}/source/modules/xmlparser/general/drmxmlutilities.c',
+                '${BUILDPATH}/source/modules/xmlsig/builder/drmxmlsigbuilder.c',
+                '${BUILDPATH}/source/modules/xmlsig/general/drmxmlsiggeneral.c',
+                [SME_PLAYREADY_PK_ANTIROLLBACK_SOURCES],
+                [SME_PLAYREADY_PK_APPREVOCATION_SOURCES],
+                [SME_PLAYREADY_PK_CERTCACHE_SOURCES],
+                [SME_PLAYREADY_PK_CERTPARSERCACHE_SOURCES],
+                [SME_PLAYREADY_PK_CLEANSTORE_SOURCES],
+                [SME_PLAYREADY_PK_CONTENTREVOCATION_SOURCES],
+                [SME_PLAYREADY_PK_CONTRACT_SOURCES],
+                [SME_PLAYREADY_PK_CRT_SOURCES],
+                [SME_PLAYREADY_PK_DELETEDSTORE_SOURCES],
+                [SME_PLAYREADY_PK_DEVICEREVOCATION_CRT_SOURCES],
+                [SME_PLAYREADY_PK_DLA_SOURCES],
+                [SME_PLAYREADY_PK_DOMAIN_SOURCES],
+                [SME_PLAYREADY_PK_EST_SOURCES],
+                [SME_PLAYREADY_PK_HDS_SOURCES],
+                [SME_PLAYREADY_PK_HDSBLOCKHEADERCACHE_SOURCES],
+                [SME_PLAYREADY_PK_LICENSESYNC_SOURCES],
+                [SME_PLAYREADY_PK_METERCERTREVOCATION_SOURCES],
+                [SME_PLAYREADY_PK_METERING_SOURCES],
+                [SME_PLAYREADY_PK_PERFORMANCE_SOURCES],
+                [SME_PLAYREADY_PK_PROFILING_SOURCES],
+                [SME_PLAYREADY_PK_SECURE_CLOCK_SOURCES],
+                [SME_PLAYREADY_PK_SYMOPT_SOURCES],
+                [SME_PLAYREADY_PK_VIEWRIGHTS_SOURCES],
+                [SME_PLAYREADY_PK_WMDRM_SOURCES],
+                [SME_PLAYREADY_PK_WMDRMNET_SOURCES],
+                [SME_PLAYREADY_PK_XMLHASH_SOURCES],
+]
+else:
+    SME_PLAYREADY_PK_SOURCES = [
+                '${BUILDPATH}/source/drmmanager/drmmanager_stub.c',
+                '${BUILDPATH}/source/constants/drmconstants_stub.c',
+                '${BUILDPATH}/source/modules/activation/stub/drmactivationimpstub.c',
+                '${BUILDPATH}/source/modules/activation/stub/drmactivationutilstub.c',
+                '${BUILDPATH}/source/modules/base64/drmbase64_stub.c',
+                '${BUILDPATH}/source/modules/strsafe/drmstrsafe_stub.c',
+                '${BUILDPATH}/source/modules/utilities/drmutilitieslite_stub.c',
+                [SME_PLAYREADY_PK_ANTIROLLBACK_SOURCES],
+                [SME_PLAYREADY_PK_APPREVOCATION_SOURCES],
+                [SME_PLAYREADY_PK_CERTCACHE_SOURCES],
+                [SME_PLAYREADY_PK_CERTPARSERCACHE_SOURCES],
+                [SME_PLAYREADY_PK_CLEANSTORE_SOURCES],
+                [SME_PLAYREADY_PK_CONTENTREVOCATION_SOURCES],
+                [SME_PLAYREADY_PK_CONTRACT_SOURCES],
+                [SME_PLAYREADY_PK_CRT_SOURCES],
+                [SME_PLAYREADY_PK_DELETEDSTORE_SOURCES],
+                [SME_PLAYREADY_PK_DEVICEREVOCATION_CRT_SOURCES],
+                [SME_PLAYREADY_PK_DLA_SOURCES],
+                [SME_PLAYREADY_PK_DOMAIN_SOURCES],
+                [SME_PLAYREADY_PK_EST_SOURCES],
+                [SME_PLAYREADY_PK_HDS_SOURCES],
+                [SME_PLAYREADY_PK_HDSBLOCKHEADERCACHE_SOURCES],
+                [SME_PLAYREADY_PK_LICENSESYNC_SOURCES],
+                [SME_PLAYREADY_PK_METERCERTREVOCATION_SOURCES],
+                [SME_PLAYREADY_PK_METERING_SOURCES],
+                [SME_PLAYREADY_PK_PERFORMANCE_SOURCES],
+                [SME_PLAYREADY_PK_PROFILING_SOURCES],
+                [SME_PLAYREADY_PK_SECURE_CLOCK_SOURCES],
+                [SME_PLAYREADY_PK_SYMOPT_SOURCES],
+                [SME_PLAYREADY_PK_VIEWRIGHTS_SOURCES],
+                [SME_PLAYREADY_PK_WMDRM_SOURCES],
+                [SME_PLAYREADY_PK_WMDRMNET_SOURCES],
+                [SME_PLAYREADY_PK_XMLHASH_SOURCES],
+]
+
+sme_playready_pk_lib = '${BUILDPATH}/sme_playready_pk'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary (['PLAYREADY_IMAGE'], sme_playready_pk_intgr_lib,[SME_PLAYREADY_PK_INTGR_SOURCES])
+env.AddBinaryLibrary (['PLAYREADY_IMAGE'], sme_playready_pk_oem_lib,[SME_PLAYREADY_PK_OEM_SOURCES])
+env.AddBinaryLibrary (['PLAYREADY_IMAGE'], sme_playready_pk_lib,[SME_PLAYREADY_PK_SOURCES])
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+NOSHIP_SOURCES = env.FindFiles("*", SRCPATH + "/source")
+NOSHIP_SOURCES += env.FindFiles("*",  SRCPATH + "/intgr")
+env.CleanPack('TZAPPS_IMAGE', NOSHIP_SOURCES)
+
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

@@ -1,0 +1,397 @@
+#===============================================================================
+#
+# EFS Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$  $DateTime$  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who  what, where, why
+# ----------  ---  -------------------------------------------------------------
+# 2014-05-06  vm   Add a new file having diag golden copy handler.
+# 2013-07-22  rp   Add new EFS API to store data in SuperBlock.
+# 2013-05-07  wek  Add EFS2 Read Only support.
+# 2013-02-22  nr   Add explicit dependencies for errno list builder.
+# 2013-01-29  nr   Migrate to new signed image authentication apis.
+# 2013-01-17  dks  Featurize compilation of RMTS files.
+# 2012-12-26  nr   Add support for extensive profiling.
+# 2012-12-18  dks  Write boot image headers while syncing for FS1 and FS2.
+# 2012-12-02  dks  Increase read_pointer_cache size for optimization.
+# 2012-11-28  nr   Implement EFS profile module.
+# 2012-11-12  dks  Correct feature in condition for build config generation.
+# 2012-11-12  dks  Feature protect build config list generation for no EFS.
+# 2012-10-23  nr   Implement support for new rmts apis.
+# 2012-09-10  nr   Implement new FS Benchmarking scheme.
+# 2012-08-22  rp   Remove FDI.
+# 2012-07-31  dks  Feature protect calling addRcinitTask for USES_FS_NO_EFS2.
+# 2012-07-20  dks  Add Apps Images to RCINIT_IMG list for fs_task on apps proc.
+# 2012-06-12  dks  Cleanup IMEM cookies and cookie APIs.
+# 2012-05-23  dks  Cleanup code to remove Halcyon behavior.
+# 2012-05-21  wek  Modify source file dependencies when bulding cpp flags.
+# 2012-05-09  wek  Add the include path for build config script.
+# 2012-04-30  rp   Add safe benchmark command to measure efs_sync timings.
+# 2012-03-30  wek  Fix missing '$' on source list for counters file.
+# 2012-03-28  wek  Move counters from efs utils to main efs source files.
+# 2012-03-08  wek  Rename macros and remove header files to compile for boot.
+# 2012-02-07  wek  Move cookie code for boot into a separate library.
+# 2012-01-18  nr   Add changes for Avenger(8064) GSS build.
+# 2012-01-17  wek  Compile for bootloaders 2.0
+# 2012-01-04  dks  Rename USES flag USES_EFS_ASYNC_PUT to USES_FS_ASYNC_PUT.
+# 2011-11-21  dks  Added efs_async_put support.
+# 2011-11-11  rp   Removed dependency on FEATURE_RCINIT.
+# 2011-11-03  dks  Make Hotplug independent of EFS.
+# 2011-11-03  rp   Compile EFS for GSS product image.
+# 2011-10-13  dks  Add efs_utils_lib once to boot images.
+# 2011-10-11  nr   Add zlib support for zip and zipped tar.
+# 2011-10-05  wek  Create a list of error codes in a text file.
+# 2011-10-03  dks  Move efs_get_errno_address to fs_errno.c.
+# 2011-08-17  rp   Add EFS OTP (One-Time-Programmable) support.
+# 2011-08-14  wek  Get the errno from global header file.
+# 2011-06-02  dks  Migrate from TMC to rcinit.
+# 2011-03-25  dks  Support Golden-Copy in RAM for fusion.
+# 2011-03-03  dks  Add device setup calls.
+# 2010-12-03  rp   Featurize FS-TAR module.
+# 2010-11-15  rp   Replace Boot cookies with EFS cookies.
+# 2010-11-12  dks  Added fs_boot_cookie.c
+# 2010-11-08  wek  Remove impractical and unused paranoia module.
+# 2010-10-20  dks  Added fs_cookie.c
+# 2010-10-14  vr   Remove default inclusion of HOTPLUG for boot.
+# 2010-08-26  rp   Enable HFAT for BOOT module based on flag.
+# 2010-07-19  wek  Add file for memory allocation.
+# 2010-06-28  wek  Supress EFS1 related warnings.
+# 2010-06-14  vr   Hotplug to compile without EFS for 8660 SBL1.
+# 2010-05-07  rp   Add Ram File System.
+# 2010-03-23  dks  Add libs to QDSP6 to compile for Voyager.
+# 2010-03-05  vr   Add support for QEFS2 in BOOT
+# 2010-02-26  yog  Map legacy messages to MSG_SSID_FS
+# 2010-02-10  rp   Added fs_osal.c.
+# 2010-02-02  wek  Added SECURMSM to internal CoreBSP dependencies.
+# 2010-02-01  wek  Chaged source path to use core/storage.
+#
+#===============================================================================
+# Import methods to get compile time configuration.
+import sys
+Import('env')
+env = env.Clone()
+efs_scripts_path = env.RealPath('${BUILD_ROOT}/core/storage/efs/build/')
+sys.path.append(efs_scripts_path)
+
+from fs_build_config import *
+env.LoadToolScript('efs_errno_builder.py')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/efs/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'MODEM_1X',
+   'MODEM_GERAN',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+   'MODEM_WCDMA',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'DSM',
+
+   # needs to be last as it may contain wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# AMSS source files
+#-----------------------------------------------------------------------------
+
+EFS_SOURCES = [
+    '${BUILDPATH}/fs_api_counters.c',
+    '${BUILDPATH}/fs_benchmark.c',
+    '${BUILDPATH}/fs_buffer.c',
+    '${BUILDPATH}/fs_compat.c',
+    '${BUILDPATH}/fs_convert_utf.c',
+    '${BUILDPATH}/fs_cookie.c',
+    '${BUILDPATH}/fs_counters.c',
+    '${BUILDPATH}/fs_db.c',
+    '${BUILDPATH}/fs_desc.c',
+    '${BUILDPATH}/fs_device.c',
+    '${BUILDPATH}/fs_device_efs_flash.c',
+    '${BUILDPATH}/fs_device_efs_mnand.c',
+    '${BUILDPATH}/fs_device_efs_ramfs.c',
+    '${BUILDPATH}/fs_device_read_pointer_cache.c',
+    '${BUILDPATH}/fs_device_efs_rmts.c',
+    '${BUILDPATH}/fs_device_ftl_flash.c',
+    '${BUILDPATH}/fs_device_otp_flash.c',
+    '${BUILDPATH}/fs_diag.c',
+    '${BUILDPATH}/fs_diag_access.c',
+    '${BUILDPATH}/fs_diag_golden_copy_handler.c',
+    '${BUILDPATH}/fs_efs2.c',
+    '${BUILDPATH}/fs_efs2_names.c',
+    '${BUILDPATH}/fs_estdio.c',
+    '${BUILDPATH}/fs_ext_hfat.c',
+    '${BUILDPATH}/fs_extfs.c',
+    '${BUILDPATH}/fs_factory.c',
+    '${BUILDPATH}/fs_flash_dal_shim.c',
+    '${BUILDPATH}/fs_ftl.c',
+    '${BUILDPATH}/fs_ftl_cache.c',
+    '${BUILDPATH}/fs_global_lock.c',
+    '${BUILDPATH}/fs_inode.c',
+    '${BUILDPATH}/fs_journal.c',
+    '${BUILDPATH}/fs_lib.c',
+    '${BUILDPATH}/fs_logr.c',
+    '${BUILDPATH}/fs_malloc.c',
+    '${BUILDPATH}/fs_mnand_bird_view.c',
+    '${BUILDPATH}/fs_mnand_log.c',
+    '${BUILDPATH}/fs_mnand_pcache.c',
+    '${BUILDPATH}/fs_mnand_pm.c',
+    '${BUILDPATH}/fs_mnand_ptbl.c',
+    '${BUILDPATH}/fs_mnand_region.c',
+    '${BUILDPATH}/fs_mnand_super.c',
+    '${BUILDPATH}/fs_mount.c',
+    '${BUILDPATH}/fs_namei.c',
+    '${BUILDPATH}/fs_nodev.c',
+    '${BUILDPATH}/fs_otp.c',
+    '${BUILDPATH}/fs_otp_pcache.c',
+    '${BUILDPATH}/fs_pathbuff.c',
+    '${BUILDPATH}/fs_pm.c',
+    '${BUILDPATH}/fs_pm_gc.c',
+    '${BUILDPATH}/fs_pm_log.c',
+    '${BUILDPATH}/fs_pm_ptable_nand.c',
+    '${BUILDPATH}/fs_pm_ptable_nor.c',
+    '${BUILDPATH}/fs_pm_super.c',
+    '${BUILDPATH}/fs_privatedir.c',
+    '${BUILDPATH}/fs_profile.c',
+    '${BUILDPATH}/fs_profile_config.c',
+    '${BUILDPATH}/fs_profile_extensive.c',
+    '${BUILDPATH}/fs_public.c',
+    '${BUILDPATH}/fs_ramfs_pm.c',
+    '${BUILDPATH}/fs_realpath.c',
+    '${BUILDPATH}/fs_rmts_bootup_action.c',
+    '${BUILDPATH}/fs_rmts_guid.c',
+    '${BUILDPATH}/fs_rmts_image_header.c',
+    '${BUILDPATH}/fs_rmts_pm.c',
+    '${BUILDPATH}/fs_rmts_super.c',
+    '${BUILDPATH}/fs_rollback.c',
+    '${BUILDPATH}/fs_romfs.c',
+    '${BUILDPATH}/fs_stdio.c',
+    '${BUILDPATH}/fs_sync.c',
+    '${BUILDPATH}/fs_task.c',
+    '${BUILDPATH}/fs_timetick.c',
+    '${BUILDPATH}/fs_timings.c',
+    '${BUILDPATH}/fs_unicode.c',
+    '${BUILDPATH}/fs_unicode_sjis.c',
+    '${BUILDPATH}/fs_unicode_utf8.c',
+    '${BUILDPATH}/fs_upgrade.c',
+    '${BUILDPATH}/fs_vnode.c',
+    '${BUILDPATH}/fs_zip.c',
+    '${BUILDPATH}/fs_zip_malloc.c'
+]
+efs_obj = env.Object(EFS_SOURCES)
+
+#-----------------------------------------------------------------------------
+# ROMFS source files
+#-----------------------------------------------------------------------------
+
+EFS_ROMFS_SOURCES = [
+   '${BUILDPATH}/fs_benchmark.c',
+   '${BUILDPATH}/fs_convert_utf.c',
+   '${BUILDPATH}/fs_desc.c',
+   '${BUILDPATH}/fs_ext_hfat.c',
+   '${BUILDPATH}/fs_extfs.c',
+   '${BUILDPATH}/fs_global_lock.c',
+   '${BUILDPATH}/fs_inode.c',
+   '${BUILDPATH}/fs_mount.c',
+   '${BUILDPATH}/fs_namei.c',
+   '${BUILDPATH}/fs_nodev.c',
+   '${BUILDPATH}/fs_public.c',
+   '${BUILDPATH}/fs_romfs.c',
+   '${BUILDPATH}/fs_unicode.c',
+   '${BUILDPATH}/fs_unicode_utf8.c',
+   '${BUILDPATH}/fs_unicode_sjis.c',
+   '${BUILDPATH}/fs_vnode.c'
+]
+
+efs_romfs_obj = env.Object(EFS_ROMFS_SOURCES)
+
+#-----------------------------------------------------------------------------
+# EFS Lite source files (Adding NAND related files)
+#-----------------------------------------------------------------------------
+
+EFS_READ_ONLY_SOURCES = [
+    '${BUILDPATH}/fs_buffer.c',
+    '${BUILDPATH}/fs_counters.c',
+    '${BUILDPATH}/fs_db.c',
+    '${BUILDPATH}/fs_desc.c',
+    '${BUILDPATH}/fs_device.c',
+    '${BUILDPATH}/fs_device_efs_flash.c',
+    '${BUILDPATH}/fs_efs2.c',
+    '${BUILDPATH}/fs_efs2_names.c',
+    '${BUILDPATH}/fs_flash_dal_shim.c',
+    '${BUILDPATH}/fs_global_lock.c',
+    '${BUILDPATH}/fs_inode.c',
+    '${BUILDPATH}/fs_journal.c',
+    '${BUILDPATH}/fs_lib.c',
+    '${BUILDPATH}/fs_logr.c',
+    '${BUILDPATH}/fs_malloc.c',
+    '${BUILDPATH}/fs_mount.c',
+    '${BUILDPATH}/fs_namei.c',
+    '${BUILDPATH}/fs_nodev.c',
+    '${BUILDPATH}/fs_pathbuff.c',
+    '${BUILDPATH}/fs_pm.c',
+    '${BUILDPATH}/fs_pm_gc.c',
+    '${BUILDPATH}/fs_pm_log.c',
+    '${BUILDPATH}/fs_pm_ptable_nand.c',
+    '${BUILDPATH}/fs_pm_super.c',
+    '${BUILDPATH}/fs_public.c',
+    '${BUILDPATH}/fs_realpath.c',
+    '${BUILDPATH}/fs_romfs.c',
+    '${BUILDPATH}/fs_timings.c',
+    '${BUILDPATH}/fs_upgrade.c',
+    '${BUILDPATH}/fs_vnode.c'
+]
+
+efs_read_only_obj = env.Object(EFS_READ_ONLY_SOURCES)
+
+#-----------------------------------------------------------------------------
+# EFS UTILS source files
+#-----------------------------------------------------------------------------
+
+EFS_UTILS_SOURCES = [
+   '${BUILDPATH}/fs_errno.c',
+   '${BUILDPATH}/fs_osal.c',
+   '${BUILDPATH}/fs_util.c'
+]
+
+efs_utils_obj = env.Object(EFS_UTILS_SOURCES)
+#----------------------------------------------------------------------------
+# EFS COOKIE source files used only for Boot loaders.
+#----------------------------------------------------------------------------
+
+EFS_COOKIE_BOOT_SOURCES = [
+   '${BUILDPATH}/fs_cookie.c',
+   '${BUILDPATH}/fs_rmts_cookie.c',
+   '${BUILDPATH}/fs_rmts_cookie_golden_copy_handler.c',
+   '${BUILDPATH}/fs_rmts_guid.c',
+]
+
+efs_cookie_boot_obj = env.Object(EFS_COOKIE_BOOT_SOURCES)
+
+all_objs = [efs_obj, efs_romfs_obj, efs_utils_obj, efs_cookie_boot_obj]
+
+#----------------------------------------------------------------------------
+# Pre-process EFS errno list.
+#----------------------------------------------------------------------------
+
+efs_errno_list = env.FsErrnoListBuilder ('${BUILDPATH}/fs_errno_list.txt',
+                                         '${BUILDPATH}/fs_errno_list.c')
+
+#Add explicit dependency to generate the errno list file
+env.Depends (all_objs, efs_errno_list);
+
+#----------------------------------------------------------------------------
+# Get the build configuration flags and add them to the environment
+#----------------------------------------------------------------------------
+
+if 'USES_EFS_READ_ONLY' in env:
+   all_sources = [EFS_UTILS_SOURCES, EFS_READ_ONLY_SOURCES]
+elif 'BUILD_BOOT_CHAIN' in env:
+   all_sources = [EFS_ROMFS_SOURCES, EFS_UTILS_SOURCES,
+                  EFS_COOKIE_BOOT_SOURCES]
+elif 'USES_FS_NO_EFS2' in env:
+   all_sources = [EFS_UTILS_SOURCES]
+else:
+   all_sources = [EFS_SOURCES, EFS_ROMFS_SOURCES, EFS_UTILS_SOURCES,
+                  EFS_COOKIE_BOOT_SOURCES]
+fs_build_cpp_defines (all_objs, all_sources, env)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(
+  ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE',
+   'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'OSBL_BOOT_IMAGE', 'SBL1_BOOT_IMAGE', 'SBL2_BOOT_IMAGE', 'SBL3_BOOT_IMAGE',
+   'CORE_GSS', 'HOTPLUG_BOOT_DRIVER', 'EFS_READ_ONLY_BOOT_DRIVER'],
+  '${BUILDPATH}/efs_utils',
+  EFS_UTILS_SOURCES)
+
+env.AddLibrary(
+  ['DBL_BOOT_IMAGE', 'OSBL_BOOT_IMAGE', 'SBL3_BOOT_IMAGE',
+   'EFS_COOKIE_BOOT_DRIVER'],
+  '${BUILDPATH}/efs_cookie_boot',
+  EFS_COOKIE_BOOT_SOURCES)
+
+if not 'USES_FS_NO_EFS2' in env:
+  env.AddLibrary(
+  ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE',
+   'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'CORE_GSS'],
+  '${BUILDPATH}/efs',
+  EFS_SOURCES)
+
+if 'USES_EFS_READ_ONLY' in env:
+  env.AddLibrary (['EFS_READ_ONLY_BOOT_DRIVER'],
+  	'${BUILDPATH}/efs_read_only', EFS_READ_ONLY_SOURCES)
+elif 'USES_QEFS2_IN_BOOT' in env:
+  env.AddLibrary(['OSBL_BOOT_IMAGE'], '${BUILDPATH}/efs',EFS_SOURCES)
+elif not 'USES_HOTPLUG_WITHOUT_EFS' in env:
+  env.AddLibrary(['DBL_BOOT_IMAGE','OSBL_BOOT_IMAGE','SBL3_BOOT_IMAGE'],
+                      '${BUILDPATH}/efs_romfs',EFS_ROMFS_SOURCES)
+
+env.AddLibrary(['FS_BOOT_DRIVER'], '${BUILDPATH}/efs_romfs',EFS_ROMFS_SOURCES)
+
+#-------------------------------------------------------------------------------
+if (not 'USES_FS_NO_EFS2' in env) and \
+   ('USES_RCINIT' in env)         :
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', 'CORE_GSS', 'CBSP_APPS_IMAGE',
+                'APPS_IMAGE']
+  env.AddRCInitTask(           # FS
+   RCINIT_IMG,                 # define TMC_RCINIT_REXTASK_FS
+   {
+     'sequence_group'             : 'RCINIT_GROUP_0',                # required
+     'thread_name'                : 'fs',                            # required
+     'thread_entry'               : 'fs_task',
+     'stack_size_bytes'           : '8192',
+     'priority_amss_order'        : 'FS_PRI_ORDER',
+     'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+   })

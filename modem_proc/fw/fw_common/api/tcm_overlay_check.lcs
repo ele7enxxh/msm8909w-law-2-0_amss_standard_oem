@@ -1,0 +1,15 @@
+/*========================================================================
+  TCM overlay checks.
+  Validate that required overlay combinations can be loaded together.
+  ========================================================================*/
+
+__tcm_overlay_available__ =  __tcm_max_size__ - __tcm_static_max_size__ ; 
+
+
+__assert_sink__ = ASSERT( (__tcm_cdma1x_traffic_overlay_size__ + __tcm_mcdo_traffic_overlay_size__) <= __tcm_overlay_available__ , "Failed overlay check SVDO");
+__assert_sink__ = ASSERT( (__tcm_cdma1x_traffic_overlay_size__ + __tcm_lte_paging_overlay_size__)  <= __tcm_overlay_available__ , "Failed overlay check 1x and LTE paging");
+__assert_sink__ = ASSERT( (__tcm_lte_traffic_overlay_size__ + __tcm_lte_paging_overlay_size__)  <= __tcm_overlay_available__ , "Failed overlay check LTE");
+__assert_sink__ = ASSERT( (__tcm_gfw_traffic_overlay_size__ + __tcm_lte_traffic_overlay_size__ + __tcm_lte_paging_overlay_size__)  <= __tcm_overlay_available__ , "Failed overlay check SGLTE");
+
+__assert_sink__ = ASSERT( (__tcm_wfw_traffic_overlay_size__ + __tcm_wfw_paging_overlay_size__)  <= __tcm_overlay_available__ , "Failed overlay check WCDMA");
+

@@ -1,0 +1,72 @@
+#===============================================================================
+#
+# FLASH HAL Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime:  $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/20/14   sb      Add support for 8909
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/flash/src/extdrv"
+
+if not env.SubstPathExists(SRCPATH):
+   SRCPATH = "${BUILD_ROOT}/drivers/flash/src/extdrv"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'SYSTEMDRIVERS',
+   'SERVICES',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['FLASH_EXTDRV'])
+
+env.Append(CPPDEFINES = "FLASH_EXTDRV_I2C_INCLUDE_H=\\\"flash_extdrv_i2c_8909.h\\\"")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+FLASH_EXTDRV_I2C_V2_SOURCES = [
+   '${BUILDPATH}/config_v2/flash_extdrv_i2c_v2.c',
+]
+
+flash_extdrv_i2c_v2_obj = env.Object(FLASH_EXTDRV_I2C_V2_SOURCES)
+flash_extdrv_i2c_v2_lib = env.Library('${BUILDPATH}/extdrv_i2c_v2', flash_extdrv_i2c_v2_obj)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibsToImage(
+    ['NOR_TOOLS_IMAGE', 'I2C_BOOT_DRIVER'],
+    flash_extdrv_i2c_v2_lib)
+

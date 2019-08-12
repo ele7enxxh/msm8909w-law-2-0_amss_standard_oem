@@ -1,0 +1,51 @@
+#-------------------------------------------------------------------------------
+# EFS (file services: PSX compatible version)
+#-------------------------------------------------------------------------------
+EFS_SOURCES=\
+        fs_benchmark.c \
+        fs_cookie.c \
+        fs_cookie_handler.c \
+        fs_convert_utf.c \
+        fs_counters.c \
+        fs_desc.c \
+        fs_errno.c \
+        fs_ext_hfat.c \
+        fs_extfs.c \
+        fs_global_lock.c \
+        fs_inode.c \
+        fs_mount.c \
+        fs_namei.c \
+        fs_nodev.c \
+        fs_osal.c \
+        fs_public.c \
+        fs_rmts_cookie.c \
+        fs_rmts_cookie_golden_copy_handler.c \
+        fs_romfs.c \
+        fs_unicode.c \
+        fs_unicode_utf8.c \
+        fs_unicode_sjis.c \
+        fs_util.c \
+        fs_vnode.c \
+        #end
+
+# Flip our internal flag to enable the minimal compilation
+EXTENSIONS := $(EXTENSIONS) -DFEATURE_EFS_BOOT_ENV
+
+vpath %.h $(EFS)
+vpath %.c $(EFS)
+vpath %.s $(EFS)
+
+ifeq ($(BIG),yes)
+        EFS_OBJS := $(TARGETDIR)/efs.lib
+else
+        EFS_OBJS :=  $(addprefix $(TARGETDIR)/, $(EFS_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/efs.lib : $(EFS_SOURCES)
+	$(group_c_compile)
+
+ifeq ($(DO_LINT),yes)
+    EFS_LINT_OBJS := $(addprefix lint/, $(EFS_SOURCES:%.c=%.lint))
+    $(EFS_LINT_OBJS) : LINT_FLAGS := $(LINT_FLAGS) efs.lnt
+    lint/efs_lint : $(EFS_LINT_OBJS)
+endif

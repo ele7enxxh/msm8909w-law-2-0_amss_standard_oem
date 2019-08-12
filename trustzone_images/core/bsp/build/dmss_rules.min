@@ -1,0 +1,1072 @@
+#============================================================================
+#
+#  Description:
+#    This file specifies the make file rules that are common across all
+#    targets and makefiles
+#
+# Copyright (c) 2009, by QUALCOMM, Incorporated. All Rights Reserved.
+#----------------------------------------------------------------------------
+#============================================================================
+#
+#			EDIT HISTORY FOR MODULE
+#
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/bsp/build/dmss_rules.min#1 $
+#
+# when       who     what, where, why
+# --------   ---     --------------------------------------------------------
+# 06/02/09   cjb     Created
+#============================================================================
+
+#============================================================================
+#			      LIBRARIES
+#============================================================================
+
+#============================================================================
+#			      APPS PROC ONLY LIBRARIES
+#============================================================================
+ifeq ($(USES_CORE_SERVICES_ONLY), yes)
+
+ifeq ($(USES_APPS_PROC),yes)
+
+endif # USES_APPS_PROC
+
+ifeq ($(USES_MODEM_PROC),yes)
+ifeq ($(USES_USB_HOST), yes)
+ QCTLIBS := $(QCTLIBS) $(LIBDIR)/usbhost.lib
+endif
+
+ifeq ($(USES_HSU), yes)
+#++scons QCTLIBS := $(QCTLIBS) $(LIBDIR)/hsusb/$(BUILD)/hsu_core.lib
+endif
+endif # USES_MODEM_PROC
+
+else # USES_CORE_SERVICES_ONLY
+
+ifeq ($(USES_APPS_PROC),yes)
+
+ifeq ($(USES_USB_HOST), yes)
+QCTLIBS := $(QCTLIBS) $(LIBDIR)/usbhost.lib
+endif
+
+ifeq ($(USES_HSU), yes)
+  ifneq ($(USES_HS_USB_ON_MODEM_PROC),yes)
+#++scons    QCTLIBS := $(QCTLIBS) $(LIBDIR)/hsusb/$(BUILD)/hsu_core.lib
+  endif
+endif
+
+endif    # end of ifeq ($(USES_APPS_PROC),yes)
+
+
+#===============================================================================
+#			      MODEM PROC ONLY LIBRARIES
+#===============================================================================
+ifeq ($(USES_MODEM_PROC),yes)
+    ifeq ($(USES_USB_HOST), yes)
+        QCTLIBS := $(QCTLIBS) $(LIBDIR)/usbhost.lib
+    endif
+
+    ifeq ($(USES_STANDALONE_MODEM),yes)
+      ifeq ($(USES_HSU), yes)
+#++scons        QCTLIBS := $(QCTLIBS) $(LIBDIR)/hsusb/$(BUILD)/hsu_core.lib
+      endif
+    else
+      ifeq ($(USES_HS_USB_ON_MODEM_PROC),yes)
+        ifeq ($(USES_HSU), yes)
+#++scons          QCTLIBS := $(QCTLIBS) $(LIBDIR)/hsusb/$(BUILD)/hsu_core.lib
+        endif
+      endif
+    endif
+
+endif  # end of USES_MODEM_PROC
+
+endif # else USES_CORE_SERVICES_ONLY
+
+#===============================================================================
+#			      COMMON LIBRARIES
+#===============================================================================
+SCONS_QCTLIBS := $(SCONS_QCTLIBS) $(LIBDIR)/hw.lib
+
+ifeq ($(USES_HAL), yes)
+  SCONS_QCTLIBS := $(QCTLIBS) $(HAL_LIBS)
+endif
+
+#DAL Framework
+ifeq ($(USES_DAL), yes)
+  SCONS_QCTLIBS := $(QCTLIBS) $(DAL_LIBS)
+endif
+
+# Buses
+SCONS_QCTLIBS := $(QCTLIBS) $(BUSES_LIBS)
+
+#===============================================================================
+#			      SENSORS
+#===============================================================================
+
+ifeq ($(IMAGE), MODEM_PROC)
+ifeq ($(USES_SENSORS), yes)
+        QCTLIBS := $(QCTLIBS) $(LIBDIR)/sensors.lib
+endif
+endif
+
+
+#===============================================================================
+#              COREBSP RULES
+#===============================================================================
+# boot is built in target make file as it calls make multiple times currently
+# corebsp libraries are also called from target make file for same reason
+
+.PHONY : corebsp
+corebsp : $(TARGETDIR)/exist $(LIBDIR)/exist corebsp_deps $(COREBSP_OBJECTS) $(LIBOBJECTS) corebsp_create_object_list
+	@echo COREBSP Objects: $(COREBSP_OBJECTS) LibObjects: $(LIBOBJECTS)
+	@echo [COREBSP] CoreBSP Build Done
+	@echo
+   
+.PHONY : corebsplib
+corebsplib: $(LIBDIR)/exist $(QCTLIBS) $(LIBRARIES) corebsp_create_lib_list
+	@echo COREBSP Libs: $(QCTLIBS) Libraries: $(LIBRARIES)
+	@echo [COREBSP] CoreBSP Libs Done
+	@echo
+
+# sub builds not used currently
+corebsplib_amss: corebsp_deps corebsp_create_object_list corebsp_create_lib_list corebsp_setup corebsplibs_build flashtools
+	@echo [COREBSP] AMSS Done
+	@echo
+
+#-------------------------------------------------------------------------------
+# Dependencies
+#-------------------------------------------------------------------------------
+.PHONY : corebsp_deps
+#pragma RUNLOCAL
+corebsp_deps : $(LIBDIR)/exist
+	@echo ------------------------------------------------------------------------
+	@echo COREBSP Checking dependency file $(DEPFILE)...
+	@echo $(DEPGEN) $(DEPOPTS)
+	#target makefile ran this globally, comment out for now
+	#@if test ! -f $(DEPFILE); then $(DEPGEN) $(DEPOPTS); fi
+	@echo ------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Output Lists for --via commands
+#-------------------------------------------------------------------------------
+COREBSP_OBJECT_LISTFILE = $(BUILD)_corebsp.lf
+COREBSP_LIB_LISTFILE = $(BUILD)_lib_corebsp.lf
+
+ifeq ($(BUILD_UNIX), yes)
+   SCONS_EXT =
+else
+   SCONS_EXT = .bat
+endif
+
+export SCONS_LIB_DIR = ../tools/SCons
+
+define scons_builder
+	-chmod +x $(COREBSP_BUILD)/../tools/SCons/scons
+	cd $(COREBSP_BUILD); \
+	../tools/SCons/scons$(SCONS_EXT) $(PLATFORM) CHIPSET=$(CHIPSET) BUILD_ID=$(BUILDID) BUILD_VER=$(VERSION) \
+		MSM_ID=$(BUILD_MSM_ID) HAL_PLATFORM=$(HAL_PLAT) BUILD_ASIC=$(BUILD_ASIC) TARGET_FAMILY=$(TARGET_FAMILY) \
+		--verbose=$(VERBOSE) --frommake $(MAKE_FLAGS)
+endef
+
+
+define scons_cleaner
+	cd $(COREBSP_BUILD); \
+	../tools/SCons/scons$(SCONS_EXT) -c $(PLATFORM) CHIPSET=$(CHIPSET) BUILD_ID=$(BUILDID) BUILD_VER=$(VERSION) \
+		MSM_ID=$(BUILD_MSM_ID) HAL_PLATFORM=$(HAL_PLAT) BUILD_ASIC=$(BUILD_ASIC) TARGET_FAMILY=$(TARGET_FAMILY) \
+		--verbose=$(VERBOSE) --frommake $(MAKE_FLAGS)
+endef
+
+#-------------------------------------------------------------------------------
+# SCONs build rules
+#-------------------------------------------------------------------------------
+HAL_PLAT := 8660
+BUILD_ASIC := 8660
+BUILDID := $(BUILD:%D=%)
+PLATFORM := amss
+NUM_THREADS := 8
+VERBOSE := 0
+TARGET_FAMILY := 8660
+BUILD_MSM_ID := 8660
+BUILD_LC := $(shell echo $(BUILD) | tr A-Z a-z)
+CHIPSET := msm8660
+
+
+ifeq ($(IMAGE), MODEM_PROC)
+	ifeq ($(USES_SDCC_BOOT), yes)
+		PLATFORM := boot
+	else
+	PLATFORM := modem
+	endif
+	BUILDID := $(BUILD:%M=%)
+	NUM_THREADS := 8
+endif
+
+ifeq ($(IMAGE), APPS_PROC)
+	PLATFORM := apps
+	BUILDID := $(BUILD:%A=%)
+endif
+
+.PHONY : corebsp_scons
+corebsp_scons : corebsp_scons_start corebsp_scons_action corebsp_scons_done
+
+.PHONY : corebsp_scons_bootloaders	
+corebsp_scons_bootloaders : corebsp_scons_action
+
+.PHONY : corebsp_scons_start
+#pragma RUNLOCAL
+corebsp_scons_start :
+	@echo -------------------------------------------------------------------------
+	@echo Building CoreBSP
+	@echo -------------------------------------------------------------------------
+	+@[ -d $(COREBSP_BUILD)/data ] || mkdir -p $(COREBSP_BUILD)/data
+
+.PHONY : corebsp_genuses
+#pragma RUNLOCAL
+corebsp_genuses :
+	@echo -------------------------------------------------------------------------
+	@echo Generating USES FLAGS based on AMSS
+ifneq ("$(ECLOUD_BUILD_ID)","")
+	@echo ECLOUD build : $(ECLOUD_BUILD_ID)
+endif
+	-$(shell perl $(COREBSP_BUILD)/scripts/genusesflags.pl -buildid $(BUILD) -makeflags "$(MAKEFLAGS)" > $(COREBSP_BUILD)/data/uses$(BUILD_LC).py)
+	@echo -------------------------------------------------------------------------
+
+.PHONY : corebsp_genincpaths
+#pragma RUNLOCAL
+corebsp_genincpaths :
+	@echo -------------------------------------------------------------------------
+	@echo Generating incpaths based on AMSS
+ifneq ("$(ECLOUD_BUILD_ID)","")
+	@echo ECLOUD build : $(ECLOUD_BUILD_ID)
+endif
+	-$(shell perl $(COREBSP_BUILD)/scripts/genpaths.pl -min incpaths.min -buildid $(BUILD) -makeflags "$(MAKEFLAGS)" > $(COREBSP_BUILD)/data/incpaths$(BUILD_LC).py)
+	@echo -------------------------------------------------------------------------
+
+.PHONY : corebsp_scons_done
+#pragma RUNLOCAL
+corebsp_scons_done :
+	@echo -------------------------------------------------------------------------
+	@echo Completed CoreBSP
+	@echo -------------------------------------------------------------------------
+
+.PHONY : corebsp_scons_action
+#pragma RUNLOCAL
+corebsp_scons_action : corebsp_genincpaths corebsp_genuses
+	@echo -------------------------------------------------------------------------
+	$(scons_builder)
+	@echo -------------------------------------------------------------------------
+   
+.PHONY : corebsp_gen_inc_uses
+#pragma RUNLOCAL
+corebsp_gen_inc_uses : corebsp_genincpaths corebsp_genuses
+	@echo ------------------------------generating incpaths and uses py files----------------------------------------
+
+.PHONY : corebsp_scons_clean
+#pragma RUNLOCAL
+corebsp_scons_clean :
+	@echo -------------------------------------------------------------------------
+	$(scons_cleaner)
+	@echo -------------------------------------------------------------------------
+
+#If running a distributed build, run the link step
+# local; otherwise this pragma is ignored
+
+#pragma RUNLOCAL
+corebsp_create_object_list :
+	@echo -------------------------------------------------------------------
+	@if test -f $(COREBSP_OBJECT_LISTFILE); then rm -f $(COREBSP_OBJECT_LISTFILE); fi
+	@echo COREBSP OBJECTS: $(COREBSP_OBJECTS) -- $(LIBOBJECTS)
+	@echo OBJDIR: $(OBJDIR) 
+	@echo TARGETDIR: $(TARGETDIR) 
+	@echo $(wordlist    1, 5000, $(COREBSP_OBJECTS)) | perl -p -e 'y/ /\n/'   > $(COREBSP_OBJECT_LISTFILE)
+	@echo $(wordlist    1, 5000, $(LIBOBJECTS))      | perl -p -e 'y/ /\n/'  >> $(COREBSP_OBJECT_LISTFILE)
+	#  @echo $(wordlist    1, 1000, $(BOOT_OBJS))       | perl -p -e 'y/ /\n/'  >> $(COREBSP_OBJECT_LISTFILE)
+	@echo COREBSP Object List File: $(COREBSP_OBJECT_LISTFILE) .....
+	@echo
+
+#pragma RUNLOCAL
+corebsp_create_lib_list :
+	@echo -------------------------------------------------------------------
+	@if test -f $(COREBSP_AMSS_LIB_LISTFILE); then rm -f $(COREBSP_AMSS_LIB_LISTFILE); fi
+	@echo COREBSP LIBS: $(QCTLIBS) -- $(LIBRARIES)
+	@echo LIBDIR: $(LIBDIR) 
+	@echo TARGETDIR: $(TARGETDIR) 
+	@echo $(wordlist    1, 5000, $(QCTLIBS))         | perl -p -e 'y/ /\n/'   > $(COREBSP_AMSS_LIB_LISTFILE)
+	@echo $(wordlist    1, 5000, $(LIBRARIES))       | perl -p -e 'y/ /\n/'  >> $(COREBSP_AMSS_LIB_LISTFILE)
+	@echo COREBSP Library List File: $(COREBSP_AMSS_LIB_LISTFILE) .....
+	@echo
+
+#===============================================================================
+# CoreBSP Build Decoupling
+#
+# We need to duplicate these rules since we are a standalone make file now
+# In the future we will replace this with our own rules
+#===============================================================================
+
+
+#===============================================================================
+#			      TARGET RULES
+#===============================================================================
+
+# The following are the target rules supported by this makefile with the
+# exception of the 'depend' target which is located at the end of this file.
+
+
+#-------------------------------------------------------------------------------
+# Boot target
+#-------------------------------------------------------------------------------
+# The default target builds the aARM boot loader, creates an object
+# subdirectory if required, and builds the target file.
+
+ifeq ($(IMAGE), APPS_PROC)
+#-------------------------------------------------------------------------------
+# aARM boot loader flag definitions
+#-------------------------------------------------------------------------------
+MBNPATH_APPSBL   = $(MBNPATH)/appsbl
+CERTDIR_APPSBL    = $(MBNPATH_APPSBL)/cert
+
+MAKE_APPSBL=$(MAKE) -C $(APPSBL) -f appsbl.mak FLASH_TYPE=$(FLASH_TYPE) BUILD_ID=$(BUILD) all
+CLEAN_APPSBL_CMD   = $(MAKE) -C $(APPSBL) -f appsbl.mak FLASH_TYPE=$(FLASH_TYPE) BUILD_ID=$(BUILD) clean
+
+#For nonsecure build, appsblhd is copied to final bin folder
+define BUILD_NONSEC_APPSBL_CMD
+$(MAKE_APPSBL)
+$(CPY_NONSEC_APPSBL)
+$(CPY_NONSEC_APPSSBLHD)
+endef
+
+#For secure build, appsblhd is generated after certificates attached
+define BUILD_SEC_APPSBL_CMD
+$(MAKE_APPSBL)
+$(CPY_SEC_APPSBL)
+endef
+
+#Clean up certificates and cert folder
+DELETE_APPSBL_CERT = -if test -d $(CERTDIR_APPSBL); \
+                     then rm -f $(CERTDIR_APPSBL)/*; \
+                     rmdir $(CERTDIR_APPSBL); fi
+
+CPY_SEC_APPSBL    = $(COPY) $(call slashes,$(APPSBL)/appsbl_$(BUILD).mbn \
+                    $(MBNPATH_APPSBL)/appsboot.mbn); \
+                    chmod 777 $(MBNPATH_APPSBL)/appsboot.mbn; \
+                    touch -c $(MBNPATH_APPSBL)/appsboot.mbn
+
+CPY_NONSEC_APPSBL = $(COPY) $(call slashes,$(APPSBL)/appsbl_$(BUILD).mbn \
+                    $(MBNPATH)/appsboot.mbn); \
+                    chmod 777 $(MBNPATH)/appsboot.mbn; \
+                    touch -c $(MBNPATH)/appsboot.mbn
+
+CPY_NONSEC_APPSSBLHD = $(COPY) $(call slashes, $(APPSBL)/appsbl_$(BUILD)hd.mbn\
+                       $(MBNPATH)/appsboothd.mbn); \
+                       chmod 777 $(MBNPATH)/appsboothd.mbn; \
+                       touch -c $(MBNPATH)/appsboothd.mbn
+
+$(MBNPATH_APPSBL)/exist  $(CERTDIR_APPSBL)/exist:
+	@echo ---------------------------------------------------------------
+	@echo Creating mbn paths for ${@D}
+	@echo
+	@if test ! -f $@ && test ! -d ${@D}; then mkdir -p ${@D}; mkdir -p ${@D}; fi
+	@echo Building ${@D} > $@
+	@echo ---------------------------------------------------------------
+
+boot: appsbl
+
+ifeq ($(USES_SECBOOT),yes)
+appsbl: $(MBNPATH_APPSBL)/exist  $(CERTDIR_APPSBL)/exist
+	@echo ------------------------------------------------------------------------
+	@echo Building Secure APPSBL
+	@$(BUILD_SEC_APPSBL_CMD)
+	@echo ------------------------------------------------------------------------
+else
+appsbl:
+	@echo ------------------------------------------------------------------------
+	@echo Building Nonsecure APPSBL
+	@$(BUILD_NONSEC_APPSBL_CMD)
+	@echo ------------------------------------------------------------------------
+endif
+
+cleanboot:
+	@echo ------------------------------------------------------------------------
+	@echo CLEAN APPSBL for target build $(TARGET)
+	@$(CLEAN_APPSBL_CMD)
+ifeq ($(USES_SECBOOT),yes)
+	@echo secure build
+	@-if test -f $(MBNPATH_APPSBL)/appsboot.mbn; then rm -f $(MBNPATH_APPSBL)/appsboot*.mbn; fi
+	@echo remove certificates and cert folder
+	@$(DELETE_APPSBL_CERT)
+else
+	@echo nonsecure build
+endif
+	@-if test -f $(MBNPATH)/appsboot.mbn; then rm -f $(MBNPATH)/appsboot*.mbn; fi
+	@echo ------------------------------------------------------------------------
+endif
+
+#-------------------------------------------------------------------------------
+# Untar L4 kernel
+#-------------------------------------------------------------------------------
+
+L4_BASE_DIR := ../../core/kernel
+AMSS_RELOC_DIR := build_$(BUILD_KCFG)/amss/bin
+PLATMSDIR := ../../core/kernel/build_$(BUILD_KCFG)/ms
+
+ifeq ($(BUILD_UNIX), yes)
+  ELFWEAVER_CMD = python tools/pyelf/elfweaver
+else
+  ELFWEAVER_CMD = tools/pyelf/elfweaver.exe
+endif
+
+define GEN_AMSS_LINK_ADDRESS
+	@echo ------------------------------------------------------------------
+	@echo copying T32 scripts and link file to AMSS build directory...
+	cp -f $(PLATMSDIR)/*.cmm .
+	cp -f $(PLATMSDIR)/*.men .
+	cp -f $(PLATMSDIR)/*.lf .
+        $(create_bsp_quartz)
+	@echo Determining AMSS link address from target XML file...
+	@-if test -f $(CUSTL4SCLFILE); then rm $(CUSTL4SCLFILE); fi
+	@echo "#ifndef CUST_L4_SCL_$(BUILD_KCFG)_H" >> $(CUSTL4SCLFILE)
+	@echo "#define CUST_L4_SCL_$(BUILD_KCFG)_H" >> $(CUSTL4SCLFILE)
+	@echo -n "#define SCL_L4_START_ADDRESS " >> $(CUSTL4SCLFILE)
+	@echo Preprocessing XML file into quartz_cfg_$(BUILD)_cpp.xml...
+
+	@echo Preprocessing XML file into quartz_cfg_machine_$(BUILD)_cpp.xml...
+	$(CC) -E $(CFLAGS) $(DMSS_CFLAGS) $(ALL_INCLUDES) $(DIRNAME) -I"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $(OBJ_CMD) quartz_cfg_machine_$(BUILD)_cpp.xml quartz_cfg_machine.xml
+	@echo Copying cleaned XML file to quartz_cfg_machine_$(BUILD).xml...
+	./cleanup_xml.pl -i quartz_cfg_machine_$(BUILD)_cpp.xml -o quartz_cfg_machine_$(BUILD).xml
+	rm -f quartz_cfg_machine_$(BUILD)_cpp.xml
+
+	@echo Preprocessing XML file into quartz_cfg_$(BUILD)_cpp.xml...
+	$(CC) -E $(CFLAGS) -DAMSS_RELOC_LC=\"$(AMSS_RELOC_DIR)/$(BUILD_LC).reloc\" -DQUARTZ_MACHINE_XML=\"../../products/7x30/build/ms/quartz_cfg_machine_$(BUILD).xml\" $(DMSS_CFLAGS) $(ALL_INCLUDES) $(DIRNAME) -I"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $(OBJ_CMD) quartz_cfg_$(BUILD)_cpp.xml quartz_cfg.xml
+	@echo Copying cleaned XML file to quartz_cfg_$(BUILD).xml...
+	./cleanup_xml.pl -i quartz_cfg_$(BUILD)_cpp.xml -o quartz_cfg_$(BUILD).xml
+	rm -f quartz_cfg_$(BUILD)_cpp.xml
+
+	@echo Determining AMSS link address...
+	@cd $(L4_BASE_DIR); $(ELFWEAVER_CMD) merge ../../build/ms/quartz_cfg_$(BUILD).xml --ignore="AMSS" --lastphys="physical" >> ../../products/7x30/build/ms/$(CUSTL4SCLFILE)
+	@echo "#endif" >> $(CUSTL4SCLFILE)
+	@echo Done.
+	@echo ------------------------------------------------------------------
+endef
+
+build_bsp:
+	@echo ------------------------------------------------------------------
+	$(create_bsp_quartz)
+	@echo ------------------------------------------------------------------
+
+clean_bsp:
+	@echo ------------------------------------------------------------------
+	$(clean_bsp_quartz)
+	@echo ------------------------------------------------------------------
+
+rebuild_bsp: clean_bsp build_bsp
+
+run_elfweaver:
+	@echo ------------------------------------------------------------------
+	@$(ELFWEAVER)
+ifeq ($(IMAGE), APPS_PROC)
+	@echo TARGET $(TARGET_NAME).mbn
+	@echo $(BINCMD)
+	$(BINCMD)
+	@$(GEN_HDR_TOOLS)
+	@$(GEN_AMSS_HDR)
+	@chmod 777 $(MBNPATH)/*.mbn
+endif
+	@echo ------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Tools target
+#-------------------------------------------------------------------------------
+
+# The default target builds the flash tools and creates an object subdirectory
+# if required.
+
+#pragma RUNLOCAL
+ifeq "$(strip $(FLASH_TYPE))" "nor"
+flashtools: nor_tools
+else
+flashtools: nand_tools nand_tools_exe hostdl_nand
+endif
+
+#pragma RUNLOCAL
+nand_tools:
+ifeq ($(IMAGE), MODEM_PROC)
+	@echo ------------------------------------------------------------------------
+	@echo Building NAND Tools...
+	@$(BUILD_NAND_TOOLS_CMD)
+	@echo ------------------------------------------------------------------------
+endif
+
+nand_tools_exe:
+ifeq ($(IMAGE), MODEM_PROC)
+	@echo ------------------------------------------------------------------------
+	@echo Building nand_tools.exe
+	@echo Building nand_tools.exe disabled!
+	@echo ------------------------------------------------------------------------
+endif
+
+#	@$(BUILD_NAND_TOOLS_EXE_CMD)
+
+genmibib:
+
+
+hostdl_nand:
+ifeq ($(IMAGE), MODEM_PROC)
+	@echo ------------------------------------------------------------------------
+	@echo Building NAND HOSTDL
+	@$(BUILD_HOSTDL_NAND_CMD)
+	@echo ------------------------------------------------------------------------
+endif
+
+hostdl_nor:
+ifeq ($(IMAGE), MODEM_PROC)
+	@echo ------------------------------------------------------------------------
+	@echo Building NOR HOSTDL
+	@$(BUILD_HOSTDL_NOR_CMD)
+	@echo ------------------------------------------------------------------------
+endif
+
+$(FLASH_HOSTDL_SRC)/nandprg.elf: hostdl_nand
+$(FLASH_HOSTDL_SRC)/norprg.elf: hostdl_nor
+
+nor_tools:
+ifeq ($(IMAGE), MODEM_PROC)
+	@echo ------------------------------------------------------------------------
+	@echo Building NOR Tools
+	@$(BUILD_NOR_TOOLS_CMD)
+	@echo ------------------------------------------------------------------------
+endif
+
+#-------------------------------------------------------------------------------
+# Directory Targets
+#-------------------------------------------------------------------------------
+
+# The object, library, and binary subdirectories are created if they do not
+# already exist.
+
+ifeq ($(IMAGE), APPS_PROC)
+$(TARGETDIR)/exist $(LIBDIR)/exist $(MBNPATH)/exist:
+else
+$(TARGETDIR)/exist $(LIBDIR)/exist:
+endif
+	@echo ---------------------------------------------------------------
+	@echo Creating path for ${@D}
+	@echo
+	@if test ! -f $@ && test ! -d ${@D}; then mkdir -p ${@D}; mkdir -p ${@D}; fi
+	@echo Building ${@D} > $@
+	@echo ---------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# COREBSP include list files for compiling
+#-------------------------------------------------------------------------------
+corebsp_create_incpaths:
+	$(COREBSP_CREATE_INCPATHS_FILE)
+
+#-------------------------------------------------------------------------------
+# COREBSP list files for linking with --via
+#-------------------------------------------------------------------------------
+COREBSP_OBJ_LISTFILE = $(BUILD)_corebsp.lf
+
+# traditional QCTLIBS usage to build up list and output to list file
+COREBSP_AMSS_LIB_LISTFILE = $(BUILD)_lib_corebsp.lf
+
+# scons file with list of libraries built
+COREBSP_LIB_LISTFILE = $(COREBSP_BUILD)/corebsp_libs_$(BUILD).lf
+
+#-------------------------------------------------------------------------------
+# Image file target
+#-------------------------------------------------------------------------------
+
+# The target image file is produced by the linker in the selected image format,
+# and then a binary file is created from the target image file.
+
+BUILD_VERSION=-DBUILD_ASIC=\"$(ASIC)\" -DBUILD_TARGET=\"$(BUILD)\" -DBUILD_VER=\"$(VERSION)\"
+
+ifeq ($(USES_L4), yes)
+
+define MOD_ELF_HDR
+	$(MAKE) -C $(HEADERGEN) -f pboot_utils.mak mod_elf_flags
+	$(MOD_ELF_FLAGS) $(TARGET_NAME).$(EXETYPE) $(SCLFILE)
+endef
+
+define ELFWEAVER
+	@echo -------------------------------------------------------------------------
+#       Copy AMSS ELF to platform/l4/build_X directory and rename as .reloc file.
+	@if test ! -d $(L4_BASE_DIR)/$(AMSS_RELOC_DIR); then mkdir -p $(L4_BASE_DIR)/$(AMSS_RELOC_DIR); fi
+	@cp ./$(TARGET_NAME).$(EXETYPE) $(L4_BASE_DIR)/$(AMSS_RELOC_DIR)/$(TARGET).reloc
+	@chmod 0777 $(L4_BASE_DIR)/$(AMSS_RELOC_DIR)/$(TARGET).reloc
+#       Go to platform/l4 and run elfweaver.
+	@echo Running elfweaver...
+	@cd $(L4_BASE_DIR); tools/pyelf/elfweaver.exe merge -o build_$(BUILD_KCFG)/bootimg.pbn ../../products/7x30/build/ms/quartz_cfg_$(BUILD).xml --no-section-headers --physical-entry --map
+	@echo Patching quartz constants file...
+	@chmod 0777 quartz_constants_$(BUILD_KCFG).cmm
+	./patch_constants.pl -e $(L4_BASE_DIR)/build_$(BUILD_KCFG)/bootimg.pbn -i quartz_constants_$(BUILD_KCFG).cmm
+	@echo Done.
+	@echo -------------------------------------------------------------------------
+#ifeq ($(USES_MEM_USAGE_HTML), yes)
+	@echo MODEM MEMORY REPORT Generating now...
+	@$(MEM_HTML_REPORT)
+#endif
+endef
+
+define create_bsp_quartz
+	@echo #------------------------------------------------------------------
+	@echo Building BSP QUARTZ DISABLED.....
+	@echo #------------------------------------------------------------------
+endef
+
+define clean_bsp_quartz
+	@echo #------------------------------------------------------------------
+	@echo Cleaning BSP QUARTZ DISABLED.....
+	@echo #------------------------------------------------------------------
+endef
+
+endif
+
+
+# Several of the std_*.cmm scripts depend on the contents of the BuildProducts
+# file for proper operation.
+#
+# Always make the $(TARGET_NAME).elf last in the list
+# Also, the script looks for the "./products/7x00/build/ms/" directory
+# path, so would need to be changed if the path changes
+#
+# Contact Joe Chambers if any of these assumptions are broken.
+$(SRCROOT)/../../../BuildProducts.txt:
+	@echo Creating build-product specification file
+	@if test -f $@; then chmod +rwx $@; fi
+	@touch $@
+
+ifeq ($(USES_WPLT),yes)
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/partition.mbn  >> $@
+	@echo ./AMSS/products/7x30/drivers/flash/tools/src/nand/nand_tools.elf >> $@
+else
+ifneq ($(USES_STANDALONE_MODEM),yes)
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/apps.mbn  >> $@
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/appshd.mbn  >> $@
+ifneq ($(USES_SECBOOT),yes)
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/appsboot.mbn  >> $@
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/appsboothd.mbn  >> $@
+else
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/appsbl/appsboot.mbn  >> $@
+endif
+endif
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/partition.mbn  >> $@
+	@echo ./AMSS/products/7x30/drivers/flash/tools/src/nand/nand_tools.elf   >> $@
+endif
+ifneq ($(USES_SECBOOT),yes)
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/amsshd.mbn  >> $@
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/oemsbl.mbn  >> $@
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/oemsblhd.mbn  >> $@
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/qcsbl.mbn  >> $@
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/qcsblhd_cfgdata.mbn  >> $@
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/amss.mbn  >> $@
+else
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/amsshash/amss_hash.mbn  >> $@
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/nandprg/nandprg.mbn  >> $@
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/oemsbl/oemsbl.mbn  >> $@
+	@echo ./AMSS/products/7x30/build/ms/bin/$(MBNDIR)/qcsbl/qcsbl.mbn  >> $@
+endif
+	@echo ./AMSS/products/7x30/build/ms/$(TARGET_NAME).elf >> $@
+	@echo ./AMSS/products/7x30/build/ms/M76XX$(MBNDIR)A$(VERSION).elf >> $@
+
+cleanflashtools:
+	@echo    ... remove flash tools
+	@$(CLEAN_NAND_TOOLS_CMD)
+	@$(CLEAN_HOSTDL_NAND_CMD)
+
+#-------------------------------------------------------------------------------
+# Test target
+#-------------------------------------------------------------------------------
+
+# The flags and symbol definitions for the compiler, assembler and linker are
+# listed for makefile test purposes.
+
+
+#===============================================================================
+# Generate a list of define that come from the target and cust files (uses gnu cpp & sort)
+#===============================================================================
+#@echo $(ALL_INCLUDES) $(APPFLAGS)  $(DIRNAME)  -I"$(ARMINC)" $(BUILD_VERSION)
+#$(DMSS_CFLAGS) $(ALL_INCLUDES) $(DIRNAME) -I"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID)
+custdefs: ../../services/utils/target.h force.frc
+	@echo ------------------------------------------------------------------------
+	@echo $@
+	@cpp -dM -H $(DMSS_CFLAGS) $(COMPLETE_INCLUDES) $(DIRNAME) -I"$(ARMINC)"  $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $< | sort > custdefs.def
+	@echo ------------------------------------------------------------------------
+
+#===============================================================================
+# Generate the complete list of defines & FEATURES defined for a single c file. Also lists header file inclusion tree
+#          e.g. build TargetId -m ../../services/task/mobile.def
+#===============================================================================
+%.def: %.c force.frc
+	@echo ------------------------------------------------------------------------
+	@echo $@
+	@cpp -dM -H $(DMSS_CFLAGS) $(COMPLETE_INCLUDES) $(DIRNAME) -I"$(ARMINC)"  $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $< | sort > $@
+	@echo ------------------------------------------------------------------------
+
+test :
+	@echo AFLAGS      : $(AFLAGS)
+	@echo ------------------------------------------------------------------
+	@echo DMSS_AFLAGS : $(DMSS_AFLAGS)
+	@echo ------------------------------------------------------------------
+	@echo CFLAGS      : $(CFLAGS)
+	@echo ------------------------------------------------------------------
+	@echo CFLAGS0     : $(CFLAGS0)
+	@echo ------------------------------------------------------------------
+	@echo DMSS_CFLAGS : $(DMSS_CFLAGS)
+	@echo ------------------------------------------------------------------
+	@echo LFLAGS      : $(LFLAGS)
+	@echo ------------------------------------------------------------------
+	@echo ARMLIBS     : $(ARMLIBS)
+	@echo ------------------------------------------------------------------
+	@echo ARMAR	: $(ARMAR)
+	@echo ------------------------------------------------------------------
+	@echo ARMCC	: $(ARMCC)
+	@echo ------------------------------------------------------------------
+	@echo CC	  : $(CC)
+	@echo ------------------------------------------------------------------
+	@echo ASM	 : $(ASM)
+	@echo ------------------------------------------------------------------
+	@echo TARGETDIR   : $(TARGETDIR)
+	@echo ------------------------------------------------------------------
+	@echo QCTLIBS     : $(QCTLIBS)
+	@echo ------------------------------------------------------------------
+	@echo PREREQ_OBJ  : $(PREREQ_OBJS)
+	@echo ------------------------------------------------------------------
+	@echo OBJECTS redirected to $(OBJECT_LISTFILE)
+	@echo $(wordlist    1,   500, $(OBJECTS_INCLUDING_ODM)) | perl -p -e 'y/ /\n/'  > $(OBJECT_LISTFILE)
+	@echo $(wordlist  501,  1000, $(OBJECTS_INCLUDING_ODM)) | perl -p -e 'y/ /\n/' >> $(OBJECT_LISTFILE)
+	@echo $(wordlist 1001,  2000, $(OBJECTS_INCLUDING_ODM)) | perl -p -e 'y/ /\n/' >> $(OBJECT_LISTFILE)
+	@echo $(wordlist 2001, 2500, $(OBJECTS_INCLUDING_ODM)) | perl -p -e 'y/ /\n/' >> $(OBJECT_LISTFILE)
+	@echo $(wordlist 2501, 10000, $(OBJECTS_INCLUDING_ODM)) | perl -p -e 'y/ /\n/' >> $(OBJECT_LISTFILE)
+	@echo ------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Tools target
+#-------------------------------------------------------------------------------
+
+# The tool versions are listed.
+
+tools :
+	@echo ------------------------------------------------------------------------
+	@echo $(ARM_VERSION_BANNER)
+	@$(ARMCC) $(VER_FLAG)
+	@$(CC)    $(VER_FLAG)
+	@$(ASM)   $(VER_FLAG)
+	@echo ------------------------------------------------------------------------
+
+#pragma RUNLOCAL
+copy_bmp_cefs:
+ifeq ($(USES_BMP_CEFS), yes)
+	@echo ------------------------------------------------------------------
+	$(gen_bmp_cefs)
+	$(bmp_cefs)
+	@echo ------------------------------------------------------------------
+endif
+ 
+ifeq ($(USES_NAND8_2K_CFG_DATA),yes)
+define gen_bmp_cefs
+	@echo #------------------------------------------------------------------
+	@echo Generating NAND BMP CEFS image .....
+	@if test -f $(SRCROOT)/build/ms/gencefs.pl; then perl $(SRCROOT)/build/ms/gencefs.pl -o qvga -p 2048 -c 1318 -s 64; fi
+	@echo Done Generating BMP CEFS image 
+	@echo
+	@echo #------------------------------------------------------------------
+endef
+endif
+
+ifeq ($(USES_NAND16_2K_CFG_DATA),yes)
+define gen_bmp_cefs
+	@echo #------------------------------------------------------------------
+	@echo Generating OneNAND BMP CEFS image .....
+	@if test -f $(SRCROOT)/build/ms/gencefs.pl; then perl $(SRCROOT)/build/ms/gencefs.pl -o qvga -p 2048 -c 3366 -s 64; fi
+	@echo Done Generating BMP CEFS image 
+	@echo
+	@echo #------------------------------------------------------------------
+endef
+endif
+
+define bmp_cefs
+	@echo #------------------------------------------------------------------
+	@echo Copying BMP CEFS image .....
+	@if test ! -d $(BINPATH); then mkdir $(BINPATH); fi
+	@if test ! -d $(BINPATH)/$(MBNDIR); then mkdir $(BINPATH)/$(MBNDIR); fi
+	@cp $(SRCROOT)/build/ms/brewmp_cefs.mbn $(BINPATH)/$(MBNDIR)/brewmp_cefs.mbn
+	@mv $(SRCROOT)/build/ms/brewmp_cefs.mbn $(BINPATH)/$(MBNDIR)/cefs_apps.mbn
+	@echo Done Copying BMP CEFS image 
+	@echo
+	@echo #------------------------------------------------------------------
+endef
+
+#===============================================================================
+#			  DEFAULT SUFFIX RULES
+#===============================================================================
+
+# The following are the default suffix rules used to compile all objects that
+# are not specifically included in one of the module specific rules defined
+# in the next section.
+
+# The following macros are used to specify the output object file, MSG_FILE
+# symbol definition and input source file on the compile line in the rules
+# defined below.
+SRC_FILE = $(@:%.o=%.c)#			Input source file specification
+OBJ_FILE = $(OBJ_CMD) $(@)#		  Output obj file specification
+SRC_CFILE= $(notdir $(SRC_FILE))#	      C File of src without directory
+
+ifneq ($(USES_OBJECT_ONLY), yes)
+#-------------------------------------------------------------------------------
+# C, S, CPP code inference rules
+#-------------------------------------------------------------------------------
+
+
+ifeq ($(MEM_USAGE),yes)
+$(OBJDIR)/%.o: %.c
+	@echo ------------------------------------------------------------------------
+	@echo COLLECT $@ from SOURCE $<
+	@echo UNSORTED:: $(notdir $@) >> $(MEMLIST)
+	@echo ------------------------------------------------------------------------
+else
+ifeq ($(BUILD_UNIX),yes)
+$(OBJDIR)/%.o: %.c
+	@echo ------------------------------------------------------------------------
+	@echo Build OBJECT $@ from SOURCE $<
+	@thecc=`echo $(CC) | sed -e 's/@//g'` ; \
+	stop=0 ; \
+	while [ "$$stop" = "0" ] ; \
+	do \
+		msg=`$$thecc $(CFLAGS) $(DMSS_CFLAGS) $(COMPLETE_INCLUDES) $(DIRNAME) -I"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $(OBJ_CMD) $@ $< 2>&1` ; \
+		status=$$? ; \
+		if [ "$$status" != "0" ] ; then \
+			echo "Failed: Status $$status" ; \
+			echo "Message: $$msg" ; \
+			rfile=`echo $$msg | grep "could not open source file" | sed -e 's/\(.*could not open source file\).*"\(.*\)".*\(#include.*$$\)/\2/'` ; \
+			echo $$rfile ; \
+			if [ "$$rfile" = "" ] ; then \
+				echo "No file extracted" ; \
+				stop=1 ; \
+				exit 1 ; \
+			fi ; \
+			file=`echo $$rfile | sed -e 's/\\\\/\\//g'` ; \
+			echo $$file ; \
+			if [ "$$file" != "$$rfile" ] ; then \
+				echo "Change in separator" ; \
+				prfile=`echo $$rfile | sed -e 's/\\\\/\\\\\\\\/g'` ; \
+				pfile=`echo $$file | sed -e 's/\\//\\\\\\//g'` ; \
+				echo $$pfile ; \
+				echo $$prfile ; \
+				sed -i -e "s/$$prfile/$$pfile/g" $< ; \
+			else  \
+				ofile=`basename $@` ; \
+				sfile=$(DEPFILE) ; \
+				sfile=$(TARGETDIR)/$(TARGETDIR).dep ; \
+				echo $$ofile $< ; \
+				echo $(DEPFILE) ; \
+				echo $(TARGETDIR) ; \
+				echo $(TARGETDIR)/$(TARGETDIR).dep ; \
+				pattern=/`basename $$file | sed -e 's/\./\\\./g'`$$ ; \
+				opattern=`echo $$ofile | sed -e 's/\./\\\./g'` ; \
+				echo $$pattern $$opattern; \
+				dfile=`grep $$opattern $$sfile | grep -i "$$pattern" | awk '{ print $$2 }'` ; \
+				echo $$dfile ; \
+				if [ "$$dfile" = "" ] ; then \
+					echo "No dependecy file found." ; \
+					dirfilter=`echo $< | sed -e 's/\(\.\.\/\.\.\/\)\([a-zA-Z]*\/[a-zA-Z]*\)\(\/.*\)/\2/'` ; \
+					echo $$dirfilter ; \
+					echo $$file ; \
+					bidfile=`find ../.. | grep -i /$$file$$` ; \
+					if [ "$$bidfile" = "" ] ; then \
+						echo "No bid file found." ; \
+						stop=1 ; \
+						exit 1 ; \
+					else \
+						echo "Found bid file $$bidfile." ; \
+						dbidfile=`echo $$bidfile | awk '{ print $$1 }'` ; \
+						if [ "$$dbidfile" != "" -a "$$dbidfile" != "$$bidfile" ] ; then \
+							echo "Using $$dbidfile" ; \
+							bidfile=$$dbidfile ; \
+						fi ; \
+						ldir=`echo $$file | sed -e 's/\(.*\)\(\/[a-zA-Z\.]*\)/\1/'` ; \
+						echo $$ldir ; \
+						if [ "$$ldir" != "$$file" ] ; then \
+							mkdir -p $$ldir ; \
+							bidfile=../$$bidfile ; \
+						fi ; \
+						ln -s $$bidfile $$file ; \
+					fi ; \
+				else \
+					dfile=`echo $$dfile | sed -e 's/\$$(UI)/\.\.\/\.\.\/apps\/core/g'` ; \
+					echo $$dfile ; \
+					lfile=`basename $$file` ; \
+					ln -s $$dfile $$lfile ; \
+				fi ; \
+			fi ; \
+		else  \
+			stop=1 ; \
+		fi ; \
+	done
+	@echo ------------------------------------------------------------------------
+else
+$(OBJDIR)/%.o: %.c
+	@echo ------------------------------------------------------------------------
+	@echo Build OBJECT $@ from SOURCE $<
+	$(CC) $(CFLAGS) $(DMSS_CFLAGS) $(ALL_INCLUDES) $(DIRNAME) $(QCC_PATHS) -I"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $(OBJ_CMD) $@ $<
+	@echo ------------------------------------------------------------------------
+
+$(LIBDIR)/%.o: %.c
+	@echo ------------------------------------------------------------------------
+	@echo Build OBJECT $@ from SOURCE $<
+	$(CC) $(CFLAGS) $(DMSS_CFLAGS) $(ALL_INCLUDES) $(DIRNAME) $(QCC_PATHS) -I"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $(OBJ_CMD) $@ $<
+	@echo ------------------------------------------------------------------------
+
+endif
+endif
+
+#-------------------------------------------------------------------------------
+# C++ code inference rules
+#-------------------------------------------------------------------------------
+ifeq ($(MEM_USAGE),yes)
+$(OBJDIR)/%.o: %.cpp
+	@echo ------------------------------------------------------------------------
+	@echo COLLECT $@
+	@echo UNSORTED:: $(notdir $@) >> $(MEMLIST)
+	@echo ------------------------------------------------------------------------
+else
+$(OBJDIR)/%.o: %.cpp
+	@echo ------------------------------------------------------------------------
+	@echo Build OBJECT $@ from SOURCE $<
+	$(TCPP) $(CFLAGS) $(DMSS_CFLAGS) $(ALL_INCLUDES) $(DIRNAME) $(QCC_PATHS) -I"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $(OBJ_CMD) $@ $<
+	@echo ------------------------------------------------------------------------
+endif
+
+#-------------------------------------------------------------------------------
+# Assembly code inference rules
+#-------------------------------------------------------------------------------
+
+ifeq ($(MEM_USAGE),yes)
+$(OBJDIR)/%.o: %.s
+	@echo ------------------------------------------------------------------------
+	@echo COLLECT $@
+	@echo UNSORTED:: $(notdir $@) >> $(MEMLIST)
+	@echo ------------------------------------------------------------------------
+else
+$(OBJDIR)/%.o %.o: %.s
+	@echo ------------------------------------------------------------------------
+	@echo Build OBJECT $@ from SOURCE $<
+	$(CC) -E $(DMSS_AFLAGS)  $(ALL_INCLUDES) $(QCC_PATHS) < $< | $(PPASM) - > $(OBJDIR)/$*.i
+	$(ASM) $(AFLAGS) --list $(OBJDIR)/$*.lst $(OBJDIR)/$*.i $(OBJ_CMD) $@
+	@echo ------------------------------------------------------------------------
+endif
+
+#-------------------------------------------------------------------------------
+# Mixed source/assembly inference rule
+#-------------------------------------------------------------------------------
+$(OBJDIR)/%.mix: %.c
+	@echo ------------------------------------------------------------------------
+	@echo OBJECT $@ CV
+	$(CC) -S -fs $(CFLAGS) $(DMSS_CFLAGS)  $(ALL_INCLUDES) $(DIRNAME) $(QCC_PATHS) -I"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $(OBJ_CMD) $@ $<
+	@echo ------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Preprocess c file.
+#-------------------------------------------------------------------------------
+$(OBJDIR)/%.i: %.c
+	@echo ------------------------------------------------------------------------
+	@echo Preprocess $< into $@
+	$(CC) -E $(CFLAGS) $(DMSS_CFLAGS)  $(ALL_INCLUDES) $(DIRNAME) $(QCC_PATHS) -I"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $(OBJ_CMD) $@ $<
+	@echo ------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Preprocess cpp file.
+#-------------------------------------------------------------------------------
+$(OBJDIR)/%.i: %.cpp
+	@echo ------------------------------------------------------------------------
+	@echo Preprocess $< into $@
+	$(TCPP) -E $(CFLAGS) $(DMSS_CFLAGS)  $(ALL_INCLUDES) $(DIRNAME) $(QCC_PATHS) -I"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $(OBJ_CMD) $@ $<
+	@echo ------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# State machine build inference rules
+#-------------------------------------------------------------------------------
+$(STM_OBJDIR)/%.smt: %.smf
+	@echo ------------------------------------------------------------------------
+	@echo STATE MACHINE $*
+	$(CC) $(CFLAGS) $(DMSS_CFLAGS)  $(ALL_INCLUDES) $(QCC_PATHS) -I"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) -E $< | $(SMCOMP) -t -b $* -d $(STM_OBJDIR)
+	@echo ------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# BREW resource file inference rules
+#-------------------------------------------------------------------------------
+$(COREAPP)/%_res.txt: %.bar
+	@echo ------------------------------------------------------------------------
+	@echo BREW RESOURCE FILE $(notdir $<)
+	@if test -f $@; then rm -f $@;fi
+	@$(B2A) $< > $@
+	@echo ------------------------------------------------------------------------
+
+$(COREAPP)/%_qcp.txt: %.qcp
+	@echo ------------------------------------------------------------------------
+	@echo BREW RESOURCE FILE $(notdir $<)
+	@if test -f $@; then rm -f $@;fi
+	@$(B2A) $< > $@
+	@echo ------------------------------------------------------------------------
+
+endif
+
+# if USES_OBJECT_ONLY == yes
+
+#-------------------------------------------------------------------------------
+# Lint rules
+#-------------------------------------------------------------------------------
+
+# Portions of the L4 header files depend on the value of the ARM variable
+# __ARMCC_VERSION.  When we are linting, that variable is not set.  We pass
+# that define in as 'set', but with no particular value, to allow the lint to
+# make the appropriate selection of architecture.
+ifeq ($(USES_L4), yes)
+CUSTOM_LINT_FLAGS = -D__ARMCC_VERSION
+endif
+
+# Setup target for Lint
+# - gathers the includes, flags, defines for the build and dumps to
+#   a build specific file
+# - build specific .lnt file is then used by lint rules passing this
+#   info to lint
+#
+lint_setup: prereqs firmware $(LINTDIR)/exist
+	@echo $(DMSS_CFLAGS) $(COMPLETE_INCLUDES) -i"$(ARMINC)" $(BUILD_VERSION) $(APPFLAGS) $(MSG_BT_SSID) $(CUSTOM_LINT_FLAGS) > $(LINT_CONFIG_FILE).raw
+	@perl -e "while (<>) { s/ /\n/g; print $_ }" < $(LINT_CONFIG_FILE).raw > $(LINT_CONFIG_FILE)
+
+#===============================================================================
+#			  MODULE SPECIFIC RULES
+#===============================================================================
+# The following module specific rules allow sets of objects to be compiled
+# with compiler flags other than the defaults used in the suffix rules defined
+# above.  The following rules use the module specific compiler flags defined
+# at the beginning of this file.  New objects can be added to any of the
+# following rules by modifying the corresponding list of objects.
+
+
+#===============================================================================
+#			    LOADEFS Directory Construction
+#===============================================================================
+copybar: $(TARGETDIR)/exist
+	@if test ! -d $(LOADEFSDIR); then mkdir $(LOADEFSDIR); fi
+	@if test ! -d $(LOADEFSDIR)/qcam; then mkdir $(LOADEFSDIR)/qcam; fi
+	@rm -rf $(LOADEFSDIR)/qcam/*
+	@if test ! -d $(LOADEFSDIR)/qcam/snd; then mkdir $(LOADEFSDIR)/qcam/snd; fi
+	@if test ! -d $(LOADEFSDIR)/qcam/frm; then mkdir $(LOADEFSDIR)/qcam/frm; fi
+	@rm -rf $(LOADEFSDIR)/*.bar
+	@rm -rf $(LOADEFSDIR)/*.mid
+	@rm -rf $(LOADEFSDIR)/*.qcf
+	@rm -rf $(LOADEFSDIR)/*.qcp
+	@rm -rf $(LOADEFSDIR)/*.q3d
+	@rm -rf $(LOADEFSDIR)/*.png
+	@cp ../../apps/MediaPlayer/resources/en/256color/mediaplayer.bar $(LOADEFSDIR)
+	@cp ../../multimedia/camera/apps/qcamera/resources/inc/qcamera.bar $(LOADEFSDIR)
+
+
+force.frc:
+
+sources:

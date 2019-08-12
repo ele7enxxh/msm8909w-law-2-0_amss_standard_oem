@@ -1,0 +1,34 @@
+#-------------------------------------------------------------------------------
+# RDEVMAP
+#-------------------------------------------------------------------------------
+
+RDEVMAP_SOURCES=\
+        sdevmap.c
+
+# for 8200 Target family
+ifeq ($(MSM_ID), $(filter $(MSM_ID), 8200 8200A))
+  ifeq ($(USES_QDSP6), yes)
+    RDEVMAP_SOURCES += rdevmap.c
+  endif
+else    
+# for all other targets  
+ifeq ($(IMAGE), APPS_PROC)
+  ifeq ($(USES_STANDALONE),yes)
+# for single proc targets
+	  RDEVMAP_SOURCES += rdevmap.c
+  endif
+else
+    RDEVMAP_SOURCES += rdevmap.c
+endif
+endif
+
+vpath %.c $(RDEVMAP)
+
+ifeq ($(BIG),yes)
+    RDEVMAP_OBJS := $(TARGETDIR)/rdevmap.lib
+else
+    RDEVMAP_OBJS :=  $(addprefix $(TARGETDIR)/, $(RDEVMAP_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/rdevmap.lib : $(RDEVMAP_SOURCES)
+	$(group_c_compile)

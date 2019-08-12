@@ -1,0 +1,145 @@
+LOCAL &OpT32File
+LOCAL &OpPlFile
+
+local  &iNext
+local &HeapAlign
+local  &iPrev
+local  &lastflag
+local  &freeflag
+local &prev_node 
+local &curr_node
+local &curr_heap_mem
+
+&lastflag=0
+
+ENTRY &HeapVar &OpDir
+
+Area.Reset
+Area.Create ST 200. 1000.       ;create an AREA window              
+Area.Select ST                  ;select the AREA window as PRACTICE 
+                                ;input/output window                
+Area ST                         ;display the AREA window            
+
+print "Heap Walker v 1.0"
+print "-----------------"
+
+
+if ("&HeapVar"=="")
+(
+        print "Enter the heap variable to be parsed:"
+        enter &HeapVar
+)
+
+&MemHeapTypeSize=0
+
+if ("&OpDir"=="")
+(
+        print "Please enter the directory where the results should be stored"
+        dialog.dir *.*
+        ENTRY &OpDir
+)
+
+if ("&OpDir"=="")
+(
+        print "Output Dir not chosen.. Bailing Out...."
+        enddo
+)
+
+&OpT32File="&OpDir\"+"&HeapVar"+"_MemBlkList.txt" ;
+&OpPlFile="&OpDir\"+"&HeapVar"+"_MemCost.txt"
+print "1. Walking through the heap"
+gosub walkHeap &HeapVar &OpDir
+print "2. Running the Parser"
+gosub ProcHeap &OpT32File &OpPlFile
+print "3. Exit"
+enddo
+
+walkHeap:
+ENTRY &HeapVar &OpDir
+
+; Initialize the heap buffer pointer
+  &curr_heap_mem=V.VALUE((&HeapVar)->pFirstNode)
+  &curr_heap_end=V.VALUE((&HeapVar)->pLastNode)
+  &curr_heap_mask=V.VALUE((&HeapVar)->iMask)
+  &HeapMemBuffer=Y.NAME(D:&curr_heap_mem)
+  &HeapAlign=3
+ 
+  OPEN #1 &OpT32File /Create 
+
+; Important : Don't change this header! Used by Parser as is.
+
+  WRITE #1 "Blocks List Report" 
+  WRITE #1 "------------------"
+  WRITE #1 "Version             : &CMMVERSION"  
+  WRITE #1 "Heap State Variable : &HeapVar"
+  WRITE #1 "Heap Buffer         : &HeapMemBuffer"
+  WRITE #1 "  "
+  WRITE #1 "Block No       Address   Allocated   Extra  Free      Last"
+  WRITE #1 "                         Bytes       Bytes    Flag    Flag"
+  WRITE #1 "=========================================================================================================================="
+
+
+  &count=1
+  &writestring="" 
+  &size=0
+  &prev_node=&curr_heap_mem
+  &curr_node=&curr_heap_mem
+
+
+  while (&lastflag!=0x01) 
+  (
+    ; First get and validate the node
+    &iNext= V.VALUE(((HeapNode *)&curr_node)->iNext)^&curr_heap_mask;
+    &iPrev= V.VALUE(((HeapNode *)&curr_node)->iPrev)^&curr_heap_mask;
+    ;&freeflag=(&iNext&(0x01)==0);
+    &usedflag=&iNext&0x01
+    if (&usedflag==0x0)
+      &freeflag=1
+    else 
+      &freeflag=0
+    &iNext=&iNext&(~0x3)
+
+    &curr_addr= &curr_node+V.VALUE(sizeof(HeapNode))
+
+    ; Validate Node Pointers
+    if ((((&iPrev)&(&HeapAlign))!=0)||((&iNext!=0x0)&&(&iNext<&curr_node))||(&iNext>&curr_heap_end)||(&iPrev<&curr_heap_mem)||((&iPrev!=&curr_heap_end)&&(&iPrev>&curr_node))) 
+    (
+      &count=&count-1
+      print "Heap Corruption Detected!!";
+      print "Possible Overflown Block              : "+format.DECIMAL(8.,&count);
+      print "Overflown Block's Header address      : &prev_node";   
+      print "Size allocated to the Overflown Block : "+format.DECIMAL(8., &size);
+      print "Aborting the script"
+      CLOSE #1
+      enddo
+    )
+
+    if (&curr_node==&curr_heap_end)
+      &lastflag=0x01
+
+    &curr_addr=&curr_node+V.VALUE(sizeof(HeapNode))
+    if (&iNext!=0x0)
+      &size=&iNext-&curr_addr
+    else 
+      &size=0
+    &extrabytes=0
+
+    &writestring=format.DECIMAL(8.,&count)
+    &writestring="&writestring"+"    0x"+format.HEX(8., &curr_node)  
+    &writestring="&writestring"+"   "+format.DECIMAL(8., &size)
+    &writestring="&writestring"+format.DECIMAL(8., &extrabytes)
+    &writestring="&writestring"+"  0x"+format.HEX(2., &freeflag)
+    &writestring="&writestring"+"  0x"+format.HEX(2., &lastflag)
+    WRITE #1 "&writestring"
+
+    &prev_node=&curr_node
+    &curr_node=&iNext
+    &count=&count+1;
+  )
+
+
+  close #1
+  enddo
+  ;return ;End of walkHeap
+
+

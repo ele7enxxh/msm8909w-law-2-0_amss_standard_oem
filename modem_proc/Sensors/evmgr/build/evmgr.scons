@@ -1,0 +1,155 @@
+#===============================================================================
+#
+# EVMGR Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/Sensors/evmgr/build/evmgr.scons#1 $
+#  $DateTime: 2016/12/13 08:00:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985213 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/10/2014  MW     Fixed HD22 section
+# 05/29/2014  pn     Restructured to fix libraries with overlapping objects
+# 04/04/2014  MW     Added SENSORS_DD_DEV_FLAG for HD22
+# 12/02/2012  ag     Add multi PD support
+# 04/25/2011  jh     Updated path for DAL timer include files
+# 01/28/2011  ag     Updated to handle change in debug folder
+# 12/22/2010  pg     Update for accessing UCOS header files from DALSYS. 
+# 2010-11-30  ad     added dependency on math tools
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/evmgr/src"
+
+#if not env.SubstPathExists(SRCPATH):
+#   # Legay Path
+#   SRCPATH = "${BUILD_ROOT}/sensors/dsps"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+env.Append(CPPDEFINES = ["DAL_NATIVE_PLATFORM"])
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+  ])
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'SYSTEMDRIVERS',
+   'HWIO',
+   'HWIO_API',
+   'SERVICES',
+   'BUSES',
+    # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequireExternalApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+DAL_UCOS_API = [
+   'DAL',
+]
+env.RequireRestrictedApi(DAL_UCOS_API)
+env.RequirePublicApi(DAL_UCOS_API)
+
+env.UsesInc([
+   "${HWIO}",
+   "${HWIO_API}",
+])
+
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/debug/inc",
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/elite/common/qurt_elite/inc",
+#Guru , above one has been added
+   "${BUILD_ROOT}/core/dal/drivers/Timer/src/dsps",
+   "${BUILD_ROOT}/core/api/services",
+   "${BUILD_ROOT}/core/api/systemdrivers",
+])
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SNS_SERVICES_SOURCES = [
+  '${BUILDPATH}/sns_em.c',
+  ]
+
+SNS_SERVICES_SOURCES_UIMG = [
+  '${BUILDPATH}/sns_uimg_em.c',
+  ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+
+   # Sources that should not be shared
+   EVMGR_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/evmgr/src')
+   EVMGR_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/evmgr/src')
+	
+   # Add binary library
+   sns_services_lib = env.AddBinaryLibrary(
+     ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+     '${BUILDPATH}/evmgr', SNS_SERVICES_SOURCES)
+   sns_services_uimg_lib = env.AddBinaryLibrary(
+     ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+     '${BUILDPATH}/evmgr_uimg', SNS_SERVICES_SOURCES_UIMG)
+	
+   # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+   EVMGR_CLEAN_SOURCES)
+else:
+   sns_services_lib = env.AddLibrary(
+     ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+     '${BUILDPATH}/evmgr', SNS_SERVICES_SOURCES)
+   sns_services_uimg_lib = env.AddLibrary(
+     ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+     '${BUILDPATH}/evmgr_uimg', SNS_SERVICES_SOURCES_UIMG)
+
+# Clause common to regular build and HD22   
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary(['CORE_QDSP6_SENSOR_SW'], sns_services_uimg_lib)
+
+
+                 

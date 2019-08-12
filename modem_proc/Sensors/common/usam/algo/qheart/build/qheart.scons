@@ -1,0 +1,128 @@
+#===============================================================================
+#
+# Heart Rate (QHeart) Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014-2016 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/Sensors/common/usam/algo/qheart/build/qheart.scons#1 $
+#  $DateTime: 2016/12/13 08:00:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985213 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06-19-15    kl     algo is moved from sam1.0 to sam 2.0
+# 07-14-14    ks     initial version
+#===============================================================================
+Import('env')
+from glob import glob
+from os.path import join, basename
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/Sensors/common/usam/algo/qheart/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+#CBSP_API = [
+#   'DAL',
+#   'MPROC',
+#]
+
+#env.RequirePublicApi(CBSP_API, area='core')
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+#DAL_UCOS_API = [
+#   'DAL',
+#]
+#env.RequireRestrictedApi(DAL_UCOS_API)
+#env.RequirePublicApi(DAL_UCOS_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+#SENSORS_API = [
+#   'SNS_SMR',
+#   'SNS_MEMMGR',
+#   'SNS_EVMGR',
+#   'SNS_COMMON',
+#   'SNS_DEBUG_DSPS',
+#   'SNS_INT_SRVC'
+#]
+
+#env.RequireRestrictedApi(SENSORS_API)
+
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/idl/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/circbuffer/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+# "${BUILD_ROOT}/Sensors/common/sam/framework/inc/",
+# "${BUILD_ROOT}/Sensors/common/sam/algo/common/inc",
+# "${BUILD_ROOT}/Sensors/debug/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/algo/qheart/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/framework/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/util/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+  ])
+
+#--TEMP
+#env.Append(CPPPATH = [
+#   "${BUILD_ROOT}/core/mproc/qmi/src/qcci",
+#   "${BUILD_ROOT}/core/mproc/qmi/src/qcsi",
+#   "${BUILD_ROOT}/core/mproc/qmi/src/common",
+#   ])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+QHEART_SOURCES = [
+      '${BUILDPATH}/calc_hr.c',
+#    '${BUILDPATH}/circular_buffer.c',
+#    '${BUILDPATH}/fixed_point.c',
+      '${BUILDPATH}/float_util.c',
+      '${BUILDPATH}/hr.c',
+      '${BUILDPATH}/hr_msg.c',
+      '${BUILDPATH}/hr_calc_fft.c',
+      '${BUILDPATH}/hr_harm.c',
+      '${BUILDPATH}/hr_prep.c',
+      '${BUILDPATH}/hr_outliers.c',
+      '${BUILDPATH}/matrix.c',
+      '${BUILDPATH}/hr_dump.c',
+   ]
+   
+algoqheart_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+                                    '${BUILDPATH}/sam_algo_qheart',
+                                    QHEART_SOURCES)
+
+# Sources and headers that should not be shared
+QHEART_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/common/usam/algo/qheart/src')
+QHEART_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/usam/algo/qheart/inc')
+	
+# Clean sources
+env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], QHEART_CLEAN_SOURCES)			
+	

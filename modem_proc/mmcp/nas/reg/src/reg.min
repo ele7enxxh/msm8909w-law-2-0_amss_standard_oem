@@ -1,0 +1,60 @@
+#-------------------------------------------------------------------------------
+# REG
+#-------------------------------------------------------------------------------
+
+REG_SOURCES=\
+            reg_cm.c       \
+            reg_log.c       \
+            reg_mm.c        \
+            reg_mode.c        \
+            reg_mode_automatic_plmn_selection.c        \
+            reg_mode_higher_priority_plmn_selection.c        \
+            reg_mode_limited_service.c        \
+            reg_mode_manual_plmn_selection.c        \
+            reg_mode_plmn_selection.c        \
+            reg_nv.c        \
+            reg_send.c        \
+            reg_sim.c        \
+	    reg_ecall.c      \
+            reg_state.c        \
+            reg_state_automatic_search.c        \
+            reg_state_deregistering.c        \
+            reg_state_idle.c        \
+            reg_state_inactive.c        \
+            reg_state_manual_search.c        \
+            reg_state_offline.c        \
+            reg_state_registering.c        \
+            reg_task.c        \
+            reg_timers.c
+             
+REG_CINCPATH=\
+             $(REG)          \
+             $(CNM)           \
+             $(RRC)           \
+             $(UIM)           \
+             $(GSDI)          \
+             $(CUST)          \
+	     $(DIAG)          \
+             $(REG)           \
+             $(REX)           \
+             $(MM)            \
+             $(MN)            \
+             $(TASK)          \
+             $(NV)            \
+             $(CM)            \
+             $(SM)            \
+             $(RABM)          \
+             $(CLK)           \
+             $(TRAMP)         \
+             $(RF)            \
+             $(HW)            \
+             $(SD)            \
+             $(UTILS)
+
+REG_OBJS :=  $(addprefix $(TARGETDIR)/, $(REG_SOURCES:%.c=%.o))
+$(REG_OBJS): INCLUDES = $(addprefix -I, $(REG_CINCPATH))
+$(REG_OBJS): CFLAGS := $(CFLAGS) -DFEATURE_6200_COMPATIBILITY
+REG_DEPS :=  $(addprefix $(TARGETDIR)/, $(REG_SOURCES:%.c=%.dep))
+$(REG_DEPS): INCLUDES = $(addprefix -I, $(REG_CINCPATH))
+vpath %.c $(REG)
+

@@ -1,0 +1,82 @@
+#===============================================================================
+#
+#                             Edit History
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsee/services/ssd/build/SConscript#1 $
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011/07/12   spa     Create initial version
+#
+#===============================================================================
+#                    Copyright (c) 2013 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+# QSEE Lib
+#-------------------------------------------------------------------------------
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/services/ssd/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('TZSSD', [
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/services/ssd/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/services/ks/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+   'SERVICES',                    #< comdef.h
+#   'DAL',                         #< HALcomdef.h
+#   'SYSTEMDRIVERS'                #< HALhwio.h
+])
+
+env.RequireProtectedApi(['CRYPTODRIVERS'])
+
+env.RequireRestrictedApi([
+   'TZSSD',
+   'TZIMGAUTH',
+   'TZCHIPSET',                   #< tzbsp_memory_map.h
+   'TZLIBARMV7',
+   'BOOT',                        #< boot_comdef.h
+   'SECUREMSM',                   #< secmath.h
+   'TZKS',                        #< tz_ks.h
+   'TZCRYPTO',                    #< tzbsp_hash.h (needed for tz_ks.h)
+])
+
+env.Append(CPPPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/services/ks/inc")
+
+print env
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+env.Append(ASFLAGS = " --diag_suppress=1786,2523 ")
+env.Append(CCFLAGS = "--gnu")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+if env['tzbsp_with_ssd'] == 1:
+  SOURCES = [ '${BUILDPATH}/tz_ssd_ns.c',
+              '${BUILDPATH}/tz_ssd_s.c',
+              '${BUILDPATH}/tz_ssd_i.c',
+              '${BUILDPATH}/tz_ssd_md_parser.c',
+  ]
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_ssd', SOURCES)
+
+
+

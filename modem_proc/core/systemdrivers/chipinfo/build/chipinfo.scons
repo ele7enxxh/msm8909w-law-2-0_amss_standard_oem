@@ -1,0 +1,82 @@
+#===============================================================================
+#
+# CHIP INFO LIBRARY
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2014 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/chipinfo/build/chipinfo.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/systemdrivers/chipinfo/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+env.RequireExternalApi([
+   'CS'        # AEEStd.h
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',
+
+   # Must be last due to comdef.h issues
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Define sources
+#-------------------------------------------------------------------------------
+
+CHIPINFO_SOURCES = [
+   '${BUILDPATH}/DalChipInfo.c',
+   '${BUILDPATH}/DalChipInfoInfo.c',
+   '${BUILDPATH}/DalChipInfoFwk.c',
+   '${BUILDPATH}/DalChipInfoLocal.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(
+   ['CORE_MODEM'],
+  '${BUILDPATH}/DalChipInfo',
+  CHIPINFO_SOURCES )
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      'soc_xml' : ['${BUILD_ROOT}/core/systemdrivers/chipinfo/config/DalChipInfo.xml']
+   })

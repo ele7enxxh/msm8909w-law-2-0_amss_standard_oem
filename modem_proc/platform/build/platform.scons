@@ -1,0 +1,37 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+import os
+
+platform_root = '${BUILD_ROOT}/platform'
+env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+if os.environ.get('HEXAGON_RTOS_RELEASE').startswith('8'):
+    env.Append(HEXAGON_WARN = " -Werror -Wno-empty-body")
+else:
+    env.Append(HEXAGON_WARN = " -Werror")
+
+#Remove platform folder if not used
+if 'USES_NO_PLATFORM' in env:
+   if 'CLEANPACK_TARGET' in env:
+      env.PrintInfo("Removing platform folder")
+      CLEAN_FILES= env.FindFiles(['*'], platform_root)
+      env.CleanPack(['CLEANPACK_TARGET'], CLEAN_FILES)
+      Return()
+   else: #if cleanpack is not defined and USES_NO_PLATFORM is defined, then return
+      env.PrintInfo("Returning from platform")
+      Return()
+	  
+env.LoadSoftwareUnits()
+
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*txt', '*.html'], '${ADSP_PLATFORM_ROOT}/qaic'))
+CLEAN_LIST.extend(env.FindFiles('*', '${ADSP_PLATFORM_ROOT}/qaic/Linux_DoNotShip'))
+CLEAN_LIST.extend(env.FindFiles('*', '${ADSP_PLATFORM_ROOT}/tools'))
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h'], '${ADSP_PLATFORM_ROOT}/pls'))
+CLEAN_LIST.extend(env.FindFiles(['dynsymbols.lst', 'externs.lst'], '${ADSP_PLATFORM_ROOT}/exports'))
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h'], '${ADSP_PLATFORM_ROOT}/pls'))
+
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)

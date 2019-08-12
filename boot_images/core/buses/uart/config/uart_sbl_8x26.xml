@@ -1,0 +1,150 @@
+<!-- ================================================================================================== -->
+<!-- GPIO configs.                                                                                      -->
+<!--                                                                                                    -->
+<!-- Source:  IP Catalog                                                                                -->
+<!-- ================================================================================================== -->
+<!--
+
+     BLSP_UART1_TX_DATA     DAL_GPIO_CFG(  0, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART1_RX_DATA     DAL_GPIO_CFG(  1, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART1_CTS_N       DAL_GPIO_CFG(  2, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART1_RFR_N       DAL_GPIO_CFG(  3, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+     BLSP_UART2_TX_DATA     DAL_GPIO_CFG(  4, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART2_RX_DATA     DAL_GPIO_CFG(  5, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART2_CTS_N       DAL_GPIO_CFG(  6, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART2_RFR_N       DAL_GPIO_CFG(  7, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+     BLSP_UART3_TX_DATA     DAL_GPIO_CFG(  8, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART3_RX_DATA     DAL_GPIO_CFG(  9, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART3_CTS_N       DAL_GPIO_CFG( 10, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART3_RFR_N       DAL_GPIO_CFG( 11, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+     BLSP_UART4_TX_DATA     DAL_GPIO_CFG( 12, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART4_RX_DATA     DAL_GPIO_CFG( 13, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART4_CTS_N       DAL_GPIO_CFG( 14, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART4_RFR_N       DAL_GPIO_CFG( 15, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+     BLSP_UART5_TX_DATA     DAL_GPIO_CFG( 16, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART5_RX_DATA     DAL_GPIO_CFG( 17, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART5_CTS_N       DAL_GPIO_CFG( 18, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART5_RFR_N       DAL_GPIO_CFG( 19, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+     BLSP_UART6_TX_DATA     DAL_GPIO_CFG( 20, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART6_RX_DATA     DAL_GPIO_CFG( 21, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART6_CTS_N       DAL_GPIO_CFG( 22, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART6_RFR_N       DAL_GPIO_CFG( 23, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+======================================================================================================= -->
+
+<driver name="NULL">
+
+  <global_def>
+    <string name="UART_PHY_DEVICE_1"      type=DALPROP_DATA_TYPE_STRING> /core/buses/uart/1  </string>
+    <string name="UART_PHY_DEVICE_2"      type=DALPROP_DATA_TYPE_STRING> /core/buses/uart/2  </string>
+    <string name="UART_PHY_DEVICE_3"      type=DALPROP_DATA_TYPE_STRING> /core/buses/uart/3  </string>
+    <string name="UART_PHY_DEVICE_4"      type=DALPROP_DATA_TYPE_STRING> /core/buses/uart/4  </string>
+    <string name="UART_PHY_DEVICE_5"      type=DALPROP_DATA_TYPE_STRING> /core/buses/uart/5  </string>
+    <string name="UART_PHY_DEVICE_6"      type=DALPROP_DATA_TYPE_STRING> /core/buses/uart/6  </string>
+  </global_def>
+
+  <!-- =================================================================== -->
+  <!-- TARGET SPECIFIC UART PROPERTIES                                  -->
+  <!-- =================================================================== -->
+  <device id="/core/buses/uart">
+      <props name="UartMainPortPhy"  type=DALPROP_ATTR_TYPE_STRING_PTR>  UART_PHY_DEVICE_3 </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UART1                                                            -->
+  <!-- =================================================================== -->
+
+  <device id="/core/buses/uart/1">
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008012           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c002           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c032           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x20008022           </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0xf991d000           </props>
+    <props name="IsLoopback"     type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="BitRate"        type=DALPROP_ATTR_TYPE_UINT32>         115200               </props>
+    <props name="ClockIdIndex"   type=DALPROP_ATTR_TYPE_UINT32>         1                    </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UART2                                                            -->
+  <!-- =================================================================== -->
+
+  <device id="/core/buses/uart/2">
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008052           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c042           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c072           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x20008062           </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0xf991e000           </props>
+    <props name="IsLoopback"     type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="BitRate"        type=DALPROP_ATTR_TYPE_UINT32>         115200               </props>
+    <props name="ClockIdIndex"   type=DALPROP_ATTR_TYPE_UINT32>         2                    </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UART3                                                            -->
+  <!-- =================================================================== -->
+
+  <device id="/core/buses/uart/3">
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008092           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c082           </props>
+    <!-- On CDPs, the flow control lines are not routed and SBL UART driver does not support flow control.
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c0b2           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x200080a2           </props>
+    -->
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0xf991f000           </props>
+    <props name="IsLoopback"     type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="BitRate"        type=DALPROP_ATTR_TYPE_UINT32>         115200               </props>
+    <props name="ClockIdIndex"   type=DALPROP_ATTR_TYPE_UINT32>         3                    </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UART4                                                            -->
+  <!-- =================================================================== -->
+
+  <device id="/core/buses/uart/4">
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x200080d2           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c0c2           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c0f2           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x200080e2           </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0xf9920000           </props>
+    <props name="IsLoopback"     type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="BitRate"        type=DALPROP_ATTR_TYPE_UINT32>         115200               </props>
+    <props name="ClockIdIndex"   type=DALPROP_ATTR_TYPE_UINT32>         4                    </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UART5                                                            -->
+  <!-- =================================================================== -->
+
+  <device id="/core/buses/uart/5">
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008112           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c102           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c132           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x20008122           </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0xf9921000           </props>
+    <props name="IsLoopback"     type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="BitRate"        type=DALPROP_ATTR_TYPE_UINT32>         115200               </props>
+    <props name="ClockIdIndex"   type=DALPROP_ATTR_TYPE_UINT32>         5                    </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UART6                                                            -->
+  <!-- =================================================================== -->
+
+  <device id="/core/buses/uart/6">
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008152           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c142           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c172           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x20008162           </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0xf9922000           </props>
+    <props name="IsLoopback"     type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="BitRate"        type=DALPROP_ATTR_TYPE_UINT32>         115200               </props>
+    <props name="ClockIdIndex"   type=DALPROP_ATTR_TYPE_UINT32>         6                    </props>
+  </device>
+
+</driver>

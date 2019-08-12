@@ -1,0 +1,136 @@
+#===============================================================================
+#
+# Core AU
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/scmm/main/latest/hwengines/build/SConscript#5 $
+#  $DateTime: 2009/07/01 15:26:14 $
+#  $Author: wduembeg $
+#  $Change: 956532 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#12/20/12   adit     Updated RequirePublicApi for QMIMSGS  3698-6829
+#02/11/14	c_suvarn LLVM support added
+#===============================================================================
+Import('env')
+if env['CHIPSET'] in ['mdm9609']:
+	env.Replace(CHIPSET = 'msm8909')
+
+import os
+import copy
+orig_env = env
+env['CFLAGS'] = copy.deepcopy(orig_env['CFLAGS'])
+# Set -Werror compiler flag to treat warnings as errors
+if env['CFLAGS'].count('-Wno-low') > 0:
+  env['CFLAGS'].remove('-Wno-low')
+
+if env['CFLAGS'].count('-Wno-medium') > 0:
+  env['CFLAGS'].remove('-Wno-medium')
+
+if env['CFLAGS'].count('-Wno-high') > 0:
+  env['CFLAGS'].remove('-Wno-high')
+
+if env['CFLAGS'].count('-Wno-error') > 0:
+  env['CFLAGS'].remove('-Wno-error')
+
+env.Replace(HEXAGON_WARN = "-Werror -Wall -Wpointer-arith -Wno-missing-braces -Werror=unused-result -Werror=deprecated-declarations -Werror=nonnull")
+
+if env.has_key('USES_DISABLE_WERROR'):
+  env.Replace(HEXAGON_WARN = "-Wall -Wpointer-arith -Wno-missing-braces")
+
+env.Replace(HEXAGONCC_WARN = "${HEXAGON_WARN} -Wstrict-prototypes -Wnested-externs")
+env.Replace(HEXAGONCXX_WARN = "${HEXAGON_WARN}")
+env.Replace(HEXAGONASM_WARN = "${HEXAGON_WARN}")
+env.Replace(HEXAGONCC_OPT = "${HEXAGON_OPT_2}")
+
+
+
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+                'TEST',
+		'SAP',
+		'TMD',
+		'TS',
+		'MFS',
+		'MFSE',		
+		'TIME',
+		'COMMON',
+		'RMTFS',
+        ],
+        area='QMIMSGS')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UTILS')
+
+# Protected is "private within the SU" vs. Restricted which is visible to other SUs
+env.PublishProtectedApi('CORE_CUST', [
+                                  '${INC_ROOT}/core/cust/inc',
+                                  '${INC_ROOT}/core/variation/inc',
+                                ])
+
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+env.RequireProtectedApi(['CORE_CUST'])
+
+env.LoadSoftwareUnits()
+
+env.Append(CPPDEFINES=['MODEM_FW_NUM_PRIO=75'])
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+# Remove documentation source files
+
+DOCSRC_FILES = env.FindFiles( ['*'],
+  '${BUILD_ROOT}/core/bsp/docs/template/' )
+env.CleanPack(['CORE_MODEM'], DOCSRC_FILES)
+DOCSRC_FILES_SET2 = env.FindFiles(
+  ['introduction.tex'],
+  '${BUILD_ROOT}/core/bsp/docs/demo/')
+env.CleanPack(['CORE_MODEM'], DOCSRC_FILES_SET2)

@@ -1,0 +1,41 @@
+#if defined HYP_TARGET_8916
+  #include "../inc/8916/hyp_target.h"
+#elif defined HYP_TARGET_8936
+  #include "../inc/8936/hyp_target.h"
+#elif defined HYP_TARGET_8909
+  #include "../inc/8909/hyp_target.h"
+#elif defined HYP_TARGET_9x07
+  #include "../inc/9x07/hyp_target.h"
+#elif defined HYP_TARGET_9x09
+  #include "../inc/9x09/hyp_target.h" 
+#endif
+
+
+HYP_IMAGE HYP_MEMORY_ADDR 
+
+{  
+  HYP_IMG +0  
+  {
+    hyp_entry.o (HYPENTRYCODE, +FIRST)
+    *(+RO)
+    *(+RW, +ZI)
+  }
+  HYP_STACK +0 EMPTY (HYP_STACK_SIZE*NUM_CPUS)
+  {
+  }
+  ; the size below is 0 to prevent the loader from 
+  ; zero-initializing this region
+  HYP_COPY HYP_COPY_ADDR EMPTY 0
+  {
+  }
+}
+
+HYP_PT PAGETABLE_MEMORY_ADDR
+{
+  ; the size below is 0 to prevent the loader from 
+  ; zero-initializing this region
+  PAGETABLE +0 EMPTY 0
+  {
+  }
+}
+

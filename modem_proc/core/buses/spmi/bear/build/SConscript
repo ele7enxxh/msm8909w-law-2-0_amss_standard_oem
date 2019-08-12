@@ -1,0 +1,200 @@
+#===============================================================================
+# SPMI Libs
+#
+# GENERAL DESCRIPTION
+#    SPMI Build Script
+#
+# Copyright (c) 2013-2014 by Qualcomm Technologies Incorporated. All Rights Reserved.
+#-------------------------------------------------------------------------------
+#  $Header: //components/rel/core.mpss/3.5.c12.3/buses/spmi/bear/build/SConscript#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Change: 11985146 $
+#===============================================================================
+import os, re
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+#-------------------------------------------------------------------------------
+# Setup
+#-------------------------------------------------------------------------------
+
+SUPPORTED_BADGER_TARGETS = ['9x25', '8084', '9x35', '8994', '8974', '8x10', '8x26']
+
+SRCPATH = "../src"
+
+env = env.Clone()
+if env.has_key('MODEM_PROC'):
+    env['CCFLAGS'] += '-std=c99'
+else:
+    env['CCFLAGS'] += '--c99'
+
+
+env.Append(CPPDEFINES = ["FEATURE_LIBRARY_ONLY"])   
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+if env['MSM_ID'] in SUPPORTED_BADGER_TARGETS: 
+    CHIP_FAMILY='badger'
+else:
+    CHIP_FAMILY='bear'
+    
+#-------------------------------------------------------------------------------
+# Logging
+#-------------------------------------------------------------------------------
+logLevel = 'SPMI_LOG_LEVEL_ERROR'
+
+if env.has_key('EMMCBLD_IMAGE') or env.has_key('EHOSTDL_IMAGE') or env.has_key('HOSTDL_IMAGE'):
+    logLevel = 'SPMI_LOG_LEVEL_ERROR'
+elif env.has_key('SPMI_BOOT_DRIVER'):
+    logLevel = 'SPMI_LOG_LEVEL_ERROR'
+elif env.has_key('RPM_IMAGE'):
+    logLevel = 'SPMI_LOG_LEVEL_FATAL'
+elif env.has_key('TZOS_IMAGE'):
+    logLevel = 'SPMI_LOG_LEVEL_WARNING'
+elif env.has_key('MODEM_PROC'):
+    logLevel = 'SPMI_LOG_LEVEL_INFO'    
+elif env.has_key('APPS_PROC'):
+    logLevel = 'SPMI_LOG_LEVEL_INFO'
+
+env.Append(CPPDEFINES = ["SPMI_LOG_COMPILE_LEVEL=" + logLevel])    
+
+#-------------------------------------------------------------------------------
+# Helper Functions
+#-------------------------------------------------------------------------------
+def getHwioFiles(target):
+    return getTargetFiles(target, '*.h', SRCPATH + '/core/hal/' + CHIP_FAMILY + '/hw')
+    
+def getConfigFiles(target, pattern='*'):
+    return getTargetFiles(target, pattern, SRCPATH + '/platform/config/' + CHIP_FAMILY)
+    
+def getTargetFiles(target, pattern, baseCfgDir):
+    t = target
+    
+    # Look for an exact match
+    file = env.GlobFiles(baseCfgDir + '/' + target + '/' + pattern, posix=True)
+    
+    if not file:
+        if target[1] == 'x':
+            # Try a slightly more specific version (e.g. 8x16 -> 8916)
+            target = target[:1] + '[0-9]' + target[2:]
+        else:
+            # Try a slightly more generic version (e.g. 8916 -> 8x16)
+            target = target[:1] + 'x' + target[2:]
+            
+        file = env.GlobFiles(baseCfgDir + '/' + target + '/' + pattern, posix=True)
+        
+    if not file:
+        # Fallback to the default
+        file = env.GlobFiles(baseCfgDir + '/default/' + pattern, posix=True)
+    
+    if not file:
+        env.PrintDebugInfo('spmi', 'No SPMI config files found for %s (%s)' % (t, pattern) )
+        
+    return file
+
+#-------------------------------------------------------------------------------
+# Private APIs
+#-------------------------------------------------------------------------------
+INC_DIRS  = [f for f in env.FindFiles(['*.h'], SRCPATH, posix=True) if f.find('/config/') == -1 and re.search('/hal/.+/', f) == None]
+INC_DIRS += [f for f in env.FindFiles(['*.h'], SRCPATH + '/core/hal/' + CHIP_FAMILY, posix=True) if f.find('/hw/') == -1]
+
+if env.has_key('EMMCBLD_IMAGE') or env.has_key('EHOSTDL_IMAGE') or env.has_key('HOSTDL_IMAGE'):
+    INC_DIRS = [f for f in INC_DIRS if f.find('/sbl/') == -1]
+else:
+    INC_DIRS = [f for f in INC_DIRS if f.find('/bare/') == -1]
+
+# check for target specific include files        
+INC_DIRS += getConfigFiles(env['MSM_ID'], '*.h')
+INC_DIRS += getHwioFiles(env['MSM_ID'])
+
+env.PublishPrivateApi('BUSES_SPMI', list(set(os.path.dirname(f) for f in INC_DIRS)))
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'BUSES',
+   'HAL',
+   'DAL',
+   'SYSTEMDRIVERS',
+   'SERVICES',
+   'POWER',
+   'DEBUGTRACE',
+   'SECUREMSM',  # for tzos_log   
+   'BOOT',   # for boot_log
+   'DEBUGTOOLS',
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+#-------------------------------------------------------------------------------
+# Sources & Libraries
+#-------------------------------------------------------------------------------
+MAIN_LIB_IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 
+                   'RPM_IMAGE', 
+                   'TZOS_IMAGE', 
+                   'EMMCBLD_IMAGE', 'EHOSTDL_IMAGE', 'HOSTDL_IMAGE',
+                   'SPMI_BOOT_DRIVER',
+                   'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN',
+                   'APPS_IMAGE', 'CBSP_APPS_IMAGE']
+              
+HALT_LIB_IMAGES = ['TZOS_IMAGE']
+
+SPMI_SOURCES =  env.FindFiles(['*.c'], SRCPATH + '/core/hal/' + CHIP_FAMILY, posix=True)
+SPMI_SOURCES += env.FindFiles(['*.c'], SRCPATH + '/platform/os', posix=True)
+
+if env.has_key('EMMCBLD_IMAGE') or env.has_key('EHOSTDL_IMAGE') or env.has_key('HOSTDL_IMAGE'):
+    for f in getConfigFiles(env['MSM_ID'], '*.c'):
+        SPMI_SOURCES.append(f)
+    SPMI_SOURCES = [f for f in SPMI_SOURCES if f.find('/sbl/') == -1]
+else:
+    SPMI_SOURCES = [f for f in SPMI_SOURCES if f.find('/bare/') == -1]
+
+SPMI_SOURCES = [f.replace(env.RealPath(SRCPATH, True), SRCPATH) for f in SPMI_SOURCES]
+
+SPMI_SOURCES += env.GlobFiles(SRCPATH + '/core/*.c', posix=True)
+SPMI_SOURCES += env.GlobFiles(SRCPATH + '/core/hal/*.c', posix=True)
+SPMI_SOURCES += env.GlobFiles(SRCPATH + '/platform/*.c', posix=True)
+
+env.AddLibrary(MAIN_LIB_IMAGES, '${BUILDPATH}/Spmi', [f.replace(SRCPATH, '${BUILDPATH}') for f in SPMI_SOURCES])
+
+SPMI_HALT_SOURCES = env.FindFiles(['SpmiHalt.c'], SRCPATH + '/core/hal/' + CHIP_FAMILY, posix=True)
+env.AddLibrary(HALT_LIB_IMAGES, '${BUILDPATH}/SpmiHalt', [f.replace(env.RealPath(SRCPATH, True), '${BUILDPATH}') for f in SPMI_HALT_SOURCES])
+
+#-------------------------------------------------------------------------------
+# DAL Config Files
+#-------------------------------------------------------------------------------
+if env.get('USES_DEVCFG', False):
+    if env.get('USES_DEVCFG_MULTIPLE_TAGS', False) or env.get('USES_MULTI_DEVCFG', False):
+        devXmlMap = {}
+        for cfg in env['DEVCFG_XML_TAGS']:
+            m = re.match('(\d(\d|x)\d\d)\S*?_xml', cfg)
+            if m:
+                devXmlMap[cfg] = getConfigFiles(m.group(1), '*.xml')
+        
+        env.AddDevCfgInfo(['DAL_DEVCFG_IMG'], devXmlMap)
+    else:
+        for f in getConfigFiles(env['MSM_ID'], '*.xml'):
+            env.AddDevCfgInfo(['DAL_DEVCFG_IMG'], {'devcfg_xml' : f})
+            
+        for f in getConfigFiles(env['MSM_ID'], '*.c'):
+            env.AddLibrary(['DAL_DEVCFG_IMG'], '${BUILDPATH}/SpmiDalCfg', [ f.replace(SRCPATH, '${BUILDPATH}') ])  
+            
+ #-----------------------------------------------------------------------------
+# Register with RCINIT framework so that it can call our init function.
+#-----------------------------------------------------------------------------
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+  env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',
+      'init_name'                  : 'SpmiClkStatus',
+      'init_function'              : 'SpmiOs_ClkStatusInit',
+      'dependencies'               : ['clk_regime']
+    })           

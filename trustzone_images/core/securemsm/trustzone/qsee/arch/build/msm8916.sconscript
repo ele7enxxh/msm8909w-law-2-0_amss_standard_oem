@@ -1,0 +1,154 @@
+#===============================================================================
+#
+# Architecture lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2016 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsee/arch/build/msm8916.sconscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/25/16   dpk     Added BLSP arch specific files & Disable I2C driver
+# 05/08/13   xc      add mdm9x35 to cleanpack source
+# 04/29/13   xc      keeping tzbsp_sec_core.c & tzbsp_subsys.c in Z build.
+# 09/12/11   nkazi   Support version rollback prevention and Qfprom drivers
+# 12/18/10   cap     initial version
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/arch/${CHIPSET}/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/services/fver/inc")
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BOOT_TOOLS',
+   'SECUREMSM',
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDEBUG',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireRestrictedApi(['TZIMGAUTH', 'TZLIBARMV7', 'TZCHIPSET'])
+
+env.PublishPrivateApi('TZCHIPSET', [
+   '${INC_ROOT}/core/securemsm/trustzone/monitor/common/inc'
+])
+
+#-------------------------------------------------------------------------------
+# External depends outside of CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi('MODEM_PMIC_EXTERNAL')
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+env.Append(ASFLAGS = ' --predefine "SYSINI_STUBS SETL {TRUE}"')
+
+if 'tzbsp_disable_spi' in env and env['tzbsp_disable_spi'] == 1:
+   env.Append(CPPDEFINES = ["TZBSP_SS_DISABLE_SPI"])
+
+if 'tzbsp_disable_i2c' in env and env['tzbsp_disable_i2c'] == 1:
+   env.Append(CPPDEFINES = ["TZBSP_SS_DISABLE_I2C"])   
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+TZ_ARCH_LIB_SOURCES = [
+  '${BUILDPATH}/src/tzbsp_mon_sec_io_arch.c',
+  '${BUILDPATH}/src/tzbsp_clk.c',
+  '${BUILDPATH}/src/tzbsp_chipset_fuse.c',
+  '${BUILDPATH}/src/tzbsp_dehr.c',
+  '${BUILDPATH}/src/tzbsp_amt.c',
+  '${BUILDPATH}/src/tzbsp_config.c',
+  '${BUILDPATH}/src/tzbsp_vmidmt.c',
+  '${BUILDPATH}/src/tzbsp_smmu.c',
+  '${BUILDPATH}/src/tzbsp_wlan.c',
+  '${BUILDPATH}/src/tzbsp_video.c',
+  '${BUILDPATH}/src/tzbsp_bimc.c',
+  '${BUILDPATH}/src/tzbsp_bam.c',
+  '${BUILDPATH}/src/tzbsp_syscall_def.c',
+  '${BUILDPATH}/src/tzbsp_stubs.c',
+  '${BUILDPATH}/src/tzbsp_pmic.c',
+  '${BUILDPATH}/src/a53_aarch32_sysini.s',
+  '${BUILDPATH}/src/tzbsp_wrapper.s',
+  '${BUILDPATH}/src/tzbsp_pc.c',
+  '${BUILDPATH}/src/tzbsp_cpu_config.c',
+  '${BUILDPATH}/src/tzbsp_cp.c',
+  '${BUILDPATH}/src/tzbsp_securechannel.c',
+  '${BUILDPATH}/src/a7_sysini_config_silicon.s',
+  '${BUILDPATH}/src/tzbsp_peripheral_info.c',
+  '${BUILDPATH}/src/tzbsp_timer.c',
+  '${BUILDPATH}/src/tzbsp_hyp.c',
+  '${BUILDPATH}/src/tzbsp_krait_cp15.s',
+  '${BUILDPATH}/src/tzbsp_sys_asm.s',
+  '${BUILDPATH}/src/tzbsp_sys.c',
+]
+
+TZ_ARCH_SOURCES = [
+  '${BUILDPATH}/src/tzbsp_abt.c',
+  '${BUILDPATH}/src/tzbsp_blacklist.c',
+  '${BUILDPATH}/src/tzbsp_configure_qgic.c',
+  '${BUILDPATH}/src/tzbsp_crypto.c',
+  '${BUILDPATH}/src/tzbsp_ext_os.c',
+  '${BUILDPATH}/src/tzbsp_i2c.c',
+  '${BUILDPATH}/src/tzbsp_memory_dump.c',
+  '${BUILDPATH}/src/tzbsp_mmss.c',
+  '${BUILDPATH}/src/tzbsp_mpu.c',
+  '${BUILDPATH}/src/tzbsp_sec_core.c',
+  '${BUILDPATH}/src/tzbsp_subsys.c',
+  '${BUILDPATH}/src/tzbsp_xpu.c',
+  '${BUILDPATH}/src/tzbsp_xpu_config.c',
+  '${BUILDPATH}/src/tzbsp_spi.c',
+  '${BUILDPATH}/src/tzbsp_blsp.c',
+]
+
+if env['CHIPSET'] == "msm8916":
+    CLEAN_SOURCES = env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/trustzone/qsee/arch/msm8909/")
+    CLEAN_SOURCES = env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/trustzone/qsee/arch/mdm9x09/")
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_chipset', TZ_ARCH_LIB_SOURCES)
+env.AddObject('TZOS_IMAGE', TZ_ARCH_SOURCES)
+if env['CHIPSET'] == "msm8916":
+    env.CleanPack('TZOS_IMAGE', CLEAN_SOURCES)
+

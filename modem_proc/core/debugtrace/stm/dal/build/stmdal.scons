@@ -1,0 +1,91 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for DAL QDSS-STM Library.
+#
+# Copyright (c) 2009-2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/debugtools/sandbox/users/prasads/qdss/hal/stm/build/stmhal.scons#2 $
+
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'DEBUGTRACE',
+   'SERVICES',
+   'HAL',
+   'DAL',
+   'SYSTEMDRIVERS',
+   'POWER',
+   'KERNEL'
+]
+
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+env.RequireProtectedApi(['DEBUGTRACE'])
+
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+STM_DAL_SRC = [
+   '${BUILDPATH}/common/DalSTMCfg.c',
+   '${BUILDPATH}/common/DalSTMTrace.c'
+   ]
+
+ 
+env.AddLibrary(['RPM_IMAGE','MODEM_IMAGE','CORE_QDSP6_SW','WCN_IMAGE','CBSP_WCN_IMAGE','CORE_GSS'],'${BUILDPATH}/stm_dal',STM_DAL_SRC)
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+            '8974_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8974/dalstmtrace.xml'],
+            '8926_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8926/dalstmtrace.xml'],
+            '8626_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8x26/dalstmtrace.xml'],
+            '8610_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8x10/dalstmtrace.xml'],
+            '9625_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/9x25/dalstmtrace.xml'],
+            '8962_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8962/dalstmtrace.xml'],
+            '8916_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8916/dalstmtrace.xml'],
+            '8936_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8936/dalstmtrace.xml'],
+			'8909_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8909/dalstmtrace.xml'],
+			'8952_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8952/dalstmtrace.xml'],
+			'9607_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/9607/dalstmtrace.xml'],
+			'8937_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8937/dalstmtrace.xml']
+   }) 
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+            '8974_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8974/dalsstmcfg.xml'],
+            '8926_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8926/dalsstmcfg.xml'],
+            '8626_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8x26/dalsstmcfg.xml'],
+            '8610_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8x10/dalsstmcfg.xml'],
+            '9625_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/9x25/dalsstmcfg.xml'],
+            '8962_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8962/dalsstmcfg.xml'],
+            '8916_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8916/dalsstmcfg.xml'],
+            '8936_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8936/dalsstmcfg.xml'],
+			'8909_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8909/dalsstmcfg.xml'],
+			'8952_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8952/dalsstmcfg.xml'],
+			'9607_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/9607/dalsstmcfg.xml'],
+			'8937_xml' : ['${BUILD_ROOT}/core/debugtrace/stm/config/8937/dalsstmcfg.xml']
+   })

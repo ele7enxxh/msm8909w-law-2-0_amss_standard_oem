@@ -1,0 +1,596 @@
+# -------------------------------------------------------------------------------- #
+#                       W C D M A _ L 1 _ O N L I N E. S C O N S                                      
+#
+# DESCRIPTION                                                                      
+#       Scons file for the WL1 subsytem. Defines the existence of WL1 
+#                                                                                  
+#                                                                                  
+# INITIALIZATION AND SEQUENCING REQUIREMENTS                                       
+#       None.                                                                      
+#                                                                                  
+#
+# Copyright (c) 2010 Qualcomm Technologies Incorporated.                                        
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary                       
+# Export of this technology or software is regulated by the U.S. Government.       
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //source/qcom/qct/modem/wcd11/17/14in/latest/build/wcdma_l1_offline.scons#1 $
+# $DateTime: 2010/10/21 09:37:09 $
+# 
+#  when        who     what, where, why
+# ---------    ---     ------------------------------------------------------------
+# 12/02/14     svh     Added wl1qicesysitertbl.c
+# 11/11/14     psr     Added srchcrutils.c
+# 08/08/14     sks     Include wmcvsdrv.c
+# 07/30/14     rkmk    Moving the G2W drivers files to HY31
+# 07/16/14     sr      EDRX code cleanup
+# 07/09/14     rkmk    Increased the stack size for wcdma_fwsw_event_task
+# 06/27/14     jhl     Added hslog.c
+# 06/24/14     cc      Moving G2W drivers to WL1 folders
+# 06/23/14     rkmk    Remove dependancy of non-RSW library for generating RSW library  in L1 scons
+# 06/08/14     ar      Added FTM support for EUL
+# 06/06/14     as      Deleting the duplicate wl1ulsarmgr.c name
+# 05/13/14     skk     Removing all includes of "tracer_event_ids.h" and replaced with local file.
+# 04/18/14     as      DSDS Code Reorganization.
+# 01/21/14     abs     Adding wl1cxm.c
+# 01/10/14     jd      Removed wl1srchdc.c file
+# 12/16/13     as      Porting G2W TA from Triton to Dime.
+# 11/21/13     tsk     FR2573: SAR management with Integrated DSDA changes.
+# 11/13/13     gp      Adding SECUREMSM for secure Random numbers generation
+# 10/24/13     ar      Added measurement layer file for LTE
+# 08/26/13     rkmk    Added pack ecxeption USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS
+# 07/29/13     sks     Inclusion of QDSS events for timelining.
+# 07/24/13     rkmk    Added if else condition for WCDMA_L1_OFFLINE_PRIVATE_SOURCES
+# 07/23/13     vs      Included the file wl1antswitch.c
+# 07/11/13     ar      Added MCAL Changes for Uplink
+# 04/23/13     pr      Change WCDMA IPC thread names for easier debug.
+# 03/29/13     pkg     Tx state reporting to MCS for DIME.
+# 01/10/13     geg     Changes for restricted source of DIME 1.1
+# 10/17/12     pr      WL1 changes for QCHAT on Dime
+# 07/24/12     geg     Upmerge WCDMA.MPSS.1.0 to WCDMA.MPSS.2.0
+# 06/07/12     pr      Dime Bringup Changes
+# 05/22/12     pr      Dime Bringup Changes
+# 05/15/12     rgn     setup init functions for task init
+# 06/19/12     vr      HSRACH code update
+# 05/21/12     vsr     FET/DED/ED-V2 Feature checkin
+# 03/27/12     hk      Added support for FEATURE_WCDMA_HS_FACH_DRX
+# 03/08/12     amj     Made changes for RC init task initialization support.
+# 12/15/11     mk      Set MSG_BT_SSID_DFLT for legacy MSG macros
+# 10/25/11     mk      Removed wl1ulmtd.c from compilation.
+# 12/22/10     stk     Removed including WCDMA as Protected API.
+# 12/22/10     stk     Added MPROC under CORE_PUBLIC_APIS 
+# 12/21/10     stk     Grouped AUDIO and MVS under Multimedia public APIs. Added core under violations.
+# 12/20/10     stk     Added MVS under public API
+# 12/13/10     stk     Added more violations, public and restricted API
+# 12/09/10     stk     Added FW Violations, public HDR and Restricted LTE
+# 12/08/10     stk     Added FW Violations and included protected UTILS
+# 11/24/10     rmsd    Added WFW to Violations and  MMODE to public apis.
+# 11/18/10     rmsd    Initial Cut
+#
+#===================================================================================#
+
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------------
+# USES_FLAG :: Do not compile WCDMA_L1_OFFLINE subsystem if 
+#              USES_WPLT or USES_UMTS or USES_WCDMA are not defined.
+#------------------------------------------------------------------------------------
+
+if 'USES_WPLT' not in env and 'USES_UMTS' not in env and 'USES_WCDMA' not in env:
+    Return()
+
+#-------------------------------------------------------------------------------
+# VIOLATIONS
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('VIOLATIONS',["${INC_ROOT}/core/systemdrivers/clk/inc",
+                                    "${INC_ROOT}/modem/utils/oss/oss_asn1_rvds21/include",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/nv/src",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/core/src",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/rfc/src",
+                                    "${INC_ROOT}/modem/rfa/rf/device/rtr8600_1x/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/device/rfdev_intf/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/hal/p2_1x/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/hal/common/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/wcdma/rf/mc/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/wcdma/rf/nv/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/gsm/rf/core/src",
+                                    "${INC_ROOT}/modem/gps/gnss/inc",
+                                    "${INC_ROOT}/modem/fw/wcdma/inc",
+                                    "${INC_ROOT}/modem/fw/target/intf/inc",
+                                    "${INC_ROOT}/modem/fw/c2k/mcdo/inc",
+                                    "${INC_ROOT}/core/services/utils",
+                                    "${INC_ROOT}/modem/utils/a2/driver/inc",
+                                    "${INC_ROOT}/modem/nas/mm/src",
+                                    "${INC_ROOT}/modem/wcdma/l1/offline/src",
+                                    "${INC_ROOT}/core/services/utils/src",
+                                    "${INC_ROOT}/core/api/debugtrace",
+                                   ])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'BUSES',
+    'DEBUGTOOLS',
+    'DEBUGTRACE',
+    'DAL',
+    'POWER',
+    'SECUREMSM',
+    'SYSTEMDRIVERS',
+    'SERVICES',
+    'MPROC',
+    'HWENGINES',
+    'STORAGE',
+    'SECUREMSM',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+MULTIMEDIA_APIS = [
+    'AUDIO',
+    ]
+
+#----------------------------------------------------------------------------#
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#----------------------------------------------------------------------------#
+REQUIRED_NON_SCONS_APIS = [
+    'BREW',
+    'MODEM_SERVICES',
+    'MULTIMEDIA_AUDIO',
+    'BASE_PATHS', #mdsp/cdma/inc
+    ]
+
+
+MODEM_PUBLIC_APIS = [
+    'ONEX',
+    'GPS',
+    'RFA',
+    'GERAN',
+    'NAS',
+    'WCDMA',
+    'MMODE',
+    'MCS',
+    'UTILS',
+    'UIM',
+    'HDR',
+    'QCHAT',
+    'MPROC',
+    ]
+
+MODEM_RESTRICTED_APIS =[
+    'ONEX',
+    'MMODE',
+    'GPS',
+    'HDR',
+    'MCS',
+    'NAS',
+    'MDSP',
+    'UIM',
+    'GERAN',
+    'UTILS',
+    'RFA',
+    'QCHAT',
+    'WCDMA',
+    'LTE',
+    'FW',
+    ]
+
+MODEM_PROTECTED_APIS =[
+    'UTILS',
+    ]
+
+MULTIMEDIA_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+]
+
+#-------------------------------------------------------------------------------
+# We need the Multimedia API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MULTIMEDIA_PUBLIC_APIS, area="MULTIMEDIA")
+
+#-------------------------------------------------------------------------------
+# Add modem protected API
+#-------------------------------------------------------------------------------
+env.RequireProtectedApi(MODEM_PROTECTED_APIS)
+
+#-------------------------------------------------------------------------------
+# We need the Core BSP API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+#-------------------------------------------------------------------------------
+# We need MODEM PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need different restricted API's within MODEM
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# QDSS Tracer definitions
+#-------------------------------------------------------------------------------
+if 'QDSS_TRACER_SWE' in env:
+    env.SWEBuilder(['${BUILDPATH}/wcdma_tracer_event_ids.h'],None)
+    env.Append(CPPPATH = ['${BUILD_ROOT}/wcdma/l1/offline/build/${BUILDPATH}'])
+
+if 'USES_QDSS_SWE' in env:
+  QDSS_IMG = ['QDSS_EN_IMG']
+
+  events = [['WSP_BEF_MWU_EVT','WSP_BEF_MWU_EVT'],
+        	['WSP_AFT_MWU_EVT','WSP_AFT_MWU_EVT'],
+        	['WSP_BEF_OLS_EVT','WSP_BEF_OLS_EVT'],
+        	['WSP_AFT_OLS_EVT', 'WSP_AFT_OLS_EVT'],
+        	['WSP_BEF_RF_ON_EVT','WSP_BEF_RF_ON_EVT'],
+        	['WSP_AFT_RF_ON_EVT','WSP_AFT_RF_ON_EVT'],
+        	['WSP_AFT_AGC_EVT','WSP_AFT_AGC_EVT'],
+        	['WSP_BEF_RF_CLK_ON_DIV_EVT','WSP_BEF_RF_CLK_ON_DIV_EVT'],
+        	['WSP_BEF_RF_ON_DIV_EVT','WSP_BEF_RF_ON_DIV_EVT'],
+        	['WSP_AFT_RF_ON_DIV_EVT','WSP_AFT_RF_ON_DIV_EVT'],
+        	['WSP_AFT_AGC_DIV_EVT','WSP_AFT_AGC_DIV_EVT'],
+        	['WSP_BEF_REACQ_EVT','WSP_BEF_REACQ_EVT'],
+        	['WSP_AFT_REACQ_EVT','WSP_AFT_REACQ_EVT'],
+        	['WSP_BEF_SECOND_REACQ_EVT','WSP_BEF_SECOND_REACQ_EVT'],
+        	['WSP_AFT_SECOND_REACQ_EVT','WSP_AFT_SECOND_REACQ_EVT'],
+        	['WSP_AFT_TRI_EVT','WSP_AFT_TRI_EVT'],
+        	['WSP_SRCH_AWAKE_EVT','WSP_SRCH_AWAKE_EVT'],
+        	['WSP_DL_AWAKE_EVT','WSP_DL_AWAKE_EVT'],
+        	['WSP_TICKS_REM_EVT','WSP_TICKS_REM_EVT'],
+        	['WSP_DL_PICH_SETUP_DONE_EVT','WSP_DL_PICH_SETUP_DONE_EVT'],
+        	['WSP_PICH_EVT','WSP_PICH_EVT'],
+        	['WSP_PICH_ISR_EVT','WSP_PICH_ISR_EVT'],
+        	['WSP_BEF_DL_PICH_TEAR_DOWN_EVT','WSP_BEF_DL_PICH_TEAR_DOWN_EVT'],
+        	['WSP_AFT_DL_PICH_TEAR_DOWN_EVT','WSP_AFT_DL_PICH_TEAR_DOWN_EVT'],
+        	['WSP_DL_SLP_REQ_EVT','WSP_DL_SLP_REQ_EVT'],
+        	['WSP_DL_READY_FOR_SLEEP_EVT','WSP_DL_READY_FOR_SLEEP_EVT'],
+        	['WSP_SRCHZZ_DISABLE_FINGERS_EVT','WSP_SRCHZZ_DISABLE_FINGERS_EVT'],
+        	['WSP_SRCH_READY_FOR_SLEEP_EVT','WSP_SRCH_READY_FOR_SLEEP_EVT'],
+        	['WSP_BEF_RF_OFF_DIV_EVT','WSP_BEF_RF_OFF_DIV_EVT'],
+        	['WSP_AFT_CLK_OFF_DIV_EVT','WSP_AFT_CLK_OFF_DIV_EVT'],
+        	['WSP_AFT_RF_OFF_DIV_EVT','WSP_AFT_RF_OFF_DIV_EVT'],
+        	['WSP_BEF_RF_OFF_EVT','WSP_BEF_RF_OFF_EVT'],
+        	['WSP_AFT_RF_OFF_EVT','WSP_AFT_RF_OFF_EVT'],
+        	['WSP_SLP_DRV_STP_FINISH_EVT','WSP_SLP_DRV_STP_FINISH_EVT'],
+        	['WSP_BEF_GTS_EVT','WSP_BEF_GTS_EVT'],
+        	['WSP_AFT_GTS_EVT','WSP_AFT_GTS_EVT'],
+        	['WL1_PICH_ISR_EVT','WL1_PICH_ISR_EVT'],
+        	['WL1_PICH_SETUP_DONE_EVT','WL1_PICH_SETUP_DONE_EVT'],
+        	['WL1_BEF_MCPM_DRX_REQ_EVT','WL1_BEF_MCPM_DRX_REQ_EVT'],
+        	['WL1_AFT_MCPM_DRX_REQ_EVT','WL1_AFT_MCPM_DRX_REQ_EVT'],
+        	['WL1_BEF_MCPM_W2G_REQ_EVT','WL1_BEF_MCPM_W2G_REQ_EVT'],
+        	['WL1_AFT_MCPM_W2G_REQ_EVT','WL1_AFT_MCPM_W2G_REQ_EVT'],
+        	['WL1_BEF_MCPM_OTHER_REQ_EVT','WL1_BEF_MCPM_OTHER_REQ_EVT'],        	
+		['WL1_BEF_MCPM_DRX_REL_EVT','WL1_BEF_MCPM_DRX_REL_EVT'],
+        	['WL1_AFT_MCPM_DRX_REL_EVT','WL1_AFT_MCPM_DRX_REL_EVT'],
+        	['WL1_BEF_REACQ_EVT','WL1_BEF_REACQ_EVT'],
+        	['WL1_SRCH_AWAKE_EVT','WL1_SRCH_AWAKE_EVT'],
+        	['WL1_DL_AWAKE_EVT','WL1_DL_AWAKE_EVT'],
+        	['WL1_DL_READY_FOR_SLEEP_EVT','WL1_DL_READY_FOR_SLEEP_EVT'],
+        	['WL1_SRCH_READY_FOR_SLEEP_EVT','WL1_SRCH_READY_FOR_SLEEP_EVT'],
+                ['WL1_BEF_RGS_UPDATE_EVT','WL1_BEF_RGS_UPDATE_EVT'],
+                ['WL1_AFT_RGS_UPDATE_EVT','WL1_AFT_RGS_UPDATE_EVT'], 
+                ['WL1_BEF_SRCH_ENTITY_DROP_EVT','WL1_BEF_SRCH_ENTITY_DROP_EVT'],
+                ['WL1_AFT_SRCH_ENTITY_DROP_EVT','WL1_AFT_SRCH_ENTITY_DROP_EVT'],
+        	['WL1_AFT_AGC_EVT','WL1_AFT_AGC_EVT'],
+        	['WL1_BEF_OLS_EVT','WL1_BEF_OLS_EVT'],
+        	['WL1_BEF_MWU_EVT','WL1_BEF_MWU_EVT'],
+        	['WL1_AFT_MWU_EVT','WL1_AFT_MWU_EVT'],
+        	['WL1_BEF_GTS_EVT','WL1_BEF_GTS_EVT'],
+        	['WL1_AFT_GTS_EVT','WL1_AFT_GTS_EVT'],
+        	['WL1_SLP_DRV_STP_FINISH_EVT','WL1_SLP_DRV_STP_FINISH_EVT'],
+        	['WL1_BEF_RF_ON_EVT','WL1_BEF_RF_ON_EVT'],
+        	['WL1_AFT_RF_ON_EVT','WL1_AFT_RF_ON_EVT'], 
+                ['WL1_BEF_RFM_PWR_CLK_ON_EVT','WL1_BEF_RFM_PWR_CLK_ON_EVT'],
+                ['WL1_AFT_RFM_PWR_CLK_ON_EVT','WL1_AFT_RFM_PWR_CLK_ON_EVT'],     
+                ['WL1_BEF_RF_OFF_EVT','WL1_BEF_RF_OFF_EVT'],           
+                ['WL1_BEF_FW_SLP_EVT','WL1_BEF_FW_SLP_EVT'],
+                ['WL1_AFT_FW_SLP_EVT','WL1_AFT_FW_SLP_EVT'],
+                ['WL1_FAST_CELL_DECFG_CONFIGURED_EVT','WL1_FAST_CELL_DECFG_CONFIGURED_EVT'],
+                ['WL1_FAST_CELL_DECFG_ST_EVT', 'WL1_FAST_CELL_DECFG_ST_EVT'], 
+                ['WL1_FAST_CELL_DECFG_END_EVT', 'WL1_FAST_CELL_DECFG_END_EVT'],
+                ['WL1_FAST_CELL_DECFG_DONE_WAIT_EVT','WL1_FAST_CELL_DECFG_DONE_WAIT_EVT'],
+                ['WL1_EDRX_HS_TEARDOWN_START_EVT','WL1_EDRX_HS_TEARDOWN_START_EVT'],
+                ['WL1_EDRX_HS_TEARDOWN_END_EVT','WL1_EDRX_HS_TEARDOWN_END_EVT'],
+                ['WL1_EDRX_HS_ADD_START_EVT','WL1_EDRX_HS_ADD_START_EVT'],
+                ['WL1_EDRX_HS_ADD_END_EVT','WL1_EDRX_HS_ADD_END_EVT'],
+                ['WL1_EDRX_RX_BURST_START_EVT','WL1_EDRX_RX_BURST_START_EVT'],
+                ['WL1_RF_WKUP_VREG_ON_EVT','WL1_RF_WKUP_VREG_ON_EVT'],
+                ['WL1_RF_WKUP_HAL_BUS_EN_EVT','WL1_RF_WKUP_HAL_BUS_EN_EVT'],
+                ['WL1_RF_WKUP_CORE_CONFIG_DONE_EVT','WL1_RF_WKUP_CORE_CONFIG_DONE_EVT'],
+		['WL1_RF_WKUP_RFC_COMMON_WKUP_EVT','WL1_RF_WKUP_RFC_COMMON_WKUP_EVT'],
+                ['WL1_RF_WKUP_CORE_POWER_ON_EVT','WL1_RF_WKUP_CORE_POWER_ON_EVT'],
+                ['WL1_RF_WKUP_INIT_CMDS_DONE_EVT','WL1_RF_WKUP_INIT_CMDS_DONE_EVT'],
+                ['WL1_RF_WKUP_MEAS_SCRIPTS_BUILT_EVT','WL1_RF_WKUP_MEAS_SCRIPTS_BUILT_EVT'],
+                ['WL1_RF_WKUP_ASM_WAKEUP_DONE_EVT','WL1_RF_WKUP_ASM_WAKEUP_DONE_EVT'],
+                ['WL1_RF_WKUP_TUNER_INIT_DONE_EVT','WL1_RF_WKUP_TUNER_INIT_DONE_EVT'],
+                ['WL1_RF_WKUP_BEF_AGC_CMD_EVT','WL1_RF_WKUP_BEF_AGC_CMD_EVT'],
+                ['WL1_WFW_START_CMD_DONE_EVT','WL1_WFW_START_CMD_DONE_EVT'],
+                ['WL1_RF_WKUP_GRFC_SCRIPTS_DONE_EVT','WL1_RF_WKUP_GRFC_SCRIPTS_DONE_EVT'],
+                ['WL1_RF_WKUP_TUNER_RX_PROGRAM_DONE_EVT','WL1_RF_WKUP_TUNER_RX_PROGRAM_DONE_EVT'],
+                ['WL1_MCPM_STMR_BLOCK_CB_START_EVT','WL1_MCPM_STMR_BLOCK_CB_START_EVT'],
+                ['WL1_MCPM_STMR_BLOCK_CB_END_EVT','WL1_MCPM_STMR_BLOCK_CB_END_EVT'],
+                ['WL1_RFM_PWR_CLOCK_ON_START_EVT','WL1_RFM_PWR_CLOCK_ON_START_EVT'],
+                ['WL1_RFM_PWR_CLOCK_ON_END_EVT','WL1_RFM_PWR_CLOCK_ON_END_EVT'],
+        	]
+     
+  env.AddSWEInfo(QDSS_IMG,events)
+
+#----------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#----------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   'MSG_BT_SSID_DFLT=MSG_SSID_WCDMA_L1',
+])
+
+#-------------------------------------------------------------------------------
+# Images that this VU is added .
+#-------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM']
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+WCDMA_L1_OFFLINE_PRIVATE_SOURCES_A = [
+        '${BUILDPATH}/dlacqpullin.c',
+        '${BUILDPATH}/dlbtfd.c',
+        '${BUILDPATH}/dlinklist.c',
+        '${BUILDPATH}/dlrm.c',                    
+        '${BUILDPATH}/dlstates.c',                
+        '${BUILDPATH}/dltrchmeas.c',              
+        '${BUILDPATH}/dlutil.c',                  
+        '${BUILDPATH}/dlwpltdrv.c',               
+        '${BUILDPATH}/drx.c',                     
+        '${BUILDPATH}/l1cmmeas.c',                
+        '${BUILDPATH}/l1cmmgr.c',                 
+        '${BUILDPATH}/l1internalmeas.c',
+        '${BUILDPATH}/l1mathutil.c',
+        '${BUILDPATH}/l1mcmd.c',
+        '${BUILDPATH}/l1msetup.c',                
+        '${BUILDPATH}/l1pos.c',                   
+        '${BUILDPATH}/l1qualmeas.c',
+        '${BUILDPATH}/l1sapcommon.c',
+        '${BUILDPATH}/l1ulcfg.c',                 
+        '${BUILDPATH}/l1utils.c',                     
+        '${BUILDPATH}/logod.c',                   
+        '${BUILDPATH}/mdspsync.c',                
+        '${BUILDPATH}/mdsputil.c',                
+        '${BUILDPATH}/seq.c',
+        '${BUILDPATH}/srchacq.c',                 
+        '${BUILDPATH}/srchbch.c',                 
+        '${BUILDPATH}/srchcmdrv.c',               
+        '${BUILDPATH}/srchcmmeas.c',
+        '${BUILDPATH}/srchcrutils.c',
+        '${BUILDPATH}/srchcr.c',                  
+        '${BUILDPATH}/srchcrgsm.c',
+        '${BUILDPATH}/srchdch.c',                 
+        '${BUILDPATH}/srchfach.c',                
+        '${BUILDPATH}/srchfs.c',                  
+        '${BUILDPATH}/srchgsmdrv.c',
+        '${BUILDPATH}/srchhho.c',
+        '${BUILDPATH}/srchidle.c',                
+        '${BUILDPATH}/srchinterf.c',
+        '${BUILDPATH}/srchmeas.c',                
+        '${BUILDPATH}/srchpch.c',                 
+	'${BUILDPATH}/srchset.c',                 
+        '${BUILDPATH}/srchzz.c',
+        '${BUILDPATH}/stmr.c',
+        '${BUILDPATH}/ul.c',
+        '${BUILDPATH}/ulcmd.c',
+        '${BUILDPATH}/ulstates.c',
+        '${BUILDPATH}/wenc.c',
+        '${BUILDPATH}/wl1m.c',
+        '${BUILDPATH}/wl1sleep.c',
+        '${BUILDPATH}/wsrch.c',
+        '${BUILDPATH}/wsrchmobileview.c',
+]
+
+WCDMA_L1_OFFLINE_PRIVATE_SOURCES_B = [
+        '${BUILDPATH}/dechs.c',                   
+	'${BUILDPATH}/dlbcchmgr.c',               
+        '${BUILDPATH}/dlcellcfg.c',               
+	'${BUILDPATH}/dlchmgr.c',                 
+        '${BUILDPATH}/dlnschmgr.c',               
+        '${BUILDPATH}/dlolpc.c',                  
+        '${BUILDPATH}/dlphch.c',                  
+        '${BUILDPATH}/dlpichmgr.c',               
+        '${BUILDPATH}/dlsccpchmgr.c',             
+        '${BUILDPATH}/dlshmgr.c',                 
+        '${BUILDPATH}/drxofflineprocmgr.c',
+        '${BUILDPATH}/edl.c',                     
+        '${BUILDPATH}/enchs.c',                   
+        '${BUILDPATH}/eulcfg.c',                  
+        '${BUILDPATH}/euledpch.c',                
+        '${BUILDPATH}/eulenc.c',                  
+        '${BUILDPATH}/eulsg.c',                   
+        '${BUILDPATH}/hscfg.c',   
+	'${BUILDPATH}/hslog.c',                
+        '${BUILDPATH}/mcalwcdma_cm.c',            
+        '${BUILDPATH}/mcalwcdma_cme.c',           
+        '${BUILDPATH}/mcalwcdma_dec.c',           
+	'${BUILDPATH}/mcalwcdma_decdata.c',       
+	'${BUILDPATH}/mcalwcdma_demod.c',         
+	'${BUILDPATH}/mcalwcdma_dl.c',            
+	'${BUILDPATH}/mcalwcdma_edl.c',           
+	'${BUILDPATH}/mcalwcdma_evt.c',           
+        '${BUILDPATH}/mcalwcdma_hsrach.c',
+	'${BUILDPATH}/mcalwcdma_mgr.c',           
+        '${BUILDPATH}/mcalwcdma_srch.c',          
+        '${BUILDPATH}/mcalwcdma_wenc.c',
+        '${BUILDPATH}/mcalwcdma_wenc_ftm.c',
+        '${BUILDPATH}/mdspasync.c',               
+        '${BUILDPATH}/rxdiv.c',                   
+        '${BUILDPATH}/sampserv.c',                
+        '${BUILDPATH}/srchbplmn.c',               
+        '${BUILDPATH}/srchcpcdrx.c',
+        '${BUILDPATH}/srchfachedrx.c',
+        '${BUILDPATH}/srchsetutil.c',                 
+	'${BUILDPATH}/tlm.c',                     
+        '${BUILDPATH}/ulmpr_tables.c',             
+        '${BUILDPATH}/ulmpri.c',                  
+        '${BUILDPATH}/wl1cpcdrxedlentity.c',
+	'${BUILDPATH}/wl1dec.c',                  
+	'${BUILDPATH}/wl1demoddrv.c',             
+        '${BUILDPATH}/wl1dlcarrcfg.c',            
+        '${BUILDPATH}/wl1dldrxctrl.c',
+	'${BUILDPATH}/wl1drxentity.c',            
+	'${BUILDPATH}/wl1drxmanager.c',           
+        '${BUILDPATH}/wl1edrxhsentity.c',
+	'${BUILDPATH}/wl1fetctrl.c',
+        '${BUILDPATH}/wl1hsdrxentity.c',
+        '${BUILDPATH}/wl1hsrachcntrlr.c',
+        '${BUILDPATH}/wl1hsrachcntrlrextif.c',
+        '${BUILDPATH}/wl1i.c',                    
+	'${BUILDPATH}/wl1qicectrl.c',             
+	'${BUILDPATH}/wl1srchdlif.c',             
+	'${BUILDPATH}/wl1ssiconfig.c',            
+        '${BUILDPATH}/wl1tri.c',                  
+        '${BUILDPATH}/wl1trm.c',                  
+        '${BUILDPATH}/wl1ulchmgr.c',
+	'${BUILDPATH}/wl1uledrx.c',
+        '${BUILDPATH}/wl1ulhsdpchmgr.c',
+        '${BUILDPATH}/wl1ulhsprachmgr.c',
+        '${BUILDPATH}/wl1ulmc.c',
+	'${BUILDPATH}/wl1ulsarmgr.c',
+        '${BUILDPATH}/wl1xlm.c',
+        '${BUILDPATH}/wmcpmdrv.c',
+        '${BUILDPATH}/wmcvsdrv.c',
+        '${BUILDPATH}/wsrchlte.c',                
+        '${BUILDPATH}/wsrchltedrv.c',
+        '${BUILDPATH}/wl1profiler.c',
+        '${BUILDPATH}/wsrchiratmeas.c',
+        '${BUILDPATH}/wl1multisim.c',
+        '${BUILDPATH}/wl1idletamgr.c',
+        '${BUILDPATH}/wl1cxm.c',
+        '${BUILDPATH}/srchsched.c',
+        '${BUILDPATH}/srchhbevt.c',
+        '${BUILDPATH}/srchacqproc.c',
+        '${BUILDPATH}/wl1x2wsrchdrv.c',
+        '${BUILDPATH}/wl1x2wsrchmdspsync.c',	       
+	'${BUILDPATH}/wl1qicesysitertbl.c',
+]
+
+if 'USES_CUSTOMER_GENERATE_LIBS' in env:
+  WCDMA_L1_OFFLINE_PRIVATE_SOURCES_C = [
+        '${BUILDPATH}/wl1antswitch.o'
+]
+else:
+  WCDMA_L1_OFFLINE_PRIVATE_SOURCES_C = [
+       '${BUILDPATH}/wl1antswitch.c'
+]
+#-------------------------------------------------------------------------------
+# Adding 
+#-------------------------------------------------------------------------------
+
+WCDMA_L1_OFFLINE_PRIVATE_SOURCES = WCDMA_L1_OFFLINE_PRIVATE_SOURCES_A + WCDMA_L1_OFFLINE_PRIVATE_SOURCES_B + WCDMA_L1_OFFLINE_PRIVATE_SOURCES_C
+
+WCDMA_L1_OFFLINE_PRIVATE_SOURCES_B = WCDMA_L1_OFFLINE_PRIVATE_SOURCES_B + WCDMA_L1_OFFLINE_PRIVATE_SOURCES_C
+
+#-------------------------------------------------------------------------------
+# Compile the private source files 
+#-------------------------------------------------------------------------------
+if WCDMA_L1_OFFLINE_PRIVATE_SOURCES != []:
+  env_private = env.Clone()
+  env_private.Append(CPPDEFINES = [
+    'FEATURE_LIBRARY_ONLY'
+  ])
+  env_private.AddBinaryLibrary(IMAGES,'${BUILDPATH}/lib_wcdma_l1_offline_b',WCDMA_L1_OFFLINE_PRIVATE_SOURCES_B, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+  if 'USES_CUSTOMER_GENERATE_LIBS' in env:
+    env_private.AddBinaryLibrary(IMAGES,'${BUILDPATH}/lib_wcdma_l1_offline_a',WCDMA_L1_OFFLINE_PRIVATE_SOURCES_A, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+  else:
+    env_private.AddBinaryLibrary(IMAGES,'${BUILDPATH}/lib_wcdma_l1_offline_a',WCDMA_L1_OFFLINE_PRIVATE_SOURCES_A, pack_exception=['USES_CUST_1'])
+  
+
+#-------------------------------------------------------------------------------
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM']
+   env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+     'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                   # required
+     'init_name'                  : 'wl1_task_init',                           # required
+     'init_function'              : 'wl1_init_task',            # required
+     'dependencies'               : []
+    })
+#-------------------------------------------------------------------------------
+
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                  
+      'thread_name'                : 'wcdma_l1',                        
+      'thread_entry'               : 'wcdma_l1_task',                   
+      'stack_size_bytes'           : env.subst('$WCDMA_L1_STKSZ'),
+      #'priority_amss_order'        : 'MODEM_HARD_REALTIME_CRITICAL',
+      'priority_amss_order'        : 'WCDMA_L1_PRI_ORDER',
+      #'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+      'tcb_name'                   : 'wcdma_l1_tcb',
+      'cpu_affinity'	           : env.subst('$MODEM_CPU_AFFINITY')
+    })
+
+#-------------------------------------------------------------------------------
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                  
+      'thread_name'                : 'wfw_eulstrt',                        
+      'thread_entry'               : 'wcdma_fwsw_eul_start_task',                   
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'SHARED_IST_PRI_ORDER',
+      'tcb_name'                   : 'wcdma_fwsw_eul_start_tcb',
+      'cpu_affinity'	           : env.subst('$MODEM_CPU_AFFINITY')
+    })
+        
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                  
+      'thread_name'                : 'wfwsw_evt',                        
+      'thread_entry'               : 'wcdma_fwsw_event_task',                   
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'SHARED_IST_PRI_ORDER',
+      'tcb_name'                   : 'wcdma_fwsw_event_tcb',
+      'cpu_affinity'	           : env.subst('$MODEM_CPU_AFFINITY')
+    })
+#-------------------------------------------------------------------------------

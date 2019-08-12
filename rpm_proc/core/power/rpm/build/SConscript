@@ -1,0 +1,114 @@
+import os
+import fnmatch
+import itertools
+
+Import('env')
+env = env.Clone()
+
+SRCPATH = ".."
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+CBSP_API = [
+   'POWER',
+   'MPROC',
+   'DAL',
+   'SYSTEMDRIVERS',
+   'DEBUGTRACE',
+   'RAILWAY',
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.Append(CPPPATH = '../inc')
+
+def collect_files(patterns):
+    files = []
+    for root, dirnames, filenames in os.walk(SRCPATH):
+        matches = itertools.chain(*[fnmatch.filter(filenames, pattern) for pattern in patterns])
+        matches = ['${BUILDPATH}' + os.path.join(root, filename)[2:] for filename in matches]
+        files.extend(matches)
+    return files
+
+# Build C files.
+c_env = env.Clone()
+c_env.Append(CFLAGS = '--c99')
+c99_sources = collect_files(['*.c'])
+c_env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/rpm_c.lib', c99_sources)
+
+# Build C++ files.
+cpp_env = env.Clone()
+cpp_sources = collect_files(['*.cpp'])
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/rpm_cpp.lib', cpp_sources)
+
+if env.has_key('HWIO_IMAGE'):
+    env.AddHWIOFile('HWIO', [
+        {
+            'filename': '${INC_ROOT}/core/power/rpm/debug/qdss_hwio.h',
+            'modules': ['QDSS_QDSSCSR'],
+            'filter-include': ['QDSSCLKVOTE'],
+            'output-offsets': False,
+            'header':
+                '/*\n'
+                ' * HWIO base definitions\n'
+                ' */\n'
+                '#define QDSS_QDSS_BASE  0x60800000\n\n'
+        }
+    ])
+
+if env.GetUsesFlag('USES_QDSS_SWE') is True:
+   gen_tracer_event_ids_h ='${BUILD_ROOT}/core/api/debugtrace/tracer_event_ids.h'
+   #env.SWEIdBuilder([gen_tracer_event_ids_h],None)
+   gen_tracer_event_tbl_h ='${BUILD_ROOT}/core/api/debugtrace/tracer_event_tbl.h'
+   env.SWEBuilder([gen_tracer_event_ids_h,gen_tracer_event_tbl_h],None)
+
+if 'USES_QDSS_SWE' in env:
+   QDSS_IMG = ['QDSS_EN_IMG']
+   events = [['RPM_BOOT_STARTED=192','rpm boot started'],
+             ['RPM_BOOT_FINISHED','rpm boot finished'],
+             ['RPM_BRINGUP_REQ','rpm_bringup_req: (master: %plugin[1]<RPM>) (core %d) (is_soft_transition %d)'],
+             ['RPM_BRINGUP_ACK','rpm_bringup_ack: (master: %plugin[1]<RPM>) (core %d) (is_soft_transition %d)'],
+             ['RPM_SHUTDOWN_REQ','rpm_shutdown_req: (master: %plugin[1]<RPM>) (core %d) (is_soft_transition %d)'],
+             ['RPM_SHUTDOWN_ACK','rpm_shutdown_ack: (master: %plugin[1]<RPM>) (core %d) (is_soft_transition %d)'],
+             ['RPM_TRANSITION_QUEUED','rpm_transition_queued: (master: %plugin[1]<RPM>) (status %d) (deadline: 0x%x)'],
+             ['RPM_MASTER_SET_TRANSITION','rpm_master_set_transition: (master: %plugin[1]<RPM>) (fromSet %d) (toSet: %d)'],
+             ['RPM_MASTER_SET_TRANSITION_COMPLETE','rpm_set_transition_complete: (master: %plugin[1]<RPM>) (deadline: 0x%x) (exceeded? %d)'],
+             ['RPM_HASH_MISMATCH','rpm_hash_mismatch: (next_task %d) (pre_state %d) (next_state %d) (system_hash %d)'],
+             ['RPM_SVS_FAST_EXTERNAL_VOTE', 'rpm_svs (mode: %d) (reason: external vote)'],
+             ['RPM_SVS_FAST_IMMINENT_PROCESSING', 'rpm_svs (mode: RPM_SVS_FAST) (reason: imminent processing)'],
+             ['RPM_SVS_FAST_SCHEDULE_IS_FULL', 'rpm_svs (mode: RPM_SVS_FAST) (reason: schedule is full)'],
+             ['RPM_SVS_SLOW_IDLE', 'rpm_svs (mode: RPM_SVS_SLOW) (reason: idle)'],
+             ['RPM_SVS_FAST_SPEEDUP', 'rpm_svs (mode: RPM_SVS_FAST) (reason: speedup) (old_duration: %x) (new_duration: %x) (switch_time: %x)'],
+             ['RPM_SVS_SLOW_NO_SPEEDUP', 'rpm_svs (mode: RPM_SVS_SLOW) (reason: no speedup) (old_duration: 0x%x) (new_duration: 0x%x) (switch_time: 0x%x)'],
+             ['RPM_MESSAGE_RECEIVED', 'rpm_message_received (master: %plugin[1]<RPM>) (message id: %d)'],
+             ['RPM_PROCESS_REQUEST', 'rpm_process_request (master: %plugin[1]<RPM>) (Resource Name: %plugin[*]<resource>) (resource_id: %d)'],
+             ['RPM_SEND_RESPONSE', 'rpm_send_message_response (master: %plugin[1]<RPM> (service: 0x%x)'],
+             ['RPM_ERR_FATAL', 'rpm_err_fatal (lr: 0x%0.8x) (ipsr: 0x%0.8x)'],
+             ['RPM_XLATE_REQUEST', 'rpm_xlate_request (Resource Name: %plugin[*]<resource>)'],
+             ['RPM_APPLY_REQUEST', 'rpm_apply_request (Resource Name: %plugin[*]<resource>)'],
+             ['RPM_ESTIMATE_CACHE_HIT', 'rpm_estimate_cache_hit (estimate: %d)'],
+             ['RPM_ESTIMATE_CACHE_MISMATCH', 'rpm_estimate_cache_mismatch (expected_result: %d) (expected_duration: %d) (actual_result: %d) (actual_duration: %d)'],
+             ['RPM_MASTER_SET_TRANSITION_BYPASS', 'rpm_transition_bypass (master: %plugin[1]<RPM>) (wake_time: 0x%0.8x)'],
+             ['RPM_RESOURCE_SETTLING', 'rpm_resource_settling (master: %plugin[1]<RPM>) (resource type: %plugin[1]<resource>) (resource id: %d) (msg id: %d)'],
+             ['RPM_RESOURCE_SETTLING_TIME', 'rpm_resource_settling_time (deadline: 0x%0.8x%0.8x)'],
+             ['RPM_RESOURCE_SETTLING_COMPLETE', 'rpm_resource_settling_complete (master: %plugin[1]<RPM) (resource type: %plugin[1]<resource>) (resource id: %d) (msg id: %d)'],
+             ['RPM_RESOURCE_SETTLING_SPIN', 'rpm_resource_settling_spin'],
+             ['RPM_SETTLING_MESSAGE_REQUEUED', 'rpm_settling_message_reenqueued (master: %plugin[1]<RPM>), (message id: %d)'],
+             ['RPM_SETTLING_TRANSITION_REQUEUED','rpm_transition_settling_requeued: (master %plugin[1]<RPM>) (status %d) (deadline: 0x%0.8x%0.8x)'],
+             ['RPM_CPR_SENSOR_DISABLED','rpm_cpr_sensor_disabled (rail: %d) (disabled: %d)'],
+             ['RPM_TRANSITION_POSTPONED','rpm_transition_postponed: (master %plugin[1]<RPM>)'],
+             ['RPM_OUT_OF_HEAP','rpm_out_of_heap'],
+             ['RPM_COMMAND_RECEIVED', 'rpm_command_received (master: %plugin[1]<RPM>)'],
+             ['RPM_HEAP_CHECK','rpm_heap_check (free_heap_space: %d)'],
+             ['RPM_MASTER_STATES','rpm_master_states (master_state_bmsk: %d)'],
+             ['RPM_NAS_START','rpm_nas_start '],
+             ['RPM_SVS_SCHED_UPDATED_TO_FAST', 'rpm_svs_sched_updated_fast (mode: RPM_SVS_FAST) (reason: rpm switch to fast upon wake up) (old_duration: 0x%0.8x) (new_duration: 0x%0.8x) (switch_time: 0x%0.8x)'],
+             ['RPM_TZ_HALT_INT_RECEIVED','rpm_abort_interrupt_received (TZ HALT) ... aborting'],
+             ['RPM_LAST=319','rpm error fatal2'],
+            ]
+   env.AddSWEInfo(QDSS_IMG, events)
+
+if env['MSM_ID'] == '9x25':
+    env.Append(CPPDEFINES = 'MDM9x25_RPM_CONFIG_WORKAROUND')
+

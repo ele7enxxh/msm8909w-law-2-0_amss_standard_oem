@@ -1,0 +1,146 @@
+#ifndef IXCONTENT_INIT_IPC
+#define IXCONTENT_INIT_IPC
+
+/*============================================================================
+IxContentInit
+
+ABSTRACT
+   The IxContentInit IPC message types.
+
+DESCRIPTION
+ 
+
+Copyright (c) 2006 - 2007 by QUALCOMM, Incorporated.  All Rights Reserved.
+=========================================================================== */
+
+/*=========================================================================
+                              Edit History
+
+  $Header: //source/qcom/qct/core/securemsm/smecom/main/latest/ixutil/environment/amss/src/IxContentInit.ipc#1 $
+  $DateTime: 2009/05/13 17:52:39 $
+  $Author: nkotekar $
+
+when       who     what, where, why
+--------   ---     --------------------------------------------------------
+01/24/07    gr     Added ipc message for exchanging process IDs.
+11/06/06    gr     Added ipc message for exchanging function tables
+10/23/06    gr     Initial Revision
+
+=========================================================================== */
+
+#include "comdef.h"
+#include "ixipc.h"
+
+#ifdef __cplusplus  
+extern "C" {
+#endif
+
+/* ========================================================================
+** Message IDs
+** ======================================================================== */
+#define ixcontent_init_heapinfo_msg_id     0x80000001
+#define ixcontent_init_ready_msg_id        0x80000003
+#define ixcontent_init_funcinfo_msg_id     0x80000005
+#define ixcontent_init_procinfo_msg_id     0x80000007
+#define ixcontent_init_device_id_msg_id    0x80000009
+
+/*
+** Maximum number of functions that can be exported from a process.
+*/
+#define IXCONTENT_INIT_MAX_FUNCS          64
+
+typedef struct
+{
+  uint32 id;
+  uint32 addr;
+} exported_func_info_type;
+
+/*=========================================================================
+IPC-MESSAGE IXCONTENT_INIT_HEAPINFO_MSG
+
+DESCRIPTION
+   Information about the AMSS heap to be sent to the DRM PD
+
+PARAMETERS
+   @heap_addr:   address of the AMSS heap structure
+
+===========================================================================*/
+typedef struct
+{
+   ipc_msg_id_type msg_id;
+   uint32          heap_addr;
+} ixcontent_init_heapinfo_msg;
+
+/*=========================================================================
+IPC-MESSAGE IXCONTENT_INIT_READY_MSG
+
+DESCRIPTION
+   Indicates to the other PD that this PD is ready
+
+PARAMETERS
+
+===========================================================================*/
+typedef struct
+{
+   ipc_msg_id_type msg_id;
+} ixcontent_init_ready_msg;
+
+/*=========================================================================
+IPC-MESSAGE IXCONTENT_INIT_FUNCINFO_MSG
+
+DESCRIPTION
+   Information about functions in this PD that need to be accessed from
+   another PD. 
+
+PARAMETERS
+   @func_info:   information about the exported functions (ID and address)
+
+===========================================================================*/
+typedef struct
+{
+   ipc_msg_id_type         msg_id;
+   uint32                  peer_pd ;
+   uint32                  n_funcs;
+   exported_func_info_type func_info[IXCONTENT_INIT_MAX_FUNCS];
+} ixcontent_init_funcinfo_msg;
+
+/*=========================================================================
+IPC-MESSAGE IXCONTENT_INIT_PROCINFO_MSG
+
+DESCRIPTION
+   ID of the current process.
+
+PARAMETERS
+   @pid:   process ID
+
+===========================================================================*/
+typedef struct
+{
+   ipc_msg_id_type         msg_id;
+   uint32                  pid;
+} ixcontent_init_procinfo_msg;
+
+/*=========================================================================
+IPC-MESSAGE IXCONTENT_INIT_device_ID_MSG
+
+DESCRIPTION
+   HW ID of the device.
+
+PARAMETERS
+   @pid:   process ID
+
+===========================================================================*/
+typedef struct
+{
+   ipc_msg_id_type         msg_id;
+   uint32                  pid;
+   uint32                  esn_len;
+   uint8                   esn[1];
+} ixcontent_init_device_id_msg;
+
+#ifdef __cplusplus  
+}
+#endif
+
+#endif /* IXCONTENT_INIT_IPC */
+

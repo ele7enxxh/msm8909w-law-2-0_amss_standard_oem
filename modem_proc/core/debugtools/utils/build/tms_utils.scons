@@ -1,0 +1,89 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build Script
+#
+# Copyright (c) 2014 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary.
+#
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+env.VariantDir('${BUILDPATH}', '${BUILD_ROOT}/core/debugtools/utils/src', duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External Dependency
+#-------------------------------------------------------------------------------
+
+#env.RequireExternalApi([
+#   'XYZ',
+#])
+
+#-------------------------------------------------------------------------------
+# Internal Dependency
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'TMS',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL',   # needs to be last also contains wrong comdef.h
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+TMS_UTILS_COMMON = [
+    '${BUILDPATH}/tms_utils_fmt.c',
+]
+
+#-------------------------------------------------------------------------------
+# Libraries
+#-------------------------------------------------------------------------------
+
+TMS_UTILS_IMG = [
+   'CORE_APPS', 'CORE_GSS', 'CORE_RPM', 'CORE_VPU', 'CORE_WCN',
+   'CORE_MODEM',
+   'CORE_QDSP6_AUDIO_SW', 'CORE_QDSP6_SENSOR_SW', 'CORE_QDSP6_SW', # 'CORE_ADSP',
+   'MODEM_MODEM',
+]
+
+env.AddLibrary(TMS_UTILS_IMG, '${BUILDPATH}/tms_utils', TMS_UTILS_COMMON)
+
+#-------------------------------------------------------------------------------
+# Task Provisioning Information
+#-------------------------------------------------------------------------------
+
+# NONE
+
+#-------------------------------------------------------------------------------
+# Tracer Software Events
+#-------------------------------------------------------------------------------
+
+TMS_UTILS_SWE_EVENTS = [
+   ['TMS_UTILS_SWE_DUMMY'      'Dummy                %x %x', 'F'],
+]
+
+#if 'USES_QDSS_SWE' in env and len(TMS_UTILS_SWE_EVENTS) != 0:
+# env.Append(CPPDEFINES = ["TMS_UTILS_TRACER_SWEVT"])
+# env.AddSWEInfo(RCINIT_IMG, TMS_UTILS_SWE_EVENTS)
+
+#-------------------------------------------------------------------------------
+# DALCFG Image "Static" Configuration Items
+#-------------------------------------------------------------------------------
+
+# NONE

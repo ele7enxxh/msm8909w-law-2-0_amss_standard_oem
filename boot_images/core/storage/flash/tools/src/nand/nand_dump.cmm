@@ -1,0 +1,893 @@
+;============================================================================
+;  Name:
+;    NAND_DUMP.CMM
+;
+;  Description:
+;    TRACE32 script to dump a partition and dump MIBIB Image
+;
+;  Execution:
+;    Inside the debugger, type at the command line: "do nand_dump"
+;
+;    Command line args handled by NAND_DUMP:
+;
+;    NAND_DUMP [NOMENU] [WHICHPARTITION] [TRUSTMODE] [FILENAME]
+;
+;      NOMENU is optional and will be used by NANDIMAGE script to dump
+;             EFS2APPS or EFS2 partitions.
+;
+;      Following arguments are optional but require NOMENU to be passed in
+;      as argument first:
+;
+;      WHICHPARTITION[0:EFS2APPS|0:EFS2] will be used to dump the EFS2APPS or
+;             EFS2 partitions.
+;
+;      TRUSTMODE[TRUSTED] will be used to set indicated security mode of
+;             partition.
+;
+;      FILENAME is used to pass the filename to store the data dump of the
+;               specified partition.
+;
+;  Copyright (c) 2008-2009, 2011, 2014 Qualcomm Technologies, Incorporated.  
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/nand_dump.cmm#1 $ $DateTime: 2015/09/01 00:30:35 $ $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 07/14/14   sb     To support non DDR based tools
+; 03/21/11   jz     Updated to support new T32 versions
+; 11/23/09   wt     Added support for ROFS Partition DUMP
+; 11/03/09   wt     Added support for XSR USER DATA DUMP
+; 08/27/09   bb     Changing paths from \ to / to support linux environment
+; 07/08/09   mm     Added new mode to disable ECC for OneNAND
+; 06/23/09   bb     Removed unnecessary BadBlockCnt prints while partition dump
+; 05/20/09   jz     Added checking of flash_tools_disable_ecc existance
+; 05/08/09   jz     Cleaned up redundant code
+; 05/17/09   eo     Add support for nandimage wrapper script.
+; 02/25/09   eo     Disable HW ECC in Onenand for RAW mode page access.
+; 08/19/08   mm     Created
+;============================================================================;
+
+
+;============================================================================
+; Declare variables used
+;============================================================================
+&MenuMode="STD"        ; Present normal NAND menu
+LOCAL &Verbose
+LOCAL &ClearWin
+LOCAL &CurrentCmd
+LOCAL &BlockSize
+LOCAL &PageSize
+LOCAL &CurrentBlock
+LOCAL &CurrentPage
+LOCAL &TempDir
+LOCAL &FileSpec
+LOCAL &InFileSpec
+
+LOCAL &VRAM_BASE
+LOCAL &VRAM_OFFSET
+LOCAL &Offset
+LOCAL &BlockEnd
+LOCAL &PageEnd
+
+LOCAL &DateStart
+LOCAL &DateEnd
+LOCAL &TimeStart
+LOCAL &TimeEnd
+
+LOCAL &PartiChoice
+LOCAL &RangeStart
+LOCAL &PartitionStart
+LOCAL &RangeEnd
+LOCAL &PartitionEnd
+LOCAL &EndBlock
+LOCAL &EndPage
+LOCAL &PartitionSize
+LOCAL &CopyData
+LOCAL &TrustMode
+LOCAL &tmode
+LOCAL &buildId
+LOCAL &DisableECC
+
+;============================================================================
+; Get the arguments passed in.
+;============================================================================
+ENTRY &arg1 &arg2 &arg3 &arg4
+
+;============================================================================
+; Set up some defaults for some variables
+;============================================================================
+&Verbose="no"         ; Do not present status messages as we process
+&ClearWin="yes"       ; Remove all windows before starting
+&Offset=0x0           ; Offset into partition
+&TempDir=OS.ENV(TEMP) ; Get the temperory directory
+&FileSpec="&TempDir/image.bin" ; default file to save to
+&TrustMode="TRUSTED"     ; Only TRUSTED mode supported
+
+;============================================================================
+; Process the command line arguments and create image names or wildcards
+;============================================================================
+gosub ProcessCmdLine
+
+;============================================================================
+; For normal use set up the screen with only area window for reports
+; For debug purposes, don't clear
+; In both cases, make sure we have an area window
+;============================================================================
+if "&ClearWin"=="yes"
+  (
+    WinCLEAR
+    WinPage.Reset
+    WINPOS 0. 0. 50% 100%
+  )
+
+area
+
+if "&ClearWin"=="yes"
+  (
+    area.RESET
+  )
+
+;============================================================================
+; Set some MSM specific variables used later in flash.target command
+;    &NandCodeAddr=
+;    &NandParamAddr=
+;    &NandCpuType=
+;============================================================================
+ do nand_param
+
+
+;============================================================================
+; 1) Set variables used to set up the JTAG debugger for this MSM
+; 2) Init important MSM/ASB registers
+;    use existing external script that is MSM specific
+;============================================================================
+ do &NandConfigDir/nand_msm_init
+
+;-------------------------------------------------------------------------------
+; Set some variables used later on to peek and poke parameter block
+;   This script file is sourced by both nand.cmm and nandtest.cmm
+;-------------------------------------------------------------------------------
+do nand_init.cmm
+
+
+;============================================================================
+; Possibly put up terminal window
+;============================================================================
+if "&UseTerm"=="YES"
+  (
+     term.close
+     winclear MYTERM
+     term.size 60 1000
+     term.scroll on
+     WinPOS 50% 0% 50%100% ,, MYTERM
+     term.mode ascii
+     term.method dcc
+     term.view
+     ;term.write term.out
+  )
+
+
+;======================================================
+; Load our flash programming routine and prepare flash
+;======================================================
+data.load.elf "nand_tools.elf" /VERIFY
+
+
+; need this breakpoint as per Lauterbach Spec so that we
+; can hand back control to the Debugger
+break.delete /ALL
+break.set swbp /onchip /program
+
+;============================================================================
+; Invoke the correct menu
+; NOMENU - Menu already set by calling script: nandimage.cmm
+; STD - Set this script's menu selections.
+;============================================================================
+if "&MenuMode"=="NOMENU"
+(
+  gosub DoNoMenu
+  enddo
+)
+else if "&MenuMode"=="STD"
+(
+  gosub MainMenu
+)
+else
+(
+  print "Invalid menu mode &MenuMode selected"
+  end
+)
+
+MainMenu:
+  print
+  print
+  print "------------------------------------------------"
+  print "|         _   _    _    _   _ ____             |"
+  print "|        | \ | |  / \  | \ | |  _ \            |"
+  print "|        |  \| | / _ \ |  \| | | | |           |"
+  print "|        | |\  |/ ___ \| |\  | |_| |           |"
+  print "|        |_| \_/_/   \_\_| \_|____/            |"
+  print "|                                              |"
+  print "|         Flash Partition Dump Utility         |"
+  print "|                                              |"
+  print "|     Copyright (c) 2009 by QUALCOMM, Inc.     |"
+  print "|                                              |"
+  print "------------------------------------------------"
+  print
+  print
+  print "  0: Exit"
+  print "  1: Dump Partition"
+  print "  2: Dump MIBIB Partition with Signature"
+  print "  3: Dump XSR USER DATA Partition "
+  print "  4: Dump ROFS Partition DATA "
+  print
+  print " Please make a choice: "
+
+  &t32_cmm_stopped=1
+  enter &Choice
+  &t32_cmm_stopped=0
+  print
+  print
+  if "&ClearWin"=="yes"
+  (
+    area.RESET
+  )
+
+  if "&Choice"=="0"
+  (
+    print "...exiting Partition -Image Dump Tool"
+    enddo
+  )
+
+  if "&Choice"=="1"
+  (
+    gosub GetFilespec
+    &DisableECC=1
+    print "Reading with ECC disabled..."
+    print " Dumping the entire page with the spare data "
+    print
+
+    print "Enter Which partion to be dumped ..."
+    print "ex 0:MIBIB,0:OEMSBL1,0:OEMSBL2,0:AMSS,0:EFS2,0:EFS2APPS etc"
+    print "Look in mibib.h if you are not sure of the partition name"
+    print
+    enter &PartiChoice
+    print "You have selected partition &PartiChoice"
+
+    gosub InitDumpParti
+    print " Number of blocks : &PartitionSize "
+    print
+    gosub DumpPartitionSubMenu
+    goto MainMenu
+  )
+
+  if "&Choice"=="2"
+  (
+    &DisableECC=0
+    gosub GetBuildId
+    &FileSpec="&TempDir/mibib.bin" ; default file to save to
+    print "Dumping MIBIB Partition..."
+    gosub GetFilespec
+    gosub DumpMibibImage
+    goto MainMenu
+  )
+
+  if "&Choice"=="3"
+  (
+    gosub GetFilespec
+    print " Dumping the entire USER DATA Partition "
+    print "Enter Which partion to be dumped ..."
+    print "ex 0:EFS2APPS only supported"
+    print
+    enter &PartiChoice
+    print "You have selected partition &PartiChoice"
+       
+    gosub InitXSRDumpParti
+    gosub DumpXSRPartition
+    goto MainMenu
+  )
+
+  if "&Choice"=="4"
+  (
+    gosub GetFilespec
+    print " Dumping the entire USER DATA Partition "
+    print "Enter Which partion to be dumped ..."
+    print "ex 0:EFS2APPS only supported"
+    print
+    enter &PartiChoice
+    gosub DisplayROFSParti
+    print "Enter the ROFS partition ID Ex 0x10000001,0x10000002 etc"
+    print
+    enter &ROFSChoice
+    data.set &ParmAddr %LONG &ROFSChoice
+    
+    gosub InitXSRROFSParti
+    gosub DumpXSRROFSPartition
+    goto MainMenu
+  )
+
+  goto MainMenu
+
+return  ; MainMenu
+
+;=====================================================
+; Access the partition data from arguments passed by
+; the calling wrapper script.
+;=====================================================
+DoNoMenu:
+  &Choice="1"   ;Set to 1 to dump entire partition
+  &DisableECC=1 ;Disable ECC to read main and spare data
+
+  ;Allow flash tools to disable HW ECC on OneNAND device for RAW
+  ;mode page access.  By default, OneNAND driver sets HW ECC to enabled.
+  if y.exist(flash_tools_disable_ecc)
+  (
+    V flash_tools_disable_ecc = 0x1
+  )
+
+  if "&TrustMode"=="TRUSTED"
+  (
+    &EndBlock=4
+    &tmode=1
+  )
+  else
+  (
+    &EndBlock=5
+    &tmode=0
+  )
+
+  gosub InitDumpParti
+  gosub DumpPartition
+
+return ; DoNoMenu
+
+;=====================================================
+; --- Sub Menu with dump options
+;=====================================================
+DumpPartitionSubMenu:
+  print " 0: Go back to Main Menu"
+  print " 1: Read Entire partition "
+  print " 2: Read a range of blocks in the specified partition "
+  print
+  print " Please make a choice: "
+  enter &Choice
+
+  if "&Choice"=="0"
+  (
+    return  ; back to MainMenu
+  )
+
+  if "&Choice"=="1"
+  (
+    print " Reading the Entire &PartiChoice Partition With ECC DIsabled "
+    gosub DumpPartition
+    return
+  )
+
+  if "&Choice"=="2"
+  (
+    print " Enter the range of blocks to be read (Both included ) "
+    gosub EnterRange
+    if "&RangeEnd">"&PartitionSize"
+    (
+      print " Block not in the partition "
+      gosub EnterRange
+    )
+    gosub DumpPartition
+    return
+  )
+
+  print " Wrong Choice "
+  goto DumpPartitionSubMenu
+
+
+EnterRange:
+  print " Enter the Range to be read (0 : End)"
+  print " Enter the Start: "
+  enter &RangeStart
+
+  print " Enter the End:  "
+  enter &RangeEnd
+  return
+
+
+
+;-------------------------------------------------------------------------------
+; Get name of file for saving trace records or use default
+;-------------------------------------------------------------------------------
+GetFilespec:
+  if "&TrustMode"=="TRUSTED"
+  (
+    &EndBlock=4
+    &tmode=1
+  )
+  else
+  (
+    &EndBlock=5
+    &tmode=0
+  )
+
+print " "
+print " "
+print "  ++++ File Spec for data storage may be relative or absolute +++ "
+print
+print " Please enter filespec for storing dump [default: &FileSpec] >  "
+enter &InFileSpec
+
+if "&InFileSpec"!=""
+  (
+    &FileSpec="&InFileSpec"
+  )
+
+print "  "
+print "  "
+print "  "
+
+return ; GetFilespec
+
+;=====================================================
+; --- Function to setup the dump for file system area
+;=====================================================
+InitDumpParti:
+
+  ;--------------------------------------------------------
+  ; Open the partition and get number of blocks
+  ;--------------------------------------------------------
+  ;
+  &Command="Initializing for dump"
+  data.set &ParmCmd %LONG &PartiDumpInit
+  ;Pass the partition info to nand
+  data.set &ParmData "&PartiChoice" 0x0
+  ;Pass the ECC info to nand
+  data.set &ParmWidth %LONG &DisableECC
+  data.set &ParmSize %LONG &tmode
+  &CurrentCmd=&PartiDumpInit
+  r.s pc &StartAddr
+
+  go
+  gosub check_status  ;; will not return if error
+
+  &PartitionStart=data.long(A:&ParmSize)
+  &PartitionEnd=data.long(A:&ParmWidth)
+
+  &PartitionSize=data.long(A:&ParmAddr)
+;  &BlockSize=data.long(A:&ParmOffset)
+  &PageSize=data.long(A:&ParmOffset)
+
+return ; InitDumpParti
+
+;=====================================================
+; --- Function to display the ROFS partition ID
+;=====================================================
+DisplayROFSParti:
+
+  ;--------------------------------------------------------
+  ; Open the partition and get number of blocks
+  ;--------------------------------------------------------
+  ;
+  &Command="Initializing for dump"
+  data.set &ParmCmd %LONG &DisplayROFSPartitions
+  ;Pass the partition info to nand
+  data.set &ParmData "&PartiChoice" 0x0
+  ;Pass the ECC info to nand
+  data.set &ParmWidth %LONG &DisableECC
+  data.set &ParmSize %LONG &tmode
+  &CurrentCmd=&DisplayROFSPartitions
+  r.s pc &StartAddr
+
+  go
+  gosub check_status  ;; will not return if error
+
+return ; DisplayROFSParti
+
+
+;=====================================================
+; --- Function to setup the dump for USER DATA partition in XSR
+;=====================================================
+InitXSRDumpParti:
+
+  ;--------------------------------------------------------
+  ; Open the partition and get number of blocks
+  ;--------------------------------------------------------
+  ;
+  &Command="Initializing for dump"
+  data.set &ParmCmd %LONG &PartiXSRDumpInit
+  ;Pass the partition info to nand
+  data.set &ParmData "&PartiChoice" 0x0
+  ;Pass the ECC info to nand
+  data.set &ParmWidth %LONG &DisableECC
+  data.set &ParmSize %LONG &tmode
+  &CurrentCmd=&PartiXSRDumpInit
+  r.s pc &StartAddr
+
+  go
+  gosub check_status  ;; will not return if error
+
+  &PartitionStart=data.long(A:&ParmSize)
+  &PartitionEnd=data.long(A:&ParmWidth)
+
+  &PartitionSize=data.long(A:&ParmAddr)
+  &BlockSize=data.long(A:&ParmOffset)
+
+return ; InitXSRDumpParti
+
+
+=====================================================
+; --- Function to setup the dump for ROFS partition in XSR
+;=====================================================
+InitXSRROFSParti:
+
+  ;--------------------------------------------------------
+  ; Open the partition and get number of blocks
+  ;--------------------------------------------------------
+  ;
+  &Command="Initializing for dump"
+  data.set &ParmCmd %LONG &PartiXSRROFSInit
+  ;Pass the partition info to nand
+  data.set &ParmData "&PartiChoice" 0x0
+  ;Pass the ECC info to nand
+  data.set &ParmWidth %LONG &DisableECC
+  data.set &ParmSize %LONG &tmode
+  &CurrentCmd=&PartiXSRROFSInit
+  r.s pc &StartAddr
+
+  go
+  gosub check_status  ;; will not return if error
+
+  &PartitionSize=data.long(A:&ParmSize)
+  &BlockSize=data.long(A:&ParmOffset)
+
+return ; InitXSRROFSParti
+
+;=====================================================
+; --- Function to dump partition
+;=====================================================
+DumpPartition:
+
+  &DateStart=CLOCK.DATE()
+  &TimeStart=CLOCK.TIME()
+  PRINT " "
+  PRINT "Start at &DateStart at &TimeStart"
+  print "Save location : &FileSpec"
+  print " "
+
+  ;Read the entire partition
+  if "&Choice"=="1"
+  (
+    &CurrentPage=0
+    &EndPage=&PartitionSize-1
+  )
+
+  ;Read the range in the partition
+  if "&Choice"=="2"
+  (
+    &CurrentBlock=&RangeStart
+    &EndBlock=&RangeEnd
+  )
+
+  ;--------------------------------------------------------
+  ; Read blocks
+  ;--------------------------------------------------------
+  &Offset=0
+  &VRAM_BASE=0x00000000 ; Base of virtual RAM for data spool
+
+  ; set constant value for end of block of data
+;  &BlockEnd=&ParmData+&BlockSize
+   &PageEnd=&ParmData+&PageSize
+
+  while &CurrentPage<=&EndPage
+  (
+    &Command="Read Block"
+    data.set &ParmCmd %LONG &DumpParti
+    data.set &ParmAddr %LONG &CurrentPage
+    &CurrentCmd=&DumpParti
+    r.s pc &StartAddr
+    go
+
+    gosub check_status  ;; will not return if error
+    &CurrentPage=data.long(A:&ParmAddr)
+    &CopyData=data.long(A:&ParmWidth)
+
+    if "&CopyData"=="0x1"
+    (
+      &VRAM_OFFSET=&VRAM_BASE+&Offset
+      data.copy &ParmData--(&PageEnd-1) vm:&VRAM_OFFSET /long
+      &Offset=&Offset+&PageSize
+    )
+    &CurrentPage=&CurrentPage+1
+  )
+
+  ; Save the virtual memory image we have been building
+  data.save.binary &FileSpec vm:&VRAM_BASE--(&Offset-1)
+
+  &DateEnd=CLOCK.DATE()
+  &TimeEnd=CLOCK.TIME()
+  PRINT " "
+  PRINT "End at &DateEnd at &TimeEnd"
+  print " "
+  print "Dump is saved to &FileSpec"
+
+return  ; DumpPartition
+
+
+;=====================================================
+; --- Function to dump XSR USER DATA partition
+;=====================================================
+DumpXSRPartition:
+
+  &DateStart=CLOCK.DATE()
+  &TimeStart=CLOCK.TIME()
+  PRINT " "
+  PRINT "Start at &DateStart at &TimeStart"
+  print " "
+
+  ;Read the entire partition
+
+  &CurrentBlock=0
+  &EndBlock=&PartitionSize
+
+  ;--------------------------------------------------------
+  ; Read blocks
+  ;--------------------------------------------------------
+  ;
+  &Offset=0
+  &VRAM_BASE=0x00000000 ; Base of virtual RAM for data spool
+
+  ; set constant value for end of block of data
+   &BlockEnd=&ParmData+&BlockSize
+ 
+  while &CurrentBlock<=&EndBlock
+  (
+    &Command="Read Block"
+    data.set &ParmCmd %LONG &DumpXSRParti
+    data.set &ParmAddr %LONG &CurrentBlock
+    &CurrentCmd=&DumpXSRParti
+    r.s pc &StartAddr
+    go
+    
+    gosub check_status  ;; will not return if error
+    &CurrentBlock=data.long(A:&ParmAddr)
+    &CopyData=data.long(A:&ParmWidth)
+    if "&CopyData"=="0x1"
+    (
+      &VRAM_OFFSET=&VRAM_BASE+&Offset
+      data.copy &ParmData--(&BlockEnd-1) vm:&VRAM_OFFSET /long
+       &Offset=&Offset+&BlockSize
+    )
+    &CurrentBlock=&CurrentBlock+1
+  )
+  ; Save the virtual memory image we have been building
+  data.save.binary &FileSpec vm:&VRAM_BASE--(&Offset-1)
+
+  &DateEnd=CLOCK.DATE()
+  &TimeEnd=CLOCK.TIME()
+  PRINT " "
+  PRINT "End at &DateEnd at &TimeEnd"
+  print " "
+  print "Dump is saved to &FileSpec"
+
+return  ; DumpXSRPartition
+
+;=====================================================
+; --- Function to dump XSR ROFS partition
+;=====================================================
+DumpXSRROFSPartition:
+
+  &DateStart=CLOCK.DATE()
+  &TimeStart=CLOCK.TIME()
+  PRINT " "
+  PRINT "Start at &DateStart at &TimeStart"
+  print " "
+
+  ;Read the entire partition
+  &CurrentBlock=data.long(A:&ParmAddr)
+  &EndBlock=&CurrentBlock+&PartitionSize-1
+
+  ;--------------------------------------------------------
+  ; Read blocks
+  ;--------------------------------------------------------
+  ;
+  &Offset=0
+  &VRAM_BASE=0x00000000 ; Base of virtual RAM for data spool
+
+  ; set constant value for end of block of data
+   &BlockEnd=&ParmData+&BlockSize
+ 
+  while &CurrentBlock<=&EndBlock
+  (
+    &Command="Read Block"
+    data.set &ParmCmd %LONG &DumpXSRROFSParti
+    data.set &ParmAddr %LONG &CurrentBlock
+    &CurrentCmd=&DumpXSRROFSParti
+    r.s pc &StartAddr
+    go
+    
+    gosub check_status  ;; will not return if error
+    &CurrentBlock=data.long(A:&ParmAddr)
+    &CopyData=data.long(A:&ParmWidth)
+    if "&CopyData"=="0x1"
+    (
+      &VRAM_OFFSET=&VRAM_BASE+&Offset
+      data.copy &ParmData--(&BlockEnd-1) vm:&VRAM_OFFSET /long
+       &Offset=&Offset+&BlockSize
+    )
+    &CurrentBlock=&CurrentBlock+1
+  )
+  ; Save the virtual memory image we have been building
+  data.save.binary &FileSpec vm:&VRAM_BASE--(&Offset-1)
+
+  &DateEnd=CLOCK.DATE()
+  &TimeEnd=CLOCK.TIME()
+  PRINT " "
+  PRINT "End at &DateEnd at &TimeEnd"
+  print " "
+  print "Dump is saved to &FileSpec"
+
+return  ; DumpXSRROFSPartition
+
+;=====================================================
+; --- Function to setup the dump for MIBIB area
+;=====================================================
+DumpMibibImage:
+  ;--------------------------------------------------------
+  ; Open the MIBIB  partition and get number of blocks
+  ;--------------------------------------------------------
+  ;
+  &DateStart=CLOCK.DATE()
+  &TimeStart=CLOCK.TIME()
+  PRINT " "
+  PRINT "Start at &DateStart at &TimeStart"
+  print "Save location : &FileSpec"
+  print " "
+  print "Dumping Mibib Data to File with spare bytes and ECC off"
+  print " "
+
+  print "mode:&TrustMode - Number Blocks to be dumpped &EndBlock"
+
+  &PartiChoice="0:ALL"
+
+  gosub InitDumpParti
+  print "Size of each block is &BlockSize including spare area"
+
+  &CurrentBlock=0
+  ;--------------------------------------------------------
+  ; Read blocks
+  ;--------------------------------------------------------
+  ;
+  &Offset=0
+  &VRAM_BASE=0x00000000 ; Base of virtual RAM for data spool
+
+  ; set constant value for end of block of data
+  &BlockEnd=&ParmData+&BlockSize
+
+  while &CurrentBlock<&EndBlock
+  (
+    &Command="Read Block"
+    data.set &ParmCmd %LONG &DumpMibibPartiBlock
+    data.set &ParmAddr %LONG &CurrentBlock
+    &CurrentCmd=&DumpMibibPartiBlock
+    r.s pc &StartAddr
+    go
+
+    gosub check_status  ;; will not return if error
+    &CurrentBlock=data.long(A:&ParmAddr)
+
+    &VRAM_OFFSET=&VRAM_BASE+&Offset
+    data.copy &ParmData--(&BlockEnd-1) vm:&VRAM_OFFSET /long
+      &Offset=&Offset+&BlockSize
+
+    &CurrentBlock=&CurrentBlock+1
+  )
+
+  ; Save the virtual memory image we have been building
+  data.save.binary &FileSpec vm:&VRAM_BASE--(&Offset-1)
+  &DateEnd=CLOCK.DATE()
+  &TimeEnd=CLOCK.TIME()
+  PRINT " "
+  PRINT "End at &DateEnd at &TimeEnd"
+  print " "
+  print "Mibib partition is saved to &FileSpec"
+
+return
+
+
+
+;=====================================================
+; --- Function to check command status return
+;       and exit if 0x100
+;=====================================================
+check_status:
+   wait !run()
+
+   &Result=data.long(A:&ParmStatus)
+   if &Result==0x100
+   (
+     print " "
+     print "---- &Command failed"
+     &Result=data.long(A:&ParmReserved)
+     print "     Extended status is &Result"
+     print " "
+     print "EXITING due to failed command:: &Command"
+     end
+   )
+   else
+   (
+           if (&Result==&CurrentCmd)
+           (
+       print " "
+       print "----  DID NOT COMPLETE &Command"
+       print " "
+       print "EXITING due to failed command:: &Command"
+       end
+           )
+           else
+           (
+             if "&Verbose"=="yes"
+             (
+               print "+++++ &Command Succeeded"
+             )
+           )
+   )
+return
+
+
+;-------------------------------------------------------------------------------
+; Get name of file for saving trace records or use default
+;-------------------------------------------------------------------------------
+GetBuildId:
+  print " "
+  print " "
+  print "   +++++ Get build Id +++++"
+  print "   "
+  print "Please enter BuildId [default: &buildId] >  "
+  enter &InBuildId
+
+  if "&InBuildId"!=""
+  (
+    &buildId="&InBuildId"
+  )
+
+  print "  "
+  print "  "
+  print "  "
+return
+
+;============================================================================
+; Process the arguments and set modes accordingly
+;============================================================================
+ProcessCmdLine:
+  if "&arg1"=="NOMENU"
+  (
+    ; NOMENU mode requires partition name and filespec arguments
+    &MenuMode="&arg1"
+    &PartiChoice="&arg2"
+    &TrustMode="&arg3"
+    &FileSpec="&arg4"
+
+    if "&arg2"==""||"&arg3"==""||"&arg4"==""
+    (
+      print "Fatal Error:  Input parameters arg2 and arg3 are missing."
+      gosub ExitNandDump
+    )
+
+    if "&PartiChoice"!="0:EFS2APPS"&&"&PartiChoice"!="0:EFS2"
+    (
+      print "Fatal Error:  Input parameters arg2 not EFS2APPS or EFS2 images."
+      gosub ExitNandDump
+    )
+    &Verbose="no"
+  )
+
+return  ; ProcessCmdLine
+
+ExitNandDump:
+  print "Goodbye..."
+enddo
+
+

@@ -1,0 +1,371 @@
+;============================================================================
+;  Name:
+;    ERASENAND.CMM
+;
+;  Description:
+;    Lauterbach JTAG/ICD TRACE32 script to erase entire NAND flash.
+;
+;  Execution:
+;    Inside the debugger, type at the command line: "do erasenand".  Make
+;    menu choices as directed.
+;
+;       OR
+;
+;   If you absolutely know what you are doing and want to bypass menu,
+;      type:
+;
+;            "do erasenand NOMENU"
+;
+;      and the script will not prompt you at all
+;
+;  Copyright (c) 2009-2011 Qualcomm Technologies, Incorporated.  
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/erasenand.cmm#1 $ $DateTime: 2015/09/01 00:30:35 $ $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 06/04/14   sb     Update to support 9x45
+; 03/21/11   jz     Updated to support new T32 versions
+; 11/12/10   jz     Return status to the calling script
+; 11/04/09   op     Fix all target erasenand NOMENU - do not prompt for hwio file. 
+; 11/04/09   op     Fix SCMM erasenand NOMENU - do not prompt for hwio file. 
+; 05/04/09   eo     Move terminal view setup after script variables are set. 
+; 02/08/09   mm     Created
+;============================================================================;
+
+
+
+;============================================================================
+; Declare variables used
+;============================================================================
+local &MenuMode
+local &DoDebug 
+local &Verbose
+local &ClearWin
+local &Choice
+local &CurrentCmd
+local &CheckStatusExit
+local &GoForIt
+; this variable is used in setuphwio.cmm for Determine the MSM id
+global &jload_build_msm
+
+;============================================================================
+; Set up some defaults for some variables
+;============================================================================
+&DoDebug="no"           ; Do not do debugging      
+&ClearWin="yes"         ; Remove all windows before starting
+&Verbose="yes"          ; Tell the user what is happening
+&CheckStatusExit="yes"  ; Exit on failure
+
+;============================================================================
+; Get the arguments passed in.
+;============================================================================
+ENTRY &GoForIt
+
+
+;============================================================================
+; For normal use set up the screen with only area window for reports 
+; For debug purposes, don't clear
+; In both cases, make sure we have an area window
+;============================================================================
+
+if "&ClearWin"=="yes"  
+(  
+  WinCLEAR
+  WinPage.Reset
+)
+
+WINPOS 0. 0. 50% 100%
+area
+
+if "&ClearWin"=="yes"  
+(  
+  area.RESET 
+)
+  
+  
+;============================================================================
+; Set some MSM specific variables used later in flash.target command
+;    &NandCodeAddr=
+;    &NandParamAddr=
+;    &NandCpuType=
+;============================================================================
+if (os.file(nand_param.cmm))
+(
+  do nand_param
+)
+else
+(
+  print "Missing nand_param.cmm"
+  enddo (1==0)
+)
+
+;============================================================================
+; 1) Set variables used to set up the JTAG debugger for this MSM
+; 2) Init important MSM/ASB registers
+;    use existing external script that is MSM specific
+;============================================================================
+&jload_build_msm="&NandMsmId"
+if (os.file(&NandConfigDir/nand_msm_init.cmm))
+(
+  do &NandConfigDir/nand_msm_init
+)
+else
+(
+  print "Missing &NandConfigDir/nand_msm_init.cmm"
+  enddo (1==0)
+)
+
+;-------------------------------------------------------------------------------
+; Set some variables used later on to peek and poke parameter block
+;   This script file is sourced by both nand.cmm and nandtest.cmm
+;-------------------------------------------------------------------------------
+if (os.file(nand_init.cmm))
+(
+  do nand_init.cmm
+)
+else
+(
+  print "Missing nand_init.cmm"
+  enddo (1==0)
+)
+
+;============================================================================
+; Put up terminal window
+;============================================================================
+if "&UseTerm"=="YES"  
+(  
+  term.close
+  winclear MYTERM
+  term.size 60 1000
+  term.scroll on
+  WinPOS 50% 0% 50%100% ,, MYTERM
+  term.mode ascii
+  if "&VirtioPlatform"=="no"
+  (
+    term.method dcc
+  )
+  term.view
+  ;term.write term.out
+)
+
+on error gosub
+(
+  term.close
+  print "terminal output closed"
+  enddo (1==0)
+)
+
+;============================================================================
+; If user passed "YES" on command line, just go
+;============================================================================
+if "&GoForIt"=="NOMENU"  
+(  
+  gosub EraseChip
+  term.close
+  enddo (0==0)
+)
+
+
+;============================================================================
+; don't proceed without user confirmation
+;============================================================================
+      
+print "      "
+print "      __        __               _             "
+print "      \ \      / /_ _ _ __ _ __ (_)_ __   __ _ "
+print "       \ \ /\ / / _` | '__| '_ \| | '_ \ / _` |"
+print "        \ V  V / (_| | |  | | | | | | | | (_| |"
+print "         \_/\_/ \__,_|_|  |_| |_|_|_| |_|\__, |"
+print "                                         |___/ "
+print " "
+print
+print
+print
+print " You are about to erase the entire NAND flash"
+print " "
+print " "
+print
+print " Please enter YES to continue, any other value will abort::     "
+  
+&t32_cmm_stopped=1
+enter &Choice
+&t32_cmm_stopped=0
+print
+print
+	 
+if "&Choice"=="YES" 
+(  
+  print "Erasing entire flash....."
+  if "&DoDebug"=="yes"  
+  (  
+    term.size 60 1000
+    term.scroll on
+    WinPOS 45 8
+    term.view
+    term.write term.out
+  )
+  gosub EraseChip
+)
+else
+(
+  print "Bailing out, correct answer not given"
+  enddo (1==0)
+)
+  
+term.close
+
+enddo (0==0)
+ 
+ 
+;=====================================================
+; --- Function to Erase entire chip
+;=====================================================
+EraseChip: 
+     ; set up addresses used with FLASH.* commands
+     &RomBegin=&NandCodeRomBegin
+     &RomEnd=&NandCodeRomEnd
+     gosub CreateRom
+	 
+	 
+	 ;--------------------------------------------------------
+	 ; We have to set this command up by hand as it is one
+	 ;  that we added to the flash.* protocol and JTAG does
+	 ;  not know about it.
+	 ;--------------------------------------------------------
+	 ;
+     if "&Verbose"=="yes"
+     (
+       print "Erasing entire chip"
+     )
+     &Command="Erase Chip"
+     data.set &ParmCmd %LONG &EraseChipCmd
+     &CurrentCmd=&EraseChipCmd
+   
+     ; set flash base address
+     data.set &ParmFlashaddr %LONG &NandCodeRomBegin
+
+     r.s pc &StartAddr
+     go
+
+     gosub check_status  ;; will not return if error 
+	 
+     if "&Verbose"=="yes"
+     (
+       print "Entire Chip is Erased"                                             
+       beep 5
+     )
+return
+
+
+;=====================================================
+; --- Function to check command status return
+;       and exit if 0x100
+;=====================================================
+check_status:
+     wait !run()
+	
+     &Result=data.long(A:&ParmStatus)
+     if &Result==0x100
+     (
+       print " " 
+       print "---- &Command failed"
+       &Result=data.long(A:&ParmReserved)
+       do flash_prog_error &Result
+       print " "
+     
+       if "&CheckStatusExit"=="yes"
+       (
+         print "EXITING due to failed command:: &Command"
+  
+         print "Closing teminal window on error"
+         term.close
+       
+         enddo (1==0)
+       )
+       else
+       (
+         &CheckStatusFailed="yes"
+       )
+     )
+     else
+     (
+       if (&Result==&CurrentCmd)
+       (
+         print " " 
+         print "----  DID NOT COMPLETE &Command"
+         print " "
+         print "EXITING due to failed command:: &Command"
+  	   
+         if "&UseTerm"=="YES"  
+         (
+           print "Closing teminal window on error"
+           term.close
+         )
+       
+         enddo (1==0)
+       )
+       else
+       (
+         if "&Verbose"=="yes"
+         (
+           print "+++++ &Command Succeeded"  
+         )
+       )
+     )
+return
+
+
+;=====================================================
+; --- Function to create the FLASH map
+;=====================================================
+CreateRom:
+	;======================================================
+	; Map flash readonly - must encompass the addresse
+	;     of the image being loaded
+	;======================================================
+	 map.readonly &RomBegin--&RomEnd
+	
+	;======================================================
+	; Load our flash programming routine and prepare flash
+	;======================================================
+	 d.load.elf "nand_tools.elf" /VERIFY
+	 
+	 ; need this breakpoint as per Lauterbach Spec so that we
+	 ; can hand back control to the Debugger
+	 break.delete /ALL
+	 break.set swbp /onchip /program
+
+	 ;--------------------------------------------------------
+	 ; reset our flash command
+	 ;--------------------------------------------------------
+	 flash.res
+	 
+	 ;--------------------------------------------------------
+	 ; Let flash command know where our routine and buffer is located
+	 ; code at &NandCodeAddr, data at &NandParamAddr, buffer size = 16K
+	 ; Earlier versions of JTAG s/w would allow larger buffer of 64k
+	 ; but now we seem to be limited to 16k
+	 ;--------------------------------------------------------
+	 ;
+	 flash.target &NandCodeAddr &NandParamAddr 4000 
+	 
+	 ;--------------------------------------------------------
+	 ; Define our flash range and tell flash command we're using
+	 ; our own flash programming routine via keyword "target"
+	 ; right now, we are defining 3 MBytes for code which in
+	 ; the NAND environment is meaningless, as this has to do
+	 ; with memory mapping in the flash, but we have to use it
+	 ; to use the other FLASH.* functions
+	 ;--------------------------------------------------------
+	 ;
+	 flash.create &RomBegin--&RomEnd target word
+return
+
+END

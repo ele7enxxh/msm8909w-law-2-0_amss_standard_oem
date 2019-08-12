@@ -1,0 +1,114 @@
+#===============================================================================
+#
+# cryptoLibs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/22/14   nk      Scon cleanup 
+# 02/23/11   jl	     Removed debug/nodebug from build path.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/environment"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'BOOT',
+   'HWENGINES',
+   'CECL',
+   'POWER',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('CEEL', [
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/environment/env/mba/inc',
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/environment/inc', 
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/chipset/${CHIPSET}/inc', 
+])
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+env.Append(ARMCC_CODE = " ${ARM_SPLIT_SECTIONS}")
+env.Replace(ARMLD_NOREMOVE_CMD = "")
+
+env.Append(CPPDEFINES = ['_ARM_', '__arm', 'ARM', 'ARM_BREW_BUILD'])
+env.Append(ARMCC_OPT = ' -EC --loose_implicit_cast ')
+env.Append(ARMCPP_OPT = ' -EC --loose_implicit_cast ')
+if env.has_key('BUILD_BOOT_CHAIN'):
+   env.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+CEEL_LIB_SOURCES = [
+        '${BUILDPATH}/src/CeEL.c',
+        '${BUILDPATH}/src/CeEL_Bam.c',
+        '${BUILDPATH}/src/CeEL_Reg.c',        
+]
+
+CLEAN_SOURCES = env.FindFiles("*.h", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/environment/")
+
+env.CleanPack(['MBA_CORE_SW'], CLEAN_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary(
+        ['MBA_CORE_SW'],
+        '${BUILDPATH}/CeEL',
+        CEEL_LIB_SOURCES
+)

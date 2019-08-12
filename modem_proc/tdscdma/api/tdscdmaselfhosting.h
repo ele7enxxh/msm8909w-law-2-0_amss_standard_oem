@@ -1,0 +1,182 @@
+#ifndef TDS_SELF_HOSTING_H
+#define TDS_SELF_HOSTING_H
+
+/*===========================================================================
+                          TDSCDMA SELF HOSTING
+
+DESCRIPTION
+  This file defines the logging interface for EVENT_TDSCDMA_SELF_HOSTING between TDSCDMA stack and the tools.
+
+Copyright (c) 2010-2013 Qualcomm Technologies, Incorporated.  All Rights Reserved.
+QUALCOMM Proprietary.  Export of this technology or software is regulated
+by the U.S. Government. Diversion contrary to U.S. law prohibited.
+
+===========================================================================*/
+
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+  This section contains comments describing changes made to the module.
+  Notice that changes are listed in reverse chronological order.
+
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+08/23/13   baix   Initial version for EVENT_TDSCDMA_SELF_HOSTING logging interface
+
+===========================================================================*/
+
+
+/* -----------------------------------------------------------------------
+** Include Files
+** ----------------------------------------------------------------------- */
+#include "event.h"
+
+/*-----------------------------------------------------------------------
+** Constant / Define Declarations
+** ----------------------------------------------------------------------- */
+
+#ifdef FEATURE_TDSCDMA_SELF_HOSTING
+
+#define TDS_SELF_HOSTING_EVENT_LOG(instance_event_owner, instance_major_cause, instance_minor_cause) \
+			tds_self_hosting_event.event_owner = instance_event_owner; \
+			tds_self_hosting_event.major_cause = instance_major_cause; \
+			tds_self_hosting_event.minor_cause = instance_minor_cause; \
+			event_report_payload(EVENT_TDSCDMA_SELF_HOSTING, \
+								 sizeof(tds_self_hosting_event_type), \
+								 (void *)&tds_self_hosting_event)
+
+#else
+
+#define TDS_SELF_HOSTING_EVENT_LOG(instance_event_owner, instance_major_cause, instance_minor_cause)
+
+#endif
+
+
+#ifdef FEATURE_TDSCDMA_SELF_HOSTING
+
+/* -----------------------------------------------------------------------
+** Type Declarations
+** ----------------------------------------------------------------------- */
+
+typedef enum{
+  TDS_SELF_HOSTING_OWNER_L1,
+  TDS_SELF_HOSTING_OWNER_L2,
+  TDS_SELF_HOSTING_OWNER_RRC
+} tds_self_hosting_event_owner_e_type;
+
+typedef enum{
+  TDS_SELF_HOSTING_MAJOR_CALL_RETENTION_EXCEPTION,
+  TDS_SELF_HOSTING_MAJOR_CALL_SETUP_EXCEPTION,
+  TDS_SELF_HOSTING_MAJOR_DPA_EXCEPTION,
+  TDS_SELF_HOSTING_MAJOR_UPA_EXCEPTION,
+  TDS_SELF_HOSTING_MAJOR_IDLE_EXCEPTION,
+  TDS_SELF_HOSTING_MAJOR_THROUGHPUT_EXCEPTION,
+  TDS_SELF_HOSTING_MAJOR_L1_SRCH_EXCEPTION,  
+  TDS_SELF_HOSTING_MAJOR_MAX
+} tds_self_hosting_event_major_e_type;
+
+typedef enum{
+  TDS_SELF_HOSTING_MINOR_MAC_HS_T1_EXPIRY,
+  TDS_SELF_HOSTING_MINOR_RLC_MAX_RESET,
+  TDS_SELF_HOSTING_MINOR_RLC_RESETS,
+  TDS_SELF_HOSTING_MINOR_RLC_TIMER_DISCARD_EXPIRY,
+  TDS_SELF_HOSTING_MINOR_RRC_INTER_RAT_HANDOVER_FAILURE_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_INTER_RAT_HANDOVER_FAILURE_HO_MSG_INVALID = TDS_SELF_HOSTING_MINOR_RRC_INTER_RAT_HANDOVER_FAILURE_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_INTER_RAT_HANDOVER_FAILURE_CONFIG_NOT_SUPPORTED,
+  TDS_SELF_HOSTING_MINOR_RRC_INTER_RAT_HANDOVER_FAILURE_PHY_CHANNEL_CONFIG_FAILURE,
+  TDS_SELF_HOSTING_MINOR_RRC_INTER_RAT_HANDOVER_FAILURE_HO_ABORT,
+  TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_GSM_OTHER_REASON = TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_GSM_CELL_BARRED,
+  TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_GSM_CELL_FORBIDDEN,
+  TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_GSM_PLMN_MISMATCH,
+  TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_GSM_CELL_LOW_C1,
+  TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_GSM_BAND_NOT_SUPPORTED,
+  TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_GSM_BSIC_NOT_FOUND,
+  TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_GSM_BCCH_NOT_FOUND,
+  TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_GSM_BCCH_DECODE_FAIL,
+  TDS_SELF_HOSTING_MINOR_RRC_TDSCDMA_TO_GSM_RESELECTION_FAILURE_GSM_INVALID_STATE,
+  TDS_SELF_HOSTING_MINOR_RRC_RL_FAILURE_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_RL_FAILURE_DUE_TO_L1 = TDS_SELF_HOSTING_MINOR_RRC_RL_FAILURE_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_RL_FAILURE_DUE_TO_RRC,
+  TDS_SELF_HOSTING_MINOR_RRC_OUT_OF_SERVICE,
+  TDS_SELF_HOSTING_MINOR_RRC_RB0_SETUP_FAILURE,
+  TDS_SELF_HOSTING_MINOR_RRC_PHYCHAN_EST_FAILURE,
+  TDS_SELF_HOSTING_MINOR_RRC_CONN_REL_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_CONN_REL_CONGESTION = TDS_SELF_HOSTING_MINOR_RRC_CONN_REL_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_CONN_REL_RE_ESTABLISH_REJECT,
+  TDS_SELF_HOSTING_MINOR_RRC_CONN_REL_DEEP_FADE,
+  TDS_SELF_HOSTING_MINOR_RRC_CONN_REL_OOS,
+  TDS_SELF_HOSTING_MINOR_RRC_T314_EXPIRED,
+  TDS_SELF_HOSTING_MINOR_RRC_T315_EXPIRED,  
+  TDS_SELF_HOSTING_MINOR_RRC_CELL_SELECTION_FAIL_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_CELL_SELECTION_FAIL_CS_CELL_UNKNOWN = TDS_SELF_HOSTING_MINOR_RRC_CELL_SELECTION_FAIL_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_CELL_SELECTION_FAIL_CS_SIB_READ_FAIL,
+  TDS_SELF_HOSTING_MINOR_RRC_CELL_SELECTION_FAIL_CS_CELL_BARRED,
+  TDS_SELF_HOSTING_MINOR_RRC_CELL_SELECTION_FAIL_CS_CELL_NO_ACCESS,
+  TDS_SELF_HOSTING_MINOR_RRC_CELL_SELECTION_FAIL_CS_CELL_BELOW_EXPECTED,
+  TDS_SELF_HOSTING_MINOR_RRC_CELL_SELECTION_FAIL_CS_CELL_DIFFERENT_PLMN,
+  TDS_SELF_HOSTING_MINOR_RRC_CELL_SELECTION_FAIL_CS_CELL_FORBIDDEN_LA,
+  TDS_SELF_HOSTING_MINOR_RRC_CELL_SELECTION_FAIL_CS_S_FAIL,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_BASE,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_UNKNOWN = TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_BASE,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_CELL_BARRED,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_PLMN_MISMATCH,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_FORBIDDEN_TA,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_ACQ_FAILED,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_DL_WEAK,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_CFG_FAILURE,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_CELL_SELECT_FAILURE,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_SIB_READ_ERROR,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_FREQ_BARRED,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_FORBIDDEN_CSG_ID,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_SIB_TIMEOUT_ERROR,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_RESELECTION_FAIL_SIB_INVALID_ERROR,
+  TDS_SELF_HOSTING_MINOR_TDSCDMA_TO_LTE_REDIRECTION_FAIL,
+  TDS_SELF_HOSTING_MINOR_INTER_RAT_PFR_FAIL,
+  TDS_SELF_HOSTING_MINOR_RRC_INTER_RAT_CCO_FAIL_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_INTER_RAT_CCO_FAIL_COMMAND_MSG_INVALID = TDS_SELF_HOSTING_MINOR_RRC_INTER_RAT_CCO_FAIL_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_INTER_RAT_CCO_FAIL_CONFIGURATION_NOT_SUPPORTED,
+  TDS_SELF_HOSTING_MINOR_RRC_INTER_RAT_CCO_FAIL_PHYSICAL_CHANNEL_FAILURE,
+  TDS_SELF_HOSTING_MINOR_RRC_HANDOVER_FAIL_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_HANDOVER_FAIL_CHANNEL_SETUP_FAILURE = TDS_SELF_HOSTING_MINOR_RRC_HANDOVER_FAIL_BASE,
+  TDS_SELF_HOSTING_MINOR_RRC_HANDOVER_FAIL_DOWNLINK_SYNC_FAILURE,
+  TDS_SELF_HOSTING_MINOR_RRC_ACQUISITION_FAIL,
+  TDS_SELF_HOSTING_MINOR_CPHY_SETUP_FAIL,
+  TDS_SELF_HOSTING_MINOR_DL_IP_CHECK_FAIL,
+  TDS_SELF_HOSTING_MINOR_L1_SRCH_DISABLE_BEST_CELL,  
+  TDS_SELF_HOSTING_MINOR_MAX
+} tds_self_hosting_event_minor_e_type;
+
+/* At present keeping this under R7 feature should be __GNUC__ actually. But lint cribs (refer to tdsrrclogging.h) */
+#ifndef FEATURE_WCDMA_REL7
+
+typedef PACKED struct {
+  uint8  event_owner;                   /*!< \brief event owner defined in tds_self_hosting_event_owner_e_type */
+  uint8  major_cause;                   /*!< \brief major cause defined in tds_self_hosting_event_major_e_type */
+  uint16 minor_cause;                   /*!< \brief minor cause defined in tds_self_hosting_event_minor_e_type */
+} tds_self_hosting_event_type;
+
+#else /*__GNUC__*/
+
+typedef PACKED struct PACKED_POST
+{
+  uint8  event_owner;					/*!< \brief event owner defined in tds_self_hosting_event_owner_e_type */
+  uint8  major_cause;					/*!< \brief major cause defined in tds_self_hosting_event_major_e_type */
+  uint16 minor_cause;					/*!< \brief minor cause defined in tds_self_hosting_event_minor_e_type */
+} tds_self_hosting_event_type;
+
+#endif/*__GNUC__*/
+
+/* -----------------------------------------------------------------------
+** Global Data Declarations
+** ----------------------------------------------------------------------- */
+
+extern tds_self_hosting_event_type tds_self_hosting_event;
+
+#endif /* FEATURE_TDSCDMA_SELF_HOSTING */
+
+#endif /* TDS_SELF_HOSTING_H */

@@ -1,0 +1,82 @@
+#=============================================================================
+# TZ CLOCK DRIVER MSM8916 LIBRARY
+#
+# Target:    MSM8916
+# Processor: APPS-TZ
+#
+#=============================================================================
+# $Header: $
+#=============================================================================
+#  Copyright 2012 Qualcomm Technologies Incorporated.
+#  All Rights Reserved.
+#  QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-----------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-----------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'SECUREMSM',
+   'TZCHIPSET',
+   'MINK'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi('SYSTEMDRIVERS_CLOCK', [
+   "${BUILD_ROOT}/core/systemdrivers/clock/hw/${CHIPSET}/inc",
+   "${BUILD_ROOT}/core/systemdrivers/busywait/inc"
+])
+
+
+#-----------------------------------------------------------------------------
+# Image: TZ
+#-----------------------------------------------------------------------------
+
+env.AddLibrary(
+  'TZOS_IMAGE',
+  '${BUILDPATH}/Clock_msm8916_TZ',
+  [ '${BUILDPATH}/src/ClockTZ.c',
+    '${BUILDPATH}/src/ClockPIL.c' ])
+    
+ALL_SRC = env.FindFiles(['*.c'], "${BUILD_ROOT}/core/systemdrivers/clock/hw/")
+TARGET_SRC = [ '${BUILDPATH}/src/ClockPIL.c', '${BUILDPATH}/src/ClockTZ.c' ]
+CLEAN_SOURCES = list(set(ALL_SRC) - set(TARGET_SRC))
+env.CleanPack(['TZOS_IMAGE'], CLEAN_SOURCES)
+
+
+# ============================================================================
+# HWIO
+# ============================================================================
+
+if env.has_key('HWIO_IMAGE'):
+  env.AddHWIOFile('HWIO', [
+    {
+      'filename': '${INC_ROOT}/core/systemdrivers/clock/hw/msm8916/inc/HALclkHWIO.h',
+      'modules': ['GCC_CLK_CTL_REG',
+                  'TCSR_TCSR_MUTEX', 'WCSS_A_PMU'],
+      'filter-exclude': ['TSENS', 'ACR', 'RPU', 'RESERVED'],
+      'output-offsets': True,
+      'header':
+        '/*\n'
+        ' * HWIO base definitions\n'
+        ' */\n'
+    }
+  ])
+

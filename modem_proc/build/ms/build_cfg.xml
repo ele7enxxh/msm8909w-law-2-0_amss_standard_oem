@@ -1,0 +1,232 @@
+<build_cfg>
+
+  <environ version="1.0">
+    <tool name="python">
+      <windows_version> 2.7 </windows_version>
+      <linux_version>   2.7 </linux_version>
+    </tool>
+  </environ>
+
+  <build_data>
+    <pl_name>MPSS.JO.2.0.C1</pl_name>
+  </build_data>
+
+  <clients>
+    <client name="8909_LW_PACK" pack="True" strip="True" strip_audio_avs="True">
+      <variants> 8909.gens.prod, 8909.gpss.prod, 8909.wcgs.prod,8909.lcgs.prod, 8909.lwgs.prod, 8909.apqs.prod </variants>
+      <formats>SRC, BIN, BIN-APQ, SRC-No-TDSCDMA-or-L1, RSRC_MODEM_HAP, RSRC-SMD-SMem </formats> 
+  </client>  
+
+  </clients>
+
+  <variant_info>
+    <pl_name>           MPSS.JO.2.0.C1 </pl_name>
+    <image>avs_libs,platform_libs,mapss_b,mba,devcfg_img,efs_image_header,mcfg_hw,mcfg_sw</image>
+    <cflags> -Wno-low -hexagon-predef-argset=modem-sw -mllvm -disable-store-widen -mllvm -disable-nvjump=1</cflags>
+    <lflags> --gc-sections --hash-size=31 </lflags>
+    <parallel> True </parallel>
+    <uses_flags>                    </uses_flags>
+    <compiler_type>     Hexagon     </compiler_type>
+    <hexagon_rtos_release> 6.4.06   </hexagon_rtos_release>
+    <hexagon_q6version>    v55      </hexagon_q6version>
+    <env_flags>
+      <env_flag>
+        <name>SCONS_BUILD_SCRIPTS_PRODUCT_ROOT</name>
+        <value>${BUILD_ROOT}/config/default</value>
+      </env_flag>
+    </env_flags>
+    <chip_info>
+      <chip_name> 8909     </chip_name>
+      <chip_type> msm      </chip_type>
+      <chip_id>   8909     </chip_id>
+      <chip_ver>  A        </chip_ver>
+      <hexagon_image_entry> 0x88000000 </hexagon_image_entry>
+      <build_variant>
+        <variant_name> gens </variant_name>
+        <purpose> 
+          
+          <purpose_name>prod</purpose_name>
+          <build_id>  8909.gens.prod  </build_id>
+        </purpose>
+	  </build_variant>
+	  <build_variant>
+        <variant_name> lcgs </variant_name>
+        <purpose> 
+          
+          <purpose_name>prod</purpose_name>
+          <build_id>  8909.lcgs.prod  </build_id>
+        </purpose>
+	  </build_variant>
+	  <build_variant>
+        <variant_name> lwgs </variant_name>
+        <purpose> 
+          
+          <purpose_name>prod</purpose_name>
+          <build_id>  8909.lwgs.prod  </build_id>
+        </purpose>
+	  </build_variant>
+	  <build_variant> 
+        <variant_name> wcgs </variant_name>
+        <purpose>
+          
+          <purpose_name>prod</purpose_name>
+          <build_id>  8909.wcgs.prod  </build_id>
+        </purpose>
+      </build_variant>
+      <build_variant> 
+        <variant_name> gpss </variant_name>
+        <hexagon_image_entry> 0x88000000 </hexagon_image_entry>
+        <purpose>
+          
+          <purpose_name>prod</purpose_name>
+          <build_id>  8909.gpss.prod  </build_id>
+        </purpose>
+      </build_variant>
+	  
+	  <build_variant> 
+        <variant_name> apqs </variant_name>
+        <hexagon_image_entry> 0x88000000 </hexagon_image_entry>
+        <purpose>
+          
+          <purpose_name>prod</purpose_name>
+          <build_id>  8909.apqs.prod  </build_id>
+        </purpose>
+      </build_variant>
+	  
+      </chip_info>
+   </variant_info>
+
+  <release_formats version="1.0">
+
+    
+
+    <format do_compile_test="True" full_build="True" qc_internal="False" source="True" update_uses="True" validate_private_files="True" validate_rs_files="False">
+      <name> SRC-No-TDSCDMA-or-L1 </name>
+      <build_flags> -USES_COMPILE_TDSCDMA_AND_ALL_L1_PROTECTED_LIBS </build_flags>
+    </format>
+
+    
+
+    </release_formats>
+
+  <description>
+     Out of date.
+
+     This configuration file consists of a series of "pl_info" elements
+     that define the configuration of each PL supported by this branch
+     of the Build component.
+
+     Each "pl_info" element can consist of the following fields, some of
+     which are required, and some of which are optional:
+
+        "pl_name"  Required:
+
+            This element identifies which PL is being built.  The string
+            must match what is specified in the "pl_cfg.xml" file for
+            the PL.  CPLs can inherit the name of the PL that they
+            branched from, in order to minimize the amount of work done
+            to branch a PL.
+            
+        "image"   Optional
+
+            This element defines the image, or list of images, that
+            need to be build.  For MPSS.NI.*, this will default to
+            'mpss'.
+
+            This element can be overridden on the command line with the
+            IMAGE= parameter.
+
+        "build_id"   Required:
+
+            This element defines the default set of build IDs to be built.
+
+            This element can be overridden on the command line with the
+            BUILD_ID= parameter.  It can be a single build ID, or a
+            comma-separated list of build IDs.
+
+        "chip_type"   Required:
+
+            This element is typically either 'msm' or 'mdm', and represents
+            the prefix to the Chip ID used by various tech teams in identifying
+            which chip is being built.
+
+        "chip_id"   Required:
+
+            This element is typically either '8960' or '9x15', and represents
+            the suffix to the Chip ID used by various tech teams in identifying
+            which chip is being built.
+
+        "chip_ver"   Optional:
+
+            This element is typically either 'A' or 'B' and represents the
+            version of the chip used by various tech teams in identifying
+            which chip is being built.  It defaults to 'A'.
+
+        "cflags"   Optional:
+
+            This element allows the PL to specify a set of compiler flags to
+            be used when compiling all objects for the PL.  The default is no
+            additional compiler flags.
+
+        "lflags"   Optional:
+
+            This element allows the PL to specify a set of linker flags to
+            be used when linking images for the PL.  The default is no
+            additional linker flags.
+
+        "compiler_type"   Optional:
+
+            This string identifies the type of compiler being used.  On
+            MPSS.NI.XXX PLs, it defaults to "Hexagon".
+
+        "hexagon_rtos_release"   Optional:
+
+            This element identifies the version of Hexagon compiler used.
+            On MPSS.DI.XXX PLs, this defaults to "5.0.07".
+
+        "hexagon_q6version"    Optional:
+
+            This element identifies the hardware that the Hexagon compiler
+            must compile for.  On MPSS.NI.XXX PLs, this defaults to 'v4'.
+
+        "hexagon_image_entry"    Required:
+
+            This element identifies address at which the Hexagon linker should
+            place the starting code for the image being built.
+
+        "uses_flags"   Optional:
+
+            This element allows the PL to define additional USES flags to
+            be defined for a build.
+
+        "build_variant"  Optional:
+
+            This element defines a particular variant of the build.  It
+            consists of sub-elements, which must include a "variant_name"
+            element that names the variant, and a list of any of the
+            above elements for the parent "pl_info" element that need to be 
+            overridden for the variant.
+
+            The variant name can be specifies on the build command line
+            as a stand-alone string, e.g. a variant named "release" could
+            be specified as follows:
+
+                build release
+
+            If a variant name is specifed on the command line that does
+            not match any of the variants specified in this file, it is
+            assumed to be a build ID.  Therefore, variants that differ
+            only in the build ID don't need to be explicitly defined in
+            this file.
+
+            Sub-elements include:
+
+                "variant_name"
+
+                    This element names the variant.
+
+                Any element from the "pl_info" element.
+
+
+  </description> 
+</build_cfg>

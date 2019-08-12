@@ -1,0 +1,83 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** -------------------------------------------------------
+** usage: slang -n=/data/misc/sensors/drafthorse.sli
+**              -args=$bp,$sensor_id,$report_rate,$sample_rate,$duration[,$decimation,$calibration,$hpflag,$notify_suspend]
+** where:
+**   $bp :: report | buffered
+**   $sensor_id  :: accel | gryo | mag | pressure | prox_light | ...
+**   $report_rate :: number ( Hz)
+**   $sample_rate :: number ( Hz)
+**   $duration :: number ( seconds)
+**   $decimation :: sample | filter ( optional)
+**   $calibration :: raw | factory | full ( optional)
+**   $hplfag :: 0 | 1
+**   $notify_suspend :: 0 | 1
+** ------------------------------------------------------------------------------------------------------ */
+sub main( @argv)
+{
+    my ( $bp, $sensor_id, $report_rate, $sample_rate, $duration,
+         $decimation, $calibration, $hpflag, $notify_suspend ) = @argv;
+
+    my $add_req = slnew_req( "smgr", $bp, { report_id => 1,
+                                            action => "add",
+                                            report_rate => $report_rate,
+                                            item => 0,
+                                            sensor_id => $sensor_id});
+    if ( !defined( $add_req)) {
+        return;                     // bad argument
+    }
+
+    if ( $bp == "buffered" && defined( $sample_rate)) {
+        slset_req( $add_req, { sample_rate => $sample_rate});
+        // stub what about return code ?
+    }
+    if ( defined( $decimation)) {
+        slset_req( $add_req, { decimation => $decimation});
+    }
+    if ( defined( $calibration)) {
+        slset_req( $add_req, { calibration => $calibration});
+    }
+    if ( defined( $hpflag)) {
+        slset_req( $add_req, { sample_quality => $hpflag});
+    }
+    if ( defined( $notify_suspend)) {
+        slset_req( $add_req, { notify_suspend => $notify_suspend});
+    }
+
+    my $timeout  = 3;
+    my $client   = slopen();
+    my $add_resp = slsend_recv( $client, $add_req, $timeout);
+    if ( defined( $add_resp)) {
+
+        my ( $result, $err, $report_id, $acknak, $reasonpair)
+            = slget( $add_resp, { result, err, report_id, acknak, reasonpair});
+
+        print( "add_resp result $result, err $err, report_id $report_id, ");
+        print( "acknak, $acknak, reasonpair $reasonpair\n");
+        if ( defined( $reasonpair)) {
+            my $i = 0;
+            while( $i < $reasonpair) {
+                my ( $item_num, $reason) = slget( $add_resp, { reasonpair.$i, item, reason});
+                print( "\treasonpair item $item_num, reason $reason\n");
+                $i += 1;
+            }
+        }
+
+        sleep( $duration);       // seconds
+
+        my $del_req = slnew_req( "smgr", $bp, { report_id => 1, action => "delete"});
+        my $del_resp = slsend_recv( $client, $del_req, $timeout);
+        if ( !defined( $del_resp)) {
+            print( "del_resp not defined\n");
+        }
+    }
+    else {
+            print( "add_resp not defined\n");
+    }
+
+    my $rc  = slclose( $client);
+    print( "slclose() rc $rc\n");
+}

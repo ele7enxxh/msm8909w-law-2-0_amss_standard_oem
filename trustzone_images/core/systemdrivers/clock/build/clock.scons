@@ -1,0 +1,137 @@
+
+#=============================================================================
+# TZ CLOCK DRIVER
+#
+# Target:    All
+# Processor: All
+#
+#=============================================================================
+# $Header: $
+#=============================================================================
+#  Copyright 2012 Qualcomm Technologies Incorporated.
+#  All Rights Reserved.
+#  QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+Import('env')
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+env.Append(CFLAGS = "--c99")
+#-----------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-----------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireRestrictedApi(['TZLIBARMV7'])
+
+if env['CHIPSET'] in ['msm8916']:
+  HAL_VERSION = 'v1'
+else:
+  HAL_VERSION = 'v2'
+
+if env['CHIPSET'] in ['msm8909w']:
+  env.PublishPrivateApi('SYSTEMDRIVERS_CLOCK', [
+     '${INC_ROOT}/core/systemdrivers/clock/src',
+     '${INC_ROOT}/core/systemdrivers/clock/config/msm8909',
+     '${INC_ROOT}/core/systemdrivers/clock/hw/msm8909/inc',
+  ])
+else:
+  env.PublishPrivateApi('SYSTEMDRIVERS_CLOCK', [
+     '${INC_ROOT}/core/systemdrivers/clock/src',
+     '${INC_ROOT}/core/systemdrivers/clock/config/${CHIPSET}',
+     '${INC_ROOT}/core/systemdrivers/clock/hw/${CHIPSET}/inc',
+  ])
+
+if 'USES_DEVCFG' in env:
+  if env['CHIPSET'] in ['msm8909w']:
+    env.AddBinaryLibrary(
+      ['DAL_DEVCFG_IMG'],
+      '${BUILDPATH}/ClockConfig',
+      '${BUILDPATH}/config/msm8909/ClockBSP.c')
+
+    env.AddDevCfgInfo('DAL_DEVCFG_IMG',
+    {
+      'devcfg_xml' : '${BUILD_ROOT}/core/systemdrivers/clock/config/msm8909/ClockChipset.xml'
+    })
+
+  else:
+    env.AddBinaryLibrary(
+      ['DAL_DEVCFG_IMG'],
+      '${BUILDPATH}/ClockConfig',
+      '${BUILDPATH}/config/${CHIPSET}/ClockBSP.c')
+
+    env.AddDevCfgInfo('DAL_DEVCFG_IMG',
+    {
+      'devcfg_xml' : '${BUILD_ROOT}/core/systemdrivers/clock/config/${CHIPSET}/ClockChipset.xml'
+    })
+
+#-----------------------------------------------------------------------------
+# Image: TZ
+#-----------------------------------------------------------------------------
+
+env.AddBinaryLibrary(
+  'TZOS_IMAGE',
+  '${BUILDPATH}/Clock',
+  [ '${BUILDPATH}/hw/%s/HALclk.c' % HAL_VERSION,
+    '${BUILDPATH}/src/ClockDriver.c' ])
+
+#-----------------------------------------------------------------------------
+# Invoke chipset build file
+#-----------------------------------------------------------------------------
+
+if env['MSM_ID'] in ['8974']:
+  env.SConscript('../hw/msm8974/build/clock_chipset.scons', exports='env')
+
+if env['MSM_ID'] in ['9x25']:
+  env.SConscript('../hw/mdm9x25/build/clock_chipset.scons', exports='env')
+
+if env['MSM_ID'] in ['8x26']:
+  env.SConscript('../hw/msm8x26/build/clock_chipset.scons', exports='env')
+
+if env['MSM_ID'] in ['8x10']:
+  env.SConscript('../hw/msm8x10/build/clock_chipset.scons', exports='env')
+
+if env['MSM_ID'] in ['8084']:
+  env.SConscript('../hw/apq8084/build/clock_chipset.scons', exports='env')
+
+if env['MSM_ID'] in ['9x35']:
+  env.SConscript('../hw/mdm9x35/build/clock_chipset.scons', exports='env')
+
+if env['MSM_ID'] in ['8962']:
+  env.SConscript('../hw/msm8962/build/clock_chipset.scons', exports='env')
+
+if env['MSM_ID'] in ['8092']:
+  env.SConscript('../hw/mpq8092/build/clock_chipset.scons', exports='env')
+
+if env['MSM_ID'] in ['8916']:
+  env.SConscript('../hw/msm8916/build/clock_chipset.scons', exports='env')
+
+if env['MSM_ID'] in ['8936']:
+  env.SConscript('../hw/msm8936/build/clock_chipset.scons', exports='env')
+ 
+if env['MSM_ID'] in ['8909']:
+  env.SConscript('../hw/msm8909/build/clock_chipset.scons', exports='env')
+  
+if env['MSM_ID'] in ['8909w']:
+  env.SConscript('../hw/msm8909/build/clock_chipset.scons', exports='env')
+  
+if env['MSM_ID'] in ['9x07']:
+  env.SConscript('../hw/mdm9x07/build/clock_chipset.scons', exports='env')
+
+if env['MSM_ID'] in ['9x09']:
+  env.SConscript('../hw/mdm9x09/build/clock_chipset.scons', exports='env')

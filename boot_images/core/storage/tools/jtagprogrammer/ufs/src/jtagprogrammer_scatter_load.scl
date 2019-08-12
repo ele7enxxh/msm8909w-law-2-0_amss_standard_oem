@@ -1,0 +1,108 @@
+// *====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+//
+//                     SCATTER LOADING DESCRIPTION FILE TEMPLATE
+//  
+//  Copyright (c) 1998-2003 by QUALCOMM Incorporated. All Rights Reserved.
+//
+//  GENERAL DESCRIPTION
+//
+//  Memory Map for our Lauterbach JTAG ICD FLASH Programming Routine.
+//
+//  This file is a template which gets run through the C pre-processor to
+//  generate the actual scatter load file which will be used.  This allows
+//  this file to be used by all targets and be relocated on the fly.
+//
+//  The code and RW/ZI data all reside between SADDR and PADDR except
+//  for the jtag_flash_param data which starts at PADDR. This area is
+//  where Lauterbach JTAG TRACE32 Debugger commuicates with us and where our buffer
+//  is located. See type_jtag_flash_param struct.
+//                         _______________________
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        | jtag_flash_param DATA |
+//                  PADDR  _______________________
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |     CODE + DATA       |
+//                        |                       |
+//                 SADDR   _______________________
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |    ROM CHIP SELECT    |
+//                        |                       |
+//                        |         AREA          |
+//                        |                       |
+//                        |        (FLASH)        |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//            0x00000000  -------------------------
+//
+//
+//  NOTE:  PADDR and SADDR will be replaced by CPP during creation of
+//         JFLASH.SCL.  
+//
+//*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+
+/* ===========================================================================
+
+                           EDIT HISTORY FOR FILE
+  This section contains comments describing changes made to the module.
+  Notice that changes are listed in reverse chronological order.
+
+  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/tools/jtagprogrammer/ufs/src/jtagprogrammer_scatter_load.scl#1 $ $DateTime: 2015/09/01 00:30:35 $ $Author: pwbldsvc $
+   
+ when       who     what, where, why
+ --------   ---     -------------------------------------------------------
+ 
+==========================================================================*/
+
+RAM CODE_START_ADDR CODE_SIZE
+{
+    CODE CODE_START_ADDR 
+    {
+      jtagprogrammer_start.o (StartHere, +FIRST)
+      jtagprogrammer_main.o (+RO)
+      * (+RO)
+    }
+
+    //  This block is for the RW data
+    //
+    APP_RAM +0x0
+    {
+      * (+RW)
+    }
+    
+    //  This block is for the zero init data
+    //
+    APP_RAM_ZI +0x0
+    {
+      * (+ZI)
+    }
+}
+

@@ -1,0 +1,95 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+	<xs:simpleType name="CIdentifier">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[_a-zA-Z][_a-zA-Z0-9]*"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NvName">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="NV_[A-Z0-9][A-Z0-9_]*[A-Z0-9]*_I|RFNV_[A-Z0-9][A-Z0-9_]*[A-Z0-9]*(_I)?"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:element name="NvDefinition">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="DataType" type="DataTypeType" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element name="NvItem" type="NVItemType" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element name="NvEfsItem" type="NvEFSItemType" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+		</xs:complexType>
+		<xs:unique name="oneNVID">
+			<xs:selector xpath="NvItem"/>
+			<xs:field xpath="@id"/>
+		</xs:unique>
+		<xs:unique name="uniqueNvName">
+			<xs:selector xpath="NvItem"/>
+			<xs:field xpath="@name"/>
+		</xs:unique>
+		<xs:key name="typeKey">
+			<xs:selector xpath="DataType"/>
+			<xs:field xpath="@name"/>
+		</xs:key>
+		<xs:keyref name="DataTypeMemberTypeKeyRef" refer="typeKey">
+			<xs:selector xpath="DataType/Member"/>
+			<xs:field xpath="@type"/>
+		</xs:keyref>
+		<xs:keyref name="NvMemberTypeKeyRef" refer="typeKey">
+			<xs:selector xpath="NvItem/Member"/>
+			<xs:field xpath="@type"/>
+		</xs:keyref>
+		<xs:unique name="uniqueTypeid">
+			<xs:selector xpath="DataType"/>
+			<xs:field xpath="@typeid"/>
+		</xs:unique>
+	</xs:element>
+	<xs:complexType name="DataTypeType">
+		<xs:sequence>
+			<xs:element name="Member" maxOccurs="unbounded">
+				<xs:complexType>
+					<xs:attribute name="type" type="CIdentifier" use="required"/>
+					<xs:attribute name="sizeOf" type="xs:positiveInteger" use="required"/>
+					<xs:attribute name="name" type="xs:string" use="optional"/>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="name" type="CIdentifier"/>
+		<xs:attribute name="typeid" type="xs:positiveInteger" use="optional"/>
+	</xs:complexType>
+	<xs:complexType name="NVItemType">
+		<xs:sequence>
+			<xs:element name="Member" maxOccurs="unbounded">
+				<xs:complexType>
+					<xs:attribute name="type" type="xs:string" use="required"/>
+					<xs:attribute name="sizeOf" type="xs:positiveInteger" use="required"/>
+					<xs:attribute name="name" type="xs:string" use="optional"/>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="id" type="xs:positiveInteger"/>
+		<xs:attribute name="name" type="NvName"/>
+		<xs:attribute name="permission" type="xs:string"/>
+		<xs:attribute name="compressed" type="xs:boolean" use="optional" default="false"/>
+		<xs:attribute name="variableSize" type="xs:boolean" use="optional" default="false"/>
+		<xs:attribute name="variantType" type="xs:boolean" use="optional" default="false"/>
+		<xs:attribute name="tech" type="xs:string" use="optional"/>
+		<xs:attribute name="category" type="xs:string" use="optional"/>
+		<xs:attribute name="container" type="xs:string" use="optional"/>
+        <xs:attribute name="band" type="xs:string" use="optional"/>
+		<xs:attribute name="maxIndex" type="xs:positiveInteger" use="optional"/>
+	</xs:complexType>
+	<xs:complexType name="NvEFSItemType">
+		<xs:sequence>
+			<xs:element name="Member" maxOccurs="unbounded">
+				<xs:complexType>
+					<xs:attribute name="type" type="CIdentifier" use="required"/>
+					<xs:attribute name="sizeOf" type="xs:positiveInteger" use="required"/>
+					<xs:attribute name="name" type="xs:string" use="optional"/>
+				</xs:complexType>
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="fullpathname" type="xs:string" use="required"/>
+		<xs:attribute name="name" type="NvName"/>
+		<xs:attribute name="permission" type="xs:string"/>
+		<xs:attribute name="variableSize" type="xs:boolean" use="optional" default="false"/>
+	</xs:complexType>
+</xs:schema>

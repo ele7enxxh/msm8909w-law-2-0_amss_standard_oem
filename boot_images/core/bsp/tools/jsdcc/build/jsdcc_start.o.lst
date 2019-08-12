@@ -1,0 +1,203 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;
+    2 00000000         ;
+    3 00000000         ; CPSR Control Masks 
+    4 00000000 00000040 
+                       PSR_Fiq_Mask
+                               EQU              0x40
+    5 00000000 00000080 
+                       PSR_Irq_Mask
+                               EQU              0x80
+    6 00000000         ; Processor mode definitions 
+    7 00000000 00000013 
+                       PSR_Supervisor
+                               EQU              0x13
+    8 00000000         ;
+    9 00000000         ;
+   10 00000000                 IMPORT           jsdcc_init
+   11 00000000                 EXPORT           __main
+   12 00000000                 PRESERVE8
+   13 00000000                 AREA             StartHere, CODE, READONLY
+   14 00000000                 CODE32
+   15 00000000         __main
+   16 00000000                 ENTRY
+   17 00000000         ;=======================================================
+                       ================
+   18 00000000         ; MACRO mmu_set_default_cfg
+   19 00000000         ; ARGS
+   20 00000000         ;   NONE
+   21 00000000         ; DESCRIPTION
+   22 00000000         ;   Sets a default value into the mmu control register
+   23 00000000         ;   we do not really need to do this, but we do it to
+   24 00000000         ;   know exactly the state of the processor
+   25 00000000         ;=======================================================
+                       ================
+   26 00000000                 MACRO
+   27 00000000                 mmu_set_default_cfg
+   28 00000000                 ldr              r0, = 0x00050078
+   29 00000000                 MCR              p15, 0, r0, c1, c0, 0
+   30 00000000                 MEND
+   31 00000000         ;=======================================================
+                       ================
+   32 00000000         ;=======================================================
+                       ================
+   33 00000000         ; MACRO mmu_enable_i_cache
+   34 00000000         ; ARGS
+   35 00000000         ;  NONE
+   36 00000000         ; DESCRIPTION
+   37 00000000         ;  Enables the I Cache
+   38 00000000         ;  Does a read modify write, so no other bits in the con
+                       trol register a
+   39 00000000         ;  affected
+   40 00000000         ;=======================================================
+                       ================
+   41 00000000                 MACRO
+   42 00000000                 mmu_enable_i_cache
+   43 00000000                 mrc              p15, 0 , r0, c1, c0, 0
+   44 00000000                 orr              r0, r0, # (1 << 12 )
+   45 00000000                 mcr              p15, 0 , r0, c1, c0, 0
+   46 00000000                 MEND
+   47 00000000         ;=======================================================
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+                       ================
+   48 00000000         ;
+   49 00000000         ; Supervisor Mode
+   50 00000000         ; Set up the Supervisor stack pointer.
+   51 00000000 E321F0D3        msr              CPSR_c, #PSR_Supervisor:OR:PSR_
+Irq_Mask:OR:PSR_Fiq_Mask
+   52 00000004 E59FD014        ldr              r13, =0x00200000+0x20000
+   53 00000008         ; ======================================================
+                       ================
+   54 00000008         ; Enable the instruction cache
+   55 00000008         ; ======================================================
+                       ================
+   56 00000008                 mmu_set_default_cfg
+   28 00000008 E59F0014        ldr              r0, = 0x00050078
+   29 0000000C EE010F10        MCR              p15, 0, r0, c1, c0, 0
+   57 00000010                 mmu_enable_i_cache
+   43 00000010 EE110F10        mrc              p15, 0 , r0, c1, c0, 0
+   44 00000014 E3800A01        orr              r0, r0, # (1 << 12 )
+   45 00000018 EE010F10        mcr              p15, 0 , r0, c1, c0, 0
+   58 0000001C         ; Enter C code execution
+   59 0000001C EAFFFFFE        b                jsdcc_init
+   60 00000020                 END
+              00220000 
+              00050078 
+Command Line: --debug --dwarf2 --keep --cpu=7-A.security --apcs=/noswst/interwo
+rk --no_unaligned_access -o/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0001
+2-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/bsp/tools/jsdcc/build/jsd
+cc_start.o -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANA
+ZB-1_20161208_043404/b/boot_images/core/bsp/tools/jsdcc/build -I/local/mnt/work
+space/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_
+images/core/storage/tools/jsdcc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.
+c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/build/cust -I. -I/local
+/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_04340
+4/b/boot_images/core/api/dal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-
+00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/buses/api/spmi -I/loc
+al/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043
+404/b/boot_images/core/buses/api/icb -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3
+.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/buses/api/uar
+t -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/buses/api/i2c -I/local/mnt/workspace/CRMBuilds/B
+OOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/d
+ebugtools -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZ
+B-1_20161208_043404/b/boot_images/core/api/hwengines -I/local/mnt/workspace/CRM
+Builds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/co
+re/api/mproc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAA
+NAZB-1_20161208_043404/b/boot_images/core/api/power -I/local/mnt/workspace/CRMB
+uilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/cor
+e/api/securemsm -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WA
+AAANAZB-1_20161208_043404/b/boot_images/core/securemsm/secboot/api -I/local/mnt
+/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/
+boot_images/core/api/kernel/libstd/stringl -I/local/mnt/workspace/CRMBuilds/BOO
+T.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/ser
+vices -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_
+20161208_043404/b/boot_images/core/api/storage -I/local/mnt/workspace/CRMBuilds
+/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api
+/systemdrivers -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAA
+AANAZB-1_20161208_043404/b/boot_images/core/api/systemdrivers/pmic -I/local/mnt
+/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/
+boot_images/core/api/systemdrivers/hwio/msm8909 -I/local/mnt/workspace/CRMBuild
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+s/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/ap
+i/wiredconnectivity -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M89
+09WAAAANAZB-1_20161208_043404/b/boot_images/core/api/kernel/libstd -I/local/mnt
+/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/
+boot_images/core/dal/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0001
+2-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/dal/config -I/local/mnt/w
+orkspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/bo
+ot_images/core/debugtools/version/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.
+3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/hwengines/mh
+i -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/hwengines/pcie -I/local/mnt/workspace/CRMBuilds/
+BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/mpro
+c/smem/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANA
+ZB-1_20161208_043404/b/boot_images/core/securemsm/cryptodrivers/ce/shared/inc -
+I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016120
+8_043404/b/boot_images/core/securemsm/cryptodrivers/ce/test/inc -I/local/mnt/wo
+rkspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boo
+t_images/core/securemsm/cryptodrivers/prng/shared/inc -I/local/mnt/workspace/CR
+MBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/c
+ore/securemsm/cryptodrivers/prng/test/inc -I/local/mnt/workspace/CRMBuilds/BOOT
+.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/securems
+m/cryptodrivers/prng/shared/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.
+c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/securemsm/secb
+oot -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20
+161208_043404/b/boot_images/core/api/securemsm/seccfg -I/local/mnt/workspace/CR
+MBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/c
+ore/securemsm/secmath/shared/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2
+.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/securemsm/fusepro
+v/chipset/msm8909/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M
+8909WAAAANAZB-1_20161208_043404/b/boot_images/core/services/utils/src -I/local/
+mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404
+/b/boot_images/core/storage/flash/src/dal -I/local/mnt/workspace/CRMBuilds/BOOT
+.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/
+flash/src/hal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAA
+ANAZB-1_20161208_043404/b/boot_images/core/storage/flash/tools/inc -I/local/mnt
+/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/
+boot_images/core/storage/flash/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1
+.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/sdcc/sr
+c -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/storage/sdcc/src/hal -I/local/mnt/workspace/CRMB
+uilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/cor
+e/storage/sdcc/src/bsp -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-
+M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/efs/inc -I/local/mn
+t/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b
+/boot_images/core/storage/hfat/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1
+.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/hotplug
+/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2
+0161208_043404/b/boot_images/core/storage/tools/deviceprogrammer_ddr/src/fireho
+se -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_201
+61208_043404/b/boot_images/core/storage/ufs/src -I/local/mnt/workspace/CRMBuild
+s/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/sy
+stemdrivers/tlmm/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8
+909WAAAANAZB-1_20161208_043404/b/boot_images/core/systemdrivers/tlmm/src -I/loc
+al/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043
+404/b/boot_images/core/wiredconnectivity/qhsusb/inc -I/local/mnt/workspace/CRMB
+uilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/cor
+e/wiredconnectivity/qusb/inc --list=/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.
+2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/bsp/tools/jsdcc/
+build/jsdcc_start.o.lst --sitelicense /local/mnt/workspace/CRMBuilds/BOOT.BF.3.
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/bsp/tools/jsdc
+c/build/jsdcc_start.o.i

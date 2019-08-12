@@ -1,0 +1,27 @@
+#-------------------------------------------------------------------------------
+# FS_TAR (file services: PSX compatible version)
+#-------------------------------------------------------------------------------
+FS_TAR_SOURCES=\
+        fs_tar.c \
+        fs_signed_img_param.c \
+        fs_zip_tar.c \
+        #end
+
+vpath %.h $(FS_TAR)
+vpath %.c $(FS_TAR)
+vpath %.s $(FS_TAR)
+
+ifeq ($(BIG),yes)
+        FS_TAR_OBJS := $(TARGETDIR)/fs_tar.lib
+else
+        FS_TAR_OBJS :=  $(addprefix $(TARGETDIR)/, $(FS_TAR_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/fs_tar.lib : $(FS_TAR_SOURCES)
+	$(group_c_compile)
+
+ifeq ($(DO_LINT),yes)
+    FS_TAR_LINT_OBJS := $(addprefix lint/, $(FS_TAR_SOURCES:%.c=%.lint))
+    $(FS_TAR_LINT_OBJS) : LINT_FLAGS := $(LINT_FLAGS) fs_tar.lnt
+    lint/fs_tar_lint : $(FS_TAR_LINT_OBJS)
+endif

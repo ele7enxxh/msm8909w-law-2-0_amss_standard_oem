@@ -1,0 +1,722 @@
+;****************************************************************************
+;**         boot_debug.cmm
+;**
+;** This script performs setup for debugging SBL on secboot 3.0 Architecture.
+;**
+;** Copyright 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.
+;**
+;****************************************************************************
+;**
+;**                        EDIT HISTORY FOR MODULE
+;**
+;** $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/boot/secboot3/scripts/boot_debug_common.cmm#1 $
+;**
+;** when         who     what, where, why
+;** --------   ---     ------------------------------------------------------
+;** 10/30/14   aus     Clear SDI and DLOAD cookie for SBL debugging 
+;** 10/23/14   jz      Added qfprom test support in SBL for 9x45
+;** 10/08/14   jz      Set the magic number for shared IMEM boot region so that
+;**                    the looping magic number for bootlog is not cleared, cleaned up flashless boot
+;** 08/27/14   jz      Cleaned up 'remote' and added debug support for flashless boot
+;** 07/22/14   sk      Changes for 8909
+;** 07/02/14   tj      Added sys.d for Boot Test and BOOT Logger options
+;** 07/01/14   sk      Added Load boot crash dumps on Simulator option
+;** 05/06/14   ck      Removed intercomm calls as they are not needed in Bear
+;** 05/06/14   ck      Changed qfprom test to match new TZ with test binary
+;** 03/25/14   ck      Updated for Bear family
+;** 10/31/13   jz      Updated to support command line usage, cleaned up
+;** 10/16/13   jz      Added option to enter download mode to facilitate RAM dump debug/test
+;** 08/07/13   jz      Ported from target's boot_debug to make it common
+
+;****************************************************************************
+
+;This .cmm script acts as a main routine for setting up boot debug.
+
+;****************************************************************************
+;  CMM script variables
+;****************************************************************************
+
+local &ELFfilename     ; Return value of GetELFfile function
+local &platform        ; current device's platform: RUMI or Virtio or SURF
+local &pbldir          ; Location of PBL ELF file
+local &sbl1dir         ; Location of SBL1 ELF file
+local &qseedir         ; Location of QSEE ELF file
+local &qseesuffix      ; Location of QSEE ELF file after QSEEBuildPath
+local &tzbsp_flashed   ; Response from user indicating if tzbsp_with_test.mbn is flashed
+
+local &sbl1elf         ; SBL1 ELF file name
+local &qseeelf         ; QSEE ELF file name
+
+
+local &BootBuildPath   ; location of non-HLOS build path
+local &logging_path    ; location to save the boot log
+local &script_path     ; location of this debug script
+local &build_id        ; Build Id of binaries/ elf's being used
+local &option          ; Option provided by the user without wanting to go through the script interactively 
+local &boot_path
+
+local &YorN            ; Get answer from User
+local &is_boot_test    ; option whether to dump log messages to jtag terminal.
+                       ; term view NOT shown while logging boot times. used only
+                       ; during boot_test.
+local &qfrom_script_exists  ; Flag to track presence of qfprom test framework script.
+local &is_cmd_line  ; run script in command line mode, for automated tests.
+local &Choice  ; get user preferences.
+
+;External Script Files
+local &set_target_specific_data 
+local &qfprom_test_framework    ; Script that contains Qfprom test framework invocation logic
+
+;Main Control function of each section of code and other important stop points
+local &sbl1_main_ctl ; Main Control for SBL1
+;Time Variables
+local &time_pbl
+
+local &load_crash_dump_script_exists  ; Flag to track presence of crash dump script.
+local &crash_dumps_path ;location of crash dumps
+local &load_boot_crash_dump  ; Load crash dumps on simulator
+
+;============================================================================
+; Get the arguments passed to boot debug script.
+;============================================================================
+ENTRY &build_id &option &QSEEBuildPath &crash_dumps_path
+
+;============================================================================
+; Set up some defaults for some variables
+;============================================================================
+;set Directories
+&sbl1dir="boot_images/core/bsp/bootloaders/sbl1/build"
+&qseesuffix="trustzone_images/core/securemsm/trustzone/qsee"
+
+;Scripts 
+&set_target_specific_data="boot_debug_target_data.cmm"
+&qfprom_test_framework="boot_qfprom_test.cmm"
+&load_boot_crash_dump="load_boot_crash_dump.cmm"
+
+;Important stop points
+&sbl1_main_ctl="sbl1_main_ctl"
+&boot_log_dump="boot_log_dump"
+&boot_debug_cookie_sbl1_ptr="boot_debug_cookie_ptr"
+;Default Value
+&platform="SURF"
+&YorN="N"
+&is_boot_test=0
+&qfrom_script_exists=0
+&is_cmd_line=0  ; 0: user interactive 1: commandline/auto mode
+&load_crash_dump_script_exists=0
+;============================================================================
+; Set up the display window
+;============================================================================
+gosub CleanUpExit
+winclear
+area.RESET 
+gosub SetupMainWindow
+
+;============================================================================
+; Get location of the build/ms folder, we use it as the base
+;============================================================================
+  if "&option"!=""
+  (
+    &is_cmd_line=1
+  )
+
+  &script_path=os.pwd()    
+  ;Derive build path relative to script path
+  cd ../../../../../
+  &BootBuildPath=os.pwd()
+
+  cd &script_path
+  
+  ;Update absolute directory paths
+  &sbl1dir="&BootBuildPath"+"/"+"&sbl1dir"+"/"+"&build_id"
+
+  &set_target_specific_data="&script_path"+"/"+"&set_target_specific_data"
+ 
+  ;get absolute path for qfprom test script
+  if "&build_id"=="mdm9x45"
+  (
+    &qfprom_test_framework="&script_path"+"/"+"9x45_"+"&qfprom_test_framework"
+  )
+  else
+  (
+    &qfprom_test_framework="&script_path"+"/"+"&qfprom_test_framework"
+  )
+  ;Update absolute path for load crash dump script
+  &load_boot_crash_dump="&script_path"+"/"+"&load_boot_crash_dump"
+  
+  if &is_cmd_line==1
+  (
+    ; Update sbl names for command line usage
+    &sbl1elf="&sbl1dir"+"/"+"sbl1_"+"&build_id"+"A"+".elf"
+  )
+  
+  if &is_cmd_line==0  
+  (
+    print
+    print  
+    print "Please enter platform type: 1 for RUMI, 2 for LIQUID/FLUID/CDP/MTP :"
+    enter &Choice
+    if "&Choice"=="1"
+    (
+      &platform="RUMI"
+    )
+    print
+    print
+  )
+  
+  print
+  print
+  
+;============================================================================
+; Present user with main menu for debugging boot.  Manual selection is done.
+;============================================================================  
+
+do &set_target_specific_data
+
+MainMenu: 
+  print
+  print   
+  print "------------------------------------------------"
+  print "|                                              |"
+  print "|               Boot Debugger                  |"
+  print "|     On targets with secboot3.0 architecture  |"
+  print "|     Copyright (c) 2014 by QUALCOMM, Inc.     |"
+  print "|                                              |"
+  print "------------------------------------------------"
+  print
+  print
+  
+  if &is_cmd_line==0
+  (
+    print "  0: Exit"
+    print "  1: Debug SBL1"
+    print "  2: Boot Test - Force device to enter download mode"
+    print "  3: Boot Test - Go till end of bootloader"
+    print "  4: Boot Logger - Log the bootup time, please powercycle the device first"
+    if OS.FILE("&qfprom_test_framework")
+    (  
+      ; Show qfrom menu only if the script exists.
+      print "  6: Qfprom Menu - Launch Qfprom test framework"
+      &qfrom_script_exists=1
+    )  
+    if OS.FILE("&load_boot_crash_dump")
+    (  
+      ; Show load crash dump menu only if the script exists.
+      print "  7: Load boot crash dumps on Simulator"
+      &load_crash_dump_script_exists=1
+    )  
+    print 
+    print " Please make a choice: "
+  
+    enter &Choice
+  )
+  else
+  (
+    &Choice="&option"
+  )
+  
+  gosub CleanUpExit  
+
+  if "&Choice"=="0"  
+  (  
+    print "...exiting Boot Debugger"
+    goto EndOfScript
+  )
+   
+  if "&Choice"=="1" 
+  (  
+    gosub SBL1Start
+  )
+  
+  if "&Choice"=="2"
+  (
+    gosub EnterDLoad
+  )
+  
+  if "&Choice"=="3"
+  (
+    &is_boot_test=1
+    gosub BootLogStart
+  )
+  if "&Choice"=="4"
+  (
+    &is_boot_test=0
+    gosub BootLogStart
+  )
+    if "&Choice"=="6"
+  (
+    if "&build_id"=="mdm9x45"
+    (
+      gosub LoadSymbols SBL1 load
+      gosub SetUpSysPath
+
+      sys.u
+      print "      Launching Qfprom test framework "
+
+      ; invoke 9x45 qfprom test framwork to run on Sparrow t32
+      do "&qfprom_test_framework"
+      winclear      
+      area.reset
+      gosub SetupMainWindow
+    )
+    else if &qfrom_script_exists==1
+    (
+      ; If command line was enabled then QSEE build path needs to also be
+      ; given when using qfprom test feature
+      if &is_cmd_line==1
+      (
+        if &QSEEBuildPath==""
+        (
+          print "When executing qfprom test non interactively the QSEE build path must be given."
+          print "Exiting..."
+          return
+        )
+      )
+      else
+      (
+        ; Boot QFPROM test framework is only allowed to live in TZ with test
+        ; binary.  So ensure user has flashed target with tzbsp_with_test.mbn.
+        print ""
+        print "*** WARNING: tzbsp_with_test.mbn MUST be flashed on target before proceding. ***"
+        print ""
+        print "Is tzbsp_with_test.mbn flashed on target? (y/n): "
+        enter &tzbsp_flashed
+        if "&tzbsp_flashed"!="y"
+        (
+           print "Exiting..."
+           return
+        )
+
+        print "Please enter full QSEE build path: "
+        enter &QSEEBuildPath
+      )
+
+      ; Make sure supplied path exists
+      if !os.dir("&QSEEBuildPath")
+      (
+        print "Supplied QSEE build does not exist.  Exiting..."
+        return
+      )
+
+      ; Update qsee dir and qsee elf variables
+      &qseedir="&QSEEBuildPath"+"/"+"&qseesuffix"
+
+      ;use qsee routine to setup env for debugging
+      gosub QSEEStart
+      
+      ; invoke qfprom test framwork 
+      do "&qfprom_test_framework"
+      winclear      
+      area.reset
+      gosub SetupMainWindow
+    )
+    else
+    (
+      print "Wrong choice: 6"
+      print "Qfprom test Not supported"
+      print "Press enter to go back to Main menu "
+      enter &Choice
+      goto MainMenu
+    )
+  )
+  
+  if "&Choice"=="7"
+  (
+    if &load_crash_dump_script_exists==1
+    (
+      if "&crash_dumps_path"==""
+      (
+        print "Please enter the location of the crash dumps:"
+        enter &crash_dumps_path
+        print
+        print
+      )
+      
+      print "This needs to be run on a simulator only"
+      print "Please enter 1: Simulator, 0: Go back to Main Menu :"
+      enter &Choice
+      if "&Choice"=="0"
+      (
+         goto MainMenu
+      )
+      print
+      print
+
+      winclear
+  
+      sys.cpu CortexA7
+      sys.u
+      gosub LoadSymbols SBL1 load
+      gosub SetUpSysPath
+      gosub SetupDebugWindows
+
+      do &load_boot_crash_dump &crash_dumps_path
+      goto EndOfScript
+    )
+    else
+    (
+      print "Wrong choice: 7"
+      print "Load crash dump Not supported"
+      print "Press enter to go back to Main menu "
+      enter &Choice
+      goto MainMenu
+    )
+  )
+  
+  if &is_cmd_line==0
+  (
+    goto MainMenu
+  )
+  else
+  (
+    goto EndOfScript  
+  )
+
+  
+;=====================================================
+; These are the various sub-routines as used by the script above
+;=====================================================
+ 
+;=====================================================
+;This Subroutine loads boot rom for RUMI
+;===================================================== 
+SetUpPBL:
+  local &cwd
+  if "&platform"=="RUMI"
+  (
+    &cwd=os.pwd()
+    cd &script_path
+    cd &cwd
+  )
+  return
+
+  
+;=====================================================
+; This Subroutine sets up apps for debug
+;=====================================================   
+AppsDebugInit:
+  
+  sys.d
+  
+  map.bo
+  b.reset
+  y.reset
+  symbol.reset
+  
+  cd &script_path
+  
+  return
+  
+
+;=======================================================
+; This Subroutine will start the boot logger / Boot Test
+;=======================================================
+BootLogStart:
+ 
+  print "--------------------Start Boot Log------------------"
+  print
+  print  
+  
+  cd &script_path
+
+  symbol.reset
+  b.delete /all
+  map.bo
+ 
+  ;load elfs
+  gosub LoadSymbols SBL1 load
+  gosub SetUpSysPath
+  gosub SetupDebugWindows
+
+  runtime.reset
+  runtime.refA
+  
+  sys.u
+
+  ; Clear SDI and DLOAD cookies
+  gosub ClearSdiDloadCookies
+
+  ; Write BOOT_SHARED_IMEM_MAGIC_NUM to SHARED_IMEM_BOOT_MAGIC_NUM_ADDR
+  data.set &shared_imem_boot_magic_num_addr %LE %LONG &boot_shared_imem_magic_num
+
+  ; Set flag so SBL1 loops at the end of boot logging and does not continue
+  ; into QSEE where SBL1 (L2/TCM) region will be reclaimed
+  data.set &shared_imem_boot_etb_addr %LONG &boot_logger_loop_magic_num
+
+  print
+  print " Run kickstart on PC if it's flashless boot "
+  print "....  Wait for log collection .... "
+  print
+
+  g
+  
+  if "&build_id"=="mdm9x45"
+  (
+    WAIT 15s
+  )
+  else
+  (
+  WAIT 2s
+  )
+
+  b
+
+  ;CD to correct loc
+  cd &script_path
+
+  ; Collect boot log
+  if "&logging_path"==""
+  (
+    print
+    print "Please enter the path to save boot logs , enter pwd for current dir: "
+    enter &logging_path
+    print
+    print
+  )
+  
+  if ("&logging_path"=="pwd")||("&logging_path"=="PWD")||("&logging_path"=="Pwd")
+  (
+    &logging_path=os.pwd()    
+  )
+
+  ;dump the log
+  do &script_path\boot_log.cmm &logging_path
+ 
+  print    
+  print "--------------------End Boot Log------------------"
+  print "Please verify boot log in the directory you provided"
+  print
+
+  ; Clear BOOT_LOGGER_LOOP_MAGIC_NUM in SHARED_IMEM_BOOT_ETB_ADDR
+  data.set &shared_imem_boot_etb_addr %LONG 0
+  
+  return 
+
+
+;=====================================================
+;This Subroutine loads the required SBL1 symbols and 
+;then executes till the beginning of SBL1
+;=====================================================
+SBL1Start:
+
+  gosub AppsDebugInit 
+
+  gosub LoadSymbols SBL1 load
+  gosub SetUpSysPath
+  gosub SetupDebugWindows
+  
+  b.s &sbl1_main_ctl
+  b.s boot_error_handler
+
+  sys.u
+
+  ; Clear SDI and DLOAD cookies
+  gosub ClearSdiDloadCookies
+
+  print " Run kickstart on PC if it's flashless boot "
+  print
+
+  g
+  WAIT !run() 5.s  
+  if Register(pc)!=Address.offset(&sbl1_main_ctl)
+  (
+   print " FAIL: Start of SBL1 not reached"
+   goto EndOfScript
+  )
+
+  print "Stopped at start of SBL1"
+  print
+  
+  return 
+
+
+;=====================================================
+;This Subroutine loads the required QSEE symbols and 
+;then executes till the beginning of QSEE
+;=====================================================
+QSEEStart:
+
+  gosub AppsDebugInit 
+
+  ; Clear all SBL info that was loaded during AppsDebugInit
+  b.reset
+  y.reset
+  symbol.reset
+
+  gosub LoadSymbols QSEE load
+
+  sys.d
+  sys.u
+
+  ; Clear SDI and DLOAD cookies
+  gosub ClearSdiDloadCookies
+
+  print
+  
+  return 
+
+; Clear SDI and DLOAD cookies for SBL debugging
+ClearSdiDloadCookies:
+
+  ;clear the Dload cookie
+  D.S A:&boot_dload_boot_misc_detect_addr %LE %LONG 0x0
+  ;clear SDI cookie
+  D.S A:&boot_reset_debug_sw_entry_addr %LE %LONG 0x0
+
+  return
+
+; Enter download mode
+EnterDLoad:
+
+  gosub LoadSymbols SBL1 load
+  gosub SetUpSysPath
+  gosub SetupDebugWindows
+
+  sys.u
+  ;clear the debug cookie
+  data.set &boot_debug_cookie_addr %LONG 0x0
+  ;clear SDI cookie
+  D.S A:&boot_reset_debug_sw_entry_addr %LE %LONG 0x0
+  ;set dload register
+  D.S A:&boot_dload_boot_misc_detect_addr %LE %LONG &boot_dload_enable_value
+  g
+  
+  print "Device put in download mode"
+  print
+
+  return
+  
+;****************************************************************************
+; Load or remove the boot loader symbols
+;****************************************************************************
+LoadSymbols:
+  local &cwd
+  local &boot_directory
+  ENTRY &bltype &loadordelete
+
+  if ("&loadordelete"=="load")
+  (
+    if "&bltype"=="SBL1"
+    (
+      &cwd=os.pwd()
+      if os.dir("&sbl1dir")
+      (
+        ChDir "&sbl1dir"
+      )
+    
+      if "&sbl1elf"==""
+      (
+        gosub GetELFfile SBL1
+      )
+      else
+      (
+        &ELFfilename="&sbl1elf"
+      )
+    )
+    if "&bltype"=="QSEE"
+    (
+      &cwd=os.pwd()
+      if os.dir("&qseedir")
+      (
+        ChDir "&qseedir"
+      )
+
+      if "&qseeelf"==""
+      (
+        gosub GetELFfile QSEE
+      )
+      else
+      (
+        &ELFfilename="&qseeelf"
+      )
+    )
+
+    print "Elf File: &ELFfilename"
+    print
+    data.load.elf &ELFfilename /nocode /noclear
+  )
+  else
+  (
+    symbol.delete
+  )
+return ; LoadSymbols
+
+;****************************************************************************
+; Select an ELF file from the dialog window
+;****************************************************************************
+GetELFfile:
+  ENTRY &imagetype
+  print "Select &imagetype image file in browser"
+  local &filename
+  dialog.file *.elf
+  entry &filename
+  if "&filename"==""
+  (
+    print "Failed to select file. Exiting..."
+    return
+  )
+  &ELFfilename="&filename"
+  print "Elf File: &ELFfilename"
+return ; GetELFfile
+
+
+;***************************************************************************
+; Setup access to boot source directories
+;***************************************************************************
+SetUpSysPath:
+    y.spath --
+    print  "Adding paths...."
+  y.spath.srd "&BootBuildPath/boot_images/core/boot/secboot3/hw/"
+    y.spath.srd "&BootBuildPath/boot_images/core/boot/secboot3/src/"
+    y.spath.srd "&BootBuildPath/boot_images/core/boot/ddr"
+return ; SetUpSysPath
+
+
+;****************************************************************************
+; Setup and display the windows to debug the processor
+;****************************************************************************
+SetupDebugWindows:
+  
+  TOOLBAR ON
+  STATUSBAR ON
+    ; Display code listing
+  WINPOS 0.0 0.0 68% 85% 12. 1. W000
+    DATA.list
+
+    ; Display register window
+    WINPOS 68% 0. 32% 50% 0. 0. W002
+    register /spotlight
+ 
+    ; Display variables in HEX and with symbol names
+    setup.var %open.on %hex %symbol
+
+    ; Display stackframe with local variables
+    WINPOS  68% 50% 32% 48% 0. 0. W003
+    Var.Frame /Locals /Caller
+  
+  return ; SetupDebugWindows
+
+;****************************************************************************
+; Setup main window
+;****************************************************************************
+SetupMainWindow:
+  WINPOS 0% 50% 68% 50% 0. 0. W001
+  Area.create MAIN
+  Area.view MAIN
+  Area.select MAIN
+  return ;SetupMainWindow
+  
+;=====================================================
+; Function to clean up just before exit
+;=====================================================
+CleanUpExit:
+  ;--------------------------------------------------------
+  ; ok we're finished completely, clean up for exit
+  ;--------------------------------------------------------
+  b.delete /all
+  gosub LoadSymbols "" delete
+  sys.d
+  return ; CleanupExit
+
+EndOfScript:
+  enddo

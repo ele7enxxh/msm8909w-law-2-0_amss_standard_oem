@@ -1,0 +1,185 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+    2 00000000         ;
+    3 00000000         ;                 T R U S T Z O N E      M E M Z I
+    4 00000000         ;
+    5 00000000         ;
+    6 00000000         ; GENERAL DESCRIPTION
+    7 00000000         ;   This file contains the TZ memory zeroing code
+    8 00000000         ;
+    9 00000000         ; Copyright (c) 2012 by Qualcomm Technologies, Incorpora
+                       ted.All Rights Reserved.
+   10 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   11 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   12 00000000         ;
+   13 00000000         ;                           EDIT HISTORY FOR FILE
+   14 00000000         ;
+   15 00000000         ; This section contains comments describing changes made
+                        to the module.
+   16 00000000         ; Notice that changes are listed in reverse chronologica
+                       l order.
+   17 00000000         ;
+   18 00000000         ;
+   19 00000000         ; $Header: 
+   20 00000000         ; when       who     what, where, why
+   21 00000000         ; --------   ---     -----------------------------------
+                       ---------------------
+   22 00000000         ; 09/10/12   sg      Initial revision.
+   23 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   24 00000000         ;=======================================================
+                       =====================
+   25 00000000         ;
+   26 00000000         ;                             MODULE EXPORTS
+   27 00000000         ;
+   28 00000000         ;=======================================================
+                       =====================
+   29 00000000                 EXPORT           tzbsp_memzi
+   30 00000000                 PRESERVE8
+   31 00000000                 CODE32
+   32 00000000         ;=======================================================
+                       =====================
+   33 00000000         ;
+   34 00000000         ;                             MODULE CODE
+   35 00000000         ;
+   36 00000000         ;=======================================================
+                       =====================
+   37 00000000         ;=======================================================
+                       ===============
+   38 00000000         ;
+   39 00000000         ; void tzbsp_memzi(void * dst, uint32 size)
+   40 00000000         ;
+   41 00000000         ; Initialize memory to zero
+   42 00000000         ; Parameters:
+   43 00000000         ;   r0 contains the destination address
+   44 00000000         ;   r1 is the size to be set to zero
+   45 00000000         ;=======================================================
+                       ===============
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   46 00000000                 AREA             TZBSP_MEMZI, CODE, READONLY, AL
+IGN=5
+   47 00000000         tzbsp_memzi
+                               FUNCTION
+   48 00000000         ;Initialize
+   49 00000000 F2800E70        vmov.i64         Q0, #0x0
+   50 00000004 F2202150        vmov.i64         Q1, Q0
+   51 00000008 E3A02000        mov              r2, #0x0
+   52 0000000C E3510080        cmp              r1,   #0x80 ; check bigger than
+                                                             128 bytes or not.
+   53 00000010 BA000006        blt              check_zi_32byte_left_over
+   54 00000014 F2204150        vmov.i64         Q2, Q0
+   55 00000018 F2206150        vmov.i64         Q3, Q0
+   56 0000001C F2208150        vmov.i64         Q4, Q0
+   57 00000020 F220A150        vmov.i64         Q5, Q0
+   58 00000024 F220C150        vmov.i64         Q6, Q0
+   59 00000028 F220E150        vmov.i64         Q7, Q0
+   60 0000002C EA000004        b                loop_for_128byte_set
+   61 00000030         check_zi_32byte_left_over
+   62 00000030 E3510020        cmp              r1,   #0x20 ; check bigger than
+                                                             32 bytes or not.
+   63 00000034 AA000007        bge              loop_for_32byte_set
+   64 00000038         check_zi_byte_left_over
+   65 00000038 E3510000        cmp              r1,   #0    ; set anything <128
+                                                             bytes
+   66 0000003C CA00000A        bgt              loop_for_byte_set
+   67 00000040         tzbsp_memzi_end
+   68 00000040 E12FFF1E        bx               lr
+   69 00000044         loop_for_128byte_set
+   70 00000044 ECA00B20        vstm             r0!, {Q0-Q7} ; memzi store 128 
+                                                            bytes each time
+   71 00000048 E2411080        sub              r1,   r1, #0x80 ; decrement siz
+                                                            e by 128
+   72 0000004C E3510080        cmp              r1,   #0x80
+   73 00000050 AAFFFFFB        bge              loop_for_128byte_set
+   74 00000054 BAFFFFF5        blt              check_zi_32byte_left_over ; che
+                                                            ck whether there ar
+                                                            e left over bytes.
+   75 00000058         loop_for_32byte_set
+   76 00000058 ECA00B08        vstm             r0!, {Q0-Q1} ; memzi store 32 b
+                                                            ytes each time
+   77 0000005C E2411020        sub              r1,   r1, #0x20 ; decrement siz
+                                                            e by 32
+   78 00000060 E3510020        cmp              r1,   #0x20
+   79 00000064 AAFFFFFB        bge              loop_for_32byte_set
+   80 00000068 BAFFFFF2        blt              check_zi_byte_left_over
+   81 0000006C         loop_for_byte_set
+   82 0000006C E4C02001        strb             r2,   [r0], #1 ; store 1 bytes 
+                                                            each time
+   83 00000070 E2411001        sub              r1,   r1, #0x1
+   84 00000074 E3510000        cmp              r1,   #0x0
+   85 00000078 CAFFFFFB        bgt              loop_for_byte_set
+   86 0000007C DAFFFFEF        ble              tzbsp_memzi_end ; end the byte 
+                                                            copy.
+   87 00000080                 ENDFUNC
+   88 00000080                 END
+Command Line: --cpu=Cortex-A7 --apcs=/noswst/interwork --no_unaligned_access -o
+/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208
+_043404/b/boot_images/core/securemsm/seccfg/build/ddr_debug/Cortex-A7/WAASANAZ/
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+src/seccfg_memzi.o -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M890
+9WAAAANAZB-1_20161208_043404/b/boot_images/core/securemsm/seccfg/build -I/local
+/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_04340
+4/b/boot_images/build/cust -I. -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c
+3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/secboot3/src -
+I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016120
+8_043404/b/boot_images/core/api/securemsm -I/local/mnt/workspace/CRMBuilds/BOOT
+.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/securems
+m/secboot/api -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAA
+ANAZB-1_20161208_043404/b/boot_images/core/api/kernel/libstd/stringl -I/local/m
+nt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/
+b/boot_images/core/api/boot -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0
+0012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/boot/qfprom -I/loc
+al/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043
+404/b/boot_images/core/api/services -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.
+1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/buses/api/spmi
+ -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161
+208_043404/b/boot_images/core/buses/api/icb -I/local/mnt/workspace/CRMBuilds/BO
+OT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/buses/
+api/uart -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB
+-1_20161208_043404/b/boot_images/core/buses/api/i2c -I/local/mnt/workspace/CRMB
+uilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/cor
+e/api/systemdrivers -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M89
+09WAAAANAZB-1_20161208_043404/b/boot_images/core/api/systemdrivers/pmic -I/loca
+l/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_0434
+04/b/boot_images/core/api/systemdrivers/hwio/msm8909 -I/local/mnt/workspace/CRM
+Builds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/co
+re/api/dal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANA
+ZB-1_20161208_043404/b/boot_images/core/securemsm/cryptodrivers/ce/shared/inc -
+I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016120
+8_043404/b/boot_images/core/securemsm/cryptodrivers/ce/test/inc -I/local/mnt/wo
+rkspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boo
+t_images/core/securemsm/cryptodrivers/prng/shared/inc -I/local/mnt/workspace/CR
+MBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/c
+ore/securemsm/cryptodrivers/prng/test/inc -I/local/mnt/workspace/CRMBuilds/BOOT
+.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/securems
+m/cryptodrivers/prng/shared/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.
+c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/securemsm/secb
+oot -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20
+161208_043404/b/boot_images/core/api/securemsm/seccfg -I/local/mnt/workspace/CR
+MBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/c
+ore/securemsm/secmath/shared/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2
+.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/securemsm/fusepro
+v/chipset/msm8909/inc --list=/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00
+012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/securemsm/seccfg/build/
+ddr_debug/Cortex-A7/WAASANAZ/src/seccfg_memzi.o.lst --sitelicense /local/mnt/wo
+rkspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boo
+t_images/core/securemsm/seccfg/build/ddr_debug/Cortex-A7/WAASANAZ/src/seccfg_me
+mzi.o.i

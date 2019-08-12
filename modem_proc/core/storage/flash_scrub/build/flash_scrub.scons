@@ -1,0 +1,111 @@
+#============================================================================
+#
+# Flash Scrub Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by QUALCOMM Technologies, Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#----------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/storage/flash_scrub/build/flash_scrub.scons#1 $  $DateTime: 2016/12/13 07:59:23 $  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who  what, where, why
+# ----------  ---  ----------------------------------------------------------
+# 2013-09-27  wek  Update pre-amble when boot code is scrub.
+# 2013-08-21  rp   Add timetick support to do timing-profile.
+# 2013-09-20  wek  Swap MSG_HIGH/MED/LOW macros for MSG_3 macro.
+# 2013-08-15  rp   Make all target file names to start with flash_scrub.
+# 2013-08-12  rp   Do not compute MD5-hash at rcinit boot time.
+# 2013-08-04  rp   Add Scrub-Log module.
+# 2013-07-19  dks  Add QMI commands for scrubbing.
+# 2013-07-16  wek  Add Boot code scrubbing.
+# 2013-07-09  wek  Add util source file with copy block function.
+# 2013-06-13  wek  Create
+#
+#============================================================================
+Import('env')
+env = env.Clone()
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/flash_scrub/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#----------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#----------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'STORAGE',
+   # needs to be last as it may contain wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#----------------------------------------------------------------------------
+# Sources, libraries
+#----------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------
+# AMSS source files
+#----------------------------------------------------------------------------
+
+SCRUB_SOURCES = [
+  '${BUILDPATH}/flash_scrub_log.c',
+  '${BUILDPATH}/flash_scrub_boot_code.c',
+  '${BUILDPATH}/flash_scrub_code_partitions.c',
+  '${BUILDPATH}/flash_scrub_flash_dal_shim.c',
+  '${BUILDPATH}/flash_scrub_global_lock.c',
+  '${BUILDPATH}/flash_scrub_master.c',
+  '${BUILDPATH}/flash_scrub_task.c',
+  '${BUILDPATH}/flash_scrub_timetick.c',
+  '${BUILDPATH}/flash_scrub_util.c',
+]
+
+#----------------------------------------------------------------------------
+# Add Libraries to image
+#----------------------------------------------------------------------------
+
+SCRUB_DEST_IMAGES = [
+  'MODEM_IMAGE',
+  'CBSP_MODEM_IMAGE',
+  'SINGLE_IMAGE',
+  'CBSP_SINGLE_IMAGE',
+  'QDSP6_SW_IMAGE',
+  'CBSP_QDSP6_SW_IMAGE',
+]
+
+if 'USES_FLASH_SCRUB' in env:
+  env.AddLibrary(SCRUB_DEST_IMAGES,'${BUILDPATH}/flash_scrub',
+                 SCRUB_SOURCES)
+
+#----------------------------------------------------------------------------
+# RCINIT Initialization of the flash_scrub task
+#----------------------------------------------------------------------------
+
+if 'USES_FLASH_SCRUB' in env:
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+  env.AddRCInitTask(RCINIT_IMG,
+   {
+     'sequence_group'      : 'RCINIT_GROUP_6', # Low priority, start last
+     'thread_name'         : 'flash_scrub',
+     'thread_entry'        : 'scrub_task',
+     'stack_size_bytes'    : '4096',          # processing task calls efs_API
+     'priority_amss_order' : 'SHARED_IDLE_SERVICE_PRI_ORDER',
+     'cpu_affinity'        : 'REX_ANY_SMT_MASK',
+   })

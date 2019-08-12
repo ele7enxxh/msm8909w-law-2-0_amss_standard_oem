@@ -1,0 +1,133 @@
+#===============================================================================
+#
+#                             Edit History
+#
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/buses/icb/build/icb.scons#1 $
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2015/09/15   rc      Added 8909W
+# 2015/02/19   ddk     Removed SPDM references.
+# 2015/02/13   ddk     Added pack rule updates for SPDM.
+# 2015/01/22   jc      Added SPDM to TZ
+# 2014/07/10   tb      Added 8909
+# 2013/11/21   tb      Added 8994
+# 2013/10/31   pm      Added 8916
+# 2013/09/03   pm      Added 8092
+# 2013/08/01   pm      Added 9x35
+# 2013/05/26   pm      Added 8084
+# 2013/05/24   jc      Added 8962
+# 2012/11/06   jc      Added 8x26 and 8x10
+# 2012/07/24   jc      Added APPS ThinUI image
+# 2012/06/25   jc      Added 9x25
+# 2012/05/31   av      Added ABT driver
+# 2012/04/02   dj      Move icbarb_init to RCINIT group 0
+# 2012/03/20   av      Added BOOT image
+# 2012/03/02   pm      Changes for WCNSS PRONTO
+# 2011/12/12   sds     Initial Creation
+#
+#===============================================================================
+#                    Copyright (c) 2011-2015 Qualcomm Technologies Incorporated.
+#                              All Rights Reserved.
+#                            QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Python library imports
+#-------------------------------------------------------------------------------
+import glob, os
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+BUILDPATH = '..'
+env.VariantDir('${BUILDPATH}', BUILDPATH, duplicate=0)
+SRCPATH = os.path.join( BUILDPATH, 'src' )
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+  'BUSES',
+  'HAL',
+  'POWER',
+  'RPM',
+  'DAL',
+  'SYSTEMDRIVERS',
+  'SERVICES',
+  'DEBUGTOOLS',
+  'SECUREMSM',
+  'KERNEL',
+  'BOOT',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+
+#-------------------------------------------------------------------------------
+# Private depends within ICB
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('ICB_API', [ os.path.join(SRCPATH, 'common') ])
+
+#-------------------------------------------------------------------------------
+# Build products for RCINIT
+#-------------------------------------------------------------------------------
+if 'USES_RCINIT' in env and env['MSM_ID'] in ['8974', '9x25', '8x26', '8x10', '8962', '8084', '8926', '9x35', '8092', '8916', '8994', '8909', '9x07','8909w']:
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', 
+                'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN',
+                'APPS_IMAGE','CBSP_APPS_IMAGE']
+
+  RCINIT_INIT_ICBARB = {
+    'sequence_group' : 'RCINIT_GROUP_0', # required
+    'init_name'      : 'icbarb',         # required
+    'init_function'  : 'icbarb_init',    # required
+    'dependencies'   : ['npa','rpm'],    # opt [python list]
+  }
+  env.AddRCInitFunc( RCINIT_IMG, RCINIT_INIT_ICBARB )
+
+  RCINIT_ABT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', ]
+
+  RCINIT_INIT_ABT = {
+    'sequence_group' : 'RCINIT_GROUP_0', # required
+    'init_name'      : 'abt',            # required
+    'init_function'  : 'ABT_Init',       # required
+    'dependencies'   : ['dalsys','clk_regime'],    # opt [python list]
+  }
+  env.AddRCInitFunc( RCINIT_ABT_IMG, RCINIT_INIT_ABT )
+
+#-------------------------------------------------------------------------------
+# Common Sources
+#-------------------------------------------------------------------------------
+icb_src = glob.glob( os.path.join(SRCPATH, 'common', '*.c') )
+
+#-------------------------------------------------------------------------------
+# Device Configuration Sources
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8909w']: 
+   env['MSM_ID'] = '8909' 
+   
+if 'USES_DEVCFG' in env:
+  # Look for data and xml file for the current MSM_ID
+  icb_src += glob.glob( os.path.join(SRCPATH, env['MSM_ID'], '*.c') )
+  icb_config_xml = glob.glob( '../config/*%s.xml' % env['MSM_ID'] )
+  
+  # If we have both, add to device configuration library
+  if icb_config_xml:
+    for xml in icb_config_xml:
+      env.AddDevCfgInfo( ['DAL_DEVCFG_IMG'], {'devcfg_xml' : xml} )
+
+#-------------------------------------------------------------------------------
+# Images 
+#-------------------------------------------------------------------------------
+
+# Prepend build path
+icb_src = ['${BUILDPATH}' + filename[2:] for filename in icb_src]
+
+env.AddLibrary(
+   ['MODEM_IMAGE','CBSP_MODEM_IMAGE',
+   'CORE_QDSP6_SW', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 
+   'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN', 'TZOS_IMAGE',
+   'BUSES_AHB_BOOT_DRIVER', 'APPS_IMAGE','CBSP_APPS_IMAGE'],
+   '${BUILDPATH}/icb', icb_src)

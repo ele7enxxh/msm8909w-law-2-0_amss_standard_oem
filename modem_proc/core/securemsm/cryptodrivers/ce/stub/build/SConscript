@@ -1,0 +1,111 @@
+#===============================================================================
+#
+# SME CRYPTO SHARED Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:$
+#  $DateTime:$
+#  $Author:$
+#  $Change:$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/01/10   ejt     Removed MSM_ID & OS_TYPE & x509 files
+# 05/12/10   nk      Initial Revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('CEML', [
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/stub/inc',
+])
+
+#-------------------------------------------------------------------------------
+# Publish Protected APIs
+#-------------------------------------------------------------------------------
+env.PublishProtectedApi('CEML', [
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/stub/inc',
+])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/stub/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'HWENGINES',
+   'POWER',
+
+   # needs to be last also contains wrong comdef.h
+	'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+SME_PROTECTED_API = [
+]
+env.RequireProtectedApi(SME_PROTECTED_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --arm')
+
+#----------------------------------------------------------------------------
+# Crypto Shared Library
+#----------------------------------------------------------------------------
+SME_CE_STUB_LIB_SOURCES = [
+    '${BUILDPATH}/ce_dal_stub.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if env.has_key('USES_SEC'):
+   env.AddBinaryLibrary(
+     ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+      'MODEM_IMAGE',  'CBSP_MODEM_IMAGE',
+      'APPS_IMAGE',   'CBSP_APPS_IMAGE',
+      'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+      'MBA_CORE_SW'
+     ],
+     '${BUILDPATH}/ce_stub',
+     SME_CE_STUB_LIB_SOURCES)

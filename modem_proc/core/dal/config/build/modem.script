@@ -1,0 +1,187 @@
+#===============================================================================
+#
+# DAL CONFIG Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/dev/core.mpss/2.0/simonho.dalmba_pw74b/dal/config/build/SConscript#1 $
+#  $DateTime: 2013/03/13 15:18:36 $
+#  $Author: coresvc $
+#  $Change: 3473246 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+import os, glob
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Load dal config builders
+#-------------------------------------------------------------------------------
+env.Tool('dalconfig_builder', toolpath = ['.'])
+env.Tool('devcfgHwInfo_builder', toolpath = ['.'])
+env.Tool('devcfg_lcs_builder', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts/.'])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+#SRCPATH = "${DAL_ROOT}/config/${MSM_ID}"
+SRCPATH = "${DAL_ROOT}/config/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External paths, NOTE: DALConfig is a special case as it may require any
+# ".h" file which may not be a public API
+#-------------------------------------------------------------------------------
+
+EXTERNAL_API = [
+   'MODEM_PMIC',                  #pm.h
+   'MODEM_API',
+]
+env.RequireExternalApi(EXTERNAL_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BUSES',
+   'HWENGINES',
+   'SYSTEMDRIVERS',
+   'SYSTEMDRIVERS_DALCONFIG',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'APTTESTS',
+   'KERNEL_MEMORYMANAGER',
+   'KERNEL'
+]
+
+env.PublishPrivateApi('DAL_CONFIGPATH', [
+   "${INC_ROOT}/core/dal/drivers/InterruptController/inc",
+   "${INC_ROOT}/core/dal/drivers/InterruptController/src",
+   "${INC_ROOT}/core/dal/drivers/InterruptController/src/qurt",
+])
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+IMAGES = ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+    'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+
+    
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------   
+if env.GetUsesFlag('USES_DEVCFG') is True:
+   #Generate required dalsystem xml files for each SOC
+   soc_list = []
+   devcfg_xml_tag_list = env.get('DEVCFG_XML_TAGS')
+   for tag in devcfg_xml_tag_list:
+       soc = tag.split('_')[0]
+       if soc not in soc_list:
+           soc_list.append(soc)
+   
+   dalsystem_dict = {}
+   for soc in soc_list:
+       path = '${BUILDPATH}/' + soc +'_xml/' + soc + '_dalsystem_modem.xml'
+       dalsystem_file = env.DalsystemXMLBuilder(target = path, source = None, CONFIG=soc)
+       dalsystem_dict.update({soc + '_xml' : dalsystem_file})
+   
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   # Provide info about dalsystem_modem xml files to the build system
+   env.AddDevCfgInfo(DEVCFG_IMG,dalsystem_dict)
+   
+   # Rules for dal config c files
+   if 'DAL_DEVCFG_IMG' in env:
+      # Create the master xml files
+      DALConfig_out = {}
+      DALConfig_cfile = {}
+      # Generate the master xml files for only those tags that have been used in the build
+      # passed through to the build system using AddDevCfgInfo. Ignore the unused tafs in 
+      # image_cfg.xml
+
+      # Create one master xml file per tag
+      for tag in devcfg_xml_tag_list:
+         appendstr = tag.replace('_xml', '')
+         devcfg_gen_xml = '${BUILDPATH}/DevCfg_master_' + appendstr + '.xml'
+         devcfg_gen_env = '${BUILDPATH}/DevCfg_env_' + appendstr + '.txt'
+         DALConfig_out[tag] = env.DevcfgBuilder([devcfg_gen_xml, devcfg_gen_env] , None, CONFIG=[tag], UPDATE_ENV=True)
+
+      # Create a dictionary with the following format: {'8026_PLATFORM_OEM_xml': {'DALConfig_8026_PLATFORM_OEM': '8026_PLATFORM_OEM_data'}
+      dal_gen_src_dict = {}
+      for word in devcfg_xml_tag_list:
+         dal_gen_src_dict[word] = {('${BUILDPATH}/DALConfig_' + word.replace('_xml', '')) : ('${BUILDPATH}/' + word.replace('_xml', '_data'))}
+      
+      # Create DalConfig file
+      dalconfig_libs = []
+      # DALConfig & data file generation
+      DALConfig_src = []
+      for xml_tag, dalconfig_files_dict in dal_gen_src_dict.items():
+         for config_file, data_file in dalconfig_files_dict.items():
+            DALConfig_src = env.DALConfigSrcBuilder([config_file+'.c', data_file+'.c'], [DALConfig_out[xml_tag][0]], CONFIG=xml_tag)
+            dalconfig_libname = '${BUILDPATH}/' + 'DALConfig_' + xml_tag
+            devcfg_gen_env = '${BUILDPATH}/DevCfg_env_' + xml_tag.replace('_xml', '') + '.txt'
+            if (os.path.exists(env.RealPath(devcfg_gen_env))) :
+               lines = [line.strip() for line in open(env.RealPath(devcfg_gen_env), 'r')]
+               env.get('CPPPATH').extend(lines)           
+               
+            env.AddLibrary(DEVCFG_IMG, dalconfig_libname, DALConfig_src[0])
+            dalconfig_libs.append(dalconfig_libname)
+            # Devcfg data file object
+            env.AddObject(DEVCFG_IMG, DALConfig_src[1])
+
+   else:
+      env.Append(CPPPATH = [                    
+         '${DAL_ROOT}/drivers/TestDrivers/src'   
+         ])
+
+      # Source Code
+      DEVCFG_SOURCES =  [
+         '${BUILDPATH}/src/modem/DALProps.c',
+         '${BUILDPATH}/src/modem/DALSysInt.c',
+      ]
+
+      # Create DALModDir file
+      dal_gen_src = ['${BUILDPATH}/DALModDir_modem']
+      
+      # Devcfg master xml file
+      dalmoddir_gen_xml = '${BUILDPATH}/DevCfg_master.xml'
+      dalmoddir_gen_env = '${BUILDPATH}/DevCfg_env.txt'
+      dalmoddir_xml_tag_list = env.get('DEVCFG_XML_TAGS')
+      DALModDir_out = env.DevcfgBuilder([dalmoddir_gen_xml,dalmoddir_gen_env], None, CONFIG=dalmoddir_xml_tag_list, UPDATE_ENV=False)
+      
+      # FIX ME
+      DALModDir_src = env.DALModDirSrcBuilder(dal_gen_src, [DALModDir_out[0]])
+      DEVCFG_SOURCES.extend(DALModDir_src) 
+      env.AddLibrary(IMAGES, '${BUILDPATH}/DALModDir', DEVCFG_SOURCES)
+
+      # DAL pad src file : Add only which is required.
+      #Preparing a list of Pad files for the targets(tags) in the image_cfg.xml
+      DEVCFG_PAD_SOURCE = []
+      for tag in dalmoddir_xml_tag_list :
+        section_asm_file = "${BUILDPATH}/devcfg_pad_" + tag.replace('_xml', '') + '.S'
+        DEVCFG_PAD_SOURCE.append(section_asm_file) 
+      Devcfg_pad_src_out = env.DevcfgSectionInfoBuilder(DEVCFG_PAD_SOURCE, DALModDir_out)
+      env.AddObject(IMAGES, Devcfg_pad_src_out)
+      
+      dal_ddi_src = ['${INC_ROOT}/core/api/systemdrivers/DDIChipInfo.h', 
+                    '${INC_ROOT}/core/api/systemdrivers/PlatformInfoDefs.h']
+      dal_ddi_file = ['${BUILDPATH}/DevCfgSegInfo.c']
+      env.Append(CPPDEFINES = ['DEVCFG_TCSR_SOC_HW_ADDR=${DEVCFG_TCSR_SOC_HW_ADDR}'])
+      DevCfgSegInfo_src = env.DevcfgPropInfoBuilder(dal_ddi_file, dal_ddi_src)
+      env.AddObject(IMAGES, DevCfgSegInfo_src[0])

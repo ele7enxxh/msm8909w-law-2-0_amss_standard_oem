@@ -1,0 +1,87 @@
+#===============================================================================
+#
+#                             Edit History
+#
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/buses/spdm/build/spdm.scons#1 $
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2015/09/15   rc      Added 8909W
+# 2015/02/19   ddk     Initial creation.
+#
+#===============================================================================
+#                    Copyright (c) 2015 Qualcomm Technologies Incorporated.
+#                              All Rights Reserved.
+#                            QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Python library imports
+#-------------------------------------------------------------------------------
+import glob, os
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+BUILDPATH = '..'
+env.VariantDir('${BUILDPATH}', BUILDPATH, duplicate=0)
+SRCPATH = os.path.join( BUILDPATH, 'src' )
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+  'BUSES',
+  'HAL',
+  'POWER',
+  'RPM',
+  'DAL',
+  'SYSTEMDRIVERS',
+  'SERVICES',
+  'DEBUGTOOLS',
+  'SECUREMSM',
+  'KERNEL',
+  'BOOT',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+env.Append(CPPPATH = "${INC_ROOT}/core/securemsm/trustzone/qsee/include")
+env.Append(CPPPATH = "${INC_ROOT}/core/buses/icb/src/common")
+
+#-------------------------------------------------------------------------------
+# Private depends within SPDM
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('SPDM_API', [ os.path.join(SRCPATH, 'common') ])
+
+
+#-------------------------------------------------------------------------------
+# Common Sources
+#-------------------------------------------------------------------------------
+spdm_src = glob.glob( os.path.join(SRCPATH, 'common', '*.c') )
+
+
+#-------------------------------------------------------------------------------
+# Images 
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8909w']: 
+   env['MSM_ID'] = '8909'
+ 
+if 'TZOS_IMAGE' in env:
+  spdm_src += glob.glob( os.path.join(SRCPATH, env['MSM_ID'], '*.c') )
+
+if env['MSM_ID'] in ['8909']:
+  env.Append(CCFLAGS = '-DFEATURE_SPDM')
+
+# Prepend build path
+spdm_src = ['${BUILDPATH}' + filename[2:] for filename in spdm_src]
+
+env.AddBinaryLibrary(   ['TZOS_IMAGE'],'${BUILDPATH}/spdm', spdm_src)
+
+
+CLEAN_FILES = env.FindFiles('spdm*.c', SRCPATH)
+CLEAN_FILES += env.FindFiles('spdm*.h', SRCPATH)
+CLEAN_FILES += env.FindFiles('HALspdm*.h', SRCPATH)
+env.CleanPack(['TZOS_IMAGE'], CLEAN_FILES)

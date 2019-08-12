@@ -1,0 +1,120 @@
+#r===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011-2014 Qualcomm Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rftech_lte/build/modem_rfa_lte.api#1 $
+# $DateTime: 2016/12/13 07:59:25 $ 
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/16/14   dej     Clean-up SCons and add support for TABASCO
+# 06/02/14   dr      Adding support for JOLOKIA
+# 03/11/14   bsh     Adding NLIC support
+# 02/12/14   php     Added support for DimePM
+# 05/14/13   ra      Added support for Bolt
+# 02/12/13   aca     Tuner manager support
+# 02/04/13   dej     Branch MSM layer to RFMODEM component(s)
+# 12/06/12   sar     Created
+#===============================================================================
+
+Import('env')
+
+env.Replace(RF_ROOT = '${INC_ROOT}/rfa')
+env.Replace(RFTECH_LTE_ROOT = '${INC_ROOT}/rftech_lte')
+
+env.PublishPublicApi('RFTECH_LTE',['${RFTECH_LTE_ROOT}/api'])
+
+env.PublishPublicApi('RFTECH_LTE_DM_INC',['${RFTECH_LTE_ROOT}/dm_lte/inc'])
+
+if env.get('CHIPSET') not in ('mdm9x35'):
+   env.PublishRestrictedApi ('RFTECH_LTE_VIOLATIONS',[
+       '${INC_ROOT}/mcs/hwio/inc',
+       '${INC_ROOT}/mcs/hwio/inc/${CHIPSET}'
+       ])
+
+#Start public VIOLATIONS
+env.PublishRestrictedApi('RFTECH_LTE_VIOLATIONS',[
+        '${INC_ROOT}/fw/api/common',
+        '${INC_ROOT}/geran/cust/inc',
+        '${INC_ROOT}/geran/variation/inc',
+        '${INC_ROOT}/hdr/common/api',
+        '${INC_ROOT}/hdr/cp/api',
+        '${INC_ROOT}/hdr/cust/inc',
+        '${INC_ROOT}/hdr/mac/api',
+        '${INC_ROOT}/hdr/srch/api',
+        '${INC_ROOT}/hdr/variation/inc',
+        '${INC_ROOT}/mcs/cust/inc',
+        '${INC_ROOT}/mcs/variation/inc',
+        '${INC_ROOT}/wcdma/cust/inc',
+        '${INC_ROOT}/wcdma/l1/offline/inc',
+        '${INC_ROOT}/wcdma/mac/inc',
+        '${INC_ROOT}/wcdma/rlc/inc',
+        '${INC_ROOT}/wcdma/variation/inc',
+        '${RF_ROOT}/device/rfdev_intf/inc',
+	'${RF_ROOT}/rf/common/rf/atuner/inc',
+        #'${RF_ROOT}/lm/common/inc',
+        '${RF_ROOT}/rf/common/ftm/inc',
+        '${RF_ROOT}/rf/common/hwtc/inc',
+        '${RF_ROOT}/rf/common/rf/core/inc',
+        '${RF_ROOT}/rf/common/rf/mc/inc',
+        '${RF_ROOT}/rf/common/rf/nv/inc',
+        '${RF_ROOT}/rf/common/rf/rfc/inc',
+        '${RF_ROOT}/rf/hal/common/inc',
+        '${RF_ROOT}/rf/mdsp/qdsp6_cdma/inc',
+        '${RF_ROOT}/rf/mdsp/qdsp6_common/inc',
+        '${RF_ROOT}/rf/mdsp/qdsp6_lte/inc',
+        '${RF_ROOT}/rf/mdsp/qdsp6_meas/inc',
+        '${RF_ROOT}/rf/meas/ftm/inc',
+        '${RF_ROOT}/rf/rfd/common/inc',
+        '${RF_ROOT}/rf/rfd/nikel/inc',
+        '${RF_ROOT}/rf/sv/common/inc',
+        '${RF_ROOT}/rf/task/common/inc',
+        '${RF_ROOT}/rf/task/rex_msgr/inc',
+        '${RF_ROOT}/rfc/common/inc',
+        '${RF_ROOT}/rfc/dime/target/${CHIPSET}/inc',
+        '${RF_ROOT}/rfc/vreg_mgr/common/inc',
+        '${RF_ROOT}/variation/inc',
+        '${INC_ROOT}/rftech_gsm/api',
+        '${INC_ROOT}/rftech_cdma/common/rf/inc',
+        '${INC_ROOT}/rftech_cdma/1x/rf/inc',
+        '${INC_ROOT}/rftech_cdma/hdr/rf/inc',
+        '${INC_ROOT}/rflm/api/lte',
+        '${INC_ROOT}/rflm/api/fw',
+        '${INC_ROOT}/rflm/api/txagc',
+        '${INC_ROOT}/rflm/api/rxagc',
+        '${INC_ROOT}/rflm/api/ccs',
+        '${INC_ROOT}/rflm/services/time/inc',
+        '${INC_ROOT}/rflm/dime_ccs/inc',
+        '${INC_ROOT}/rfmodem_bolt/rflm/ccs/rf_ccs/inc',		
+        ])
+
+if env.get('CHIPSET') in ('mdm9x35','msm8962','msm8926','msm8916'):
+  env.PublishRestrictedApi( 'RFTECH_LTE_VIOLATIONS', [
+        '${RF_ROOT}/rfc/dime/target/msm8974/inc',
+    ])
+
+

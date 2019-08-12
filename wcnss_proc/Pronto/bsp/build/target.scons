@@ -1,0 +1,41 @@
+#===============================================================================
+#
+# Pronto build rules
+#
+# GENERAL DESCRIPTION
+#    Multimedia build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //source/qcom/qct/multimedia2/bsp/build/msm7x30/brew/main/latest/SConstruct#2 $
+#
+#===============================================================================
+import os
+import glob
+import time
+
+print "------------------------------------------------------------------------------"
+print "   Loading Pronto Build System "
+print "------------------------------------------------------------------------------"
+
+#------------------------------------------------------------------------------
+# Get system Environment
+#------------------------------------------------------------------------------
+env = DefaultEnvironment(ENV = os.environ, tools = ['mingw'])
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Set global variables and defaults
+#------------------------------------------------------------------------------
+#t_start = time.clock()
+BUILD_ROOT = '../../..'
+TARGET_ROOT = '../../../..'
+env.Replace(BUILD_ROOT = BUILD_ROOT)
+env.Replace(TARGET_ROOT = TARGET_ROOT)
+env.Tool('ComSConstruct', toolpath = ['${BUILD_ROOT}/tools/build/scons/build'])
+

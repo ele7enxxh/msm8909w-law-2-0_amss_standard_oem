@@ -1,0 +1,176 @@
+#===============================================================================
+#
+# AVS AU
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+import os
+if env.PathExists("${BUILD_ROOT}/audio_avs"):
+   env.Replace(AVS_AU_NAME ='audio_avs')
+else:
+   env.Replace(AVS_AU_NAME ='avs')
+
+env.Replace(AVS_ROOT = '${INC_ROOT}/${AVS_AU_NAME}')
+
+#Remove audio_avs folder
+if 'USES_NO_AUDIO_ON_Q6' in env or 'USES_NO_AUDIO' in env:
+   if 'CLEANPACK_TARGET' in env:
+      if env.get('CHIPSET') != "mdm9607":
+          env.PrintInfo("Removing audio_avs folder")
+          CLEAN_FILES= env.FindFiles(['*'], "${BUILD_ROOT}/${AVS_AU_NAME}")
+          env.CleanPack(['CLEANPACK_TARGET'], CLEAN_FILES)
+          Return()
+   else: #if cleanpack is not defined and USES_NO_AUDIO_ON_Q6 is defined, then return
+      env.PrintInfo("Returning from audio_avs")
+      Return()
+   
+if env.get('AVS_TEST') == True:
+   env.Append(CFLAGS = '-Wno-medium -Wno-low')
+else: 
+   env.Append(CFLAGS = '-Werror')
+if ARGUMENTS.get('SIM') == "1" or ARGUMENTS.get('SIM') == "TRUE":
+   env.PrintInfo("SIM is in the argument, build SIM AVS")
+   env.AddUsesFlags(['USES_STACK_PROTECTION_ENABLED','USES_AVS_TEST'])
+else:
+   env.PrintInfo("SIM is not in the argument, build target AVS")
+   env.AddUsesFlags(['USES_STACK_PROTECTION_ENABLED','USES_ADSPPM_INTEGRATION_ENABLED'])
+
+
+if 'USES_ADSPPM_INTEGRATION_ENABLED' in env:
+    if env.get('CHIPSET') == "msm8x26":
+        env.Append(CFLAGS='-DADSPPM_INTEGRATION=1')
+    elif env.get('CHIPSET') == "msm8x10":
+        env.Append(CFLAGS='-DADSPPM_INTEGRATION=1')
+    else:
+        env.Append(CFLAGS='-DADSPPM_INTEGRATION=1')
+else:
+    env.Append(CFLAGS='-DADSPPM_INTEGRATION=0')       
+
+
+
+# If OEM_ROOT is set from command prompt, then the following are done :-
+# Set OEM_ROOT in 'env'
+# Import Public API Paths from HAP component required for compilation of Audio Decoder Services and Audio Processing Services
+# Append OEM_ROOT flag in the list of existing flags
+if os.environ.get('OEM_ROOT')!=None:
+    env['OEM_ROOT'] = os.environ['OEM_ROOT']
+    env.RequirePublicApi('HAP_AVS',area='hap')
+    env.Append(CFLAGS = '-DOEM_ROOT')
+env = env.Clone()
+
+#import pdb; pdb.set_trace()
+#load the avs_library_builder
+env.Tool('avs_library_builder', toolpath = ['${AVS_ROOT}/build'])
+
+# Load cleanpack script:
+if os.path.exists(env.subst('${AVS_ROOT}/pack/audio_avs_cleanpack.py')) and 'CLEANPACK_TARGET' in env:
+   env.LoadToolScript('${AVS_ROOT}/pack/audio_avs_cleanpack.py')
+
+#import pdb; pdb.set_trace()
+
+if env.get('CHECKSIMBOOT') == True:  
+   env.Append(CFLAGS = '-DSIMBOOT=1')
+   
+if 'USES_AVS_TEST' in env:
+    env.Replace(AVS_TEST = True)
+    env.Append(CFLAGS='-Dassert=ASSERT')
+
+#if env.get('CHIPSET') == "msm8916" or env.get('CHIPSET') == "msm8926":
+ #   env.Append(CFLAGS='-DBEAR_AUDIO_AVS_TGT')
+    
+if 'USES_DBG_MEM_LEAK' in env:
+    env.Append(CFLAGS='-DDBG_MEM_LEAK')
+
+if 'USES_MALLOC_WRAPPER' in env:
+    env.Append(CFLAGS='-DMALLOC_WRAPPER')
+
+if 'USES_DBG_BUFFER_ADDRESSES' in env:
+    env.Append(CFLAGS='-DDBG_BUFFER_ADDRESSES')
+
+# Function section macro
+if 'USES_ENABLE_FUNCTION_SECTIONS' not in env:
+   env.Replace(USES_ENABLE_FUNCTION_SECTIONS = True)
+
+#use -O2 opz.Default is -Os. O2 is found to be better than -Os based on the profiling data.
+#Use -Os for 8909 chipset
+if env.get('CHIPSET') == "msm8909":
+   print "Compiling flag is set to", env.subst('${HEXAGONCC_OPT}')
+   env.Append(CFLAGS='-hexagon-predef-argset=modem-sw')
+else:
+   env.Replace(HEXAGONCC_OPT = "${HEXAGON_OPT_2}")
+from build_config import chipset_specific_build_config
+chipset_specific_build_config(env)
+
+#Adding this to obtain the value of MAX_THREADS in cust_config.xml to be used in qurt_elite_thread.h
+from avs_utils import avs_utils
+avs_utils(env)
+
+print os.environ.get('MAX_THREADS_FROM_XML')
+MAX_THREADS_TEMP=int(os.environ.get('MAX_THREADS_FROM_XML'))
+env.Replace(MAX_THREADS_VAL=MAX_THREADS_TEMP)
+env.Append(CFLAGS='-DMAX_THREADS=${MAX_THREADS_VAL}') 
+
+
+if 'USES_AVS_TEST' in env:
+   print "Generating q6ss.cfg for sim image"
+   from cosim_config import generate_cosim_config
+   generate_cosim_config(env)
+
+   
+env.Append(CFLAGS = '-mqdsp6-compat')
+if os.environ.get('HEXAGON_RTOS_RELEASE').startswith('6'):
+   env.Append(CFLAGS = '-mllvm -hexagon-old-sdata=0')
+
+if os.environ.get('HEXAGON_RTOS_RELEASE').startswith('5.1'):
+   env.Append(CFLAGS = '-Wno-error=unused-but-set-variable -Wno-error=sequence-point -Wno-error=conversion-null -Wno-error=enum-compare')
+
+Q6_MEMORY_DEFN_PATH = env.get('CHIPSET')
+
+env.PublishProtectedApi('AVS',[
+   '${AVS_ROOT}/avcs/inc',
+   '${AVS_ROOT}/voice/algos/sample_slip/inc',
+   '${AVS_ROOT}/voice/algos/tty/inc',
+   '${AVS_ROOT}/voice/algos/vocoder_eamr/inc',
+   '${AVS_ROOT}/voice/algos/vocoder_amrwb/inc',
+   '${AVS_ROOT}/voice/algos/vocoder_capi/inc',
+   '${AVS_ROOT}/voice/algos/vocoder_evrc/inc',
+   '${AVS_ROOT}/voice/algos/vocoder_fourgv/inc',
+   '${AVS_ROOT}/voice/algos/vocoder_fr/inc',
+   '${AVS_ROOT}/voice/algos/vocoder_g711/inc',
+   '${AVS_ROOT}/voice/algos/vocoder_v13k/inc',
+   '${INC_ROOT}/build/chipset/'+Q6_MEMORY_DEFN_PATH,
+   '${QDSP6_RELEASE_DIR}/qc/lib/common',
+   ])
+
+if 'USES_AVS_TEST' in env:
+   env.AddOEMLibrary(['AVS_ADSP'], env.get('QDSP6_RELEASE_DIR')+'/qc/lib/'+env.get('Q6VERSION')+'/libqdsp.a')
+env.RequirePublicApi('APR', area='apr')
+
+qdsp6_public_apis = [
+   'QDSP6'
+   ]
+env.RequirePublicApi(qdsp6_public_apis, area='qdsp6')
+#donot load the scripts if for AVS binary package during cleanpack step.
+if 'USES_AUDIO_HAP' in env or 'CLEANPACK_TARGET' not in env:
+   env.LoadSoftwareUnits()

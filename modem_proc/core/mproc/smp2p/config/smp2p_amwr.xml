@@ -1,0 +1,41 @@
+//-----------------------------------------------------------------------------
+//          Shared Memory Point to Point A+M+W+R Device Configuration
+//-----------------------------------------------------------------------------
+//
+// FILE:        smp2p_amwr.xml
+//
+// DESCRIPTION: This file contains DAL XML config properties for the SMP2P 
+//              module, for images on targets that have an 
+//              Apps, Modem, WCNSS, and RPM processor.
+//
+//=============================================================================
+// Copyright (c) 2013 by QUALCOMM, Incorporated.
+// All Rights Reserved.
+// Qualcomm Confidential and Proprietary.
+//=============================================================================
+//
+//                          EDIT HISTORY FOR FILE
+//
+// $Header:  $
+//
+// when       who     what, where, why
+// --------   ---     ---------------------------------------------------------
+// 10/18/13   bt      Initial revision for 8916 (no ADSP).
+// ----------------------------------------------------------------------------
+
+<driver name="NULL">
+  <global_def></global_def>
+  <device id="/core/mproc/smp2p">
+    <props name="smp2p_intr_enabled" type= DALPROP_ATTR_TYPE_BYTE_SEQ>
+      // Disable interrupts on edges where remote endpoint is not present.
+      0x1, // Apps
+      0x1, // MPSS/GSS
+      0x0, // ADSP
+      0x0, // DSPS
+      0x1, // WCNSS
+      0x0, // MdmFW
+      0x1, // RPM
+      end
+    </props>
+  </device>
+</driver>

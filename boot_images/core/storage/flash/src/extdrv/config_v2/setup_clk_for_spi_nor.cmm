@@ -1,0 +1,209 @@
+;============================================================================
+;  Name:
+;    SETUP_CLK_FOR_SPI_NOR.CMM
+;
+;  Clock initialization script used by
+;   any SPI nor related tool cmm scripts
+;
+;
+;    Copyright (c) 2011-2012 Qualcomm Technologies Incorporated.
+;    All Rights Reserved.
+;    Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/src/extdrv/config_v2/setup_clk_for_spi_nor.cmm#1 $
+; $DateTime: 2015/09/01 00:30:35 $
+; $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 10/31/12   eo      Add clock support for 9x25
+; 07/20/11   sv      Created initial version
+;============================================================================;
+
+Init_Constants:
+
+  &HWIO_PLL_L_VAL_MASK=0xFF
+  &HWIO_PLL_M_VAL_MASK=0x7FFFF
+  &HWIO_PLL_N_VAL_MASK=0x7FFFF
+  &HWIO_PLL_VOTE_FSM_ENA_MASK=0x100000
+
+gosub Enable_GPLL0
+
+; ------------------------------------------------------------------------------
+; Enable designated chipselect on GPIO 67 for SPI NOR access.  
+; Required for a specific platform.
+; ------------------------------------------------------------------------------
+  ; GPIO 67 (at 0xfd511430)
+  PER.S.F AD:0xfd511430 %L 0x8
+
+; ------------------------------------------------------------------------------
+; Configure System NOC 200MHz on GPLL0
+; ------------------------------------------------------------------------------
+  ; Read cfg register
+  &reg=data.long(HWIO_GCC_SYSTEM_NOC_CFG_RCGR_ADDR)
+  ; Set SRC and DIV
+  &reg=&reg|0x00000103
+  ; Write cfg register
+  data.set HWIO_GCC_SYSTEM_NOC_CFG_RCGR_ADDR %LONG &reg
+  ; Trigger update
+  data.set HWIO_GCC_SYSTEM_NOC_CMD_RCGR_ADDR %LONG 0x1
+  wait 1.ms
+  while (data.long(HWIO_GCC_SYSTEM_NOC_CMD_RCGR_ADDR)&0x1)==1
+  (
+    wait 1.ms
+  )
+
+  data.set HWIO_GCC_SYS_NOC_AXI_CBCR_ADDR %LONG 0x1
+  data.set HWIO_GCC_SNOC_CNOC_AHB_CBCR_ADDR %LONG 0x1
+
+; ------------------------------------------------------------------------------
+; Configure Config NOC 75MHz on GPLL0
+; ------------------------------------------------------------------------------
+  ; Read cfg register
+  &reg=data.long(HWIO_GCC_CONFIG_NOC_CFG_RCGR_ADDR)
+  ; Set SRC and DIV
+  &reg=&reg|0x0000010f
+  ; Write cfg register
+  data.set HWIO_GCC_CONFIG_NOC_CFG_RCGR_ADDR %LONG &reg
+  ; Trigger update
+  data.set HWIO_GCC_CONFIG_NOC_CMD_RCGR_ADDR %LONG 0x1
+  wait 1.ms
+  while (data.long(HWIO_GCC_CONFIG_NOC_CMD_RCGR_ADDR)&0x1)==1
+  (
+    wait 1.ms
+  )
+
+; ------------------------------------------------------------------------------
+; Configure Periph NOC 100MHz on GPLL0
+; ------------------------------------------------------------------------------
+  ; Read cfg register
+  &reg=data.long(HWIO_GCC_PERIPH_NOC_CFG_RCGR_ADDR)
+  ; Set SRC and DIV
+  &reg=&reg|0x0000010B
+  ; Write cfg register
+  data.set HWIO_GCC_PERIPH_NOC_CFG_RCGR_ADDR %LONG &reg
+  ; Trigger update
+  data.set HWIO_GCC_PERIPH_NOC_CMD_RCGR_ADDR %LONG 0x1
+  wait 1.ms
+  while (data.long(HWIO_GCC_PERIPH_NOC_CMD_RCGR_ADDR)&0x1)==1
+  (
+    wait 1.ms
+  )
+
+  data.set HWIO_GCC_CFG_NOC_RPM_AHB_CBCR_ADDR %LONG 0x1
+
+
+; ------------------------------------------------------------------------------
+; Place a vote for GPLL0 from RPM (for buses)
+; ------------------------------------------------------------------------------
+  ; Read vote register
+  &reg=data.long(HWIO_GCC_RPM_GPLL_ENA_VOTE_ADDR)
+  ; Set GPLL0 vote
+  &reg=&reg|0x00000001
+  ; Write register
+  data.set HWIO_GCC_RPM_GPLL_ENA_VOTE_ADDR %LONG &reg
+
+
+; ------------------------------------------------------------------------------
+; Configure RPM 171.43MHz on GPLL0
+; ------------------------------------------------------------------------------
+  ; Read cfg register
+  &reg=data.long(HWIO_GCC_RPM_CFG_RCGR_ADDR)
+  ; Set SRC and DIV
+  &reg=&reg|0x00000106
+  ; Write register
+  data.set HWIO_GCC_RPM_CFG_RCGR_ADDR %LONG &reg
+  ; Trigger update
+  data.set HWIO_GCC_RPM_CMD_RCGR_ADDR %LONG 0x1
+  wait 1.ms
+  while (data.long(HWIO_GCC_RPM_CMD_RCGR_ADDR)&0x1)==1
+  (
+    wait 1.ms
+  )
+
+; ------------------------------------------------------------------------------
+; Enable the Peripheral NOC.
+; ------------------------------------------------------------------------------
+  data.set HWIO_GCC_SNOC_PNOC_AHB_CBCR_ADDR %LONG 0x1
+  data.set HWIO_GCC_PERIPH_NOC_AHB_CBCR_ADDR %LONG 0x1
+
+  data.set HWIO_GCC_PERIPH_NOC_CFG_AHB_CBCR_ADDR %LONG 0x1
+
+  data.set HWIO_GCC_PERIPH_NOC_AT_CBCR_ADDR %LONG 0x1
+
+; ------------------------------------------------------------------------------
+; Enable blsp1_ahb_clk and blsp1_sleep_clk.
+; ------------------------------------------------------------------------------
+;
+;HWIO_OUTF(GCC_RPM_CLOCK_BRANCH_ENA_VOTE, BLSP1_AHB_CLK_ENA, 1);
+PER.S.F AD:0xFC401444 %L 0x20000 0x1
+;HWIO_OUTF(GCC_RPM_CLOCK_BRANCH_ENA_VOTE, BLSP1_SLEEP_CLK_ENA, 1);
+PER.S.F AD:0xFC401444 %L 0x10000 0x1
+;HWIO_OUTF(GCC_BLSP1_QUP2_SPI_APPS_CBCR, CLK_ENABLE, 1);
+PER.S.F AD:0xFC4006C4 %L 0x1 0x1
+
+; ------------------------------------------------------------------------------
+; Configure SPI NOR clock to run at 19.2MHz on CXO.
+; ------------------------------------------------------------------------------
+
+;HWIO_OUT(GCC_BLSP1_QUP2_SPI_APPS_CFG_RCGR, MODE, 0x2);
+PER.S.F AD:0xFC4006D0 %L 0x3000 0x0 ; bypass
+PER.S.F AD:0xFC4006D0 %L 0x700 0x0 ; CXO
+PER.S.F AD:0xFC4006D0 %L  0x1F 0x0   ; bypass
+
+;Trigger the update.
+;HWIO_OUTF(GCC_BLSP1_QUP2_SPI_APPS_CMD_RCGR,UPDATE,1);
+PER.S.F AD:0xFC4006CC %L  0x1 0x1
+
+;Wait for update clock frequency.
+wait 1.ms
+  while (data.long(HWIO_GCC_BLSP1_QUP2_SPI_APPS_CMD_RCGR_ADDR)&0x1)==1
+  (
+    wait 1.ms
+  )
+
+enddo
+
+;---------------------------------------------------------------------------
+; Configure GPLL0 @600MHz.
+;---------------------------------------------------------------------------
+Enable_GPLL0:
+
+if (data.long(HWIO_GCC_GPLL0_MODE_ADDR)&(&HWIO_PLL_VOTE_FSM_ENA_MASK))==(&HWIO_PLL_VOTE_FSM_ENA_MASK)
+(
+  return
+)
+
+if (data.long(HWIO_GCC_GPLL0_MODE_ADDR)&0x7)!=0x7
+(
+  data.set HWIO_GCC_GPLL0_MODE_ADDR %LONG 0x0
+
+  data.set HWIO_GCC_GPLL0_L_VAL_ADDR %LONG 0x1f&(&HWIO_PLL_L_VAL_MASK)
+  data.set HWIO_GCC_GPLL0_M_VAL_ADDR %LONG 0x1&(&HWIO_PLL_M_VAL_MASK)
+  data.set HWIO_GCC_GPLL0_N_VAL_ADDR %LONG 0x4&(&HWIO_PLL_N_VAL_MASK)
+
+; set LV_MAIN, LV_EARLY, LV_AUX, 0x00000010 GPLL0_USER_CTL ???
+  data.set HWIO_GCC_GPLL0_USER_CTL_ADDR %LONG 0xB
+
+; CONFIG_CTL
+  data.set HWIO_GCC_GPLL0_CONFIG_CTL_ADDR %LONG 0x00141200
+
+; enable PLL
+
+  data.set HWIO_GCC_GPLL0_MODE_ADDR %LONG 0x2
+  ;delay 5us
+  wait 1ms
+
+  data.set HWIO_GCC_GPLL0_MODE_ADDR %LONG 0x6
+  &pll_status=data.long(HWIO_GCC_GPLL2_STATUS_ADDR)&0x1
+  if &pll_status==0
+    wait 1ms
+  data.set HWIO_GCC_GPLL0_MODE_ADDR %LONG 0x7
+
+) ; End
+
+  return

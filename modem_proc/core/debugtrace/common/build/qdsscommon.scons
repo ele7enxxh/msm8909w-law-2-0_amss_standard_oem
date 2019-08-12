@@ -1,0 +1,110 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for QDSS common.
+#
+# Copyright (c) 2011 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+# $Header:$
+#
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+if 'USES_QDSS_CLK_ALWAYS_ON' in env:
+   env.Append(CCFLAGS = " -DQDSS_CLK_ALWAYS_ON=1")
+
+ 
+if 'USES_QDSS_DISABLED' in env:
+   env.Append(CCFLAGS = " -DQDSS_DISABLED=1")
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'HAL',
+   'DAL',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   'SERVICES',
+   'POWER',
+   'SYSTEMDRIVERS',
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+env.RequireProtectedApi(['DEBUGTRACE'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+config='8916'                   #default config
+if env['MSM_ID'] in ['8974','9x25','8916','8936','8909','9607','8937']:   #add to this list as more configs are added
+    config=env['MSM_ID']
+
+#ALL processors need access to fuse
+env.PublishPrivateApi('QDSS_EFUSE_REGS',['../src','../src/'+config])
+    
+if env.IsTargetEnable(['RPM','rpm','RPM_IMAGE']):
+   QDSS_COMMON_SRC=['${BUILDPATH}/qdss_fuse_check.c',
+                    '${BUILDPATH}/qdss_imem_nondal.c']
+   
+else:
+   QDSS_COMMON_SRC=['${BUILDPATH}/qdss_init.c',
+                    '${BUILDPATH}/qdss_imem_dal.c',
+                    '${BUILDPATH}/qdss_fuse_check_dal.c'
+                    ]
+   env.Append(CCFLAGS = " -DSECURITY_CONTROL_BASE=SECURITY_CONTROL_BASE_PTR") 
+   env.RequireProtectedApi(['DEBUGTRACE'])
+
+#This change is not required since security block memory mapping will be fixed in cust_config.xml   
+#   if env.IsTargetEnable(['CORE_MODEM','MODEM_IMAGE','CBSP_MODEM_IMAGE','MCFG_SW']):
+#      env.Append(CCFLAGS = " -DSECURITY_CONTROL_BASE_SIZE=0x4000")                    
+   
+   env.RequireProtectedApi(['DEBUGTRACE'])
+   
+#QDSSInit is always called. However component drivers are initialized
+#only in standalone mode.
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_QDSP6_SW','CORE_QDSP6_SENSOR_SW','CORE_QDSP6_AUDIO_SW','MODEM_IMAGE','WCN_IMAGE','APPS_PROC']
+   env.AddRCInitFunc(       # Code Fragment in TMC: NO
+   RCINIT_IMG,
+   {
+      'sequence_group'             : 'RCINIT_GROUP_0',       # required
+      'init_name'                  : 'qdss',                 # required
+      'init_function'              : 'QDSSInit',             # required
+      'dependencies'               :  ['dalsys']
+  })
+   env.AddRCInitFunc(   
+      RCINIT_IMG,
+      {
+         'sequence_group'             : 'RCINIT_GROUP_1',    
+         'init_name'                  : 'qdss_err',          
+         'init_function'              : 'QDSSErrInit',       
+         'dependencies'               :  ['qdss','err_init']
+         })
+
+
+
+
+env.AddLibrary(['MODEM_IMAGE','CORE_QDSP6_SW','WCN_IMAGE','CBSP_WCN_IMAGE',
+   'CORE_GSS','RPM_IMAGE','CORE_QDSP6_SENSOR_SW','CORE_QDSP6_AUDIO_SW',
+   'APPS_PROC', 'VENUS_VSS'],
+   '${BUILDPATH}/qdss_common',QDSS_COMMON_SRC)

@@ -1,0 +1,154 @@
+#====include path optimized=====================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011 - 2014  Qualcomm Technologies Incorporated (QTI). All Rights Reserved
+#
+#  Qualcomm Technologies Incorporated Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of  Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $$
+# $DateTime: 2016/12/14 01:58:16 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/20/14   chenh   Enabled compiler warings to errors
+# 10/16/14   dej     Clean-up SCons and add support for TABASCO
+# 03/27/14   dr      Adding support for msm8936
+# 01/13/14   dr      Adding rfmodem_dimepm
+# 09/05/13   bmg     Bolt/generalized modem support for RFMODEM inc path
+# 08/30/13   vs      Changes in scons as part of cleanup
+# 06/04/13   vs      Changes for third party tuner
+#===============================================================================
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Enable warnings -> errors
+if 'USES_INTERNAL_BUILD' in env:
+   env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror", 
+                   HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")	
+
+if env.PathExists('${BUILD_ROOT}/rfa'):
+    env.Replace(INC_ROOT_TMP = '${INC_ROOT}')
+else:    
+    env.Replace(INC_ROOT_TMP = '${INC_ROOT}/modem')
+	
+env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+env.RequireProtectedApi(['RFA'])
+env.RequirePublicApi(['COMMON'], area='RFA')
+env.RequirePublicApi(['DEVICE_RFFE'], area='RFA')
+
+env.RequirePublicApi(['FW_GERAN'], area='FW_GERAN')
+env.RequirePublicApi(['FW_COMMON'], area='FW_COMMON')
+env.RequirePublicApi(['FW_WCDMA'], area='FW_WCDMA')
+
+env.RequirePublicApi(['RFLM'],area='RFLM')
+
+if env.get('RF_GLOBALS'):
+	env.RequirePublicApi(['RFMODEM'], area=env.get('RF_GLOBALS')['RFMODEM_AREA'])
+
+#usage:  ENV_UPDATE_RFA=CHIPSET,=mdm9x15,USES_NO_DEBUG,delete,USES_HI_SPEED,add
+if ARGUMENTS.get('ENV_UPDATE_RFA'):
+
+        env_update_string = ARGUMENTS.get('ENV_UPDATE_RFA')
+        
+        env_update_list = env_update_string.split(',')
+        
+        item_total = len(env_update_list)
+        
+        list_index = 0
+        
+        #note if list is not even number of items, last odd item is ignored
+        while list_index < item_total-1:
+                
+                item            = env_update_list[list_index]  
+                value           = env_update_list[list_index+1]
+                list_index      += 2
+                                
+                if(value == 'add'):
+                          env[str(item)] = 'yes'
+                          print "adding",item,"to env"                                          
+                          
+                elif(value == 'delete'):
+                          del env[str(item)]
+                          print "deleting",item,"from env"
+                
+                else:
+                        if(value[0] != '='):
+                                print "missing leading = in",value
+                                print "not updating ",item
+                                
+                        else:
+                                value2 = value[1:len(value)]
+                                env[str(item)] = value2
+                                print "now setting",item,value
+
+#end command line option processing
+								
+env.Replace(HEXAGONCC_OPT = "${HEXAGON_OPT_2}")
+
+if 'RFA_MSDEV' == env['IMAGE_NAME']:
+   # Set force HWIO stuff to our simualtor
+   env.Append(CPPDEFINES = ['HAL_HWIO_EXTERNAL'])
+   env.PublishProtectedApi('RFA_OFFTARGET', [
+      '${INC_ROOT_TMP}/rfa/offtarget/framework/inc',
+      '${INC_ROOT_TMP}/rfa/offtarget/stubs/inc',
+      ])
+   env.RequireProtectedApi(['RFA_OFFTARGET'])
+
+	
+if 'NO_MODEM_FOLDER' in env or 'USES_NO_MODEM_FOLDER' in env:
+        env.RequireRestrictedApi(['RFDEVICE_NO_MODEM_FOLDER'])
+
+#----------------------------------------------------------------------------#
+# Export Protected API to RFA folder. This will be visible only within
+# RFA folder
+#----------------------------------------------------------------------------#
+
+env.PublishProtectedApi( 'TPTUNER_LIB_PROTECTED', [
+    '${INC_ROOT_TMP}/rfdevice_tptuner/common/protected',
+    ])
+env.PublishProtectedApi( 'RF_DEVICE_INC', [
+    '${INC_ROOT_TMP}/rfdevice_tptuner/common/inc',
+    '${INC_ROOT_TMP}/rfdevice_tptuner/common/protected',
+    '${INC_ROOT_TMP}/rfa/device/qfe_intf/inc',
+ 
+# rfcommon_locks.h
+    '${INC_ROOT_TMP}/rfa/rf/common/rf/core/inc/',
+#rfc_common.h
+    '${INC_ROOT_TMP}/rfa/rfc/common/inc',
+#rfa_local_defines.h
+    '${INC_ROOT_TMP}/rfa/cust/inc',
+#rf_buffer_intf.h
+    '${INC_ROOT_TMP}/rfa/rf/hal/common/inc',
+#rf_test_task_v.h
+	'${INC_ROOT_TMP}/rfa/rf/common/ftm/inc',
+    ])
+
+#The following paths are needed only for Dime:
+env.PublishPrivateApi( 'RFA_RF_VIOLATIONS', [
+       '${INC_ROOT_TMP}/geran/variation/inc',
+       '${INC_ROOT_TMP}/geran/cust/inc',
+  ])
+
+env.LoadSoftwareUnits( ) 

@@ -1,0 +1,41 @@
+!if 0
+/*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+
+  Makefile SOURCES
+
+    This file is used by the build system to determine how this directory is
+    to be compiled.
+
+  $Header: $ $DateTime: $ $Author: $
+
+  Copyright (c) 2004 by QUALCOMM Incorporated.  All Rights Reserved.
+
+===========================================================================*/
+!ENDIF
+
+!if "$(_TGTPROJ)" == "uldr"
+SKIPBUILD=1
+!endif
+
+# Get the definitions for common code
+!include $(_QCCOMMON_SOURCES_INC)
+
+TARGETNAME=qcomv1_pbmlib
+TARGETTYPE=LIBRARY
+
+CDEFINES = $(CDEFINES) -DFEATURE_PBM_TASK
+
+INCLUDES=$(INCLUDES); \
+	 $(_QCCOMMONONCRPC); \
+         $(_QCCOMMONDSM); 
+
+!if "$(_BSP_USE_CMI)" == "1"
+INCLUDES=$(INCLUDES); \
+         $(_QCCOMMON_CMIAPI)\mmode; \
+         $(_QCCOMMON_CMIAPI)\pbm;\
+         $(_QCCOMMON_CMIAPI)\uim;\
+!endif
+
+SOURCES = \
+    pbmlibutils.c     
+

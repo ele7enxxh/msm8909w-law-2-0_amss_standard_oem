@@ -1,0 +1,375 @@
+# -------------------------------------------------------------------------------- #
+#                       T D S C D M A _ R R C. S C O N S
+#
+# DESCRIPTION
+#       Scons file for the TDS subsytem. Defines the existence of RRC
+#
+#
+# INITIALIZATION AND SEQUENCING REQUIREMENTS
+#       None.
+#
+#
+# Copyright (c) 2012 Qualcomm Technologies Incorporated.
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //source/qcom/qct/modem/wcdma/rrc/main/latest/build/wcdma_rrc.scons#19 $
+# $DateTime: 2011/02/03 18:01:03 $
+#
+#  when        who     what, where, why
+# ---------    ---     ------------------------------------------------------------
+#  09/01/10    rmsd    Initial Cut
+#
+#===================================================================================#
+
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------------
+# USES_FLAG :: Do not compile TDSCDMA_RRC subsystem if
+#             USES_TDSCDMA are not defined.Need to add for PLT also
+#------------------------------------------------------------------------------------
+if 'USES_TDSCDMA' not in env :
+   Return()
+
+#-------------------------------------------------------------------------------
+# VIOLATIONS
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('VIOLATIONS',["${INC_ROOT}/core/systemdrivers/clk/inc",#L1 file tdsstmr.h includes clk
+                                   ])
+#Temp check for the RF paths
+# ------------------------------------------------------------------------------
+# Include Paths
+#-------------------------------------------------------------------------------
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'BUSES',
+    'DEBUGTOOLS',
+    'DAL',
+    'POWER',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'SECUREMSM',
+    'SERVICES',
+    'MPROC',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+MULTIMEDIA_APIS = [
+    'AUDIO',
+    ]
+
+
+#----------------------------------------------------------------------------#
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#----------------------------------------------------------------------------#
+REQUIRED_NON_SCONS_APIS = [
+    'BREW'
+    ]
+
+
+MODEM_PUBLIC_APIS = [
+    'ONEX', #GPS needs a 1x file
+    'DATA',
+    'DATACOMMON',
+    'GPS',
+    'RFA',
+    'GERAN',
+    'TDSCDMA',
+    'MCS',
+    'UTILS',
+    'MMODE',
+    'UIM',
+    'NAS',
+    'WCDMA',
+    'MCFG',
+    ]
+
+MODEM_RESTRICTED_APIS =[
+    'ONEX',
+    'MMODE',
+    'GPS',
+    'DATA',
+    'DATACOMMON',
+    'MCS',
+    'NAS',
+    'MDSP',
+    'UIM',
+    'GERAN',
+    'UTILS',
+    'RFA',
+    'TDSCDMA',
+    'WCDMA', # we r right now accessing rrc_rr_types.h
+    'LTE',
+    'FW',
+    ]
+
+
+MULTIMEDIA_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+]
+
+#-------------------------------------------------------------------------------
+# We need the Multimedia API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MULTIMEDIA_PUBLIC_APIS, area="MULTIMEDIA")
+
+#-------------------------------------------------------------------------------
+# We need the Core BSP API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+#-------------------------------------------------------------------------------
+# We need MODEM PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need different restricted API's within MODEM
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# Images that this VU is added .
+#-------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM', 'MOB_TDSCDMA']
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+#Temp is this required?? Needed only for DS builds
+TDSCDMA_RRC_PRIVATE_SOURCES=[
+        '${BUILDPATH}/tdsrrcwrm.c',
+]
+
+#differentiate the ON and Off target ASN.1 as QTF requires more Decode functions
+if 'USES_MOB' in env:
+  TDSCDMA_RRC_OBJSYS_SOURCES=[
+          '${BUILDPATH}/tdsrrcasn1util.c',
+          '${BUILDPATH}/tdsrrcossinit.c',
+          '${BUILDPATH}/ASN1/off_target/tdsrrcasn1_ieDec.c',
+          '${BUILDPATH}/ASN1/off_target/tdsrrcasn1_ieEnc.c',
+          '${BUILDPATH}/ASN1/off_target/tdsrrcasn1_pduDec.c',
+          '${BUILDPATH}/ASN1/off_target/tdsrrcasn1_pduEnc.c',
+          '${BUILDPATH}/ASN1/off_target/tdsrrcasn1Dec.c',
+          '${BUILDPATH}/ASN1/off_target/tdsrrcasn1Enc.c',
+          '${BUILDPATH}/ASN1/off_target/tdsrrcasn1_print.c',
+          '${BUILDPATH}/ASN1/off_target/tdsrrcasn1_inodeDec.c',
+          '${BUILDPATH}/ASN1/off_target/tdsrrcasn1_inodeEnc.c',
+
+
+  ]
+else:
+  TDSCDMA_RRC_OBJSYS_SOURCES=[
+          '${BUILDPATH}/tdsrrcasn1util.c',
+          '${BUILDPATH}/tdsrrcossinit.c',
+          '${BUILDPATH}/ASN1/on_target/tdsrrcasn1_ieDec.c',
+          '${BUILDPATH}/ASN1/on_target/tdsrrcasn1_ieEnc.c',
+          '${BUILDPATH}/ASN1/on_target/tdsrrcasn1_pduDec.c',
+          '${BUILDPATH}/ASN1/on_target/tdsrrcasn1_pduEnc.c',
+          '${BUILDPATH}/ASN1/on_target/tdsrrcasn1Dec.c',
+          '${BUILDPATH}/ASN1/on_target/tdsrrcasn1Enc.c',
+
+
+  ]  
+  
+
+TDSCDMA_RRC_C_SOURCES = [
+        '${BUILDPATH}/tdsrrcccm.c',
+	'${BUILDPATH}/tdsrrccho.c',
+	'${BUILDPATH}/tdsrrcchk.c',
+        '${BUILDPATH}/tdsrrccmd.c',
+        '${BUILDPATH}/tdsrrccu.c',
+        '${BUILDPATH}/tdsrrcdata.c',
+        '${BUILDPATH}/tdsrrcdispatcher.c',
+        '${BUILDPATH}/tdsrrcdt.c',
+        '${BUILDPATH}/tdsrrcifreq.c',
+        '${BUILDPATH}/tdsrrclbt.c',
+        '${BUILDPATH}/tdsrrclog.c',
+        '${BUILDPATH}/tdsrrcnv.c',
+        '${BUILDPATH}/tdsrrcpcreconfig.c',
+        '${BUILDPATH}/tdsrrcpg1.c',
+        '${BUILDPATH}/tdsrrcpg2.c',
+        '${BUILDPATH}/tdsrrcrbcommon.c',
+        '${BUILDPATH}/tdsrrcrbe.c',
+        '${BUILDPATH}/tdsrrcrbr.c',
+        '${BUILDPATH}/tdsrrcrbreconfig.c',
+        '${BUILDPATH}/tdsrrcrce.c',
+        '${BUILDPATH}/tdsrrcrcr.c',
+        '${BUILDPATH}/tdsrrcscmgr.c',
+        '${BUILDPATH}/tdsrrcsend.c',
+        '${BUILDPATH}/tdsrrctask.c',
+        '${BUILDPATH}/tdsrrctcreconfig.c',
+        '${BUILDPATH}/tdsrrctmr.c',
+        '${BUILDPATH}/tdsrrcuece.c',
+        '${BUILDPATH}/tdsrrcueci.c',
+        '${BUILDPATH}/tdsrrcumi.c',
+        '${BUILDPATH}/tdsrrccsp.c',
+        '${BUILDPATH}/tdsrrccspdb.c',
+        '${BUILDPATH}/tdsrrccspfscan.c',
+        '${BUILDPATH}/tdsrrccsputil.c',
+        '${BUILDPATH}/tdsrrciho.c',
+        '${BUILDPATH}/tdsrrcirat.c',
+        '${BUILDPATH}/tdsrrclcm.c',
+        '${BUILDPATH}/tdsrrcllc.c',
+        '${BUILDPATH}/tdsrrcllcmsgie.c',
+        '${BUILDPATH}/tdsrrcllcoc.c',
+        '${BUILDPATH}/tdsrrcllcpcie.c',
+        '${BUILDPATH}/tdsrrcllcrbie.c',
+        '${BUILDPATH}/tdsrrcllctrchie.c',
+        '${BUILDPATH}/tdsrrcmcm.c',
+        '${BUILDPATH}/tdsrrcmeas.c',
+        '${BUILDPATH}/tdsrrcmisc.c',
+        '${BUILDPATH}/tdsrrcqm.c',
+        '${BUILDPATH}/tdsrrcsibcollect.c',
+        '${BUILDPATH}/tdsrrcsibdb.c',
+        '${BUILDPATH}/tdsrrcsibproc.c',
+        '${BUILDPATH}/tdsrrcsmc.c',
+        '${BUILDPATH}/tdsrrctvm.c',
+	'${BUILDPATH}/tdsrrctfcc.c',
+	'${BUILDPATH}/tdsrrcf9driver.c',
+        '${BUILDPATH}/tdsrrcgpsmeas.c',
+        '${BUILDPATH}/tdsrrcueimeas.c',
+	'${BUILDPATH}/tdsrrcdormancy.c',
+	'${BUILDPATH}/tdsrrcupphychctrl.c',
+	'${BUILDPATH}/tdsrrc_featuretest.c',
+	'${BUILDPATH}/tdscfaparser.c',
+        '${BUILDPATH}/tdsrrcfreefloating.c',
+        '${BUILDPATH}/tdsrrcqsh.c',        
+#        '${BUILDPATH}/tdscdma_interface.c',
+]
+
+TDSCDMA_RRC_SEGMENT_LOADING_C_SOURCES = [
+        '${BUILDPATH}/tdscdma_interface.c',
+]
+
+#-------------------------------------------------------------------------------
+# Compile the source
+#-------------------------------------------------------------------------------
+if env.has_key('USES_CUST_1'):
+  if env.has_key('USES_FEATURE_SEGMENT_LOADING'):
+    env.AddLibrary(IMAGES, '${BUILDPATH}/tdscdma/rrc', TDSCDMA_RRC_C_SOURCES+TDSCDMA_RRC_SEGMENT_LOADING_C_SOURCES)
+  else:
+    env.AddLibrary(IMAGES, '${BUILDPATH}/tdscdma/rrc', TDSCDMA_RRC_C_SOURCES)
+else:
+    #change 8708-2165
+    if env.has_key('USES_FEATURE_SEGMENT_LOADING'):
+        env.AddBinaryLibrary(IMAGES, '${BUILDPATH}/tdscdma/rrc', TDSCDMA_RRC_C_SOURCES+TDSCDMA_RRC_SEGMENT_LOADING_C_SOURCES,
+                     pack_exception=['USES_COMPILE_TDSCDMA_AND_ALL_L1_PROTECTED_LIBS'] )
+    else:
+		env.AddBinaryLibrary(IMAGES, '${BUILDPATH}/tdscdma/rrc', TDSCDMA_RRC_C_SOURCES,
+                     pack_exception=['USES_COMPILE_TDSCDMA_AND_ALL_L1_PROTECTED_LIBS','USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'] )
+
+
+
+#-------------------------------------------------------------------------------
+# Compile the private source files
+#-------------------------------------------------------------------------------
+if TDSCDMA_RRC_PRIVATE_SOURCES != []:
+  env_private = env.Clone()
+  env_private.Append(CPPDEFINES = [
+    'FEATURE_LIBRARY_ONLY'
+  ])
+
+if env.has_key('USES_CUST_1'):
+  env_private.AddLibrary(IMAGES,'${BUILDPATH}/lib_tdscdma_rrc',TDSCDMA_RRC_PRIVATE_SOURCES+TDSCDMA_RRC_OBJSYS_SOURCES)
+else:
+  env_private.AddBinaryLibrary(IMAGES,'${BUILDPATH}/lib_tdscdma_rrc',TDSCDMA_RRC_PRIVATE_SOURCES+TDSCDMA_RRC_OBJSYS_SOURCES)
+
+
+
+################################################################
+
+# Use AddRcInitFunc to add init functions to rcinit
+#  Required fields:
+#              'sequence_group'
+#              'init_function'
+#  Optional fields:
+#              'dependencies'
+
+# Use AddRcInitTask to add a task to rcinit
+#  Required fields:
+#              'thread_name'
+#              'sequence_group'
+#              'stack_size_bytes'
+#              'priority_amss_order'
+#  Optional fields:
+#              'stack_name'
+#              'thread_entry'
+#              'tcb_name'
+# Note that the optional fields default to 'thread_name'_{stack, entry, task}
+################################################################
+
+#-------------------------------------------------------------------------------
+# Create tds RRC task
+#-------------------------------------------------------------------------------
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM', 'MOB_TDSCDMA']
+   env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+     'sequence_group'             : env.subst('$MODEM_PROTOCOL'),
+     'init_name'                  : 'tds_rrc_init',
+     'init_function'              : 'tds_rrc_task_init',
+     'policy_optin'               : ['default', 'ftm', ],
+    })
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM', 'MOB_TDSCDMA']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : env.subst('$MODEM_PROTOCOL'),
+      'thread_name'                : 'tds_rrc',
+      'thread_entry'               : 'tds_rrc_task',
+      'stack_size_bytes'           : '32768',
+      'priority_amss_order'        : 'TDSCDMA_RRC_PRI_ORDER',
+      'tcb_name'                   : 'tds_rrc_tcb',
+      'cpu_affinity'	           : env.subst('$MODEM_TDSCDMA_CPU_AFFINITY'),
+      'policy_optin'               : ['default', 'ftm', ],
+    })
+
+
+# Load test units
+env.LoadSoftwareUnits()

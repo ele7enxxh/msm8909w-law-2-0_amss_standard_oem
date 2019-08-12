@@ -1,0 +1,418 @@
+/*****************************************************************************
+  @FILE     sns_sam_internal_ped_v01.idl
+
+  @BRIEF    Message definition for the core Pedometer algorithm service
+
+  @DESCRIPTION
+  This file defines messages used by the core Pedometer algorithm service.
+
+  As prerequisite, the sensor algorithm must use the common Interface
+  defined in the Sensor algorithm framework.
+
+  The messages defined herein will be passed to the Sensor framework using
+  the sensor1_write() API.
+
+  @COPYRIGHT
+  Copyright (c) 2014 Qualcomm Technologies, Inc.  All Rights Reserved
+  Qualcomm Technologies Proprietary and Confidential.
+
+*****************************************************************************/
+include "sns_sam_common_v01.idl";
+
+revision 2;
+
+const SNS_SAM_INTERNAL_PED_SUID = 0x9d22f6b0181d11e4;
+
+const SNS_SAM_INTERNAL_PED_MAX_ITEMS_IN_BATCH = 100;
+/**< Max number of reports in a batch indication -
+     set based on max payload size supported by transport framework
+*/
+
+struct {
+  boolean step_event;
+  /**<
+    Indicates if a step has been detected.
+    If this flag is false, all other output fields are to be ignored.
+    */
+  uint8 step_confidence;
+  /**<
+    Confidence with which the latest step was detected, scaled to percentage -
+    0 to 100.
+    */
+  uint32 step_count;
+  /**<
+    Count of steps detected.
+    */
+  int32 step_count_error;
+  /**<
+    Error metric associated with reported step count, in steps.
+    */
+  float step_rate;
+  /**<
+    Step rate in Hz.
+    */
+} sns_sam_internal_ped_report_data_s;
+
+typedef uint32 sns_sam_internal_ped_timestamp_t;
+
+/** Following are message definitions shared by all pedometer related services */
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_PED_ENABLE
+    @BRIEF This command enables the pedometer algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_PED_ENABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  optional uint32 sample_rate;
+  /**<
+    Sampling rate in Hz, Q16. Default value of 20 Hz. Requires S >= 20 Hz.
+    */
+  optional uint8 duty_cycle_on_percent;
+  /**<
+    Duty cycle ON percentage (0 to 100) for pedometer service when it is duty-cycled.
+    Sensor stream to pedometer service is active only during the duty cycle ON period.
+    */
+  optional sns_suspend_notification_s notify_suspend;
+
+} sns_sam_internal_ped_enable_req_msg;
+
+//! @MSG     SNS_SAM_INTERNAL_PED_ENABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp = 2;
+
+  optional uint8 instance_id;
+  /**<
+    Algorithm instance ID maintained/assigned by SAM.
+    The client shall use this instance ID for future messages associated with
+    current algorithm instance.
+    */
+} sns_sam_internal_ped_enable_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_PED_DISABLE
+    @BRIEF This command disables the pedometer algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_PED_DISABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8 instance_id;
+  /**< To identify the algorithm instance to be disabled.  */
+} sns_sam_internal_ped_disable_req_msg;
+
+//! @MSG     SNS_SAM_INTERNAL_PED_DISABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp = 2;
+
+  optional uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_sam_internal_ped_disable_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_PED_GET_REPORT
+    @BRIEF This command fetches latest report output of pedometer algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_PED_GET_REPORT_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_sam_internal_ped_get_report_req_msg;
+
+//! @MSG     SNS_SAM_INTERNAL_PED_GET_REPORT_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp = 2;
+
+  optional uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  optional uint32 timestamp;
+  /**< Timestamp of input with which latest step was detected; in SSC ticks  */
+
+  optional sns_sam_internal_ped_report_data_s report_data;
+  /**< pedometer algorithm output report  */
+} sns_sam_internal_ped_get_report_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_PED_REPORT
+    @BRIEF Output report from the pedometer algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_PED_REPORT_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  mandatory uint32 timestamp;
+  /**< Timestamp of input with which latest step was detected; in SSC ticks */
+
+  mandatory sns_sam_internal_ped_report_data_s report_data;
+  /**< pedometer algorithm output report  */
+} sns_sam_internal_ped_report_ind_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_PED_ERROR
+    @BRIEF Asynchronous error report from the pedometer algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_PED_ERROR_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//============================================================================
+
+message {
+  mandatory uint8 error;
+  /**< sensors error code */
+
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  mandatory uint32 timestamp;
+  /**< Timestamp of when the error was detected; in SSC ticks */
+} sns_sam_internal_ped_error_ind_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_PED_CANCEL
+    @BRIEF Cancels all requests to the algorithm service from this client.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_PED_VERSION
+    @BRIEF This command requests algorithm service version.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_PED_BATCH
+    @BRIEF This command handles batch mode for the Internal Pedometer service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @DESCRIPTION Set the batch period for an active algorithm stream.
+                 A subsequent request may update or disable the batch period;
+                 all batched output will be sent prior to the response message.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_PED_BATCH_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  //! Batch Period
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory int32 batch_period;
+  /**< Specifies the interval over which reports are to be batched, in seconds;
+       Q16 format. If AP is in suspend and notify_suspend is FALSE, undelivered
+       reports will be batched in circular FIFO and delivered upon wakeup.
+       P = 0 to disable batching.
+       P > 0 to enable batching.
+    */
+
+} sns_sam_internal_ped_batch_req_msg;
+
+//! @MSG     SNS_SAM_INTERNAL_PED_BATCH_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  //! Response
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_common_resp_s resp = 2;
+
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint8 instance_id;
+  /**< Algorithm instance ID maintained/assigned by SAM */
+
+  //! Max Batch Size
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint32 max_batch_size;
+  /**< Max supported batch size */
+
+  //! Timestamp
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint32 timestamp;
+  /**< Timestamp when the batch request was processed in SSC ticks */
+} sns_sam_internal_ped_batch_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_PED_BATCH_REPORT
+    @BRIEF Report containing a batch of Internal Pedometer outputs
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_PED_BATCH_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance */
+
+  //! Internal Pedometer event timestamps
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_sam_internal_ped_timestamp_t  event_timestamps<SNS_SAM_INTERNAL_PED_MAX_ITEMS_IN_BATCH>;
+  /**< Timestamp of the pedometer events; in SSC ticks */
+
+  //! Internal Pedometer event data details
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_sam_internal_ped_report_data_s event_data<SNS_SAM_INTERNAL_PED_MAX_ITEMS_IN_BATCH>;
+
+  //! Indication Type
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint8 ind_type;
+  /**< Optional batch indication type
+       SNS_BATCH_ONLY_IND - Standalone batch indication. Not part of a back to back indication stream
+       SNS_BATCH_FIRST_IND - First indication in stream of back to back indications
+       SNS_BATCH_INTERMEDIATE_IND - Intermediate indication in stream of back to back indications
+       SNS_BATCH_LAST_IND - Last indication in stream of back to back indications
+    */
+
+} sns_sam_internal_ped_batch_ind_msg;
+
+//============================================================================
+// Service definition
+//============================================================================
+service SNS_SAM_INTERNAL_PED_SVC {
+  //! @ID SNS_SAM_INTERNAL_PED_CANCEL
+  sns_common_cancel_req_msg        SNS_SAM_INTERNAL_PED_CANCEL_REQ,
+  sns_common_cancel_resp_msg       SNS_SAM_INTERNAL_PED_CANCEL_RESP
+    = 0x00;
+
+  //! @ID SNS_SAM_INTERNAL_PED_VERSION
+  sns_common_version_req_msg       SNS_SAM_INTERNAL_PED_VERSION_REQ,
+  sns_common_version_resp_msg      SNS_SAM_INTERNAL_PED_VERSION_RESP
+    = 0x01;
+
+  //! @ID SNS_SAM_INTERNAL_PED_ENABLE
+  sns_sam_internal_ped_enable_req_msg       SNS_SAM_INTERNAL_PED_ENABLE_REQ,
+  sns_sam_internal_ped_enable_resp_msg      SNS_SAM_INTERNAL_PED_ENABLE_RESP
+    = 0x02;
+
+  //! @ID SNS_SAM_INTERNAL_PED_DISABLE
+  sns_sam_internal_ped_disable_req_msg      SNS_SAM_INTERNAL_PED_DISABLE_REQ,
+  sns_sam_internal_ped_disable_resp_msg     SNS_SAM_INTERNAL_PED_DISABLE_RESP
+    = 0x03;
+
+  //! @ID SNS_SAM_INTERNAL_PED_GET_REPORT
+  sns_sam_internal_ped_get_report_req_msg   SNS_SAM_INTERNAL_PED_GET_REPORT_REQ,
+  sns_sam_internal_ped_get_report_resp_msg  SNS_SAM_INTERNAL_PED_GET_REPORT_RESP
+    = 0x04;
+
+  //! @ID SNS_SAM_INTERNAL_PED_REPORT
+  sns_sam_internal_ped_report_ind_msg       SNS_SAM_INTERNAL_PED_REPORT_IND
+    = 0x05;
+
+  //! @ID SNS_SAM_INTERNAL_PED_ERROR
+  sns_sam_internal_ped_error_ind_msg        SNS_SAM_INTERNAL_PED_ERROR_IND
+    = 0x06;
+
+  //! @ID SNS_SAM_INTERNAL_PED_BATCH
+  sns_sam_internal_ped_batch_req_msg        SNS_SAM_INTERNAL_PED_BATCH_REQ,
+  sns_sam_internal_ped_batch_resp_msg       SNS_SAM_INTERNAL_PED_BATCH_RESP
+    = 0x21;
+
+  //! @ID SNS_SAM_INTERNAL_PED_BATCH_REPORT
+  sns_sam_internal_ped_batch_ind_msg        SNS_SAM_INTERNAL_PED_BATCH_IND
+    = 0x22;
+
+  //! @ID SNS_SAM_GET_ALGO_ATTRIBUTES
+  sns_sam_get_algo_attrib_req_msg          SNS_SAM_INTERNAL_PED_GET_ATTRIBUTES_REQ,
+  sns_sam_get_algo_attrib_resp_msg         SNS_SAM_INTERNAL_PED_GET_ATTRIBUTES_RESP
+    = 0x24;
+
+} = SNS_QMI_SVC_ID_47;
+
+//============================================================================
+// File footer
+//============================================================================
+/**
+@FOOTER
+*/
+
+//============================================================================
+// End of Module
+//============================================================================

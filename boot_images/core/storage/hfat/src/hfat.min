@@ -1,0 +1,29 @@
+#-------------------------------------------------------------------------------
+# HCC FAT library (HFAT) with FAT32 support
+#-------------------------------------------------------------------------------
+HFAT_SOURCES=\
+        hfat_common.c \
+        hfat_interface.c \
+        hfat_lfn.c \
+        hfat_m.c \
+        hfat_port_f.c \
+        hfat_chkfat.c \
+
+vpath %.h $(HFAT)
+vpath %.c $(HFAT)
+vpath %.s $(HFAT)
+
+ifeq ($(BIG),yes)
+        HFAT_OBJS := $(TARGETDIR)/hfat.lib
+else
+        HFAT_OBJS :=  $(addprefix $(TARGETDIR)/, $(HFAT_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/hfat.lib : $(HFAT_SOURCES)
+	$(group_c_compile)
+
+ifeq ($(DO_LINT),yes)
+    HFAT_LINT_OBJS := $(addprefix lint/, $(HFAT_SOURCES:%.c=%.lint))
+    $(HFAT_LINT_OBJS) : LINT_FLAGS := $(LINT_FLAGS) hfat.lnt
+    lint/hfat_lint : $(HFAT_LINT_OBJS)
+endif

@@ -1,0 +1,344 @@
+;=============================================================================
+;
+; VCS_context.cmm 
+;  
+; Script to parse out information from the VCS Component.
+;
+; ============================================================================
+;
+; Copyright (c) 2014 Qualcomm Technologies Incorporated.  All Rights Reserved.  
+; QUALCOMM Proprietary and Confidential. 
+;
+; ============================================================================
+; $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/vcs/scripts/VCS.cmm#1 $
+; $DateTime: 2016/12/13 07:59:23 $
+; $Author: mplcsds1 $
+; ============================================================================
+
+local &VCS_CORNER_NUM_OF_CORNERS
+
+;-----------------------------------------------------------------------------
+; Print welcome
+;-----------------------------------------------------------------------------
+
+
+AREA.RESet
+WINPOS 0. 0. 100% 100%
+AREA.Create VCS
+AREA.view VCS
+
+AREA.Select VCS
+AREA.Clear VCS
+
+&VCS_CORNER_NUM_OF_CORNERS=6.
+
+print ""
+print ""
+print "[----------------------------------------------- VCS CONTEXT TOOL -----------------------------------------------]"
+print ""
+
+Help:
+
+print "1: List rail status"
+print "2: List rail voltages"
+print "3: List CPU status"
+print "4: List LDO voltages"
+print "5: Display rails as table"
+print "6: Display CPUs as table"
+print "7: Display Driver Context"
+print "x: Exit"
+print ""
+
+;-----------------------------------------------------------------------------
+; Main Menu
+;-----------------------------------------------------------------------------
+
+MainMenu:
+
+local &choice
+
+print "Enter option (? for help):"
+enter &choice
+print "&choice"
+
+if "&choice"=="?"
+(
+  goto Help
+)
+else if "&choice"=="x"
+(
+  AREA.CLEAR CLOCK
+  AREA.RESET
+  WINCLEAR
+  term.close 
+  
+  enddo (0==0)
+)
+else if "&choice"=="1"
+(
+  gosub ListRailStatus
+)
+else if "&choice"=="2"
+(
+  gosub ListRailVoltages
+)
+else if "&choice"=="3"
+(
+  gosub ListCPUStatus
+)
+else if "&choice"=="4"
+(
+  gosub ListLDOVoltages
+)
+else if "&choice"=="5"
+(
+  gosub DisplayRailTable
+)
+else if "&choice"=="6"
+(
+  gosub DisplayCPUTable
+)
+else if "&choice"=="7"
+(
+  gosub DisplayDriverContext
+)
+
+goto MainMenu
+
+
+;-----------------------------------------------------------------------------
+; ListRailStatus
+;-----------------------------------------------------------------------------
+
+ListRailStatus:
+
+  local &count
+  local &idx
+  local &field
+  local &dvs
+  local &cpr
+  
+  print "[--- Rail Status ---]"
+  &idx=0.
+  &count=v.value(VCS_DriverCtxt.DrvCtxt.nNumRails)
+  while &idx<&count
+  (
+    var.print "(&idx)  " %string VCS_DriverCtxt.DrvCtxt.aRails[&idx]->pBSPConfig->szName
+    var.print "   Corner: " VCS_DriverCtxt.DrvCtxt.aRails[&idx]->eCorner
+    
+    &field=v.value(VCS_DriverCtxt.DrvCtxt.aRails[&idx]->nVoltageUV)
+    if (&field>0)
+    (
+      var.print "  Voltage: " %decimal &field
+    )
+    
+    &field=v.value(VCS_DriverCtxt.DrvCtxt.aRails[&idx]->nDisableDVS)
+    if (&field>0)
+    (
+      &dvs="DISABLED"
+    )
+    else
+    (
+      &dvs="ENABLED"
+    )
+    var.print "      DVS: &dvs (&field)"
+    
+    &field=v.value(VCS_DriverCtxt.DrvCtxt.aRails[&idx]->nDisableCPR)
+    if (&field>0)
+    (
+      &cpr="DISABLED"
+    )
+    else
+    (
+      &cpr="ENABLED"
+    )
+    var.print "      CPR: &cpr (&field)"
+    
+    var.print "      Min: " VCS_DriverCtxt.DrvCtxt.aRails[&idx]->eCornerMin
+    var.print "      Max: " VCS_DriverCtxt.DrvCtxt.aRails[&idx]->eCornerMax
+
+    &idx=&idx+1.
+  )
+  
+  print ""
+  return
+  
+
+;-----------------------------------------------------------------------------
+; ListRailVoltages
+;-----------------------------------------------------------------------------
+
+ListRailVoltages:
+
+  local &count
+  local &idx
+  local &vidx
+  local &field
+  
+  print "[--- Rail Voltages ---]"
+  &idx=0.
+  &count=v.value(VCS_DriverCtxt.DrvCtxt.nNumRails)
+  while &idx<&count
+  (
+    &field=v.value(VCS_DriverCtxt.DrvCtxt.aRails[&idx]->pVoltageTable)
+    if (&field==0)
+    (
+      var.print "(&idx)  " %string VCS_DriverCtxt.DrvCtxt.aRails[&idx]->pBSPConfig->szName " -- No Voltage Table Found"
+    )
+    else
+    (
+      var.print "(&idx)  " %string VCS_DriverCtxt.DrvCtxt.aRails[&idx]->pBSPConfig->szName
+
+      &vidx=0.
+      while (&vidx<=&VCS_CORNER_NUM_OF_CORNERS)
+      (
+        &field=v.value(VCS_DriverCtxt.DrvCtxt.aRails[&idx]->pVoltageTable->apCornerMap[&vidx])
+        if (&field>0)
+        (
+          var.print "----------------------------------------"
+          var.print "  Corner: " VCS_DriverCtxt.DrvCtxt.aRails[&idx]->pVoltageTable->apCornerMap[&vidx]->eCorner
+          var.print "   MinUV: " %decimal VCS_DriverCtxt.DrvCtxt.aRails[&idx]->pVoltageTable->apCornerMap[&vidx]->nMinUV
+          var.print "   MaxUV: " %decimal VCS_DriverCtxt.DrvCtxt.aRails[&idx]->pVoltageTable->apCornerMap[&vidx]->nMaxUV
+        )
+        
+        &vidx=&vidx+1.
+      )
+    )
+    
+    &idx=&idx+1.
+  )
+  
+  print ""
+  return
+  
+
+;-----------------------------------------------------------------------------
+; ListCPUStatus
+;-----------------------------------------------------------------------------
+
+ListCPUStatus:
+
+  local &count
+  local &idx
+  local &field
+  local &usage
+  
+  print "[--- CPU Status ---]"
+  &idx=0.
+  &count=v.value(VCS_DriverCtxt.DrvCtxt.nNumCPUs)
+  while &idx<&count
+  (
+    var.print "(&idx)  " VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->eCPU " [ Corner=" VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->eCorner " ]"
+    
+    &field=v.value(VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO)
+    if (&field>0)
+    (
+      var.print "  LDO [ " %string VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO->pBSPConfig->szName " ]"
+      var.print "    Corner: " VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO->eCorner
+      
+      &field=v.value(VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO->nVoltageUV)
+      if (&field>0)
+      (
+        var.print "   Voltage: " %decimal &field
+      )
+      
+      &field=v.value(VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO->nDisable)
+      if (&field>0)
+      (
+        &usage="NOT PERMITTED"
+      )
+      else
+      (
+        &usage="PERMITTED"
+      )
+        var.print "     Usage: &usage (&field)"
+    )
+
+    &idx=&idx+1.
+  )
+  
+  print ""
+  return
+
+
+;-----------------------------------------------------------------------------
+; ListLDOVoltages
+;-----------------------------------------------------------------------------
+
+ListLDOVoltages:
+
+  local &count
+  local &idx
+  local &vidx
+  local &field
+  
+  print "[--- LDO Voltages ---]"
+  &idx=0.
+  &count=v.value(VCS_DriverCtxt.DrvCtxt.nNumCPUs)
+  while &idx<&count
+  (
+    &field=v.value(VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO)
+    if (&field>0)
+    (
+      &field=v.value(VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO->pVoltageTable)
+      if (&field==0)
+      (
+        var.print "(&idx)  " %string VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO->pBSPConfig->szName " -- No Voltage Table Found"
+      )
+      else
+      (
+        var.print "(&idx)  " %string VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO->pBSPConfig->szName
+        
+        &vidx=0.
+        while (&vidx<=&VCS_CORNER_NUM_OF_CORNERS)
+        (
+          &field=v.value(VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO->pVoltageTable->apCornerMap[&vidx])
+          if (&field>0)
+          (
+            var.print "----------------------------------------"
+            var.print "     Corner: " VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO->pVoltageTable->apCornerMap[&vidx]->eCorner
+            var.print "  VoltageUV: " %decimal VCS_DriverCtxt.DrvCtxt.aCPUs[&idx]->pLDO->pVoltageTable->apCornerMap[&vidx]->nVoltageUV
+          )
+          
+          &vidx=&vidx+1.
+        )
+      )
+    )
+    
+    &idx=&idx+1.
+  )
+  
+  print ""
+  return
+  
+
+;-----------------------------------------------------------------------------
+; DisplayRailTable
+;-----------------------------------------------------------------------------
+
+DisplayRailTable:
+  &rails=v.value(VCS_DriverCtxt.DrvCtxt.nNumRails)-1
+  var.tab %string VCS_DriverCtxt.DrvCtxt.aRails[0..&rails]
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplayCPUTable
+;-----------------------------------------------------------------------------
+
+DisplayCPUTable:
+  &cpus=v.value(VCS_DriverCtxt.DrvCtxt.nNumCPUs)-1
+  var.tab VCS_DriverCtxt.DrvCtxt.aCPUs[0..&cpus]
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplayDriverContext
+;-----------------------------------------------------------------------------
+
+DisplayDriverContext:
+  var.watch VCS_DriverCtxt.DrvCtxt
+  var.addwatch (VCSImageCtxtType *)VCS_DriverCtxt.DrvCtxt.pImageCtxt
+  
+  return
+

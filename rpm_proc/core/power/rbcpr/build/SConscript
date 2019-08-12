@@ -1,0 +1,143 @@
+# =========================================================
+# =========================================================
+# ==========================================================
+#
+#			 R B C P R   B U I L D   S C R I P T
+# 
+# $Header: //components/rel/rpm.bf/2.1.1/core/power/rbcpr/build/SConscript#4 $
+# $Author: pwbldsvc $
+# $Date  : $
+# $Change: 8975340 $
+#
+#
+#
+#
+# When			Who				What
+# ==========================================================
+
+Import('env')
+env = env.Clone()
+
+if env['MSM_ID'] in ['8909W']:
+   env['MSM_ID'] = '8909'
+
+RBCPRROOT = "${BUILD_ROOT}/core/power/rbcpr"
+INCPATH = RBCPRROOT + '/inc'
+HALINCPATH = RBCPRROOT + '/hal/inc'
+TARGET_SPECIFIC_INC_PATH = RBCPRROOT + '/src/target/${MSM_ID}'
+HAL_TARGET_SPECIFIC_INC_PATH = RBCPRROOT + '/hal/src/target/${MSM_ID}'
+
+env.VariantDir('${BUILDPATH}', RBCPRROOT, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DEBUGTRACE',
+   'MPROC',
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequirePublicApi(['RFA'], 'pmic')
+env.PublishPrivateApi('RBCPR',[INCPATH, HALINCPATH, TARGET_SPECIFIC_INC_PATH, HAL_TARGET_SPECIFIC_INC_PATH ])
+
+if env.has_key('HWIO_IMAGE'):
+    #if env['MSM_ID'] in ['8916', '8936', '8909']:
+    #    env.AddHWIOFile('HWIO', [
+    #        {
+    #            'filename': '${INC_ROOT}/core/power/rbcpr/hal/src/target/${MSM_ID}/HAL_rbcpr_hwio.h',
+    #            'modules': ['rbcpr_wrapper'],
+    #            'output-offsets': True,
+    #            'explicit-addressing': True,
+    #            'header':
+    #                '/*\n'
+    #                ' * HWIO base definitions\n'
+    #                ' */\n'
+    #                '#include "msmhwiobase.h"\n\n'
+    #                '#define RBCPR_WRAPPER_BASE           0x60048000\n'
+    #        },
+    #    ])
+    if env['MSM_ID'] in ['9x45']:
+        env.AddHWIOFile('HWIO', [
+            {
+                'filename': '${INC_ROOT}/core/power/rbcpr/hal/src/target/${MSM_ID}/HAL_rbcpr_hwio.h',
+                'modules': ['rbcpr_wrapper', 'mx_rbcpr_mx_wrapper'],
+                'output-offsets': True,
+                'explicit-addressing': True,
+                'header':
+                    '/*\n'
+                    ' * HWIO base definitions\n'
+                    ' */\n'
+                    '#include "msmhwiobase.h"\n\n'
+                    '#define RBCPR_WRAPPER_BASE           0x60048000\n'
+                    '#define MX_RBCPR_MX_WRAPPER_BASE     0x60070000\n'
+            },
+        ])
+    #env.AddHWIOFile('HWIO', [
+    #    {
+    #        'filename': '${INC_ROOT}/core/power/rbcpr/src/target/${MSM_ID}/rbcpr_qfprom.h',
+    #        'modules': ['security_control_core', 'tlmm_csr'],
+    #        'output-offsets': True,
+    #        'header':
+    #            '#include "msmhwiobase.h"\n\n'
+    #    },
+    #])
+
+if env['MSM_ID'] in ['8936']:
+    env.Append(CPPDEFINES = 'FOUNDRY_PROCESS_ID_UNDEFINED')
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+RBCPR_C_SOURCES = [
+    '${BUILDPATH}/src/rbcpr.c',
+    '${BUILDPATH}/src/rbcpr_fuses.c',
+    '${BUILDPATH}/src/rbcpr_smem.c',
+    '${BUILDPATH}/src/rbcpr_stats.c',
+#   '${BUILDPATH}/src/rbcpr_resource.c',
+    '${BUILDPATH}/src/target/${MSM_ID}/rbcpr_bsp.c',
+    '${BUILDPATH}/src/target/${MSM_ID}/rbcpr_fuses_bsp.c',
+    '${BUILDPATH}/hal/src/HAL_rbcpr.c',
+    '${BUILDPATH}/hal/src/target/${MSM_ID}/HAL_rbcpr_bsp.c'
+]
+
+RBCPR_CPP_SOURCES = [
+    '${BUILDPATH}/src/rbcpr_task.cpp',
+]
+
+RBCPR_STUB_SOURCES = [
+    '${BUILDPATH}/src/rbcpr_stubs.c',
+]
+
+if 'USES_QDSS_SWE' in env:
+   QDSS_IMG = ['QDSS_EN_IMG']
+   events = [['PLACE_HOLDER=670', 'rbcpr_pre_swith_entry: (rail %d) (corner %d) (microvolts %d)'],
+             ['RBCPR_CORNER_UPDATE_REC', 'rbcpr_corner_update_rec: (rail: %d) (corner: %d) (step up(2)/down(1): %d)'],
+             ['RBCPR_CORNER_UPDATE_ACT', 'rbcpr_corner_update_act: (rail: %d) (hit floor? %d) (hit ceiling? %d) (result microvolts: %d)'],
+             ['RBCPR_ISR', 'rbcpr_isr: (task 0x%x)'],
+             ['RBCPR_LAST=689','NULL'],
+            ]
+   env.AddSWEInfo(QDSS_IMG, events)
+
+   
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+c_env = env.Clone()
+c_env.Append(CCFLAGS = " --c99")
+c_env.Append(ARMCC_OPT = "${ARM_OPT_SIZE} ${ARM_OPT_2}")
+supported_targets = ['8916', '8936', '8909', '9x45','9x07']
+if env['MSM_ID'] in supported_targets:
+    c_env.AddLibrary(['CORE_RPM'],'${BUILDPATH}/rbcpr_c.lib', RBCPR_C_SOURCES)
+    env.AddLibrary(['CORE_RPM'],'${BUILDPATH}/rbcpr_cpp.lib', RBCPR_CPP_SOURCES)
+else:
+    env.PrintWarning('RBCPR only supports %s, stubs being used for this target' % supported_targets)
+    env.AddLibrary(['CORE_RPM'],'${BUILDPATH}/rbcpr.lib', RBCPR_STUB_SOURCES)
+

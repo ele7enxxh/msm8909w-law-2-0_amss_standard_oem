@@ -1,0 +1,310 @@
+#===============================================================================
+#
+# Target-Level Build Script for Modem Processor
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/build/bsp/modem_libs/build/modem_libs.scons#1 $
+#  $DateTime: 2016/12/13 07:59:25 $
+#  $Change: 11985153 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import sys
+import os
+from sets import Set
+
+Import('env')
+
+#------------------------------------------------------------------------------
+# Init image vars 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Init aliases array.
+# first alias (0th elemten in array) is always unique name, there should 
+# never be two images with the same unique name
+# The first alias in the list is always the image name, then other aliases.
+# Aliases can be associated with multiple images.  When given on the 
+# command line the alias is a shorthand for listing multiple images. 
+# mapss = "Modem and Audio Peripheral Subsystem"
+aliases = ['modem_libs', 'mapss'] 
+
+build_tags = ['MODEM_MODEM', 'CORE_MODEM', 'MULTIMEDIA_QDSP6_SW', 'QDSS_EN_IMG', 'QMIMSGS_MPSS', 'CTA_APPS', 'AVS_ADSP']
+
+if os.path.exists(os.path.join(env.subst("${BUILD_ROOT}"), "build/manifest.xml")) or 'CRMSERVERNAME' in os.environ:
+   build_tags.append('IMAGE_TREE_VERSION_AUTO_GENERATE')
+
+#------------------------------------------------------------------------------
+# Init environment variables
+
+env.InitImageVars(
+   alias_list=aliases,             # aliases
+   proc='qdsp6',
+   config='qdsp6_sw',              # config type, proc_name
+   plat='qurt',
+   target='MODEM_LIBS_${BUILD_ID}',# target (elf, image file name)
+   build_tags = build_tags,
+   deprecated_build_tags = ['CBSP_QDSP6_SW_IMAGE'],
+   tools = ['buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py']
+)
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+if not env.CheckAlias():
+   Return()
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(USES_DEVCFG = 'yes')
+env.Replace(USES_MULTI_DEVCFG = 'yes')
+
+#---------------------------------------------------------------------------
+# Load in the tools-set init scripts
+#---------------------------------------------------------------------------
+env.Replace(QDSP6_LIBDIR = "${COREBSP_ROOT}/kernel/qurt/install/modem${Q6VERSION}/lib")
+env.LoadToolScript('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('qdsp6_defs', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('sleep_lpr_builder', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+
+env.Append(CFLAGS = ARGUMENTS.get('T_CFLAGS', '') + ' ')
+env.Append(LFLAGS = ARGUMENTS.get('T_LFLAGS', '') + ' ')
+
+#---------------------------------------------------------------------------
+# Proof of concept, need to find a correct location
+#---------------------------------------------------------------------------
+
+env.Append(CPPDEFINES=['MODEM_FW_NUM_PRIO=75'])
+
+#---------------------------------------------------------------------------
+# Enable Modem AU Attributes Parsing
+#---------------------------------------------------------------------------
+modem_au_attrib_files = []
+modem_task_stksz_files = env.FindConfigFiles('modem_task_stksz.csv')
+if len(modem_task_stksz_files) > 0 :
+    modem_au_attrib_files += [modem_task_stksz_files[0]]
+modem_task_heap_quota_files = env.FindConfigFiles('modem_task_heap_quota.csv')
+if len(modem_task_heap_quota_files) > 0 :
+    modem_au_attrib_files += [modem_task_heap_quota_files[0]]
+env.Replace( MODEM_AU_ATTRIB_FILE = modem_au_attrib_files)
+
+#---------------------------------------------------------------------------
+# If merging of constants is inhibited, re-enable it for memory savings.
+# This is disabled in hexagon.py for legacy targets supporting paging.
+#---------------------------------------------------------------------------
+env.Replace(HEXAGON_LANIND = env.get('HEXAGON_LANIND', '').replace("-fno-merge-constants",""))
+
+#---------------------------------------------------------------------------
+# Load cleanpack script, if available
+#---------------------------------------------------------------------------
+if env.PathExists("../../../pack/build_cleanpack.py"):
+   env.LoadToolScript("../../../pack/build_cleanpack.py")
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+modem_proc_img_libs = []
+modem_proc_img_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+def find_components (env):
+   non_modem_lib_components = [ 'api', 'qmimsgs', 'apr', 'core', 'audio_avs', 'platform' ]
+
+   su_names_set = Set( env.GetAreaSoftwareUnitNames() )
+   for su in non_modem_lib_components:
+      su_names_set.discard( su )
+   components = list( su_names_set )
+
+   if 'USES_GNSS_SA' not in env:
+      # print "normal build"
+      pass
+   elif env['CHIPSET'] in ['msm8x26']:
+      components = [
+         'qmimsgs','core','mcs','mpower','utils','fw',
+         'gps','stubs','build'
+      ]
+      print "GNSS Only (8026 )build"
+   else:
+      components = [
+         'api','core','mcs','mpower','utils','fw',
+         'gps','rfa','rfnv',
+         'rftech_gnss','rfdevice_interface',
+         'rfdevice_wgr7640','stubs','build'
+      ]
+      print "GPS-only build"
+
+   build_id  = env.subst('${BUILD_ID}')
+   print build_id
+   return components
+
+
+components  = find_components(env)
+
+build_tools = [
+   '${BUILD_ROOT}/mcs/tools/build/stm1_builder.py',
+   '${BUILD_ROOT}/mcs/tools/build/stm2_builder.py',
+   '${BUILD_ROOT}/mcs/tools/build/msgr_builder.py',
+]
+for tool in build_tools:
+   env.LoadToolScript(tool)
+
+
+def add_umid(env, umid_file, umid_headers):
+   if type(umid_headers) is not list:
+      umid_headers = [umid_headers]
+
+   env.PrintDebugInfo('msgr', "add_umid: " + str(umid_headers))
+   # Call the UMID builder to autogenerate the .umid file
+   umid = env.UMID(source = umid_headers, target = umid_file)
+   # Save a reference to the umid file
+   env['UMID_ENV'].Append(UMIDS = umid)
+
+
+if 'USES_MSGR' in env:
+   # Save a pointer to the environment for gathering UMID's
+   env.Replace(UMID_ENV = env)
+   # Create a wrapper method for calling UMID builder and saving in environment
+   env.AddMethod(add_umid, "AddUMID")
+   
+
+# Load Modem AU Attributes if specified
+if 'MODEM_AU_ATTRIB_FILE' in env:
+   files = env['MODEM_AU_ATTRIB_FILE']
+   env.PrintDebugInfo('modemau', 'Modem Attrib Files: ' + str(files))
+   # Make sure that files is a list
+   if type(files) is not list:
+      files = [files]
+   # Loop through each file
+   for fname in files:
+      # Substitute to get the full path
+      fname = env.subst(fname)
+      env.PrintDebugInfo('modemau', "Loading attributes from: " + fname)
+      # Open the file
+      f = open(fname, "rb")
+      # Read all lines into a list
+      lines = f.readlines();
+      # Process each line in the file
+      for line in lines:
+         # Strip off newline and split on commas
+         line = line.strip()
+         if line:  # Don't process blank lines
+            elems = line.strip().split(',')
+            key   = elems[0].upper()
+            value = elems[1]
+            # Add to the SCons environment
+            env[key] = value
+      f.close()
+
+
+for component in components:
+   au_items = env.LoadAreaSoftwareUnits(component)
+   img_libs.extend(au_items['LIBS'])
+   img_objs.extend(au_items['OBJS'])
+
+def find_all_files(d):
+   matches = []
+   for root, dirnames, filenames in os.walk(d):
+     for filename in filenames:
+        matches.append(os.path.join(root, filename))
+   return matches
+
+if 'USES_BINARY_DIST' in env:
+   # Use bindist dir plus our image subdir to load libs and objects
+   bindistdir = env.subst('${BUILD_ROOT}/bindist/' + aliases[0])
+   files = find_all_files(bindistdir)
+   # Also load all files in the rootdir
+   files += glob(env.subst('${BUILD_ROOT}/bindist/*'))
+   for f in files:
+      if os.path.isfile(f):
+         f = f.replace(os.sep, '/')
+         env.PrintDebugInfo('bindist', "Adding binary dist file: " + str(f))
+         if f.endswith(env.subst('${LIBSUFFIX}')):
+            modem_proc_img_libs.append(env.File(f))
+         elif f.endswith(env.subst('${OBJSUFFIX}')):
+            modem_proc_img_objs.append(env.File(f))
+         else:
+            env.PrintError("Unknown suffix adding binary dist files: " + str(f))
+
+
+   # --------------------------------------------------------------------------
+   # Process all UMIDs that have been added by above LoadAreaSoftwareUnits()
+   # --------------------------------------------------------------------------
+   if 'USES_MSGR' in env and 'UMIDS' in env:
+
+      env.PrintDebugInfo('msgr', "UMIDS: " + str(env['UMIDS']))
+      msgr_umid_h = '${BUILD_ROOT}/mcs/msgr/gen/__msgr_global_umids.h'
+      # Run the MSGR builder to generate the MSGR header file
+      env.MSGR(source = env['UMIDS'], target = msgr_umid_h)
+
+# load au_name libs/objs build rules.
+
+
+image_units = [image_objs, image_libs]
+
+#------------------------------------------------------------------------------
+# Putting the image toghther
+#------------------------------------------------------------------------------
+
+if 'IMAGE_BUILD_LOCAL_FILES' in env:
+   #-------------------------------------------------------------------------
+   # Local Files
+   #-------------------------------------------------------------------------
+   
+   # this is where local files are created, for example link scripts (lcs)
+   # for qdsp6 like images, or scatter load files (scl) for amr like images.
+   local_itmes= []
+   
+   image_units += local_itmes
+      
+if 'IMAGE_BUILD_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Link image
+   #-------------------------------------------------------------------------
+
+   # this is where the rule to "link" is done.
+   #image_elf = env.AddProgram("${SHORT_BUILDPATH}/${TARGET_NAME}", image_objs, LIBS=image_libs)
+   
+   # this is just to create something for testing
+   image_elf = env.ListFileBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}.txt", [image_objs, image_libs], 
+         add_header=True)
+   
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Post process image
+   #-------------------------------------------------------------------------
+   
+   # this is where any aditional rules after linking are done.
+
+   #=========================================================================
+   # Define targets needed 
+   #
+   image_units += [
+      image_elf,
+   ]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)

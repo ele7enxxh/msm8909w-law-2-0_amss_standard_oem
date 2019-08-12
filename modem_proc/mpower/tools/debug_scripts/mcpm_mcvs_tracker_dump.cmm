@@ -1,0 +1,129 @@
+;====================================================================================
+;
+; mcpm_mcvs_tracker_dump.cmm 
+;  
+; Script to display MCVS/boost durations in columns on screen.
+;
+; Usage: do ..\mcpm_mcvs_tracker_dump.cmm
+;
+;====================================================================================
+
+local &colID
+local &maxCol
+local &colDur
+local &header
+local &colSize1
+local &colSize2
+local &nomMCVSQ6Dur &nomMCVSQ6DurPer &nomMCVSQ6LastStart
+local &turboMCVSQ6Dur &turboMCVSQ6DurPer &turboMCVSQ6LastStart
+local &nomBoostQ6Dur &nomBoostQ6DurPer &nomBoostQ6LastStart
+local &turboBoostQ6Dur &turboBoostQ6DurPer &turboBoostQ6LastStart
+local &nomBosstBIMCDur &nomBosstBIMCDurPer &nomBosstBIMCLastStart
+local &turboBosstBIMCDur &turboBosstBIMCDurPer &turboBosstBIMCLastStart
+
+area.reset
+winpos 0. 0. 100% 100%
+area.create MCPM
+area.view MCPM
+area.select MCPM
+area.clear MCPM
+
+; Get the number of rows in mMCVSPDInfo
+&maxCol=v.value(sizeof(mMCVSPDInfo)/sizeof(SMCVSPDData))
+
+; Print the MCVS section
+; Print the headers
+print format.string("MCVS",-110.,' ')
+
+&colSize1=-43.
+print format.string("Column ID",-10.,' ') \
+format.string("Duration (s)",-15.,' ') \
+format.string("NOM Q6 Dur (s)  %  Last Start Time",-37.,' ') \
+format.string("Turbo Q6 Dur (s)  %  Last Start Time",&colSize1,' ') \
+
+
+&colSize2=15.
+&colID=0
+while &colID<&maxCol
+(
+  &colDur=v.value(mMCVSPDInfo.Data[&colID].SysCfgIDInfo.nDuration)+0.
+
+  ; Only print columns have that durations
+  ; Get the MCVS durations and calculate the percentage MCVS was on for that column
+  if (&colDur!=0) 
+  (
+    &nomMCVSQ6Dur=v.value(mMCVSPDInfo.Data[&colID].MCVSInfo[0][0].nDuration)+0.
+    &nomMCVSQ6DurPer=((&nomMCVSQ6Dur)/(&colDur+0.0))*100.
+    &nomMCVSQ6LastStart=v.value(mMCVSPDInfo.Data[&colID].MCVSInfo[0][0].nStartTime)
+    &turboMCVSQ6Dur=v.value(mMCVSPDInfo.Data[&colID].MCVSInfo[0][1].nDuration)+0.
+    &turboMCVSQ6DurPer=((&turboMCVSQ6Dur)/(&colDur+0.0))*100.
+    &turboMCVSQ6LastStart=v.value(mMCVSPDInfo.Data[&colID].MCVSInfo[0][1].nStartTime)
+    
+
+    print ""
+    print format.decimal(6,&colID) format.float(15.,3,&colDur/19200000.0) \
+    format.float(&colSize2,3,&nomMCVSQ6Dur/19200000.0) format.float(4.,1,&nomMCVSQ6DurPer) "  0x" format.hex(16,&nomMCVSQ6LastStart) \
+    format.float(&colSize2,3,&turboMCVSQ6Dur/19200000.0) format.float(4.,1,&turboMCVSQ6DurPer) "  0x" format.hex(16,&turboMCVSQ6LastStart) \
+
+  )
+  &colID=&colID+1.
+)
+
+; Add line breaks
+print ""
+print ""
+
+; Print the boost section
+; Print the headers
+print format.string("Boost",-110.,' ')
+
+&colSize1=-43.
+print format.string("Column ID",-10.,' ') \
+format.string("Duration (s)",-15.,' ') \
+format.string("NOM Q6 Dur (s)  %  Last Start Time",-37.,' ') \
+format.string("Turbo Q6 Dur (s)  %  Last Start Time",&colSize1,' ') \
+format.string("NOM BIMC Dur (s)  %  Last Start Time",&colSize1,' ') \
+format.string("Turbo BIMC Dur (s)  %  Last Start Time",&colSize1,' ')
+
+&colID=0
+while &colID<&maxCol
+(
+  &colDur=v.value(mMCVSPDInfo.Data[&colID].SysCfgIDInfo.nDuration)+0.
+
+  ; Only print columns have that durations
+  ; Get the boost durations and calculate the percentage boost was on for that column
+  if (&colDur!=0) 
+  (
+    &nomBoostQ6Dur=v.value(mMCVSPDInfo.Data[&colID].BoostInfo[0][0].nDuration)+0.
+    &nomBoostQ6DurPer=((&nomBoostQ6Dur)/(&colDur+0.0))*100.
+    &nomBoostQ6LastStart=v.value(mMCVSPDInfo.Data[&colID].BoostInfo[0][0].nStartTime)
+    &turboBoostQ6Dur=v.value(mMCVSPDInfo.Data[&colID].BoostInfo[0][1].nDuration)+0.
+    &turboBoostQ6DurPer=((&turboBoostQ6Dur)/(&colDur+0.0))*100.
+    &turboBoostQ6LastStart=v.value(mMCVSPDInfo.Data[&colID].BoostInfo[0][1].nStartTime)
+    &nomBosstBIMCDur=v.value(mMCVSPDInfo.Data[&colID].BoostInfo[1][0].nDuration)+0.
+    &nomBosstBIMCDurPer=((&nomBosstBIMCDur)/(&colDur+0.0))*100.
+    &nomBosstBIMCLastStart=v.value(mMCVSPDInfo.Data[&colID].BoostInfo[1][0].nStartTime)
+    &turboBosstBIMCDur=v.value(mMCVSPDInfo.Data[&colID].BoostInfo[1][1].nDuration)+0.
+    &turboBosstBIMCDurPer=((&turboBosstBIMCDur)/(&colDur+0.0))*100.
+    &turboBosstBIMCLastStart=v.value(mMCVSPDInfo.Data[&colID].BoostInfo[1][1].nStartTime)
+
+    print ""
+    print format.decimal(6,&colID) format.float(15.,3,&colDur/19200000.0) \
+    format.float(&colSize2,3,&nomBoostQ6Dur/19200000.0) format.float(4.,1,&nomBoostQ6DurPer) "  0x" format.hex(16,&nomBoostQ6LastStart) \
+    format.float(&colSize2,3,&turboBoostQ6Dur/19200000.0) format.float(4.,1,&turboBoostQ6DurPer) "  0x" format.hex(16,&turboBoostQ6LastStart) \
+    format.float(&colSize2,3,&nomBosstBIMCDur/19200000.0) format.float(4.,1,&nomBosstBIMCDurPer) "  0x" format.hex(16,&nomBosstBIMCLastStart) \
+    format.float(&colSize2,3,&turboBosstBIMCDur/19200000.0) format.float(4.,1,&turboBosstBIMCDurPer) "  0x" format.hex(16,&turboBosstBIMCLastStart)
+  )
+  &colID=&colID+1.
+)
+
+area.close MCPM
+enddo
+
+
+
+
+
+
+
+

@@ -1,0 +1,32 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub main( @argv)
+{
+    my ( $item, $value) = @argv;
+
+    my $client = slopen();
+
+    my $read_req = slnew_req( "reg", "single_read", { item => $item});
+    my $read_resp = slsend_recv( $client, $read_req, 1);
+    my ( $err, $length, $data) = slget( $read_resp, { err, length, data});
+
+    if ( $err == 0) {
+        print( "registry read  item $item, len $length, data $data\n");
+        if ( defined( $value)) {
+            my $write_req = slnew_req( "reg", "single_write", { item => $item,
+                                                                length => $length, data => $value});
+            my $write_resp = slsend_recv( $client, $write_req, 1);
+            ( $err) = slget( $write_resp, { err});
+            print( "registry write item $item, len $length, data $value, err $err\n");
+        }
+    }
+    else {
+        print( "registry read  item $item, err $err\n");
+    }
+
+    $err = slclose( $client);
+    print( "slclose err $err\n");
+}

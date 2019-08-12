@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- WARNING: This file only contains CFCM definitions-->
+<NvDefinition>
+  <!-- Generic data types -->
+    <DataType name="uint8">
+        <Member type="uint8" sizeOf="1"/>
+    </DataType>
+    <DataType name="uint16">
+        <Member type="uint16" sizeOf="1"/>
+    </DataType>
+    <DataType name="uint32">
+        <Member type="uint32" sizeOf="1"/>
+    </DataType>
+    <DataType name="uint64">
+        <Member type="uint64" sizeOf="1"/>
+    </DataType>
+    <DataType name="int8">
+        <Member type="int8" sizeOf="1"/>
+    </DataType>
+    <DataType name="int16">
+        <Member type="int16" sizeOf="1"/>
+    </DataType>
+    <DataType name="int32">
+        <Member type="int32" sizeOf="1"/>
+    </DataType>
+    <DataType name="int64">
+        <Member type="int64" sizeOf="1"/>
+    </DataType>
+  
+  <!-- User-defined data types -->
+
+    <DataType name="cfcm_config_cpu_thrshld_type">
+        <Member type="uint8" sizeOf="1" name="is_valid"/>
+        <Member type="uint8" sizeOf="1" name="client_id"/>
+        <Member type="uint8" sizeOf="1" name="tier_high"/>
+        <Member type="uint8" sizeOf="1" name="tier_medium"/>
+        <Member type="uint8" sizeOf="1" name="tier_low"/>
+    </DataType>
+
+    <DataType name="cfcm_config_step_timer_type">
+        <Member type="uint8" sizeOf="1" name="is_valid"/>
+        <Member type="uint8" sizeOf="1" name="client_id"/>
+        <Member type="uint32" sizeOf="1" name="cpu_step_timer_msec"/>
+        <Member type="uint32" sizeOf="1" name="dsm_step_timer_msec"/>
+        <Member type="uint8" sizeOf="1" name="thermal_step_timer_sec"/>
+    <Member type="uint8" sizeOf="1" name="bw_step_timer_msec"/>
+    </DataType>
+
+    <DataType name="cfcm_fc_mask_type">
+        <Member type="uint32" sizeOf="1" name="version"/>
+        <Member type="uint32" sizeOf="1" name="fc_mask"/>
+        <Member type="uint32" sizeOf="4" name="reserved" />
+    </DataType>
+	
+	<DataType name="cfcm_cpu_dne_type">
+        <Member type="uint32" sizeOf="1" name="version"/>
+        <Member type="uint32" sizeOf="1" name="cpu_dne_percent_limit"/>
+        <Member type="uint32" sizeOf="1" name="cpu_max_successive_dne_hits" />
+    </DataType>
+
+    <DataType name="cfcm_client_fc_enable_mask_type">
+        <Member type="uint32" sizeOf="1" name="client_fc_enable_mask"/>
+    </DataType>
+
+    <DataType name="cfcm_monitor_fc_enable_mask_type">
+        <Member type="uint32" sizeOf="1" name="monitor_fc_enable_mask"/>
+    </DataType>
+
+    <DataType name="cfcm_thermal_step_timer_type">
+        <Member type="uint8" sizeOf="1" name="thermal_step_timer"/>
+    </DataType>
+
+    <!-- EFS item definitions begin here -->
+    <!-- CFCM EFS items -->
+    <NvEfsItem fullpathname="/nv/item_files/mcs/cfcm/cfcm_fc_masks" name="/nv/item_files/mcs/cfcm/cfcm_fc_masks" permission="read_write" variableSize="true" >
+        <Member type="cfcm_fc_mask_type" sizeOf="1" name="cfcm_fc_mask" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/cfcm/cfcm_client_enabled_masks" name="/nv/item_files/mcs/cfcm/cfcm_client_enabled_masks" permission="read_write" variableSize="true" >
+        <Member type="cfcm_client_fc_enable_mask_type" sizeOf="1" name="cfcm_client_fc_enable_mask" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/cfcm/cfcm_monitor_enabled_masks" name="/nv/item_files/mcs/cfcm/cfcm_monitor_enabled_masks" permission="read_write" variableSize="true" >
+        <Member type="cfcm_monitor_fc_enable_mask_type" sizeOf="1" name="cfcm_monitor_fc_enable_mask" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/cfcm/cfcm_config_step_timer_efs" name="/nv/item_files/mcs/cfcm/cfcm_config_step_timer_efs" permission="read_write" variableSize="true" >
+        <Member type="cfcm_config_step_timer_type" sizeOf="14" name="cfcm_config_step_timer" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/cfcm/cfcm_cpu_threshold_limits" name="/nv/item_files/mcs/cfcm/cfcm_cpu_threshold_limits" permission="read_write" variableSize="true" >
+        <Member type="cfcm_config_cpu_thrshld_type" sizeOf="14" name="cfcm_config_cpu_thrshld" /> 
+    </NvEfsItem>
+
+	<NvEfsItem fullpathname="/nv/item_files/mcs/cfcm/cfcm_config_cpu_dne_efs" name="/nv/item_files/mcs/cfcm/cfcm_config_cpu_dne_efs" permission="read_write" variableSize="true" >
+        <Member type="cfcm_cpu_dne_type" sizeOf="1" name="cfcm_config_cpu_dne_limits" /> 
+    </NvEfsItem>
+
+</NvDefinition>
+

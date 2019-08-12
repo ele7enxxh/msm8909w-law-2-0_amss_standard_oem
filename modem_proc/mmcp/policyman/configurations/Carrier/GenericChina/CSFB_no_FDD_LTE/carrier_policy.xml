@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Carrier Policy for CSFB configuration with no LTE FDD bands
+$Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/policyman/configurations/Carrier/GenericChina/CSFB_no_FDD_LTE/carrier_policy.xml#1 $
+-->
+<policy name        = "generic"
+        changelist  = "$Change: 11985193 $" 
+        schema_ver  = "1"
+        policy_ver  = "15.2.8"
+>
+
+  <initial>
+    <actions>
+      <!-- Define the MCCs in which FDD LTE is to be disabled -->
+      <mcc_list name="no_fdd_mccs">
+        460
+      </mcc_list>
+
+      <!-- No LTE FDD bands list --> 
+      <rf_band_list name="no_fdd_lte">
+        <gw_bands base="hardware" />
+        <!-- LTE Band: 38, 39, 40, 41, 42, 43 are mapped to Band Bits: 37, 38, 39, 40, 41, 42
+                      respectively.
+                      Refer: sys_sband_lte_e_type in sys.h
+        --> 
+        <lte_bands base="none" >
+          <include> 37 38 39 40 41 42 </include>
+        </lte_bands> 
+        <tds_bands base="hardware" />
+      </rf_band_list>
+
+      <!-- Set initial RAT Capability and RF bands -->
+      <rat_capability base="none">
+        <include> GSM WCDMA LTE TDSCDMA </include>
+      </rat_capability>
+      <rf_bands_if list="no_fdd_lte" />
+
+      <feature> normal </feature>
+
+    </actions>
+  </initial>
+
+
+  <!--
+  ===========================================================================  
+    Rules if subs1 is the MMODE subs.
+  ===========================================================================  
+  -->
+
+  <!-- RULE #1 -->
+  <!-- If operating in China, exclude FDD LTE bands -->
+  <rule>
+    <conditions>
+      <serving_mcc_in subs="mmode" list="no_fdd_mccs" />
+    </conditions>
+    <actions>
+      <rf_bands list="no_fdd_lte" />      
+    </actions>
+  </rule>
+
+  <!-- RULE #2 -->
+  <!-- If not in China, allow all bands -->
+  <rule>
+    <conditions>
+      <true />
+    </conditions>
+    <actions>
+      <rf_bands>
+        <gw_bands  base="hardware" />
+        <lte_bands base="hardware" />
+        <tds_bands base="hardware" />
+      </rf_bands>
+    </actions>
+  </rule>
+  
+</policy>

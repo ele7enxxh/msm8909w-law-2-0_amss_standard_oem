@@ -1,0 +1,99 @@
+#===============================================================================
+#
+# QMI Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2013,2015 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: 2010/09/22 18:42:11 $
+#  $Author: coresvc $
+#  $Change: 1450404 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/10/15   dks     Replace usage of qmi_core framework with qmi_csi apis
+# 02/08/13           Added support to query commands/TLVs supported by service
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_ONCRPC'])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/services/time_qmi/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DEBUGTOOLS',
+   'DAL',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API, area='CORE')
+env.RequireRestrictedApi(CBSP_API)
+env.RequirePublicApi('TIME', area='API')
+
+#-------------------------------------------------------------------------------
+# Private Defines
+#-------------------------------------------------------------------------------
+
+env.Append(CPPDEFINES=["FEATURE_NO_DB"])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+QMI_TIME_QMI_SOURCES = [
+   '${BUILDPATH}/qmi_time_server.c',
+   '${BUILDPATH}/qmi_time_server_rex.c',
+   '${BUILDPATH}/time_service_impl_v01.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+if env.IsTargetEnable(['QMIMSGS_MPSS']):
+  env.AddLibrary(['MODEM_IMAGE','APPS_IMAGE','QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'],
+                      '${BUILDPATH}/time_qmi',
+                      [QMI_TIME_QMI_SOURCES,]);
+
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env and env.IsTargetEnable(['QMIMSGS_MPSS']):
+   RCINIT_IMG = ['MODEM_IMAGE','QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+     'sequence_group'             : 'RCINIT_GROUP_2',
+     'thread_name'                : 'time_srv',
+     'thread_entry'               : 'time_srv_task',
+     'stack_size_bytes'           : '2048',
+     'priority_amss_order'        : 'SHARED_BACKGROUND_SERVICE_PRI_ORDER',
+    })
+#-------------------------------------------------------------------------------

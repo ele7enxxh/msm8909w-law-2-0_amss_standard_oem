@@ -1,0 +1,51 @@
+NOTE: xxxx... or YYYYYY.... are digits (either in decimal or hexadecimal number system as applicable) in the explanation below.
+
+How to enable/integrate Compressed Heap?
+
+* The module that would use the compressed heap should do following.
+	* include "compressed_modem_mem.h" file in the source code where the compressed heap APIs are being used.
+	* In the build scons of the module - add following
+	   env.RequirePublicApi(['COMPRESSED_HEAP', ], area='PERF')
+* If this is first time to integrate the compressed heap feature in any build. 
+	* Get/Sync the corresponding perf.mpss.xxxx component.
+	* in the target.builds file -- add following at appropriate places. (target.builds is part of config.mpss.xxxx component)
+			define COMPRESSED_MODEM_MEM_HEAP_SIZE <appropriate size> (e.g. 0x0200000)
+			define FEATURE_COMPRESSED_HEAP
+	* in appropriate compress_rw.lst, add following at appropriate location (compress_rw.lst is part of config.mpss.xxxxx component)
+			*modem_proc/perf/compressed_heap*:(.data .data.*) 
+			and
+			*modem_proc/perf/compressed_heap*:(*COMMON .bss .bss.* .bss.*.*) 
+			
+How to disable already integrated Compressed Heap Feature?
+
+	Its easy! Do Following.
+	* Comment out all the occurances of following lines from target.builds.
+			define COMPRESSED_MODEM_MEM_HEAP_SIZE 0xYYYYYYYYYY
+			define FEATURE_COMPRESSED_HEAP
+	* Comment out following lines from all applicable compress_rw.lst file.
+	        *modem_proc/perf/compressed_heap*:(.data .data.*) 
+			and
+			*modem_proc/perf/compressed_heap*:(*COMMON .bss .bss.* .bss.*.*) 
+			
+What will happen if someone forgets to put lines in compress_rw.lst or if compress_rw.lst is missing but feature flags are defined in target.builds file?
+	
+		Code will still execute. But only one thing --- there won't be any compression and it will be as good as another normal heap.
+	
+
+How will I debug the issues in compressed heap?
+		Same "heapwalker.cmm" script will work for compressed heap as well. Just execute like below:
+		
+		do heapwalker.cmm compressed_mem_heap
+		
+		For additional information. Please send an email to "modem.memory.hotline@qti.qualcomm.com"
+		
+Support Information:
+	Please send an email to "modem.memory.hotline@qti.qualcomm.com"
+	
+FR Number for Compressed Heap Feature: 
+    FR 29357: Compressed Heap in Low Tier Modems
+	
+Wiki Page:
+http://qwiki.qualcomm.com/public/Compressed_MemHeap
+OR
+go/compressed_memheap

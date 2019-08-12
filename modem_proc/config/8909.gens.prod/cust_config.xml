@@ -1,0 +1,327 @@
+<?xml version="1.0"?>
+<!DOCTYPE image SYSTEM "weaver-1.0.dtd">
+<!-- vim: set ts=4 sw=4 et ai nosi: -->
+<image>
+    <machine>
+
+      <include file="../../core/api/systemdrivers/irqs/msm8909/interrupts.xml"/>
+
+      <Hexagon_ss_base value = "0xEC100000" />
+      <tcxo intmask="0xffffffff"/>
+      <timer>
+        <base value = "0xEC120000" />
+        <intno value = "2" />
+        <priority value="76"/>
+        <bitmask value="0xff" />
+        <IST_priority value="64" />
+        <IST_bitmask value="0xff" />
+      </timer>
+      <chicken_bits>
+          <rgdr value="0x00000000" />
+         <chicken value="0x08200004" />
+      </chicken_bits>
+
+	  <isdb_imem addr="0x08600934" />
+
+      <cache>
+        <l1_iprefetch enabled="true" lines="1"/>
+        <l2_iprefetch enabled="true" lines="0"/>
+        <l1_ipartition    main="full"/>
+        <l1_dpartition    main="full"/>
+        <l2_partition     main="full"/>
+        <l2_size          value="256"/>
+		<l2_writeback enabled="true" />
+      </cache>
+
+      <cache_policy name="writeback" value="0x0"/>
+      <cache_policy name="writethrough" value="0x1"/>
+      <cache_policy name="l1_wt_l2_cacheable" value="0x5"/>
+      <cache_policy name="l1_wb_l2_cacheable" value="0x7"/>
+      <cache_policy name="l1_wb_l2_uncacheable" value="0x0"/>
+      <cache_policy name="l1_wb_l2_wt" value="0x8"/>
+      <cache_policy name="uncached" value="0x6"/>
+      <cache_policy name="device" value="0x4"/>
+
+      <dynamic_multi_threading enabled="true" />
+      <bus_resources_shared enabled="false" />
+
+<etm_cfg_base addr="0x04590000" />
+
+    </machine>
+
+    <kernel>
+      <hthread_mask value = "0x3f" />
+      <heap_size value = "0x20000"/>
+      <max_threads value = "380"/>
+      <max_threads_in_tcm value = "0"/>
+      <max_futexes value = "16384"/>
+      <trace_mask value = "0x5FF"/>
+      <trace_size value = "32768" />
+	  <fastint_stack size = "1024" />
+	  <tcm_dump size="0x80000" type="user" />
+	  <page_table_size value="192k"/>
+      <int_nest_allow_mask value="0x00000200" />
+    </kernel>
+
+    <!-- 79 MB of physical pool-->
+    <physical_pool name="DEFAULT_PHYSPOOL">
+        <region base="0x88000000" size="0x4F00000" />
+    </physical_pool>
+
+	<!-- HWIO pool for dynamically mapped region -->
+    <physical_pool name="HWIO_POOL">
+	   <region base="0x09000000" size="0x1000000" />
+	</physical_pool>
+
+    <physical_pool name="SHARED_EFS">
+       <region base="0x87C00000" size="0xE0000" />
+    </physical_pool>
+
+	<physical_pool name="RFSA_pool">
+        <region base="0x87CE0000" size="0x20000" />
+    </physical_pool>
+
+
+<!--- LPASS physical Pools-->
+	<physical_pool name="ADSP_DRIVER_POOL">
+        <region base="0x07700000" size="0x00020000" />
+    </physical_pool>
+
+        <physical_pool name="EBI1_pool">
+        <region base="0x00000000" size="0xffffffff" />
+    </physical_pool>
+<!--- LPASS physical Pools End-->
+
+    <program name="AMSS">
+
+        <stack_size value = "0x1000" />
+        <heap_size name="heap_size" value="0x780000" type="appregion" />
+
+        <!--
+        alexh: dynamic_default_pool_size causes more problems than it solves.
+        Try to avoid setting it.
+
+        <dynamic_default_pool_size name="size" value="0xe40000" />
+        -->
+
+        <main_priority value = "1" />
+        <main_bitmask value = "0xff" />
+		<reaper_priority value = "0x2F" />
+		<max_pimutex_prio value = "75" />
+		<tlb_first_replaceable value="48" />
+
+        <include file="../../core/api/systemdrivers/hwio/msm8909/msmhwioplat.xml"/>
+
+        <!-- MSS_TOP: These HWIO mappings are done manually as they need  -->
+                <!--          special handling: tlb_lock must be "1" for          -->
+                <!--          performance, and a small piece (mempool page0) must -->
+                <!--          be mapped as WB cached.                             -->
+                <!--          Note the virtual address should not be changed      -->
+                <!--          without coordinating with msmhwiobase.h and the FW  -->
+                <!--          team.                                               -->
+                <memsection
+                    tlb_lock="1"
+                    bus_attr="01"
+                    glob="1"
+                    direct="false"
+                    attach="RW"
+                    virt_addr="0xEC000000"
+                    phys_addr="0x04000000"
+                    size="0x00100000"
+          cache_policy="device" />
+                <memsection
+                    tlb_lock="1"
+                    bus_attr="01"
+                    glob="1"
+                    direct="false"
+                    attach="RW"
+                    virt_addr="0xEC100000"
+                    phys_addr="0x04100000"
+                    size="0x00100000"
+          cache_policy="device" />
+                <memsection
+                    tlb_lock="1"
+                    bus_attr="01"
+                    glob="1"
+                    direct="false"
+                    attach="RW"
+                    virt_addr="0xEC200000"
+                    phys_addr="0x04200000"
+                    size="0x00100000"
+          cache_policy="device" />
+                <memsection
+                    tlb_lock="1"
+                    bus_attr="01"
+                    glob="1"
+                    direct="false"
+                    attach="RW"
+                    virt_addr="0xEC300000"
+                    phys_addr="0x04300000"
+                    size="0x00100000"
+          cache_policy="device" />
+
+     <!-- MLM Registers -->
+                <memsection
+                    tlb_lock="1"
+                    bus_attr="01"
+                    glob="1"
+                    direct="false"
+                    attach="RW"
+                    virt_addr="0xEC5B0000"
+                    phys_addr="0x045B0000"
+                    size="0x00010000"
+          cache_policy="device" />
+
+
+     <!-- L1S memory -->
+                <memsection
+                    tlb_lock="1"
+                    bus_attr="01"
+                    glob="1"
+                    direct="false"
+                    attach="RW"
+                    virt_addr="0xEC600000"
+                    phys_addr="0x04600000"
+                    size="0x00100000"
+          cache_policy="writethrough" />
+
+    <!-- 8MB DYNREC_SECTION VA RANGE reserved -->
+        <memsection
+            attach="RESERVED"
+            virt_addr="0xd4000000"
+            size="0x00800000" />
+
+
+
+
+        <!--  excludes the TCM HWIO region from QuRT virtual mapping so it wont conflict with idempotent overlays -->
+        <memsection
+          attach="reserved"
+          virt_addr="0x04000000"
+          size="0x01000000" />
+
+
+		<!-- Shared memory -->
+                <!-- Shared memory -->
+
+        <!-- Shared RAMFS -->
+        <memsection direct="true"
+            bus_attr="01"
+            attach="rw"
+          virt_addr="0x87C00000"
+          size="0x00040000"
+          cache_policy="uncached" />
+
+<memsection direct="true"
+bus_attr="01"
+            attach="rw"
+          virt_addr="0x87C40000"
+          size="0x00040000"
+          cache_policy="uncached" />
+        <memsection direct="true"
+            attach="rw"
+          bus_attr="01"
+          virt_addr="0x87C80000"
+          size="0x00040000"
+          cache_policy="uncached" />
+        <memsection direct="true"
+            attach="rw"
+          bus_attr="01"
+          virt_addr="0x87cc0000"
+          size="0x00010000"
+          cache_policy="uncached" />
+
+<memsection direct="true"
+            attach="rw"
+          bus_attr="01"
+          virt_addr="0x87cd0000"
+          size="0x00010000"
+          cache_policy="uncached" />
+		  <memsection direct="true"
+            attach="rw"
+          bus_attr="01"
+          virt_addr="0x867E0000"
+          size="0x00010000"
+          cache_policy="uncached" />
+        <memsection direct="true"
+            attach="rw"
+          bus_attr="01"
+          virt_addr="0x867F0000"
+          size="0x00010000"
+          cache_policy="uncached" />
+        <memsection direct="true"
+            attach="rw"
+          bus_attr="01"
+          virt_addr="0x8E6C0000"
+          size="0x00010000"
+          cache_policy="uncached" />
+        <memsection direct="true"
+            attach="rw"
+          bus_attr="01"
+          virt_addr="0x8E6D0000"
+          size="0x00010000"
+          cache_policy="uncached" />
+
+<!-- Sys IMEM for EFS -->
+
+		<memsection direct="true"
+          attach="rw"
+          bus_attr="01"
+          virt_addr="0x08600000"
+          phys_addr="0x08600000"
+          size="0x10000"
+          cache_policy="uncached" />
+
+    <!-- HWIO Regions (SEC CTRL)) -->
+        <memsection direct="true"
+             attach="rw"
+             bus_attr="01"
+             virt_addr="0x00058000"
+             size="0x4000"
+             cache_policy="device" />
+
+        <!-- HWIO Regions (SEC CTRL 2nd part)) -->
+        <memsection direct="true"
+             attach="rw"
+             bus_attr="01"
+             virt_addr="0x0005C000"
+             size="0x4000"
+             cache_policy="device" />
+
+<!-- shared memory(TZ-modem) for sec channel -->
+			<memsection direct="true"
+			attach="rw"
+			bus_attr="01"
+			virt_addr="0x87FFD000"
+			size="0x01000"
+			cache_policy="uncached" />
+
+<!-- ETM_BASE -->
+        <memsection tlb_lock = "1"
+		   glob="1"
+           direct="true"
+           attach="rw"
+           virt_addr="0x04590000"
+           size="0x00001000"
+           cache_policy="uncached" />
+
+      <!-- L2 CONFIG BASE -->
+      <memsection tlb_lock = "1"
+        glob="1"
+        direct="true" 
+        attach="rw" 
+        virt_addr="0x045A0000" 
+        size="0x00001000" 
+        cache_policy="uncached" />  
+
+      <!-- memcpy() is doing a signed compare to check overrun in input buffer.As this issue in memcpy() will only happen when thesource address + copy size will cross the 0x7FFFFFFF boundary to 0x80000000 -->
+
+      <memsection
+      attach="reserved"
+      virt_addr="0x7FFFF000"
+      size="0x00001000" />
+    </program>
+
+
+
+</image>

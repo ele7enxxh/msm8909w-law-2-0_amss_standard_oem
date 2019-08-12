@@ -1,0 +1,49 @@
+//-----------------------------------------------------------------------------
+//               Shared Memory Driver MDM Device Configuration
+//-----------------------------------------------------------------------------
+//
+// FILE:        smd_mdm.xml
+//
+// DESCRIPTION: This file contains DAL XML config properties for the Shared 
+//              Memory Driver module, for images on MDM targets.
+//
+//=============================================================================
+// Copyright (c) 2012 by QUALCOMM, Incorporated.
+// All Rights Reserved.
+// Qualcomm Confidential and Proprietary.
+//=============================================================================
+//
+//                          EDIT HISTORY FOR FILE
+//
+// $Header:  $
+//
+// when       who     what, where, why
+// --------   ---     ---------------------------------------------------------
+// 11/01/13   bc      Added Macros representing bit mask for each processor
+// 11/05/12   bt      Initial revision for MDM targets.
+// ----------------------------------------------------------------------------
+
+<driver name="NULL">
+  <global_def></global_def>
+  <device id="/core/mproc/smd">
+    <props name="smd_intr_enabled" type= DALPROP_ATTR_TYPE_UINT32>0x47</props>
+  </device>
+</driver>
+
+<!-- Disable interrupts on edges where remote endpoint is not present.
+     Corresponding bit is 0 if processor is not supported
+ 
+     0100 0111 = 0x47 (configuration for mdm)
+  
+     Below is bit position for each processor
+  
+     APPS  = 0x1  (0000 0001)
+     MODEM = 0x2  (0000 0010)
+     ADSP  = 0x4  (0000 0100)
+     DSPS  = 0x8  (0000 1000)
+     WCNSS = 0x10 (0001 0000)
+     MdmFW = 0x20 (0010 0000)
+     RPM   = 0x40 (0100 0000)
+
+
+-->

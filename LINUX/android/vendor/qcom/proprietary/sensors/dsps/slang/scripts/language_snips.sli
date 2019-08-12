@@ -1,0 +1,106 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+
+/*
+**
+** sloption( 'die_on_error');  // , 'disard_indications');
+** my $enable = slnew( "amd", "enable", { "field_name" => value, ...} );
+**
+** toddler version
+*/
+int main( @argv)
+{
+    my $timeout = 5000;         // 5 seconds
+    my $duration = 30000;       // 30 seconds
+
+    my $client = slopen();
+    my $enable = slnew( "amd", "enable", {"report_period" => 1, "notify_suspend" => 1});
+//    slset( $enable, {"report_period" => 1, "notify_suspend" => 1});
+    my $response = slsend_recv( $client, $enable, $timeout);
+    my $instance_id = slget( $response, "instance_id");
+
+    // sleep( $duration)
+    my $ind_count = 0;
+    while( $ind_count < 1000) {
+        my $indication = slrecv( $timeout);
+        if ( $indication == NULL) {
+            $err_msg = slget_last_error();
+            print( "slrecv: error $err_msg\n");
+            last;
+        }
+        $ind_count++;
+    }
+
+    print( "got $ind_count indications\n");
+
+    my $disable = slnew( "amd", "disable", {"instance_id" => $instance_id});
+    slset( $disable, {"instance_id" => $instance_id});
+    $response = slsend_recv( $client, $disable, $timeout);
+
+    $rc  = slclose( $client);
+}
+
+=====
+
+
+    my $bufreq = slnew( "smgr", "buffering");
+    slset( $bufreq, { "report_id" => 17, "report_rate" => 1});
+
+    // item( sensor_id, datatype, decimation, calibration, sampling_rate, sample_quality) ...
+    slset( $bufreq, { "item => 0, "sensor_id" => "accel", "sample_rate" => 200 });
+    my $bufresp = slsend_recv( $client, $bufreq, $timeout);
+
+    my ( $result, $err, $acknak) = slget( $bufresp, { "resp.result", "resp.err", "acknak"});
+
+=====
+
+    my $allinfo_req  = slnew( "smgr", "all_sensorinfo");
+    my $allinfo_resp = slsend_recv( $client $allinfo_req, $timeout);
+
+    my @list  = slget( $allinfo_resp, { "sensor_info"} );
+    for ( my $i = 0; $i < scalar @list; $i++) {
+        my ( $sensor_id, $short_name) = @list[ i];
+
+        my $snglinfo_req = slnew( "smgr", "single_sensorinfo", $sensor_id);
+
+//        my $snglinfo_req = slset_req( "smgr", "single_sensorinfo", { "sensor_id" => $sensor_name});
+        my $rc           = slsend_req( $client $snglinfo_req);
+        my $snglinfo_resp = slwait( $timeout);
+
+        $sensor = slget( $snglinfo_resp, "
+        ...
+    }
+
+    my $client   = slopen();
+
+    my $request  = slset_req( "smgr", "single_sensorinfo", "ACCEL");
+    my $response = slsend_recv( $client, request, $timeout);
+    my $max_rate = slget( $response, { "max_rate"});
+
+    my $report_id = 10;
+    $request     = slset_req( "smgr", "periodic_report", "ACCEL", $report_id, { "report_rate" => $max_rate});
+    $rc          = slsend_req( $client $request);
+
+//  sleep( $duration)
+    $traffic = slwait( $timeout);      // periodic report add response ?--phase II -?
+
+            Resp.err, rc
+            report_id
+            acknak
+            reason_pair[] item_num, reason
+
+
+    my ( $service, $msg_id, $msg_type) = slget( $traffic, { "service", "msg_id", "msg_type"})
+    my ( $rc, $report_id, $acknak, $reason ) = slget( $traffic, { "rc", "report_id", "acknak", "reason"});
+
+
+
+    $request     = slset_req( "smgr", "periodic_report", "ACCEL", $report_id, { "action" => "delete"});
+    $rc          = slsend_req( $client $request);
+    $response    = slwait( $timeout);
+
+    $rc          = slclose( $client);
+

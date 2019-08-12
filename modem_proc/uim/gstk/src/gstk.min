@@ -1,0 +1,72 @@
+#-------------------------------------------------------------------------------
+# GSTK
+#-------------------------------------------------------------------------------
+GSTK_SOURCES=\
+	gstk.c \
+	gstk_activate.c \
+	gstklib.c \
+	gstkpacker.c \
+	gstkparser.c \
+	gstkutil.c \
+	gstk_disp_txt.c \
+	gstk_envelope_cmd.c \
+	gstk_envelope_rsp.c \
+	gstk_evt_dl.c \
+	gstk_get_inkey.c \
+	gstk_get_input.c \
+	gstk_launch_browser.c \
+	gstk_more_time.c \
+	gstk_play_tone.c \
+	gstk_polling.c \
+	gstk_proactive_cmd.c \
+	gstk_provide_local_info.c \
+	gstk_select_item.c \
+	gstk_send_sms.c \
+	gstk_send_ss.c \
+	gstk_send_ussd.c \
+	gstk_setup_call.c \
+	gstk_setup_evt_list.c \
+	gstk_setup_idle_txt.c \
+	gstk_setup_menu.c \
+	gstk_state.c \
+	gstk_s_gsdi_sig_wait.c \
+	gstk_s_idle.c \
+	gstk_s_no_sim.c \
+	gstk_s_start.c \
+	gstk_s_term_profile_rsp_wait.c \
+	gstk_s_term_profile_wait.c \
+	gstk_terminal_rsp.c \
+	gstk_timer_management.c \
+	gstk_refresh.c \
+	gstk_term_profile.c \
+	gstk_send_dtmf.c \
+	gstk_lang_notification.c \
+	gstk_send_data.c \
+	gstk_receive_data.c \
+	gstk_open_ch.c \
+	gstk_close_ch.c \
+	gstk_get_ch_status.c \
+	gstk_tal.c 
+
+GSTK_OBJS :=  $(addprefix $(TARGETDIR)/, $(GSTK_SOURCES:%.c=%.o))
+vpath %.c $(GSTK_SRC)
+
+ifeq ($(BIG),yes)
+        GSTK_OBJS := $(TARGETDIR)/gstk.lib
+else
+        GSTK_OBJS :=  $(addprefix $(TARGETDIR)/, $(GSTK_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/gstk.lib : $(GSTK_SOURCES)
+	$(group_c_compile)
+
+### Start Lint block ###
+ifeq ($(DO_LINT),yes)
+
+GSTK_LINT_OBJS := $(addprefix $(LINTDIR)/, $(GSTK_SOURCES:%.c=%.lint))
+
+# Specify group target for linting GSTK unit
+$(LINTDIR)/gstk_lint : $(GSTK_LINT_OBJS)
+
+endif
+### End Lint block ###

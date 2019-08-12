@@ -1,0 +1,290 @@
+#===============================================================================
+#
+# JTAGPROGRAMMER build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/bsp/tools/jtagprogrammer/build/jtagprogrammer_ufs.scons#1 $
+#  $DateTime: 2015/09/01 00:30:35 $
+#  $Author: pwbldsvc $
+#  $Change: 8935858 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2013-03-07   ab      Initial checkin for jtagprogrammer for UFS
+#
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+JTAGPROGRAMMER_SRC = "${BUILD_ROOT}/core/storage/tools/jtagprogrammer/ufs/src"
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias - First alias is always the target then the other possible aliases
+aliases = [
+   'jtagprogrammer', 
+]
+
+if not env['MSM_ID'] in ['8084', '8974']:
+    Return()
+
+processor = 'krait'
+
+env.InitImageVars(
+   alias_list = aliases,               	         # list of aliases, unique name index [0]
+   proc = processor,                      	     # proc settings
+   config = 'apps',                              # config settings
+   build_tags = ['JTAGPROGRAMMER_IMAGE', 'JSDCC_TOOL_IMAGE'],    # list of build tags for sub lib scripts
+   tools = [
+   '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py',
+   'buildspec_builder.py',]
+)
+    
+if not env.CheckAlias():
+   Return()
+
+#------------------------------------------------------------------------------
+# Init default values for this PROC/Image
+#------------------------------------------------------------------------------
+env.Replace(BUILD_TOOL_CHAIN = 'yes')
+
+#===============================================================================
+# JTAGPROGRAMMER build rules
+#===============================================================================
+
+#------------------------------------------------------------------------------
+# Configure and load in USES and path variables
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.Tool('arm', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+env.Tool('modem_defs', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+
+# Force debug and symbols for flash tools, required by T32 swbp interface
+env.Replace(ARM_DBG = "-g --dwarf2")     # Enable DWARF2 format debug tables
+env.Replace(ARM_ALIGN = " ${ARM_NO_UNALIGNED_ACCESS} -UL41")
+
+
+#------------------------------------------------------------------------------
+# Add extension flags for JTAGPROGRAMMER
+#------------------------------------------------------------------------------
+if env['BUILD_VER'] == "":
+   env.Replace(BUILD_VER = '0')
+
+# Set up any processor or platform specific variables here
+# We should really try to keep the rest platform-independent
+PARAM_BUFFER_SIZE = "0x8000"
+JSDCC_OUTPUT_BUFFER_SIZE = "0x800"
+processor = 'krait'
+CODE_START_ADDR = "0xFE800000"#"0xFC100000"
+CODE_SIZE = "0x20000"
+
+JTAGPROGRAMMER_EXTRAS = ARGUMENTS.get('STORAGE_EXTRAS', "true")
+
+env.Append(CPPDEFINES = [
+   "BUILD_TOOL_CHAIN",
+   "BOOT_WATCHDOG_DISABLED",
+   "FEATURE_HS_USB_BASIC",
+   "CODE_START_ADDR=" + CODE_START_ADDR,
+   "CODE_SIZE=" + CODE_SIZE,
+   "JSDCC_OUTPUT_BUFFER_SIZE=" + JSDCC_OUTPUT_BUFFER_SIZE,
+   "PARAM_BUFFER_SIZE=" + PARAM_BUFFER_SIZE,
+   "BOOT_MODULE_BUILD_VERSION=" + env['BUILD_VER'],
+   "BOOT_HEAP_SIZE=0x10000",
+   "FEATURE_STANDALONE_MODEM",
+   "FEATURE_HS_USB_BASIC",
+])
+
+build_filename = "jtagprogrammer"
+if JTAGPROGRAMMER_EXTRAS.lower() == "true":
+    env.Append(CPPDEFINES = [
+        "FEATURE_JTAGPROGRAMMER_STORAGE_EXTRAS",
+    ])
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/tools/jtagprogrammer/ufs/src/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'CS',
+   'DSM',
+   'MODEM_1X',
+   'MODEM_ADIE',
+   'MODEM_DATA',
+   'MODEM_FTM',
+   'MODEM_GERAN',
+   'MODEM_GPS',
+   'MODEM_HDR',
+   'MODEM_MDSP',
+   'MODEM_NAS',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+   'MODEM_UIM',
+   'MODEM_WCDMA',
+   'MULTIMEDIA_AUDIO',
+   'MULTIMEDIA_DISPLAY',
+   'MULTIMEDIA_GRAPHICS',
+   'MULTIMEDIA',
+   'WIRELESSCONNECTIVITY',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BUSES',
+   'DEBUGTOOLS',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'POWER',
+   'SECUREMSM',
+   'SENSORS',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h   
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi('STORAGE_JTAGPROGRAMMER', [
+   "${INC_ROOT}/core/storage/tools/jtagprogrammer/ufs/src",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+JTAGPROGRAMMER_STARTUP_SOURCES = [
+   '${BUILDPATH}/jtagprogrammer_start.s',
+]
+
+JTAGPROGRAMMER_SOURCES = [
+    '${BUILDPATH}/jtagprogrammer_main.c',
+]
+
+JTAGPROGRAMMER_SOURCES += [
+    '${BUILDPATH}/bsp/jtagprogrammer_bsp_8660.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+#env.AddObject(['JTAGPROGRAMMER_IMAGE'], JTAGPROGRAMMER_STARTUP_SOURCES)
+#env.AddLibrary(['JTAGPROGRAMMER_IMAGE'], '${BUILDPATH}/jtagprogrammer', JTAGPROGRAMMER_SOURCES)
+jtagprogrammer_obj = env.Object([JTAGPROGRAMMER_STARTUP_SOURCES, JTAGPROGRAMMER_SOURCES])
+
+
+#------------------------------------------------------------------------------
+# Decide which build steps to perform
+#------------------------------------------------------------------------------
+# Regular build steps (no filter) is build everything, once a user starts
+# using filters we have to make decisions depending on user input.
+#
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units, 
+# etc.  This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quartz, stubs, etc.
+
+do_local_files = True
+do_link = True
+do_post_link = True
+
+# Get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# Limit build processing based on filter option
+if filter_opt is not None:
+   do_link = False
+   do_post_link = False
+
+   if not env.FilterMatch(os.getcwd()):
+      do_local_files = False
+      
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+jtagprogrammer_units = [core_objs, core_libs]
+
+if do_local_files:
+   #============================================================================
+   # JTAGPROGRAMMER Environment
+   #============================================================================
+
+   #----------------------------------------------------------------------------
+   # Begin building JTAGPROGRAMMER
+   #----------------------------------------------------------------------------
+   env.Replace(TARGET_NAME = build_filename)
+
+   #----------------------------------------------------------------------------
+   # Generate Scatter Load File (SCL)
+   #----------------------------------------------------------------------------
+   jtagprogrammer_scl = env.SclBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', 
+      '${BUILD_ROOT}/core/storage/tools/jtagprogrammer/ufs/src/jtagprogrammer_scatter_load.scl')
+
+   jtagprogrammer_units.extend(jtagprogrammer_scl)
+
+if do_link:
+   #----------------------------------------------------------------------------
+   # Generate JTAGPROGRAMMER ELF
+   #----------------------------------------------------------------------------
+   libs_path = env['INSTALL_LIBPATH']
+
+   jtagprogrammer_elf = env.Program('${SHORT_BUILDPATH}/${TARGET_NAME}',
+           source=[core_objs, jtagprogrammer_obj], 
+           LIBS=[core_libs], LIBPATH=libs_path)
+
+   env.Depends(jtagprogrammer_elf, jtagprogrammer_scl)
+   
+   env.Clean(jtagprogrammer_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.map'))
+   env.Clean(jtagprogrammer_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.sym'))
+
+if do_post_link:   
+   jtagprogrammer_elf_install = env.Install(JTAGPROGRAMMER_SRC, [jtagprogrammer_elf])
+
+   #============================================================================
+   # Define units that will be built
+   #============================================================================
+   jtagprogrammer_units = env.Alias ('krait_jtagprogrammer_units', [
+      jtagprogrammer_elf,
+      jtagprogrammer_elf_install,
+   ])
+
+# Add aliases
+for alias in aliases:
+   env.Alias(alias, jtagprogrammer_units)
+

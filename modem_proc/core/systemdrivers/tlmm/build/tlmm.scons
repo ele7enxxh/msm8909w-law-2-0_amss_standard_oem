@@ -1,0 +1,158 @@
+#===============================================================================
+#
+# TLMM LIBRARY
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2015 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/tlmm/build/tlmm.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#
+#===============================================================================
+
+import os
+
+Import('env')
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Add API folders
+#------------------------------------------------------------------------------
+
+env.PublishPrivateApi("SYSTEMDRIVERS_TLMM", [
+   "${INC_ROOT}/core/systemdrivers/tlmm/inc",
+   "${INC_ROOT}/core/api/systemdrivers/hwio/${CHIPSET}",
+   "${INC_ROOT}/core/systemdrivers/tlmm/config/${CHIPSET}"
+])
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8926']:
+  env.Append(CPPPATH = [
+     "${INC_ROOT}/core/systemdrivers/tlmm/src",
+     "${INC_ROOT}/core/systemdrivers/tlmm/config",
+     "${INC_ROOT}/core/systemdrivers/tlmm/hw/v1"
+  ])
+else:
+  env.Append(CPPPATH = [
+     "${INC_ROOT}/core/systemdrivers/tlmm/src",
+     "${INC_ROOT}/core/systemdrivers/tlmm/config",
+     "${INC_ROOT}/core/systemdrivers/tlmm/hw/v2"
+  ])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+if env['MSM_ID'] in ['8926']:
+  HAL_TLMM_V1_SOURCES =  [
+     '${BUILDPATH}/hw/v1/HALtlmm.c'
+  ]
+else:
+  HAL_TLMM_V2_SOURCES =  [
+     '${BUILDPATH}/hw/v2/HALtlmm.c'
+  ]
+
+TLMM_COMMON_SOURCES =  [
+   '${BUILDPATH}/src/DALTLMMFwk.c',
+   '${BUILDPATH}/src/DALTLMMInfo.c',
+   '${BUILDPATH}/src/DALTLMM.c',
+   '${BUILDPATH}/src/DALTLMMState.c'
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+HAL_TLMM_IMAGES =  ['CORE_MODEM']
+
+env.AddLibrary(HAL_TLMM_IMAGES,'${BUILDPATH}/DALtlmm',TLMM_COMMON_SOURCES)
+if env['MSM_ID'] in ['8926']:
+  env.AddLibrary(HAL_TLMM_IMAGES,'${BUILDPATH}/HALtlmmV1',HAL_TLMM_V1_SOURCES)
+else:
+  env.AddLibrary(HAL_TLMM_IMAGES,'${BUILDPATH}/HALtlmmV2',HAL_TLMM_V2_SOURCES)
+
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+
+# Remove target config files
+ALL_CONFIG_FILES = env.FindFiles(
+  ['*'],
+  '../config/')
+MY_CONFIG_FILES = env.FindFiles(
+  ['*'],
+  '../config/${CHIPSET}')
+SHARED_CONFIG_FILES = env.FindFiles(
+  ['DALTLMMPropDef.h'],
+  '../config/')
+PACK_CONFIG_FILES = list(set(ALL_CONFIG_FILES) - set(SHARED_CONFIG_FILES) - set(MY_CONFIG_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_CONFIG_FILES)
+
+#---------------------------------------------------------------------------
+# Invoke document generation SConscript
+#---------------------------------------------------------------------------
+
+if os.path.exists(env['BUILD_ROOT'] + '/core/api/systemdrivers/docsrc/tlmm/SConscript') :
+  env.SConscript(
+    '${BUILD_ROOT}/core/api/systemdrivers/docsrc/tlmm/SConscript',
+    exports='env')
+
+
+#---------------------------------------------------------------------------
+# Add DAL XML file
+#---------------------------------------------------------------------------
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+    '8909_xml' : ['${BUILD_ROOT}/core/systemdrivers/tlmm/config/msm8909/TLMMChipset.xml',
+                  '${BUILD_ROOT}/core/systemdrivers/tlmm/config/msm8909/PlatformIO_MTP.xml',
+                  '${BUILD_ROOT}/core/systemdrivers/tlmm/config/msm8909/PlatformIO_CDP.xml',
+                  '${BUILD_ROOT}/core/systemdrivers/tlmm/config/msm8909/PlatformIO_QRD.xml',
+                  '${BUILD_ROOT}/core/systemdrivers/tlmm/config/msm8909/PlatformIO_RCM.xml'],
+    '9607_xml' : ['${BUILD_ROOT}/core/systemdrivers/tlmm/config/mdm9607/TLMMChipset.xml',
+                  '${BUILD_ROOT}/core/systemdrivers/tlmm/config/mdm9607/PlatformIO_MTP.xml',
+                  '${BUILD_ROOT}/core/systemdrivers/tlmm/config/mdm9607/PlatformIO_CDP.xml',
+                  '${BUILD_ROOT}/core/systemdrivers/tlmm/config/mdm9607/PlatformIO_RCM.xml'],
+    '8937_xml' : ['${BUILD_ROOT}/core/systemdrivers/tlmm/config/msm8937/TLMMChipset.xml',
+                  '${BUILD_ROOT}/core/systemdrivers/tlmm/config/msm8937/PlatformIO_MTP.xml',
+                  '${BUILD_ROOT}/core/systemdrivers/tlmm/config/msm8937/PlatformIO_CDP.xml',
+                  '${BUILD_ROOT}/core/systemdrivers/tlmm/config/msm8937/PlatformIO_QRD.xml',
+                  '${BUILD_ROOT}/core/systemdrivers/tlmm/config/msm8937/PlatformIO_RCM.xml'],
+   })
+  
+
+

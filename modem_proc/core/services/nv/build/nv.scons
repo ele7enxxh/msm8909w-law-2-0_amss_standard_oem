@@ -1,0 +1,144 @@
+#===============================================================================
+#
+# NV Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/mdm9x00/main/latest/services/nv/build/SConscript#4 $
+#  $DateTime: 2009/10/09 13:45:04 $
+#  $Author: nthompso $
+#  $Change: 1049671 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/services/nv/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'CS',
+   'DSM',
+   'MODEM_API',
+   'MODEM_1X',
+   'MODEM_DATA',
+   'MODEM_NAS',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HWENGINES',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+MODEM_API = [
+   'ONEX',
+   'MMODE',
+   'UIM',
+   'GERAN',
+   'WCDMA',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.RequirePublicApi(MODEM_API, 'modem')
+
+#-------------------------------------------------------------------------------
+# NV Defines
+#-------------------------------------------------------------------------------
+
+env.Append(CPPDEFINES=["FEATURE_NV"])
+env.Append(CPPDEFINES=["FEATURE_NV_ITEM_MGR"])
+env.Append(CPPDEFINES=["FEATURE_SPC_PROTECTION_FOR_REMOTE_ACCESSED_NV"])
+env.Append(CPPDEFINES=["FEATURE_TRIMODE_ITEMS"])
+env.Append(CPPDEFINES=["FEATURE_ENC_BTF_IN_NV"])
+env.Append(CPPDEFINES=["FEATURE_NV_ACCESS_FILTER"])
+env.Append(CPPDEFINES=["FEATURE_RCINIT"])
+env.Append(CPPDEFINES=["FEATURE_NV_TWO_NAMS_RL_SMALL"])
+#env.Append(CPPDEFINES=["FEATURE_NV_CNV"])
+env.Append(CPPDEFINES=["FEATURE_NV_SUPPORTS_KXMUTEX"])
+#env.Append(CPPDEFINES=["FEATURE_NV_MEID_ENABLE"]) #TEMP FIX
+env.Append(CPPDEFINES=["FEATURE_DIAG_DISALLOW_MEM_OPS"])
+env.Append(CPPDEFINES=["FEATURE_NV_RPC_SUPPORT"])
+env.Append(CPPDEFINES=["FEATURE_DIAG_SPC_TTL"])
+env.Append(CPPDEFINES=["FEATURE_DIAG_SPC_TIMEOUT"])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+NVIM_SOURCES = [
+   '${BUILDPATH}/nvim.c',
+   '${BUILDPATH}/nvio.c',
+   '${BUILDPATH}/nvdiag.c',
+   '${BUILDPATH}/nv_info_tab.c',
+]
+
+NVIM_APP_SOURCES = [
+   '${BUILDPATH}/nvimnv_apps.c'
+]
+
+# CoreBSP does not own the RUIM code, that belongs to the target
+NVIM_RUIM_SOURCES = [
+   '${BUILDPATH}/nvruim.c',
+   '${BUILDPATH}/nvsim.c',
+   '${BUILDPATH}/nvruimsms.c'
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE'],'${BUILDPATH}/nvim',NVIM_SOURCES)
+env.AddLibrary(['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/nvim',NVIM_SOURCES)
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitTask(           # NV
+    RCINIT_IMG,                 # define TMC_RCINIT_REXTASK_NV 
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',                  # required
+      'thread_name'                : 'nv',                              # required
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'SHARED_BACKGROUND_PRI_ORDER',
+#      'priority_amss_order'        : 'NV_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })

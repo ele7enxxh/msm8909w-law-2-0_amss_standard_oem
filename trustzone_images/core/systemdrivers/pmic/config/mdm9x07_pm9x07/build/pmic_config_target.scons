@@ -1,0 +1,104 @@
+#=============================================================================
+# PMIC TZ DRIVER SHARED LIBRARY
+#
+# Target:
+# Processor:
+#
+#=============================================================================
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/systemdrivers/pmic/config/mdm9x07_pm9x07/build/pmic_config_target.scons#1 $
+#=============================================================================
+#  Copyright 2013 Qualcomm Technologies Incorporated.
+#  All Rights Reserved.
+#  QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Python library imports
+#-------------------------------------------------------------------------------
+import glob, os
+
+#-------------------------------------------------------------------------------
+# Source PATH:
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+#BUILDPATH =  image_name / processor_name, eg modem_libs / arm11 = directory where built objects stored
+env.VariantDir('${BUILDPATH}', SRCPATH , duplicate=0)
+
+LIB_SRC         = 'src'
+
+LIB_NAME        = 'pmic_config'
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'HWENGINES',
+    'KERNEL',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+]
+env.RequirePublicApi(CBSP_API)
+
+env.RequireProtectedApi([
+    'PMIC_NPA',
+    ])
+
+
+#-------------------------------------------------------------------------------
+# DEVCFG - PMIC CONFIG DATA
+#-------------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+   PMIC_CONFIG_SOURCES = [
+      '${BUILDPATH}/' + '/'+LIB_SRC+'/pm_config_pm9x07.c',
+      '${BUILDPATH}/' + '/'+LIB_SRC+'/pm_xpu_config_pm9x07.c',
+      '${BUILDPATH}/' + '/'+LIB_SRC+'/pm_spmi_config_pm9x07.c',      
+      '${BUILDPATH}/' + '/'+LIB_SRC+'/pm_xpu_config_pm8916.c',
+      '${BUILDPATH}/' + '/'+LIB_SRC+'/pm_spmi_config_pm8916.c']
+
+   env.AddLibrary(['DAL_DEVCFG_IMG'], '${BUILDPATH}/'+LIB_NAME, PMIC_CONFIG_SOURCES)
+
+#-------------------------------------------------------------------------------
+# DEVCFG - PMIC XML
+#-------------------------------------------------------------------------------
+pmic_config_xml = env.GlobFiles('../src/tz_config.xml', posix=True)
+pmic_config_xml = ', '.join(pmic_config_xml) #convert list to string
+
+if pmic_config_xml: #try including XML only if it is present in the build
+   if 'USES_DEVCFG' in env:
+      env.AddDevCfgInfo('DAL_DEVCFG_IMG',
+      {
+          'devcfg_xml'    : pmic_config_xml
+      })
+
+
+# Add SPMI xml
+spmi_xml_pm8909 = env.GlobFiles('../src/pm_spmi_config_pm9x07.xml', posix=True)
+spmi_xml_pm8909 = ', '.join(spmi_xml_pm8909) #convert list to string
+
+if spmi_xml_pm8909: #try including XML only if it is present in the build
+   if 'USES_DEVCFG' in env:
+      env.AddDevCfgInfo('DAL_DEVCFG_IMG',
+      {
+          'devcfg_xml'         : spmi_xml_pm8909
+      })
+
+spmi_xml_pm8916 = env.GlobFiles('../src/pm_spmi_config_pm8916.xml', posix=True)
+spmi_xml_pm8916 = ', '.join(spmi_xml_pm8916) #convert list to string
+
+if spmi_xml_pm8916: #try including XML only if it is present in the build
+   if 'USES_DEVCFG' in env:
+      env.AddDevCfgInfo('DAL_DEVCFG_IMG',
+      {
+          'devcfg_xml'         : spmi_xml_pm8916
+      })
+
+	  
+env.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])

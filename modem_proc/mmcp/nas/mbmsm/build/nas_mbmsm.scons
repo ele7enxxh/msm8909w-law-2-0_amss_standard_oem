@@ -1,0 +1,142 @@
+#===============================================================================
+#
+# NAS MMBSM SCons 
+#
+# GENERAL DESCRIPTION
+#    SCons build script
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/nas/mbmsm/build/nas_mbmsm.scons#1 $
+#  $DateTime: 2016/12/13 08:00:05 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/15/10   pm      Initial file
+#
+#===============================================================================
+#from glob import glob
+#from os.path import join, basename
+
+Import('env')
+env = env.Clone()
+
+if 'USES_GSM' not in env and ('USES_UMTS' not in env or 'USES_WPLT' in env):
+   Return()
+
+# --------------------------------------------------------------------------- #
+# Turn off/on debug if requested 			      
+# --------------------------------------------------------------------------- # 
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+# env.Append(CPPDEFINES = [
+#   "MSG_BT_SSID_DFLT=MSG_SSID_SD",
+# ])
+
+#-------------------------------------------------------------------------------
+# Publish our Private API
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('NAS', ["${INC_ROOT}/mmcp/nas/mbmsm/inc"])
+
+#-------------------------------------------------------------------------------
+# Necessary Public API's
+#-------------------------------------------------------------------------------
+REQUIRED_PUBLIC_APIS = [
+    'GPS',
+    'MCS',
+    'MMODE',
+    'NAS',
+    'ONEX',
+    'UIM',
+    'UTILS',
+    'WCDMA',
+    ]
+
+REQUIRED_RESTRICTED_APIS = [
+    'FW',
+    'GERAN',
+    'GPS',
+    'LTE',
+    'MCS',
+    'MDSP',
+    'MMODE',
+    'NAS',
+    'RFA',
+    'UIM',
+    'UTILS',
+    'WCDMA',
+    ]
+
+CORE_APIS = [
+    'DAL',
+    'DEBUGTOOLS',
+    'MPROC',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+MULTIMEDIA_APIS = [
+    'MVS',
+    ]
+
+env.RequirePublicApi(CORE_APIS, area='core')
+
+env.RequirePublicApi('AUDIO', area='MULTIMEDIA') 
+env.RequirePublicApi(MULTIMEDIA_APIS, area='MULTIMEDIA')
+
+env.RequirePublicApi(REQUIRED_PUBLIC_APIS) 
+env.RequireRestrictedApi(REQUIRED_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+    'MULTIMEDIA_AUDIO',
+])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+#MBMSM_C_SOURCES = ['${BUILDPATH}/' + basename(fname)
+#                 for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+MBMSM_C_SOURCES = [
+	'${BUILDPATH}/msmmain.c',
+	'${BUILDPATH}/msmtask.c',
+]
+
+# Add our library to the ModemApps image
+env.AddLibrary( ['MODEM_MODEM'], '${BUILDPATH}/nas_mbmsm', [MBMSM_C_SOURCES] )
+

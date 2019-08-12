@@ -1,0 +1,197 @@
+#===============================================================================
+#
+# Core APIs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/build/ims.api#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 14-Mar-2014  Prashanth M E     Publishing Public APIs to external modules - 'IMSPUBLIC'
+# -----------------------------------------------------------------------------
+# 03-Apr-2014  Prashanth M E     Updating Public APIs - 'IMSPUBLIC'
+#
+#===============================================================================
+Import('env')
+
+if env.PathExists('${INC_ROOT}/ims'):
+    env.Replace(IMS_ROOT = '${INC_ROOT}/ims')
+else:
+    env.Replace(IMS_ROOT = '${INC_ROOT}/modem/ims')
+
+env.PublishPublicApi('IMSPUBLIC',   [
+        "${INC_ROOT}/ims/settings/inc",
+		])
+
+#Start public VIOLATIONS
+env.PublishRestrictedApi('IMS_VIOLATIONS',[
+        '${INC_ROOT}/apr/osal/inc',
+        '${INC_ROOT}/apr/utils/inc',
+        ])
+
+env.PublishRestrictedApi('IMS_DPL', [ 
+])
+
+env.PublishRestrictedApi('IMS_FRAMEWORK', [ 
+])
+
+
+env.PublishRestrictedApi('IMS',[
+        '${INC_ROOT}/core/api/kernel/blast',
+        '${INC_ROOT}/core/api/services',
+        '${INC_ROOT}/datamodem/api/public',
+        '${INC_ROOT}/ims/sip/inc',
+        '${INC_ROOT}/core/api/kernel/qube',
+        '${INC_ROOT}/mmcp/api/public',
+        '${INC_ROOT}/ims/dpl/inc',
+        '${INC_ROOT}/core/api/dal',
+        '${INC_ROOT}/ims/framework/inc',
+        '${INC_ROOT}/core/api/memory',
+        '${INC_ROOT}/ims/cust/inc',
+        '${INC_ROOT}/core/api/kernel/rex',
+        '${INC_ROOT}/core/api/debugtools',
+        '${INC_ROOT}/core/api/systemdrivers',
+        '${INC_ROOT}/ims/imscore/inc',
+        '${INC_ROOT}/ims/ps_media/rtp_core/inc',
+        '${INC_ROOT}/ims/variation/inc',
+        '${INC_ROOT}/core/api/kernel/rex/os/blast',
+        '${INC_ROOT}/ims/qipcall/inc',
+        '${INC_ROOT}/hdr/api/public',
+        '${INC_ROOT}/ims/sigcomp/inc',
+        '${INC_ROOT}/uim/api',
+        '${INC_ROOT}/uim/api/public',
+        '${INC_ROOT}/apr/api',
+        '${INC_ROOT}/ims/Presence/inc',
+        '${INC_ROOT}/ims/regmanager/src',
+        '${INC_ROOT}/ims/ps_media/SDP/src',
+        '${INC_ROOT}/ims/imscore/sipcore/src',
+        '${INC_ROOT}/ims/ps_media/SDP/inc',
+        '${INC_ROOT}/ims/dpl_media/inc',
+        '${INC_ROOT}/ims/ps_media/common/inc',
+        '${INC_ROOT}/core/api/mproc',
+        '${INC_ROOT}/core/api/storage',
+        '${INC_ROOT}/ims/imsprocess/inc',
+        '${INC_ROOT}/ims/dpl/src',
+        '${INC_ROOT}/mcs/api',
+        '${INC_ROOT}/ims/ps_media/rtp_profile/inc',
+        '${INC_ROOT}/ims/dpl_media/src',
+        '${INC_ROOT}/sec/api/ipsec',
+        '${INC_ROOT}/core/api/kernel/libstd/stringl',
+        '${INC_ROOT}/ims/imsqmi/inc',
+        '${INC_ROOT}/ims/ps_media/rtp_profile/src',
+        '${INC_ROOT}/ims/ps_media/rtp_core/src',
+        '${INC_ROOT}/avs/api/cvd',
+        '${INC_ROOT}/ims/settings/src/amss',
+        '${INC_ROOT}/avs/api/mvs',
+        '${INC_ROOT}/ims/sip/src',
+        '${INC_ROOT}/mmcp/api',
+        '${INC_ROOT}/core/api/securemsm/smecom',
+        '${INC_ROOT}/ims/framework/coreutils/src',
+        '${INC_ROOT}/apr/osal/inc',
+        '${INC_ROOT}/apr/utils/inc',
+        '${INC_ROOT}/wcdma/api/public',
+        '${INC_ROOT}/geran/api/public',
+        '${INC_ROOT}/ims/framework/maf/src',
+        '${INC_ROOT}/ims/regmanager/src/amss',
+        '${INC_ROOT}/api/imsa',
+        '${INC_ROOT}/api/imsp',
+        '${INC_ROOT}/api/imss',
+        '${INC_ROOT}/api/loc',
+        '${INC_ROOT}/api/imsvt',
+        '${INC_ROOT}/core/api/securemsm/crypto',
+        '${INC_ROOT}/ims/ps_media/qdj/inc',
+        '${INC_ROOT}/ims/ps_media/rtp_jitter_buffer/inc',
+        '${INC_ROOT}/ims/ps_media/rtp_jitter_buffer/src',
+        '${INC_ROOT}/avs/api/mmutils',
+		    '${INC_ROOT}/avs/api/voicemem',
+			'${INC_ROOT}/avs/api/voicelog',
+		'${INC_ROOT}/avs/api/common',
+        '${INC_ROOT}/ims/optionsmanager/inc',
+        
+        #update 19-July
+        '${INC_ROOT}/core/api/kernel/blast',
+        '${INC_ROOT}/core/api/services',
+        '${INC_ROOT}/datamodem/api/public',
+        '${INC_ROOT}/ims/sip/inc',
+        '${INC_ROOT}/core/api/kernel/qube',
+        '${INC_ROOT}/mmcp/api/public',
+        '${INC_ROOT}/ims/dpl/inc',
+        '${INC_ROOT}/core/api/dal',
+        '${INC_ROOT}/ims/framework/inc',
+        '${INC_ROOT}/core/api/memory',
+        '${INC_ROOT}/ims/cust/inc',
+        '${INC_ROOT}/core/api/kernel/rex',
+        '${INC_ROOT}/core/api/debugtools',
+        '${INC_ROOT}/core/api/systemdrivers',
+        '${INC_ROOT}/ims/imscore/inc',
+        '${INC_ROOT}/ims/ps_media/rtp_core/inc',
+        '${INC_ROOT}/ims/variation/inc',
+        '${INC_ROOT}/ims/qipcall/inc',
+        '${INC_ROOT}/core/api/kernel/rex/os/blast',
+        '${INC_ROOT}/ims/sigcomp/inc',
+        '${INC_ROOT}/hdr/api/public',
+        '${INC_ROOT}/uim/api',
+        '${INC_ROOT}/uim/api/public',
+        '${INC_ROOT}/apr/api',
+        '${INC_ROOT}/ims/Presence/inc',
+        '${INC_ROOT}/ims/regmanager/src',
+        '${INC_ROOT}/ims/ps_media/SDP/src',
+        '${INC_ROOT}/ims/imscore/sipcore/src',
+        '${INC_ROOT}/ims/ps_media/SDP/inc',
+        '${INC_ROOT}/ims/dpl_media/inc',
+        '${INC_ROOT}/ims/ps_media/common/inc',
+        '${INC_ROOT}/core/api/mproc',
+        '${INC_ROOT}/core/api/storage',
+        '${INC_ROOT}/ims/imsprocess/inc',
+        '${INC_ROOT}/mcs/api',
+        '${INC_ROOT}/ims/dpl/src',
+        '${INC_ROOT}/ims/ps_media/rtp_profile/inc',
+        '${INC_ROOT}/sec/api/ipsec',
+        '${INC_ROOT}/core/api/kernel/libstd/stringl',
+        '${INC_ROOT}/ims/imsqmi/inc',
+        '${INC_ROOT}/ims/ps_media/rtp_profile/src',
+        '${INC_ROOT}/ims/ps_media/rtp_core/src',
+        '${INC_ROOT}/avs/api/cvd',
+        '${INC_ROOT}/ims/settings/src/amss',
+        '${INC_ROOT}/ims/sip/src',
+        '${INC_ROOT}/mmcp/api',
+        '${INC_ROOT}/core/api/securemsm/smecom',
+        '${INC_ROOT}/ims/framework/coreutils/src',
+        '${INC_ROOT}/apr/osal/inc',
+        '${INC_ROOT}/apr/utils/inc',
+        '${INC_ROOT}/geran/api/public',
+        '${INC_ROOT}/ims/dpl_media/src',
+        '${INC_ROOT}/ims/framework/maf/src',
+        '${INC_ROOT}/ims/regmanager/src/amss',
+        '${INC_ROOT}/wcdma/api/public',
+        '${INC_ROOT}/api/imsa/api',
+        '${INC_ROOT}/api/imsp/api',
+        '${INC_ROOT}/api/imss/api',
+        '${INC_ROOT}/api/loc/api',
+        '${INC_ROOT}/api/imsvt/api',
+        '${INC_ROOT}/core/api/securemsm/crypto',
+        '${INC_ROOT}/avs/api/mmutils',
+        '${INC_ROOT}/lte/api',
+        '${INC_ROOT}/avs/api/voicemem',
+		'${INC_ROOT}/avs/api/voicelog',
+        '${INC_ROOT}/avs/api/common',
+        '${INC_ROOT}/ims/optionsmanager/inc',
+        ])
+
+
+env.LoadAPIUnits()

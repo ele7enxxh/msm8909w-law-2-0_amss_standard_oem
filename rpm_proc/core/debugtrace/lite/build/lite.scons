@@ -1,0 +1,83 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for HAL QDSS-ETB Library.
+#
+# Copyright (c) 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('QDSS_HAL',[
+   "../../common/hal/inc",
+   "../../stm/hal/inc",
+   "../../stm/hal/src",
+   "../../tmc/hal/inc",
+   "../../tmc/hal/src",
+   "../../tfunnel/hal/inc",
+   "../../tfunnel/hal/src",
+   "../../csr/hal/inc",
+   "../../csr/hal/src",
+   "../../cti/hal/inc",
+   "../../cti/hal/src",
+   "../../common/src",
+])
+
+config = '8916'                   #default config
+if env['MSM_ID'] in ['8974', '8916','9x07']:   #add to this list as more configs are added
+    config = env['MSM_ID']
+
+#cti and csr config is different for the below
+specific_config = '8916'
+if env['MSM_ID'] in ['8974', '9x25','8916','9x07']:   
+    specific_config = env['MSM_ID']
+
+
+qdss_config_dirs=map(lambda x: '../../'+ x + '/config/' + config,
+                     ['tmc','tfunnel','stm'])
+
+
+specific_config_dirs=map(lambda x: '../../'+ x + '/config/' + specific_config,
+                     ['csr', 'cti'])
+
+
+env.PublishPrivateApi('QDSS_CONFIG',qdss_config_dirs+specific_config_dirs)
+
+
+env.RequirePublicApi(['DEBUGTRACE','DAL','HAL','SERVICES','SYSTEMDRIVERS','POWER','KERNEL'])
+
+if 'USES_QDSS_SWE' in env:
+   QDSS_IMG = ['QDSS_EN_IMG']
+   events = [
+       ['QDSS_TS_FREQ_CHANGE=690','QDSS timestamp counter new frequency %d at qtimer %llu'],
+       ['QDSS_INIT_COMPLETE','QDSS Initialization complete'],
+       ['QDSS_RESERVED=699', 'Reserved last qdss msg'],
+       ]
+
+   env.AddSWEInfo(QDSS_IMG, events)
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+LITE_SRC = [
+  '${BUILDPATH}/QDSS.c',
+]
+
+env.AddLibrary(['RPM_IMAGE'],'${BUILDPATH}/qdss_lite',LITE_SRC)
+
+
+

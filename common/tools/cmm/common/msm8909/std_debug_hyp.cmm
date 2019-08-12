@@ -1,0 +1,91 @@
+//
+//  Description:                                                              
+//    HYP Debug Script
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 10/25/2012 AJCheriyan    Created for B-family.
+
+// Following arguments are supported. 
+// ARG0 - Image to debug. Has to be RPM for this script to be called by top level
+// ARG1 - En/Disable Sleep. LPM_ENABLE / LPM_DISABLE 
+// ARG2 - Entry point for this debug session. will default to image entry point
+//        if nothing is specified.
+// ARGn - n > 2 - Any other arguments to be passed to the script
+//
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+LOCAL &IMAGE &LPM_OPTION &BKPT
+
+
+MAIN:
+	// The arguments are valid at this point and the required T32 sessions are open
+	// Go about business without error checking
+
+	&IMAGE="&ARG0"
+	&LPM_OPTION="&ARG1"
+	&BKPT="&ARG2"
+	
+	// For RPM FW Image
+	IF ("&ARG0"=="hyp")
+	(
+	 	// We expect the device to be in 'fastdebug' mode
+		// Attach to the RPM and break
+		do std_utils BREAKPROC
+
+		// Set the cookie to enable SBL1 debug
+		DATA.SET EZAXI:&SBL1_DEBUG_COOKIE %LONG %LE &DEBUG_COOKIE_VALUE
+
+		// Let it run to boot up to SBL
+		do std_utils ATTACHPROC	
+
+		WAIT 2.s
+
+		// Attach to Apps Core 0 and break
+		do std_intercom_do &APPS0_PORT std_utils BREAKPROC
+
+	 	// Select the path to the elf
+		&ELFFILE="&TZ_BUILDROOT/&HYP_ELF"
+		
+	    // Load the TZ elf
+	    INTERCOM.EXECUTE &APPS0_PORT D.LOAD.ELF &ELFFILE /nocode /noclear /strippart "trustzone_images" /sourcepath "&TZ_BUILDROOT/trustzone_images"
+
+		// Change the fastdebug variable
+		do std_exitfastdebug sbl1
+
+		// Now user has selected the elf. Let's check if the symbol is present
+		INTERCOM.EVALUATE &APPS0_PORT Y.EXIST("&BKPT")			
+		IF (1==EVAL())
+		(
+			// Go to user determined breakpoint
+			INTERCOM.EXECUTE &APPS0_PORT GO &BKPT /O
+		)
+		ELSE
+		(
+			// Go to known point
+		    ;INTERCOM.EXECUTE &APPS0_PORT GO tzbsp_entry_handler /O
+			INTERCOM.EXECUTE &APPS0_PORT GO tzbsp_setup_initial_ns_env /O
+
+		)
+	
+	)
+
+	GOTO EXIT
+
+EXIT:
+	ENDDO
+
+FATALEXIT:
+	END
+
+
+		

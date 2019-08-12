@@ -1,0 +1,109 @@
+#===============================================================================
+#
+# efs_async_put Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2013 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$  $DateTime$  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who  what, where, why
+# ----------  ---  -------------------------------------------------------------
+# 2013-02-22  nr   Bring in changes to remove deprecated api "AddLibsToImage".
+# 2012-05-07  wek  Add DAL to the require api list.
+# 2012-01-04  dks  Rename USES flag USES_EFS_ASYNC_PUT to USES_FS_ASYNC_PUT.
+# 2011-11-21  dks  Create
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_FS'])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/efs_async_put/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'STORAGE',
+   # needs to be last as it may contain wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# AMSS source files
+#-----------------------------------------------------------------------------
+
+EFS_ASYNC_PUT_SOURCES = [
+    '${BUILDPATH}/fs_async_put.c',
+    '${BUILDPATH}/fs_async_put_task.c',
+]
+
+#-------------------------------------------------------------------------------
+# EFS_ASYNC_PUT config
+#-------------------------------------------------------------------------------
+
+if 'USES_FS_ASYNC_PUT' in env:
+  env.Append(CPPDEFINES = ["FEATURE_FS_ASYNC_PUT"])
+if 'USES_RCINIT' in env:
+  env.Append(CPPDEFINES = ["FEATURE_EFS_USE_RCINIT"])
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+EFS_ASYNC_PUT_IMAGES = [
+	'MODEM_IMAGE',
+	'CBSP_MODEM_IMAGE',
+	'SINGLE_IMAGE',
+	'CBSP_SINGLE_IMAGE',
+	'QDSP6_SW_IMAGE',
+	'CBSP_QDSP6_SW_IMAGE',
+	'CORE_GSS',
+]
+
+if 'USES_FS_ASYNC_PUT' in env:
+  env.AddLibrary(EFS_ASYNC_PUT_IMAGES,'${BUILDPATH}/efs_async_put', EFS_ASYNC_PUT_SOURCES)
+
+#-------------------------------------------------------------------------------
+# RCINIT Initialization of the fs_async_put task
+#-------------------------------------------------------------------------------
+
+if ('USES_RCINIT' in env) and ('USES_FS_ASYNC_PUT' in env):
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', 'CORE_GSS']
+  env.AddRCInitTask(           # FS_ASYNC_PUT
+   RCINIT_IMG,                 # define TMC_RCINIT_REXTASK_FS_ASYNC_PUT
+   {
+     'sequence_group'             : 'RCINIT_GROUP_1',    # depends on fs_task
+     'thread_name'                : 'fs_async_put',
+     'thread_entry'               : 'fs_async_put_task',
+     'stack_size_bytes'           : '4096',              #processing task calls efs_API
+     'priority_amss_order'        : 'SHARED_IDLE_SERVICE_PRI_ORDER',
+     'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+   })

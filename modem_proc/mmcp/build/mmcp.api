@@ -1,0 +1,94 @@
+#===============================================================================
+#
+# Modem MCS API wrapper script
+#
+# GENERAL DESCRIPTION
+#    build script to load API's for modem/mmode
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: 2012/05/02 18:32:49 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/04/12   jgr     Add moved public files
+# 07/10/10   enj     Initial revision
+#
+#===============================================================================
+Import('env')
+
+if env.PathExists('${BUILD_ROOT}/mmcp'):
+    env.Replace(MMCP_ROOT = '${INC_ROOT}/mmcp')
+else:    
+    env.Replace(MMCP_ROOT = '${INC_ROOT}/modem/mmcp')
+
+
+env.PublishPublicApi('MMCP',    [ '${MMCP_ROOT}/api', ])
+env.PublishPublicApi('PUBLIC',  [ '${MMCP_ROOT}/api/public', ])
+env.PublishPublicApi('PRIVATE', [ '${MMCP_ROOT}/api/public/private', ])
+
+
+env.PublishRestrictedApi('VIOLATIONS',[
+        '${INC_ROOT}/utils/osys',
+        '${INC_ROOT}/wcdma/l1/offline/inc',
+        '${INC_ROOT}/tdscdma/mac/inc',
+        '${INC_ROOT}/tdscdma/l1/inc',
+        '${INC_ROOT}/tdscdma/rrc/inc',
+        '${INC_ROOT}/myps/api',
+        '${INC_ROOT}/wcdma/rrc/inc',
+        '${INC_ROOT}/wcdma/cust/inc',
+        '${INC_ROOT}/tdscdma/rlc/inc',
+        '${INC_ROOT}/wcdma/mac/inc',
+        '${INC_ROOT}/wcdma/rlc/inc',
+        '${INC_ROOT}/wcdma/variation/inc',
+        '${INC_ROOT}/tdscdma/rrc/inc/ASN1/on_target',
+        '${INC_ROOT}/tdscdma/cust/inc',
+        '${INC_ROOT}/tdscdma/l2/inc',
+        '${INC_ROOT}/tdscdma/variation/inc',
+        '${INC_ROOT}/hdr/common/api',
+        '${INC_ROOT}/hdr/cp/api',
+        '${INC_ROOT}/geran/cust/inc',
+        '${INC_ROOT}/datamodem/cust/inc',
+        '${INC_ROOT}/hdr/cust/inc',
+        '${INC_ROOT}/datamodem/variation/inc',
+        '${INC_ROOT}/datamodem/interface/qmidata/inc',
+        '${INC_ROOT}/hdr/mac/api',
+        '${INC_ROOT}/hdr/srch/api',
+        '${INC_ROOT}/hdr/variation/inc',
+        '${INC_ROOT}/geran/variation/inc',
+        '${INC_ROOT}/datamodem/interface/qmicore/inc',
+        '${INC_ROOT}/1x/cust/inc',
+        '${INC_ROOT}/fw/api/common',
+        '${INC_ROOT}/utils/fc/inc',
+        '${INC_ROOT}/1x/variation/inc',
+        ])
+
+
+env.PublishRestrictedApi('MMODE',  ["${INC_ROOT}/modem/mmcp/api"])
+env.PublishRestrictedApi('NAS',    ["${INC_ROOT}/modem/mmcp/api"])
+env.PublishRestrictedApi('WMS',    ["${INC_ROOT}/modem/mmcp/api"])
+
+env.PublishPublicApi('MMODE',      ["${INC_ROOT}/modem/mmcp/api/public",
+                                    "${INC_ROOT}/modem/mmcp/api/public/private"])
+env.PublishPublicApi('NAS',        ["${INC_ROOT}/modem/mmcp/api/public"])
+env.PublishPublicApi('WMS',        ["${INC_ROOT}/modem/mmcp/wms/public"])
+env.PublishPublicApi('ECALL',      ["${INC_ROOT}/modem/mmcp/api/public"])
+
+
+env.PublishPublicApi('MMCP',[
+        '${INC_ROOT}/mmcp/api/public',
+        ])
+
+
+
+env.LoadAPIUnits()

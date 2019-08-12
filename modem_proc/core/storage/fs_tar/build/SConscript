@@ -1,0 +1,126 @@
+#===============================================================================
+#
+# fs_tar Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010-2012 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$  $DateTime$  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who  what, where, why
+# ----------  ---  -------------------------------------------------------------
+# 2013-02-22  nr   Bring in changes to remove deprecated api "AddLibsToImage".
+# 2012-05-09  wek  Add the include path for build config script.
+# 2012-03-08  wek  Rename macros and remove header files to compile for boot.
+# 2012-01-18  nr   Add changes for Avenger(8064) GSS build.
+# 2011-10-12  nr   Add FS_ZIP_TAR Feature and module.
+# 2011-06-18  wek  Add secure TAR signing/verification.
+# 2010-12-03  rp   Featurize FS-TAR module.
+# 2010-11-18  rp   Create
+#===============================================================================
+
+# Import methods to get compile time configuration.
+import sys
+Import('env')
+env = env.Clone()
+efs_scripts_path = env.RealPath('${BUILD_ROOT}/core/storage/efs/build/')
+sys.path.append(efs_scripts_path)
+
+from fs_build_config import *
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/fs_tar/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'MODEM_1X',
+   'MODEM_GERAN',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+   'MODEM_WCDMA',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'DSM',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# AMSS source files
+#-----------------------------------------------------------------------------
+
+FS_TAR_SOURCES = [
+    '${BUILDPATH}/fs_tar.c',
+    '${BUILDPATH}/fs_zip_tar.c',
+]
+
+FS_SIGNED_IMG_SOURCES = [
+    '${BUILDPATH}/fs_signed_img_param.c'
+]
+
+#----------------------------------------------------------------------------
+# Get the build configuration flags and add them to the environment
+#----------------------------------------------------------------------------
+fs_add_cpp_defines (env)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+FS_TAR_IMAGES = [
+	'MODEM_IMAGE',
+	'CBSP_MODEM_IMAGE',
+	'APPS_IMAGE',
+	'CBSP_APPS_IMAGE',
+	'SINGLE_IMAGE',
+	'CBSP_SINGLE_IMAGE',
+	'QDSP6_SW_IMAGE',
+	'CBSP_QDSP6_SW_IMAGE',
+	'CORE_GSS',
+]
+
+if 'USES_FS_TAR' in env:
+  env.AddLibrary(FS_TAR_IMAGES,'${BUILDPATH}/fs_tar', FS_TAR_SOURCES)
+  env.AddLibrary(FS_TAR_IMAGES,'${BUILDPATH}/fs_signed_img', FS_SIGNED_IMG_SOURCES)

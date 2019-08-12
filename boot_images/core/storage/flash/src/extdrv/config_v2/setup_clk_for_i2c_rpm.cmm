@@ -1,0 +1,61 @@
+;============================================================================
+;  Name:
+;    SETUP_CLK_FOR_I2C_RPM.CMM
+;
+;  Clock initialization script used by
+;   any I2C nor related tool cmm scripts
+;
+;
+;    Copyright (c) 2014 Qualcomm Technologies Incorporated.
+;    All Rights Reserved.
+;    Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/src/extdrv/config_v2/setup_clk_for_i2c_rpm.cmm#1 $
+; $DateTime: 2015/09/01 00:30:35 $
+; $Author: pwbldsvc $
+;
+;============================================================================;
+
+; GCC_BLSP1_BCR (at 0x0180100)
+;PER.S.F AD:0x01801000 %L 0x1
+
+; GCC_SNOC_PCNOC_AHB_CBCR (at 0x0182602C)
+PER.S.F AD:0x0182602C %L 0x1
+
+;GCC_PCNOC_RPM_AHB_CBCR : 0x01827024
+PER.S.F AD:0x01827024 %L 0x1
+;GCC_PCNOC_AHB_CBCR : 0x0182701C
+PER.S.F AD:0x0182701C %L 0x1
+;GCC_PCNOC_AT_CBCR : 0x01827028
+PER.S.F AD:0x01827028 %L 0x1
+; GCC_SYS_NOC_QDSS_STM_AXI_CBCR : 0x01826024
+PER.S.F AD:0x01826024 %L 0x80008000
+; GCC_SYS_NOC_AXI_CBCR : 0x01826020
+PER.S.F AD:0x01826020 %L 0x1		
+; GCC_SNOC_PCNOC_AHB_CBCR : 0x0182602C
+per.s.f AD:0x0182602C %l 0x1	
+
+
+; GCC_IMEM_AXI_CBCR (at 0x0180E004 )
+PER.S.F AD:0x0180E004  %L 0x2000CFF1
+
+; GCC_IMEM_CFG_AHB_CBCR (at 0x0180E008 )
+PER.S.F AD:0x0180E008  %L 0x20008001
+
+
+;HWIO_OUTF(GCC_RPM_CLOCK_BRANCH_ENA_VOTE, BLSP1_AHB_CLK_ENA, 1);
+PER.S.F AD:0x01836004 %L 0x0400 0x1
+;HWIO_OUTF(GCC_RPM_CLOCK_BRANCH_ENA_VOTE, BLSP1_SLEEP_CLK_ENA, 1);
+PER.S.F AD:0x01836004 %L 0x0200 0x1
+
+;GCC_BLSP1_QUP4_I2C_APPS_CFG_RCGR : 0x01805004
+;PER.S.F AD:0x01805004 %L 0x0
+
+;HWIO_OUTF(GCC_BLSP1_QUP4_I2C_APPS_CBCR, CLK_ENABLE, 1);
+PER.S.F AD:0x01805020 %L 0x1 0x1
+
+enddo

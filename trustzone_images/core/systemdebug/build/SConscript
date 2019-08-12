@@ -1,0 +1,47 @@
+#===============================================================================
+#
+# System Debug Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/systemdebug/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/08/11           Initial Version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.PublishPrivateApi('SYSDBGSPMI', [
+   "${BUILD_ROOT}/core/systemdebug/spmi/inc",
+])
+
+env.PublishPrivateApi('SYSDBGPMIC', [
+   "${BUILD_ROOT}/core/systemdebug/pmic/inc",
+   "${BUILD_ROOT}/core/systemdebug/pmic/src/target/${CHIPSET}",
+   
+])
+
+env.PublishPrivateApi('SYSDBG', [
+   "${BUILD_ROOT}/core/systemdebug/sysdbg/inc",
+   "${BUILD_ROOT}/core/systemdebug/sysdbg/src/target/${CHIPSET}",
+])
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

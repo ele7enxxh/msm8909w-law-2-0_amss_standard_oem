@@ -1,0 +1,20 @@
+#-------------------------------------------------------------------------------
+# osal (OS abstraction layer)
+#-------------------------------------------------------------------------------
+
+OSAL_SOURCES=\
+        osal_rex.c
+
+OSAL_OBJS :=  $(addprefix $(TARGETDIR)/, $(OSAL_SOURCES:%.c=%.o))
+
+vpath %.c $(OSAL_SRC)
+
+ifeq ($(BIG),yes)
+        OSAL_OBJS := $(TARGETDIR)/osal.lib
+else
+	OSAL_OBJS :=  $(addprefix $(TARGETDIR)/, $(OSAL_SOURCES:%.c=%.o))
+
+endif
+
+$(TARGETDIR)/osal.lib : $(OSAL_SOURCES)
+	$(group_c_compile)

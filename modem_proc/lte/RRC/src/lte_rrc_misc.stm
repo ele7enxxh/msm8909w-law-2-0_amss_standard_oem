@@ -1,0 +1,116 @@
+/*!
+  @file
+  lte_rrc_misc.stm
+
+  @brief
+  State machine description of Misc state machine
+
+*/
+
+/*===========================================================================
+
+  Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_misc.stm#1 $
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+
+===========================================================================*/
+
+/*===========================================================================
+
+                       STATE MACHINE DESCRIPTION
+
+This is a state machine to handle any RRC misc UMIDs.
+
+MISC handles any internal or external UMIDs to handle RRC misc operations
+with out interrupting any of RRC functionality.
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_MISC_SM
+{
+  ENTRY                                 lte_rrc_misc_sm_entry;
+  EXIT                                  NULL;
+  INITIAL_STATE                         INITIAL;
+  INSTANCES                             1;
+  ERROR_HOOK                            lte_rrc_stm_error;
+  DEBUG_HOOK                            lte_rrc_stm_debug;
+  INPUT_DEF_FILE                        lte_rrc_stm.h;
+  INPUT_DEF_FILE                        lte_rrc_int_msg.h;
+  INPUT_DEF_FILE    					lte_rrc_ext_msg.h;
+
+  /*!
+  INITIAL state: This is the normal state of operation. 
+  */
+  STATE INITIAL
+  {
+    ENTRY                               NULL;
+    EXIT                                NULL;
+
+    INPUTS
+    {
+      /* Internal to RRC */
+      LTE_RRC_CONN_ESTABLISHMENT_STARTED_INDI   lte_rrc_misc_sm_handle_procedure_start;
+      LTE_RRC_HANDOVER_STARTED_INDI             lte_rrc_misc_sm_handle_procedure_start;
+      LTE_RRC_IRAT_TO_LTE_PSHO_STARTED_INDI     lte_rrc_misc_sm_handle_procedure_start;
+      LTE_RRC_CRE_STARTED_INDI                  lte_rrc_misc_sm_handle_procedure_start;
+
+      LTE_RRC_CAMPED_INDI						            lte_rrc_misc_sm_handle_procedure_stop;
+      LTE_RRC_NOT_CAMPED_INDI					          lte_rrc_misc_sm_handle_procedure_stop;
+      LTE_RRC_CONN_REL_STARTED_INDI             lte_rrc_misc_sm_handle_procedure_stop;
+      LTE_RRC_STOPPED_INDI                      lte_rrc_misc_sm_handle_procedure_stop;      
+
+
+      /* External */
+      LTE_RRC_PROCEDURE_STATUS_REQ              lte_rrc_sm_process_procedure_status_req;          
+
+      /*! CSFB call status indication from NAS to LTE */
+      LTE_RRC_CSFB_CALL_STATUS_IND              lte_rrc_misc_sm_csfb_call_status_ind;
+
+      /*! UE Mode indication from NAS */
+      LTE_RRC_UE_MODE_IND                       lte_rrc_misc_sm_handle_ue_mode_ind;
+
+      /*! NV refresh indi via MCFG callback */
+      LTE_RRC_NV_REFRESH_INDI                   lte_rrc_misc_sm_handle_nv_refresh_indi;
+
+      /*! TRM high priority timer expiry */
+      LTE_RRC_TRM_HIGH_PRIORITY_TMRI        lte_rrc_misc_sm_handle_trm_high_priority_tmri;
+
+      /*! IRAT Capability indicated by NAS */
+      LTE_RRC_IRAT_CAPABILITY_REQ               lte_rrc_misc_sm_handle_irat_capability_req;
+
+      /*! CNF from ML1 for change, not received if deactivated */
+      LTE_RRC_COMMON_MSIM_CRAT_FEATURE_CNF      lte_rrc_misc_sm_handle_msim_crat_feat_cnf;
+
+      /*! CPHY Stop indicated by ML1 */
+      LTE_CPHY_STOP_CNF                        lte_rrc_misc_sm_handle_cphy_stop_cnf;
+      POLICYMAN_CFG_UPDATE_MSIM_IND             lte_rrc_misc_sm_handle_freq_list_update_ind;
+    }
+  }
+
+ }

@@ -1,0 +1,59 @@
+#=================================================================
+# VS SConscript
+#=================================================================
+Import('env')
+
+env = env.Clone()
+
+VSSRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', VSSRCPATH, duplicate=0)
+
+env.Append(CPPDEFINES = [
+    "MSG_BT_SSID_DFLT=MSG_SSID_VS",
+])
+
+#env.RequireExternalApi([  
+#   'MODEM_API',
+#])
+
+env.RequirePublicApi([  
+   'MMUTILS',
+   'VS',
+])
+
+#env.RequirePublicApi([  
+#   'WCDMA',
+#   'MMODE',
+#   'UTILS',
+#   'MCS',
+#   'GERAN',
+#   'TDSCDMA',
+#], area='MODEM')
+
+#env.RequireRestrictedApi([ 
+#    'VOCSVC',
+#])
+
+VS_SOURCES = [   
+  '${BUILDPATH}/vs.c',
+  '${BUILDPATH}/vs_voc.c',
+  '${BUILDPATH}/vs_vocamr.c',
+  '${BUILDPATH}/vs_vocamrwb.c',
+  '${BUILDPATH}/vs_vocefr.c',
+  '${BUILDPATH}/vs_vocfr.c',
+  '${BUILDPATH}/vs_vochr.c',
+  '${BUILDPATH}/vs_vocevrca.c', 
+  '${BUILDPATH}/vs_vocevrcb.c',
+  '${BUILDPATH}/vs_vocevrcwb.c',
+  '${BUILDPATH}/vs_vocevrcnw.c',
+  '${BUILDPATH}/vs_vocevrcnw2k.c',
+  '${BUILDPATH}/vs_vocqcelp13k.c',
+  '${BUILDPATH}/vs_vocg729.c',
+  '${BUILDPATH}/vs_vocg711alaw.c',
+  '${BUILDPATH}/vs_vocg711mulaw.c',   
+]
+
+IMAGES = ['MULTIMEDIA_MODEM', 'MULTIMEDIA_QDSP6_SW']
+
+env.AddLibrary(IMAGES, ('${BUILDPATH}/vs/vs'), VS_SOURCES)
+

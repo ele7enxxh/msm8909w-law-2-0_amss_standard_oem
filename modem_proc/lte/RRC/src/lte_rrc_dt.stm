@@ -1,0 +1,164 @@
+/*!
+  @file
+  lte_rrc_dt.stm
+
+  @brief
+  This module contains the state machine description of RRC Direct Transfer.
+*/
+/*===========================================================================
+
+  Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_dt.stm#7 $
+
+when       who      what, where, why
+--------   ---      --------------------------------------------------------
+12/10/10   mm      Changes for handling SRB2 resumed indication for RLF recovery
+09/30/10   np       e1xCSFB IRAT Tunnel handling
+10/23/09   vatsac   Replaced cell change indication by lte_rrc_service_ind
+01/21/2009 vatsac   Added handler for LTE_RRC_STOPPED_INDI event
+11/18/2008 vatsac   Initial version
+===========================================================================*/
+
+/*!===========================================================================
+
+                      STATE MACHINE DESCRIPTION
+
+The state machine implements the RRC Direct Transfer messages to/from NAS.
+
+Direct transfer (DT): RRC Controller handles downlink and uplink direct 
+transfer messages from and to NAS (Non-Access Stratum) or other upper layers.
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_DT_SM
+{
+  ENTRY             lte_rrc_dt_sm_entry;
+  EXIT              NULL;
+  INITIAL_STATE     READY;
+  ERROR_HOOK        lte_rrc_stm_error;
+  DEBUG_HOOK        lte_rrc_stm_debug;
+  INPUT_DEF_FILE    lte_rrc_stm.h;
+  INPUT_DEF_FILE    lte_rrc_int_msg.h;
+  INPUT_DEF_FILE    lte_rrc_ext_msg.h;
+  INSTANCES         1;
+
+  /*!
+  Active state. In this state, the module forwards downlink DT messages to
+  NAS and processes uplink DT request message from NAS. On receiving a failure
+  confirmation from message handler due to Handover or Radio Link Failure,
+  it moves to the BLOCKED state. 
+  */
+  STATE READY
+  {
+    ENTRY           NULL;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_RRC_DL_INFORMATION_TRANSFER_DLM 
+                                    lte_rrc_dt_sm_dl_information_transfer_dlm;
+
+      LTE_RRC_CSFB_PARAMETERS_RESPONSE_CDMA2000_DLM
+                                    lte_rrc_dt_sm_cdma2000_csfb_parameters_response_dlm;
+
+      LTE_RRC_HANDOVER_FROM_EUTRA_PREPARATION_REQUEST_DLM
+                                    lte_rrc_dt_sm_ho_from_eutra_prep_req_dlm;
+
+      LTE_RRC_UL_DATA_REQ lte_rrc_dt_sm_ready_ul_data_req;
+      
+      LTE_RRC_IRAT_TUNNEL_UL_MSG_REQ lte_rrc_dt_sm_ready_irat_tunnel_ul_msg_req;
+
+      LTE_RRC_IRAT_HDR_UL_TUNNEL_MSG_REQ lte_rrc_dt_sm_ready_irat_hdr_tunnel_ul_msg_req;
+
+      /* TODO: Make function name generic */
+      LTE_RRC_UL_INFORMATION_TRANSFER_CNFI 
+                                    lte_rrc_dt_sm_ul_information_transfer_cnfi;
+
+      LTE_RRC_CSFB_PARAMETERS_REQUEST_CDMA2000_CNFI
+                                    lte_rrc_dt_sm_ul_information_transfer_cnfi;
+
+      LTE_RRC_UL_HANDOVER_PREPARATION_TRANSFER_CNFI
+                                    lte_rrc_dt_sm_ul_information_transfer_cnfi;
+
+      LTE_RRC_HANDOVER_STARTED_INDI lte_rrc_dt_sm_handover_rlf_started;
+
+      LTE_RRC_CRE_STARTED_INDI lte_rrc_dt_sm_handover_rlf_started;
+
+      LTE_RRC_CONN_RELEASED_INDI lte_rrc_dt_sm_conn_released_indi;
+
+      LTE_RRC_STOPPED_INDI lte_rrc_dt_sm_stopped;
+
+      LTE_RRC_IRAT_FROM_LTE_MOBILITY_STARTED_INDI lte_rrc_dt_sm_handover_rlf_started;
+    }
+  }
+
+  /*!
+  Failed state. In this state, the module continues to forward downlink DT 
+  messages to NAS. However the uplink DT request messages from NAS are dropped
+  and a confirmation failure with the last known cause will be sent back to NAS.
+  When an indication is received stating that the Handover/RLF condition no longer
+  exists, it transitions to READY state.
+  */
+  STATE BLOCKED
+  {
+    ENTRY           NULL;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_RRC_DL_INFORMATION_TRANSFER_DLM 
+                                    lte_rrc_dt_sm_dl_information_transfer_dlm;
+                              
+      LTE_RRC_CSFB_PARAMETERS_RESPONSE_CDMA2000_DLM
+                                    lte_rrc_dt_sm_cdma2000_csfb_parameters_response_dlm;
+
+      LTE_RRC_UL_DATA_REQ lte_rrc_dt_sm_blocked_ul_data_req;
+      
+      LTE_RRC_IRAT_TUNNEL_UL_MSG_REQ lte_rrc_dt_sm_blocked_irat_tunnel_ul_msg_req;
+
+      LTE_RRC_IRAT_HDR_UL_TUNNEL_MSG_REQ lte_rrc_dt_sm_blocked_irat_hdr_tunnel_ul_msg_req;
+
+      LTE_RRC_UL_INFORMATION_TRANSFER_CNFI 
+                                    lte_rrc_dt_sm_ul_information_transfer_cnfi;
+
+      LTE_RRC_CSFB_PARAMETERS_REQUEST_CDMA2000_CNFI
+                                    lte_rrc_dt_sm_ul_information_transfer_cnfi;
+
+      LTE_RRC_UL_HANDOVER_PREPARATION_TRANSFER_CNFI
+                                    lte_rrc_dt_sm_ul_information_transfer_cnfi;
+                                    
+      LTE_RRC_SERVICE_IND           lte_rrc_dt_sm_handover_rlf_recovery_success;
+
+      LTE_RRC_SRB2_RESUMED_INDI     lte_rrc_dt_sm_handover_rlf_recovery_success;
+
+      LTE_RRC_CONN_RELEASED_INDI lte_rrc_dt_sm_handover_rlf_recovery_failure;
+
+      LTE_RRC_STOPPED_INDI lte_rrc_dt_sm_stopped;
+    }
+  }
+}
+

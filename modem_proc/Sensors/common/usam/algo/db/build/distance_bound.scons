@@ -1,0 +1,108 @@
+#===============================================================================
+#
+# Distance Bound Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2015 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#-------------------------------------------------------------------------------
+Import('env')
+from glob import glob
+from os.path import join, basename
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/usam/algo/db/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+#CBSP_API = [
+#   'DAL',
+#   'MPROC',
+#]
+
+#env.RequirePublicApi(CBSP_API, area='core')
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+#DAL_UCOS_API = [
+#   'DAL',
+#]
+#env.RequireRestrictedApi(DAL_UCOS_API)
+#env.RequirePublicApi(DAL_UCOS_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+#SENSORS_API = [
+#   'SNS_SMR',
+#   'SNS_MEMMGR',
+#   'SNS_EVMGR',
+#   'SNS_COMMON',
+#   'SNS_DEBUG_DSPS',
+#   'SNS_INT_SRVC'
+#]
+#
+#env.RequireRestrictedApi(SENSORS_API)
+
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/framework/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/util/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/algo/db/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/circbuffer/inc",
+   "${BUILD_ROOT}/Sensors/debug/inc",
+   "${BUILD_ROOT}/Sensors/common/idl/inc",
+   "${BUILD_ROOT}/Sensors/common/dl/inc",   
+   "${BUILD_ROOT}/Sensors/common/usam/algo/common/inc",
+  ])
+
+
+#--TEMP
+#env.Append(CPPPATH = [
+#   "${BUILD_ROOT}/core/mproc/qmi/qcci",
+#   "${BUILD_ROOT}/core/mproc/qmi/qcsi",
+#   "${BUILD_ROOT}/core/mproc/qmi/common",
+#   ])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+DISTANCE_BOUND_SOURCES = [
+      '${BUILDPATH}/distance_bound.c',
+      '${BUILDPATH}/distance_bound_msg.c',
+   ]
+
+algo_db_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+                                    '${BUILDPATH}/sam_algo_distance_bound',
+                                    DISTANCE_BOUND_SOURCES)
+
+# always clean sources and headers
+DISTANCE_BOUND_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/common/usam/algo/db/src')
+DISTANCE_BOUND_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/usam/algo/db/inc')
+
+# Clean sources
+env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], DISTANCE_BOUND_CLEAN_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+#if 'USES_ISLAND' in env:
+#   env.AddIslandLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], algo_db_lib)

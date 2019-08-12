@@ -1,0 +1,46 @@
+#===============================================================================
+#
+# BOOT INC PATHs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2009-2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/boot/build/boot.api#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who       what, where, why
+# --------   ---       ---------------------------------------------------------
+# 12/02/12   kedara    Initial.
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# these are accecible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('BOOT', [ 
+     "${INC_ROOT}/core/api/boot",
+     "${INC_ROOT}/core/api/boot/qfprom",
+ ])
+
+#-------------------------------------------------------------------------------
+# Publish Restricted APIs
+# these are accecible only within CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishRestrictedApi('BOOT', [
+   "${INC_ROOT}/core/boot/qfprom/hw/core_2_0",
+   "${INC_ROOT}/core/boot/qfprom/src",
+])

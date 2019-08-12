@@ -1,0 +1,55 @@
+#-------------------------------------------------------------------------------
+# ESTK 
+#-------------------------------------------------------------------------------
+ESTK_SOURCES=\
+	estk.c \
+	estk_cm_call.c \
+	estk_refresh.c \
+	estk_sups.c \
+	estk_sms.c \
+        estk_ssparser.c \
+        estk_bip.c \
+        estk_setup_menu.c
+	
+ESTK_OBJS :=  $(addprefix $(TARGETDIR)/, $(ESTK_SOURCES:%.c=%.o))
+
+vpath %.c $(ESTK_SRC)
+
+#============================================================================
+# Support for exporting the ESTK API from modem to apps
+#============================================================================
+ifeq ($(USES_EXPORT_ESTK_EXP),yes)
+  ESTK_EXP_CLIENT_SOURCES = \
+        estk_clnt.c \
+        estk_xdr.c
+
+  ESTK_EXP_SERVER_SOURCES = \
+        estk_svc.c \
+        estk_xdr.c
+
+  ESTK_EXP_CLIENT_OBJS := $(addprefix $(TARGETDIR)/, $(ESTK_EXP_CLIENT_SOURCES:%.c=%.o))
+  ESTK_EXP_SERVER_OBJS := $(addprefix $(TARGETDIR)/, $(ESTK_EXP_SERVER_SOURCES:%.c=%.o))
+
+  vpath %.h $(ESTK_INC)
+  vpath %.c $(ESTK_SRC)/rpc
+
+  ifneq ($(REMOTE_API_LOC_KNOWN),yes)
+    htorpc_estk : REMOTE_API_LOC = $(ESTK_SRC)/rpc
+    htorpc_estk : ; @$(MAKE_AGAIN)
+			@cp -f -u $(ESTK_SRC)/rpc/estk_rpc.h $(ESTK_INC)/estk_rpc.h
+  endif
+
+  HTORPC_DEPS += estk
+  HTORPC_estk_ARGS = -a estk
+endif
+
+### Start Lint block ###
+ifeq ($(DO_LINT),yes)
+
+ESTK_LINT_OBJS := $(addprefix $(LINTDIR)/, $(ESTK_SOURCES:%.c=%.lint))
+
+# Specify group target for linting estk 
+$(LINTDIR)/estk_lint : $(ESTK_LINT_OBJS)
+
+endif
+### End Lint block ###

@@ -1,0 +1,139 @@
+#===============================================================================
+#
+# TZ DRM provisioning service
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsapps/common/drmprov/shared/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/21/14   tp      Linked sme_drmprov_shared_lib to DXHDCP2_IMAGE and DXHDCP2DBG_IMAGE
+# 04/28/14   dm      Deprecated DIAG provisioning APIs
+# 04/17/14   rk      Added new path for app_common_svc_handler.h
+# 04/17/14   rk      Moved out of tzdrm
+# 10/22/13   wt      Added path for oem prov implementation files
+# 10/07/13   wt      Added API path for provisioning
+# 01/15/13   cz      Used BUILDPATH and added config section
+# 12/17/12   cz      Added drmprov to the playready image
+# 06/01/12   cz      Split tzapps to drmprov and other images
+# 05/10/12   rk      Moved provisioning code out of playready.
+# 12/22/11   kr      Update for CR#326083.
+# 11/16/11   cz      Added path /config/shared/inc to including directories
+# 02/23/10   cz      Added Drm Provisioning Scons
+# 02/22/10   cm      Initialized
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/common/drmprov/shared"
+
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --arm')
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${COREBSP_ROOT}/api/services",
+   "${COREBSP_ROOT}/api/securemsm/trustzone/qsee",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsee/include/crypto/",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/common/drmprov/shared/inc",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/inc",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/scheduler/shared/inc",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/scheduler/shared/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/crypto/shared/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/config/shared/inc",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/config/shared/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/services/src/",   
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/common/app_common_svc/shared/inc",   
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/applib/qsee/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsee/sec_app/inc",
+   "${COREBSP_ROOT}/api/kernel/libstd/stringl",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/common/drmprov/oem/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES'
+]
+
+env.RequirePublicApi(CBSP_API)
+
+#----------------------------------------------------------------------------
+# DRMPROV Shared Library
+#----------------------------------------------------------------------------   
+
+SME_DRMPROV_SHARED_LIB_SOURCES = [
+	'${BUILDPATH}/src/drm_generic_prov.c',
+	'${BUILDPATH}/src/drmprov_entry.c',
+]
+
+sme_drmprov_shared_lib = '${BUILDPATH}/sme_drmprov_shared'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary (['PLAYREADY_IMAGE'],sme_drmprov_shared_lib, [SME_DRMPROV_SHARED_LIB_SOURCES])
+env.AddBinaryLibrary (['WIDEVINE_IMAGE'],sme_drmprov_shared_lib, [SME_DRMPROV_SHARED_LIB_SOURCES])
+env.AddBinaryLibrary (['DXHDCP2_IMAGE'],sme_drmprov_shared_lib, [SME_DRMPROV_SHARED_LIB_SOURCES])
+env.AddBinaryLibrary (['DXHDCP2DBG_IMAGE'],sme_drmprov_shared_lib, [SME_DRMPROV_SHARED_LIB_SOURCES])
+
+
+#-------------------------------------------------------------------------------
+# Customer Config Section
+#
+# If customers want to use the provisioning component, setup the following steps
+# 1> replace the build flavor "AAAAANAA" below with the flavor that the customer build uses 
+#-------------------------------------------------------------------------------
+sme_drmprov_shared_customer_lib = '${BUILDPATH}/build/playready/scorpion/AAAAANAA/sme_drmprov_shared'
+#-------------------------------------------------------------------------------
+# 2> replace CUSTOMER_IMAGE with the customer's own image name
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary (['CUSTOMER_IMAGE'],sme_drmprov_shared_customer_lib, [SME_DRMPROV_SHARED_LIB_SOURCES])
+
+#-------------------------------------------------------------------------------
+# DRM Provisioning Support for Enterprise Security TQS module
+#-------------------------------------------------------------------------------
+sme_drmprov_shared_customer_lib = '${BUILD_ROOT}/core/securemsm/trustzone/qsapps/enterprise/tqs/build/tqs/scorpion/AAAAANAA/sme_drmprov_shared'
+env.AddBinaryLibrary (['TQS_IMAGE'],sme_drmprov_shared_customer_lib, [SME_DRMPROV_SHARED_LIB_SOURCES])
+
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+NOSHIP_SOURCES = env.FindFiles("*", SRCPATH + "/inc")
+env.CleanPack('PLAYREADY_IMAGE', NOSHIP_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

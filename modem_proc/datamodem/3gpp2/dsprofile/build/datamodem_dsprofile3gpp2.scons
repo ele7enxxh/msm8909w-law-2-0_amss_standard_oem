@@ -1,0 +1,133 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/data/1x/dsprofile3gpp2/complete/rel/10.02.02/build/data_1x_dsprofile3gpp2.scons#2 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_CDMA' not in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+	
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_DS",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    'ECALL',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate source and add to an image
+#-------------------------------------------------------------------------------
+DSPROFILE3GPP2_FILES = glob(SRCPATH + '/src/*.c')
+DSPROFILE3GPP2_SOURCES = []
+
+for filename in DSPROFILE3GPP2_FILES:
+   DSPROFILE3GPP2_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/dsprofile3gpp2',[DSPROFILE3GPP2_SOURCES, ])

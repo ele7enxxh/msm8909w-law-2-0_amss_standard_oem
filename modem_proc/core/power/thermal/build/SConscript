@@ -1,0 +1,147 @@
+#===============================================================================
+#
+# Thermal Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$
+#  $DateTime$
+#  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/15/13   clm     Added support to query commands/TLVs supported by service
+# 08/30/11   clm     Initial version.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+if env['MSM_ID'] in ['8962']:
+   Return()
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/power/thermal/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#------------------------------------------------------------------------------
+# Add extension flags
+#------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'HWENGINES',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DEBUGTOOLS',
+   'STORAGE',
+   'MPROC',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi([
+  'TMD','TS','COMMON',
+  ], area='API')
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishProtectedApi('CORE_API_KERNEL', [
+	"${INC_ROOT}/core/api/kernel/rex"
+	])
+
+env.RequireProtectedApi(['CORE_API_KERNEL'])
+env.RequireProtectedApi(['POWER_UTILS'])
+
+env.PublishProtectedApi('THERMAL_INC', [
+	"${INC_ROOT}/core/power/thermal/inc"
+	])
+
+if 'USES_THERMAL' in env:
+    if 'USES_RCINIT' in env:
+        RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+        env.AddRCInitTask(
+           RCINIT_IMG,
+             {
+                'sequence_group'            : 'RCINIT_GROUP_1',             # required
+                'thread_name'               : 'thermal',                    # required
+                'stack_size_bytes'          : '4096',                       # required
+                'priority_amss_order'      : 'THERMAL_PRI_ORDER',           # required
+                #'stack_name'               : 'thermal_stack',              # opt
+                'thread_entry'              : 'thermal_task',               # opt
+                'tcb_name'                  : 'thermal_tcb',                # opt
+                'cpu_affinity'              : 'REX_ANY_SMT_MASK',
+             })
+
+#-------------------------------------------------------------------------------
+# Target-specific setup
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8960', '9x15', '8974', '9x25', '8x26', '8x10','8926','8916','8936','8909','9609','8952','8976','9607','8937']:
+   env['THERMAL_TARGET'] = env['MSM_ID']
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+if 'USES_THERMAL' in env:
+    THERMAL_MODEM_SOURCES =  [
+        '${BUILDPATH}/common/therm_log.c',
+        '${BUILDPATH}/common/therm_monitor.c',
+        '${BUILDPATH}/common/therm_config.c',
+        '${BUILDPATH}/common/therm_mitigation_device_service.c',
+        '${BUILDPATH}/common/therm_sensor_service.c',
+        '${BUILDPATH}/common/thermal_mitigation_device_service_impl_v01.c',
+        '${BUILDPATH}/common/thermal_sensor_service_impl_v01.c',            
+        '${BUILDPATH}/os/${PLAT}/therm_os.c',
+        '${BUILDPATH}/asic/${THERMAL_TARGET}/${PROC}/therm_npa_sensor.c',
+        '${BUILDPATH}/asic/${THERMAL_TARGET}/${PROC}/therm_npa_mitigate.c',
+        '${BUILDPATH}/asic/${THERMAL_TARGET}/${PROC}/therm_target.c',
+    ]
+
+    THERMAL_APPS_SOURCES =  [
+        '${BUILDPATH}/common/therm_log.c',
+        '${BUILDPATH}/common/therm_monitor.c',
+        '${BUILDPATH}/common/therm_config.c',
+        '${BUILDPATH}/os/${PLAT}/therm_os.c',
+        '${BUILDPATH}/asic/${THERMAL_TARGET}/${PROC}/therm_npa_sensor.c',
+        '${BUILDPATH}/asic/${THERMAL_TARGET}/${PROC}/therm_npa_mitigate.c',
+        '${BUILDPATH}/asic/${THERMAL_TARGET}/${PROC}/therm_target.c',
+     ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'USES_THERMAL' in env:
+    env.AddLibrary(
+      ['CORE_MODEM', 'CORE_QDSP6_SW'],
+      '${BUILDPATH}/thermal_modem', THERMAL_MODEM_SOURCES)
+
+if 'USES_THERMAL' in env:
+    env.AddLibrary(['APPS_IMAGE'],
+      '${BUILDPATH}/thermal_apps', THERMAL_APPS_SOURCES)

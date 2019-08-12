@@ -1,0 +1,79 @@
+#===============================================================================
+#
+# SMGR  Provider Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2015 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#-------------------------------------------------------------------------------
+
+Import('env')
+from glob import glob
+from os.path import join, basename
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/usam/prov/smgr/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/prov/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/prov/smgr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/circbuffer/inc",
+   "${BUILD_ROOT}/qmimsgs/common/api",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+PROV_SMGR_SOURCES = [
+      '${BUILDPATH}/sns_sam_prov_smgr.c',
+   ]
+
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   PROV_SMGR_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/common/usam/prov/smgr/src')
+   PROV_SMGR_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/usam/prov/smgr/inc')
+
+   # Add as binary library
+   prov_smgr_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+     "${BUILDPATH}/sam_prov_smgr", PROV_SMGR_SOURCES)
+
+   # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], PROV_SMGR_CLEAN_SOURCES)
+else:
+   prov_smgr_lib = env.AddLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+     "${BUILDPATH}/sam_prov_smgr", PROV_SMGR_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to uImage
+#-------------------------------------------------------------------------------
+if 'USES_ISLAND' in env:
+   prov_smgr_sections = ['.text.PROV_SMGR', '.data.PROV_SMGR']
+   env.AddIslandLibrary(['CORE_QDSP6_SENSOR_SW'], prov_smgr_lib, prov_smgr_sections)

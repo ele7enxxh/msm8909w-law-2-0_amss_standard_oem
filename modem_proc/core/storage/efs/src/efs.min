@@ -1,0 +1,106 @@
+#-------------------------------------------------------------------------------
+# EFS (file services: PSX compatible version)
+#-------------------------------------------------------------------------------
+EFS_SOURCES=\
+        fs_api_counters.c \
+        fs_benchmark.c \
+        fs_buffer.c \
+        fs_compat.c \
+        fs_convert_utf.c \
+        fs_cookie.c \
+        fs_counters.c \
+        fs_db.c \
+        fs_desc.c \
+        fs_device.c \
+        fs_device_efs_flash.c \
+        fs_device_efs_mnand.c \
+        fs_device_efs_ramfs.c \
+        fs_device_efs_rmts.c \
+        fs_device_ftl_flash.c \
+        fs_device_otp_flash.c \
+        fs_device_read_pointer_cache.c \
+        fs_diag.c \
+        fs_diag_access.c \
+        fs_diag_golden_copy_handler.c \
+        fs_efs2.c \
+        fs_efs2_names.c \
+        fs_errno.c \
+        fs_estdio.c \
+        fs_ext_hfat.c \
+        fs_extfs.c \
+        fs_factory.c \
+        fs_flash_dal_shim.c \
+        fs_ftl.c \
+        fs_ftl_cache.c \
+        fs_global_lock.c \
+        fs_inode.c \
+        fs_journal.c \
+        fs_lib.c \
+        fs_logr.c \
+        fs_malloc.c \
+        fs_mnand_bird_view.c \
+        fs_mnand_log.c \
+        fs_mnand_pcache.c \
+        fs_mnand_pm.c \
+        fs_mnand_ptbl.c \
+        fs_mnand_region.c \
+        fs_mnand_super.c \
+        fs_mount.c \
+        fs_namei.c \
+        fs_nodev.c \
+        fs_osal.c \
+        fs_otp.c \
+        fs_otp_pcache.c \
+        fs_pathbuff.c \
+        fs_pm.c \
+        fs_pm_gc.c \
+        fs_pm_log.c \
+        fs_pm_ptable_nand.c \
+        fs_pm_ptable_nor.c \
+        fs_pm_super.c \
+        fs_privatedir.c \
+        fs_profile.c \
+        fs_profile_config.c \
+        fs_profile_extensive.c \
+        fs_public.c \
+        fs_ramfs_pm.c \
+        fs_realpath.c \
+        fs_rmts_guid.c \
+        fs_rmts_image_header.c \
+        fs_rmts_pm.c \
+        fs_rmts_super.c \
+        fs_rollback.c \
+        fs_romfs.c \
+        fs_stdio.c \
+        fs_sync.c \
+        fs_task.c \
+        fs_timetick.c \
+        fs_timings.c \
+        fs_unicode.c \
+        fs_unicode_sjis.c \
+        fs_unicode_utf8.c \
+        fs_upgrade.c \
+        fs_util.c \
+        fs_vnode.c \
+        fs_zip.c \
+        fs_zip_malloc.c \
+        #end
+
+vpath %.h $(EFS)
+vpath %.c $(EFS)
+vpath %.s $(EFS)
+
+ifeq ($(BIG),yes)
+        EFS_OBJS := $(TARGETDIR)/efs.lib
+else
+        EFS_OBJS :=  $(addprefix $(TARGETDIR)/, $(EFS_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/efs.lib : $(EFS_SOURCES)
+	$(group_c_compile)
+
+ifeq ($(DO_LINT),yes)
+    EFS_LINT_OBJS := $(addprefix lint/, $(EFS_SOURCES:%.c=%.lint))
+    $(EFS_LINT_OBJS) : LINT_FLAGS := $(LINT_FLAGS) efs.lnt
+    lint/efs_lint : $(EFS_LINT_OBJS)
+endif

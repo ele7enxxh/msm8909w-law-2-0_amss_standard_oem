@@ -1,0 +1,61 @@
+#===============================================================================
+#
+# TZ Drivers TLMM
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsee/drivers/tlmm/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $ 
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/11/12   tk      initial version
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/drivers/tlmm/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(['SERVICES', 'SYSTEMDRIVERS', 'DAL'])
+env.RequireRestrictedApi([
+   'KERNEL',                            #< HALxpu2.h
+   'TZCHIPSET',                         #< tzbsp_hwio.h
+])
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+TZ_CHIPSET_LIB_SOURCES = [
+  '${BUILDPATH}/src/tzbsp_hwid.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddBinaryLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_drivers_tlmm', TZ_CHIPSET_LIB_SOURCES)

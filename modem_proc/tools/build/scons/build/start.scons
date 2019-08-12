@@ -1,0 +1,47 @@
+'''Starting SCons Build Script'''
+#===============================================================================
+#
+# Starting SCons Build Script
+#
+# GENERAL DESCRIPTION
+#    Starting SCons Build Script
+#
+# Copyright (c) 2009-2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/tools/build/scons/build/start.scons#1 $
+#
+#===============================================================================
+import os
+import os.path
+#import time
+
+print "--------------------------------------------------------------------" \
+    "----------"
+print "   Loading QC-SCons Build System"
+print "--------------------------------------------------------------------" \
+    "----------"
+
+#------------------------------------------------------------------------------
+# Get system Environment
+#------------------------------------------------------------------------------
+ENV = DefaultEnvironment(ENV = os.environ, tools = ['mingw'])
+
+ENV = ENV.Clone()
+
+#------------------------------------------------------------------------------
+# Set global variables and defaults
+#------------------------------------------------------------------------------
+
+ENV.Replace(BUILD_ROOT  = \
+    os.path.abspath(os.environ.get('SCONS_BUILD_ROOT',  '../../')))
+ENV.Replace(TARGET_ROOT = \
+    os.path.abspath(os.environ.get('SCONS_TARGET_ROOT', '../../../')))
+
+#t_start = time.clock()
+ENV.Tool('ComSConstruct', toolpath = ['${BUILD_ROOT}/tools/build/scons/build'])
+#t_end = time.clock()
+#print "** SConstruct Elapsed time = " + str(round(t_end - t_start, 3))

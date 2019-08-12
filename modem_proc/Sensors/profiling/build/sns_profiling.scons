@@ -1,0 +1,158 @@
+#===============================================================================
+#
+# PROFILING Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2016 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/02/2016  mb     QDSS support fixed - moved items to Sensors.scons
+# 02/24/2015  pn     Updated SMGR QDSS events
+# 12/10/2014  MW     Fixed HD22 section
+# 11/24/2014  pn     Added SNS_SMGR_COPY_DEPOT event
+# 10/06/2014  jhh    Added events for PM
+# 10/02/2014  pn     Added SNS_RH_RPT_TIMER_SET event
+# 09/23/2014  pn     Added events for RH
+# 06/05/2014  VY     Updated scons for uImage tagging
+# 04/18/2014  sc     Removed target-specific folders
+# 04/04/2014  MW     Added SENSORS_DD_DEV_FLAG for HD22
+# 01/27/2014  hw     Add QDSS SW events for sam_algo_update when dependent algo
+#                    input received
+# 10/31/2013  hw     Add QDSS SW events and support for Sensors' logging
+# 06/25/2013  ps     update require method for Public APIs
+# 12/31/2012  hw     Initial version of smgr profiling code
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/profiling/src"
+
+#if not env.SubstPathExists(SRCPATH):
+#   # Legay Path
+#   SRCPATH = "${BUILD_ROOT}/Sensors/profiling"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+  ])
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'AUDIO_AVS',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'SYSTEMDRIVERS',
+   'HWIO',
+   'HWIO_API',
+   'SERVICES',
+   'BUSES',
+   'POWER',
+   'DEBUGTRACE',
+    # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+#env.RequireExternalApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CBSP_API, area='core')
+
+env.UsesInc([
+   "${HWIO}",
+   "${HWIO_API}",
+])
+
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/dsps/src/common",
+   "${BUILD_ROOT}/Sensors/pm/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/profiling/inc",
+])
+
+#if env.has_key('DAL_UCOS_TEST'):
+ # env.Append(CPPPATH = [
+  #   "${BUILD_ROOT}/Sensors/ddf/inc",
+   #  "${BUILD_ROOT}/Sensors/dd/inc",
+    # "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+ # ])
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+PROFILING_SOURCES = [
+      '${BUILDPATH}/sns_profiling.c',
+   ]
+
+PROFILING_UIMG_SOURCES = [
+      '${BUILDPATH}/sns_profiling_uimg.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   PROFILING_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/profiling/src')
+   PROFILING_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/profiling/inc')
+
+   # Add binary library
+   profiling_lib = env.AddBinaryLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'CORE_QDSP6_SENSOR_SW'],
+   "${BUILDPATH}/PROFILING", PROFILING_SOURCES)
+   
+   profiling_uimg_lib = env.AddBinaryLibrary(
+   ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   '${BUILDPATH}/PROFILING_UIMG', PROFILING_UIMG_SOURCES)
+
+   # Clean sources
+   env.CleanPack(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'CORE_QDSP6_SENSOR_SW'], PROFILING_CLEAN_SOURCES)
+else:
+   profiling_obj = env.Object(PROFILING_SOURCES)
+   profiling_lib = env.Library('${BUILDPATH}/PROFILING', profiling_obj)
+   env.AddLibsToImage(
+   ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   profiling_lib)
+
+   profiling_uimg_lib = env.AddLibrary(
+   ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   '${BUILDPATH}/PROFILING_UIMG', PROFILING_UIMG_SOURCES)
+
+# clause common to regular build and HD22   
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary(['CORE_QDSP6_SENSOR_SW'], profiling_uimg_lib)
+

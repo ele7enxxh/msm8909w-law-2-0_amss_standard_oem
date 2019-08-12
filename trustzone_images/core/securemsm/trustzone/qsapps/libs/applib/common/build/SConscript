@@ -1,0 +1,93 @@
+#===============================================================================
+#
+# App Core
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains schedulerents describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/libs/applib"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+# env.Append(ARMCC_OPT = ' --arm')
+env.Append(CCFLAGS = " --restrict -O3 -OTime ")
+
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/applib/common/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/services/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/include",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/mink/include",
+   "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+   "${INC_ROOT}/core/securemsm/secmath/shared/inc",
+   "${INC_ROOT}/core/securemsm/secrsa/shared/inc",
+   "${INC_ROOT}/core/securemsm/secrsa/shared/src",
+   "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+   "${INC_ROOT}/core/api/securemsm/crypto",
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/api/dal",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/ecc/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/core/ecc/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/environment/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/aes/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/des/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/core/aes/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/sha/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/core/sha/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/ecc_generic/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/core/ecc_generic/inc",
+])
+
+#----------------------------------------------------------------------------
+# App core Objects
+#----------------------------------------------------------------------------
+#APP_CORE_ENTRY_SOURCES = [
+#        '${BUILD_ROOT}/core/securemsm/trustzone/qsapps/libs/applib/qsee/src/qsee_crypto_shim.c',
+APP_CORE_ENTRY_SOURCES_NO_SHIP = [
+        '${BUILDPATH}/common/src/cmnlib_syscall.s',
+        '${BUILDPATH}/common/src/cmnlib_entry.s',
+        '${BUILDPATH}/common/src/cmnlib_comstr.c',
+        '${BUILDPATH}/common/src/cmnlib_main.c',        
+        '${BUILDPATH}/common/src/cmnlib_secmath_wrapper.c',
+        '${BUILDPATH}/common/src/cmnlib_secrsa_wrapper.c',
+        '${BUILDPATH}/common/src/cmnlib_services_wrapper.c',
+        '${BUILDPATH}/common/src/cmnlib_ecc_wrapper.c',
+        '${BUILDPATH}/common/src/cmnlib_ufaes_wrapper.c',
+        '${BUILDPATH}/common/src/cmnlib_ufdes_wrapper.c',
+        '${BUILDPATH}/common/src/cmnlib_ufsha_wrapper.c',
+        '${BUILDPATH}/qsee/src/qsee_crypto_shim.c',
+        '${BUILDPATH}/qsee/src/qsee_counter_shim.c'
+]
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryObject('CTZL_IMAGE', APP_CORE_ENTRY_SOURCES_NO_SHIP)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

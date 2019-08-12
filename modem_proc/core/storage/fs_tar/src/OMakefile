@@ -1,0 +1,72 @@
+# Build rules for libfs_tar.
+
+.DEFAULT: libfs_tar.a
+
+FS_TAR_MODULES = \
+        fs_tar \
+        fs_signed_img_param \
+        fs_zip_tar \
+        #end
+
+# Flags for fs_tar:
+CFLAGS += -Werror
+CFLAGS += -std=c99 -pedantic
+
+
+if $(defined-env CALLGRAPH)
+    CFLAGS += -finstrument-functions
+    CFLAGS += -DENABLE_INSTRUMENT_FUNCTIONS
+    CFLAGS += -D'CALLGRAPH_OUTPUT_FILE="$(EXENAME)"'
+    export
+
+INCLUDES += $(dir $(ROOT)/efs/api)
+INCLUDES += $(dir $(ROOT)/efs/inc)
+INCLUDES += $(dir $(ROOT)/fs_tar/inc)
+INCLUDES += $(dir $(ROOT)/fs_tar/src)
+
+CFLAGS_BASE = $(CFLAGS)
+
+StaticCLibrary (libfs_tar, $(FS_TAR_MODULES))
+
+######################################################################
+# Linting.
+
+# Lint needs the GCC specific search dirs.  To start with, just grab the
+# GCC install base.
+GCC_BASE = $(shell $(CC) --print-search-dirs | grep 'install:' | \
+             sed 's/install: //')
+
+LINT = flint
+# Start the LINT_FLAGS with what is specified in the build-config file.
+LINT_FLAGS = $(CFG_LINT_FLAGS)
+
+LINT_DEPS =
+LINT_DEPS += $(file $(ROOT)/etc/lint/co-gnu3.lnt)
+LINT_DEPS += $(file $(ROOT)/efs/src/efs.lnt)
+LINT_DEPS += $(file $(ROOT)/etc/lint/off-target.lnt)
+LINT_DEPS += $(file $(ROOT)/etc/lint/amss_std.lnt)
+
+LINT_FLAGS += $(LINT_DEPS)
+
+LINT_FLAGS += -I$(dir $(ROOT)/efs/api)
+LINT_FLAGS += -I$(dir $(ROOT)/efs/inc)
+LINT_FLAGS += -I$(dir $(ROOT)/fs_tar/inc)
+LINT_FLAGS += -I$(dir $(ROOT)/fs_tar/src)
+LINT_FLAGS += -I$(dir $(ROOT)/csupport)
+LINT_FLAGS += -I$(dir $(ROOT)/flash-1.0)
+LINT_FLAGS += -I$(dir $(GCC_BASE)/include)
+LINT_FLAGS += -I/usr/include
+
+# Needed, until buffer removes the MD5 stuff.
+LINT_FLAGS += -I$(OCAML_BASE)
+
+LINT_FLAGS += -DFS_STANDALONE
+
+section
+        CFILES = $(addsuffix .c, $(FS_TAR_MODULES))
+        fs_tar_lint.stamp: $(CFILES) $(LINT_DEPS)
+                rm -f fs_tar_lint.stamp
+                $(LINT) $(LINT_FLAGS) $(CFILES)
+                touch fs_tar_lint.stamp
+######################################################################
+

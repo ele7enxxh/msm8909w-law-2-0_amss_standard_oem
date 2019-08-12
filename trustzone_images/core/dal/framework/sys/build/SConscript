@@ -1,0 +1,97 @@
+#===============================================================================
+#
+# DAL SYS Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009 - 2012 Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/dal/framework/sys/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/16/12   sc      Updated for 9x25
+# 02/24/12   sc      Removed non TZOS_IMAGE and updated using AddLibrary
+# 03/09/11   sc      Changed the "\" to "/" for spsconfig.h path
+# 01/25/11   sho     Restore TZ support for 8960 and 8660
+# 01/17/11   sc      Corrected the TARGET_NAME with CORE_RPM/RPM_IMAGE
+# 01/11/11   sho     Removed TZOS_IMAGE
+# 12/16/10   sc      Added ucso to be part of DAL DSPS
+# 11/10/10   pg      Header file paths for integration of DALSys heap to
+#                    sensors memmgr.
+# 11/04/10   sc      Fixed M8960 DALRemote link error
+# 10/28/10   sc      Incorporated RPM changes
+# 09/23/10   sc      Added SBL1_BOOT_IMAGE
+# 09/20/10   vk      Added support for NOR_TOOLS_IMAGE
+# 07/14/10   sc      Added support for busy wait
+# 07/13/10   sc      Added support for RPM_IMAGE
+# 07/08/10   sc      Updated with CORE_SPS and CORE_RPM
+# 07/07/10   sho     Added support for WCN_IMAGE
+# 06/03/10   sc      Added check for err.h
+# 04/20/10   sho     Added TZOS_IMAGE
+#
+#===============================================================================
+import os
+Import('env')
+env = env.Clone()
+
+if 'USES_NESSUS' in env or 'USES_BMPOS_QNK' in env:
+   Return()
+if env.has_key('TZOS_IMAGE'):
+    env.Append(CPPDEFINES = ["DAL_CONFIG_MMU_SCHEME=DAL_CONFIG_MMU_SCHEME_NONE"])
+else:
+   env.Append(CPPDEFINES = ["DAL_CONFIG_MMU_SCHEME=DAL_CONFIG_MMU_SCHEME_L4_PMEM"])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${DAL_ROOT}/framework/sys/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DEBUGTOOLS',
+   'SERVICES',
+   'MPROC',
+    'SYSTEMDRIVERS',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireRestrictedApi('DAL')
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+
+# define flag to determine which busy wait to be invoked
+env.Append(CPPDEFINES = ["DAL_SYSDRV_BUSYWAIT"])
+if env.PathExists("${BUILD_ROOT}/core/api/debugtools/err.h"):
+   env.Append(CPPDEFINES = ["DAL_ERR_LOG"])
+
+DALSYS_TZ_SOURCES = [
+   '${BUILDPATH}/tz/DALModEnv.c',
+   '${BUILDPATH}/tz/DALProps.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary('TZOS_IMAGE', '${BUILDPATH}/DALSys_tz', DALSYS_TZ_SOURCES)

@@ -1,0 +1,49 @@
+#===============================================================================
+#
+# DAL CONFIG Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/dal/config/build/SConscript#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/25/11   sho     Restore TZ for 8660 and 8960
+# 01/11/11   sho     Removed TZOS_IMAGE
+# 12/07/10   sc      Added APPS_PROC in check for 8960
+# 12/02/10   sc      Added check for 8960 to use the correct modem/dsp dir
+# 10/25/10   sc      Added KERNEL_MEMORYMANAGER
+# 09/23/10   sc      Added SBL1_BOOT_IMAGE
+# 09/20/10   vk      Added support for NOR_TOOLS_IMAGE
+# 07/13/10   sc      Added support for RPM_IMAGE
+# 07/08/10   sc      Updated with CORE_SPS and CORE_RPM
+# 04/20/10   sho     Added TZOS_IMAGE
+# 03/24/10   wd      Added dependencies to have SCons rebuild when needed.
+# 05/06/09   wd      Create
+#
+#===============================================================================
+Import('env')
+import os, glob
+env = env.Clone()
+
+if env.GetUsesFlag('USES_MBA') is True:
+      script_fname = "mba.script"
+      env.SConscript(script_fname, exports='env')
+else:
+   script_fname = "modem.script"
+   env.SConscript(script_fname, exports='env')
+

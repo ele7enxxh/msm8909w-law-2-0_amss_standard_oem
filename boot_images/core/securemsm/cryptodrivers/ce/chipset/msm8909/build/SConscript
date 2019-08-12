@@ -1,0 +1,116 @@
+#===============================================================================
+#
+# Crypto Driver Chipset Library
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012 - 2013 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/securemsm/cryptodrivers/ce/chipset/msm8909/build/SConscript#2 $
+#  $DateTime: 2015/09/13 23:33:33 $
+#  $Author: pwbldsvc $
+#  $Change: 9017835 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/13/13    nk     Fixing 8x26, 8x10 Pack compilation by not cleaning the whole ce/chipset directory 
+# 07/04/12    nk     Initial version
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('CECL', [
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/chipset/msm8909/inc',
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/environment/env/sbl1/inc',
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/environment/inc',
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/environment/src',
+])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/msm8909/src"
+HDRPATH = "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/msm8909/inc"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'BOOT',
+   'HWENGINES',
+   'POWER',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+env.Append(ARMCC_CODE = " ${ARM_SPLIT_SECTIONS}")
+env.Replace(ARMLD_NOREMOVE_CMD = "")
+
+env.Append(CPPDEFINES = ['_ARM_', '__arm', 'ARM', 'ARM_BREW_BUILD'])
+if env.has_key('BUILD_BOOT_CHAIN'):
+   env.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+CECL_LIB_SOURCES = [
+        '${BUILDPATH}/CeCL.c',
+        '${BUILDPATH}/CeCL_Ce0.c',
+]
+
+CLEAN_SOURCES = env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/mdm9x25/")
+CLEAN_SOURCES.extend(env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/msm8x10/"))
+CLEAN_SOURCES.extend(env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/msm8x26/"))
+CLEAN_SOURCES.extend(env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/apq8084/"))
+CLEAN_SOURCES.extend(env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/msm8x62/"))
+CLEAN_SOURCES.extend(env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/mdm9x35/"))
+CLEAN_SOURCES.extend(env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/mpq8092/"))
+CLEAN_SOURCES.extend(env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/msm8974/"))
+
+env.CleanPack(['SBL1_BOOT','DEVICEPROGRAMMER_IMAGE'], CLEAN_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+#SBL1 boot library
+env.AddBinaryLibrary(['SBL1_BOOT','DEVICEPROGRAMMER_IMAGE'], '${BUILDPATH}/CeCL',  CECL_LIB_SOURCES)

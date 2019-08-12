@@ -1,0 +1,81 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+
+env = env.Clone()
+
+platform_root = '${BUILD_ROOT}/platform'
+env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+
+APIS=[
+  'PLATFORM_LIBS',
+  ]
+env.RequireRestrictedApi(APIS)
+env.RequirePublicApi(APIS)
+
+core_public_apis = [
+   'KERNEL',
+   ]
+
+env.RequirePublicApi(core_public_apis, area='core')
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}",
+   "${BUILD_ROOT}/core/kernel/qurt/config/MMv5",
+   "${BUILD_ROOT}/core/api/kernel/qube",
+   "${BUILD_ROOT}/avs/elite/qurt_elite/inc",
+   "${BUILD_ROOT}/avs/api/mmutils",
+   "${BUILD_ROOT}/avs/api/avcs/inc",
+   "${BUILD_ROOT}/qdsp6/q6mmpm/inc",
+   "${BUILD_ROOT}/qdsp6/q6mmpm/tst",
+   "${BUILD_ROOT}/qdsp6/resmgr/inc",
+   "${BUILD_ROOT}/core/kernel/qurt/install/MMv5/include/qube",
+   "${BUILD_ROOT}/core/api/debugtools",
+   "${BUILD_ROOT}/core/api/dal",
+   "${BUILD_ROOT}/core/dal/remote/inc",
+   "${BUILD_ROOT}/audio_avs/elite/qurt_elite/inc",
+#Contents from Toplevel Elite
+   "${BUILD_ROOT}/core/kernel/qurt/config/8200",
+   "${BUILD_ROOT}/core/api/kernel/qurt",
+   "${BUILD_ROOT}/core/api/services",
+   "${BUILD_ROOT}/core/api/mproc",
+   "${BUILD_ROOT}/core/buses/api/i2c",
+   "${BUILD_ROOT}/core/buses/api/spi",
+   "${BUILD_ROOT}/core/buses/api/systemdrivers",
+   "${BUILD_ROOT}/core/api/systemdrivers",
+   "${BUILD_ROOT}/core/api/power",
+   "${BUILD_ROOT}/core/api/kernel/libstd/stringl",
+   "${BUILD_ROOT}/core/api/memory",
+   "${BUILD_ROOT}/platform/inc/HAP",
+   "${BUILD_ROOT}/platform/smdl_ts/inc",
+  ])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${ADSP_PLATFORM_ROOT}/smdl_ts/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+SOURCES =  [
+  '${BUILDPATH}/ts_smdl.c',
+  '${BUILDPATH}/ts_int.c',
+  ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'USES_PLATFORM_SMDL' in env:
+    env.PLRegister("smdl_ts")
+    libs = env.AddBinaryLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE',
+        'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/smdl_ts', SOURCES, pack_exception=['USES_COMPILE_MULTIMEDIA_DSP_SERVICES_DRONETS'])
+
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.h'], '${ADSP_PLATFORM_ROOT}/smdl_ts/src'))
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.h'], '${ADSP_PLATFORM_ROOT}/smdl_ts/inc'))
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST, pack_exception=['USES_COMPILE_MULTIMEDIA_DSP_SERVICES_DRONETS'])

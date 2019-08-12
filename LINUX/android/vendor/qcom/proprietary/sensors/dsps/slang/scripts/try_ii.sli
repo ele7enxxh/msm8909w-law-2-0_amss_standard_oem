@@ -1,0 +1,41 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub factorial( $n)                      // layer 3 $n
+{                                       // layer 4
+    if ( 0 == $n) {                     // layer 5
+        return  1;
+    }
+    else {
+        return ( $n * factorial( $n - 1));
+    }
+}
+
+sub main( @argv)
+{
+    my ( $j) = @argv;
+    if ( !defined( $j)) {
+        $j = 3;
+    }
+
+    my $i = 0;
+    while ( $i <= $j) {
+        my $faq = factorial( $i);
+        print( "factorial $i = $faq\n");
+        $i += 1;
+    }
+
+    my $duration = 0;
+    my ( $start_tsecs, $usecs) = gettimeofday();
+    while ( $duration < 10) {
+        sleep( 1);
+        my ( $now, $us) = gettimeofday();
+        print( "now $now, us $us\n");
+        $duration = $now - $start_tsecs;
+    }
+    print( "duration $duration\n");
+}
+
+

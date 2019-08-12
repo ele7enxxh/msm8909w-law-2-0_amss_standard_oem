@@ -1,0 +1,117 @@
+#===============================================================================
+#
+# Crypto Driver Environment Library
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/31/12    nk     Boot version
+# 07/04/12    nk     Initial version
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('CEEL', [
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/environment/env/sbl1/inc',
+   '${INC_ROOT}/core/boot/secboot3/src',
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/environment/inc', 
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/chipset/msm8909/inc', 
+])
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/environment"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'BOOT',
+   'HWENGINES',
+   'CECL',
+   'POWER',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+env.Append(ARMCC_CODE = " ${ARM_SPLIT_SECTIONS}")
+env.Replace(ARMLD_NOREMOVE_CMD = "")
+
+env.Append(CPPDEFINES = ['_ARM_', '__arm', 'ARM', 'ARM_BREW_BUILD'])
+env.Append(ARMCC_OPT = ' --loose_implicit_cast ')
+env.Append(ARMCPP_OPT = ' --loose_implicit_cast ')
+if env.has_key('BUILD_BOOT_CHAIN'):
+   env.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+CEEL_LIB_SOURCES = [
+        '${BUILDPATH}/src/CeEL.c',
+        '${BUILDPATH}/src/CeEL_Bam.c',
+        '${BUILDPATH}/src/CeEL_Reg.c',
+        '${BUILDPATH}/src/CeEL_Env.c',
+]
+
+CLEAN_SOURCES =[
+        '${BUILDPATH}/src/CeEL.c',
+        '${BUILDPATH}/src/CeEL_Bam.c',
+        '${BUILDPATH}/src/CeEL_Reg.c',
+        '${BUILDPATH}/src/CeEL_Env.c',        
+]
+
+env.CleanPack(['SBL1_BOOT','DEVICEPROGRAMMER_IMAGE'], CLEAN_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+#SBL1 boot library
+env.AddBinaryLibrary(['SBL1_BOOT','DEVICEPROGRAMMER_IMAGE'], '${BUILDPATH}/CeEL', CEEL_LIB_SOURCES)

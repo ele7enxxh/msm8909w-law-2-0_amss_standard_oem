@@ -1,0 +1,94 @@
+#===============================================================================
+#
+#  Copyright (c) 2013-2014 Qualcomm Technologies, Inc. All Rights Reserved.
+#  Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  This file is allowed Qualcomm Customers to implement their own upwrap_key
+#  function
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/21/14   tp      Linked sme_drmprov_oemimpl_lib to DXHDCP2_IMAGE and DXHDCP2DBG_IMAGE
+# 04/17/14   rk      Moved out of tzdrm
+# 10/22/13   cz      Created
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/common/drmprov/oem"
+
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --arm')
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/common/drmprov/oem/inc",
+   "${COREBSP_ROOT}/api/securemsm/trustzone/qsee",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/applib/qsee/src",
+   "${COREBSP_ROOT}/api/kernel/libstd/stringl",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES'
+]
+
+env.RequirePublicApi(CBSP_API)
+
+#----------------------------------------------------------------------------
+# CONFIG Shared Library
+#----------------------------------------------------------------------------   
+
+
+SME_DRMPROV_OEMIMPL_LIB_SOURCES = [      
+        '${BUILDPATH}/src/drmprov_oemimpl.c'
+]
+
+
+sme_drmprov_oemimpl_lib = '${BUILDPATH}/sme_drmprov_oemimpl'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibrary (['PLAYREADY_IMAGE'],sme_drmprov_oemimpl_lib, [SME_DRMPROV_OEMIMPL_LIB_SOURCES])
+env.AddLibrary (['WIDEVINE_IMAGE'],sme_drmprov_oemimpl_lib, [SME_DRMPROV_OEMIMPL_LIB_SOURCES])
+env.AddLibrary (['TQS_IMAGE'],sme_drmprov_oemimpl_lib, [SME_DRMPROV_OEMIMPL_LIB_SOURCES])
+env.AddLibrary (['DXHDCP2_IMAGE'],sme_drmprov_oemimpl_lib, [SME_DRMPROV_OEMIMPL_LIB_SOURCES])
+env.AddLibrary (['DXHDCP2DBG_IMAGE'],sme_drmprov_oemimpl_lib, [SME_DRMPROV_OEMIMPL_LIB_SOURCES])
+
+#-------------------------------------------------------------------------------
+# Customer Config Section. Only needed when customers create their own QSEE APPS
+#
+# If customers want to use the provisioning component, setup the following steps
+# 1> replace with replace the build flavor "AAAAANAA" below with the flavor that the customer build uses 
+#-------------------------------------------------------------------------------
+sme_drmprov_oemimpl_lib = '${BUILDPATH}/build/CUSTOMER_IMAGE_NAME/scorpion/AAAAANAA/sme_drmprov_oemimpl'
+#-------------------------------------------------------------------------------
+# 2> replace CUSTOMER_IMAGE_NAME with the customer's own image name
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary (['CUSTOMER_IMAGE_NAME'],sme_drmprov_oemimpl_lib, [SME_DRMPROV_OEMIMPL_LIB_SOURCES])
+
+
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

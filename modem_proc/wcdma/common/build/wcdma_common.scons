@@ -1,0 +1,319 @@
+# -------------------------------------------------------------------------------- #
+#                       W C D M A _ D I A G. S C O N S                                      
+#
+# DESCRIPTION                                                                      
+#       Scons file for the W DIAG subsytem. Defines the existence of DIAG
+#                                                                                  
+#                                                                                  
+# INITIALIZATION AND SEQUENCING REQUIREMENTS                                       
+#       None.                                                                      
+#                                                                                  
+#
+# Copyright (c) 2010 Qualcomm Technologies Incorporated.                                        
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary                       
+# Export of this technology or software is regulated by the U.S. Government.       
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/wcdma/common/build/wcdma_common.scons#1 $
+# $DateTime: 2016/12/13 08:00:12 $
+# 
+#  when        who     what, where, why
+# ---------    ---     ------------------------------------------------------------
+#  09/10/15    ac      Add wnv_map.c for MSIM support
+#  03/09/15    rkmk    Updated pack exceptions to restrict shipping of NV files
+#  07/15/14    ac      NV reorganization
+#  10/01/13    geg     Update W Interface on DIME 3.0 for segment loading. FR 3383: Segment Loading
+#  05/24/13    geg     FR 3383: Segment Loading
+#  02/22/11    rmsd    Added STORAGE to CORE API
+#  02/04/11    rmsd    Featurised Q6 and non-Q6 portions.  
+#  12/22/10    stk     Removed including WCDMA as Protected API.
+#  12/22/10    stk     Added MPROC under CORE_PUBLIC_APIS 
+#  12/21/10    stk     Grouped AUDIO and MVS under Multimedia public APIs. Added core violations.
+#  12/20/10    stk     Added MVS under public API
+#  12/13/10    stk     Added more violations, public and restricted API
+#  12/09/10    stk     Added RF and CORE Violations for NikeL
+#  12/08/10    stk     Added FW Violations and included protected UTILS
+#  10/19/10    rmsd    Added RF,GPS Violations changes
+#  10/14/10    rmsd    Added USES_FLAG and VIOLATIONS changes.
+#  10/06/10    rmsd    Initial Cut
+#
+#===================================================================================#
+
+
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------------
+# USES_FLAG :: Do not compile WCDMA_DIAG subsystem if 
+#              USES_WPLT or USES_UMTS or USES_WCDMA are not defined.
+#------------------------------------------------------------------------------------
+if 'USES_WPLT' not in env and 'USES_UMTS' not in env and 'USES_WCDMA' not in env:
+    Return()
+
+#-------------------------------------------------------------------------------
+# VIOLATIONS
+#-------------------------------------------------------------------------------
+if env.has_key('USES_QDSP6'):
+   env.PublishPrivateApi('VIOLATIONS',["${INC_ROOT}/core/systemdrivers/clk/inc",
+                                    "${INC_ROOT}/modem/utils/oss/oss_asn1_rvds21/include",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/nv/src",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/core/src",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/rfc/src",
+                                    "${INC_ROOT}/modem/rfa/rf/device/rtr8600_1x/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/device/rfdev_intf/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/hal/p2_1x/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/hal/common/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/wcdma/rf/mc/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/wcdma/rf/nv/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/gsm/rf/core/src",
+                                    "${INC_ROOT}/modem/gps/gnss/inc",
+                                    "${INC_ROOT}/modem/fw/wcdma/inc",
+                                    "${INC_ROOT}/modem/fw/target/intf/inc",
+                                    "${INC_ROOT}/core/services/utils",
+                                    "${INC_ROOT}/modem/utils/a2/driver/inc",
+                                    "${INC_ROOT}/modem/nas/mm/src",
+                                    "${INC_ROOT}/modem/wcdma/l1/offline/src",
+                                    "${INC_ROOT}/core/services/utils/src",
+				    "${INC_ROOT}/mcfg/api",
+                                   ])
+else:
+    env.PublishPrivateApi('VIOLATIONS',["${INC_ROOT}/core/systemdrivers/clk/inc",
+                                    "${INC_ROOT}/modem/utils/oss/oss_asn1_rvds21/include",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/nv/src",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/core/src",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/rfc/src",
+                                    "${INC_ROOT}/modem/rfa/rf/device/rtr8600_1x/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/device/rfdev_intf/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/hal/p2_1x/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/hal/common/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/wcdma/rf/mc/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/wcdma/rf/nv/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/gsm/rf/core/src",
+                                    "${INC_ROOT}/modem/gps/gnss/inc",
+                                    "${INC_ROOT}/modem/wcdma/l1/online/src",
+                                   ])
+if env.has_key('USES_QDSP6'):
+   env.PublishPrivateApi('VIOLATIONS',["${INC_ROOT}/modem/rfa/pmic/common/modem/app/inc",
+                                       "${INC_ROOT}/core/api/mproc",
+                                      ])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+if env.has_key('USES_QDSP6'):
+   CORE_APIS = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'KERNEL',
+    'POWER',
+    'SYSTEMDRIVERS',
+    'SERVICES',
+    'STORAGE',
+    'MPROC',
+    # needs to be last also contains wrong comdef.h
+    ]
+else:
+   CORE_APIS = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'KERNEL',
+    'POWER',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'SERVICES',
+    # needs to be last also contains wrong comdef.h
+    ]
+
+if env.has_key('USES_QDSP6'):
+   MODEM_PUBLIC_APIS = [
+    'ONEX',
+    'NAS',
+    'GERAN',
+    'MMODE',
+    'MCS',
+    'RFA',
+    'HDR',
+    'UTILS',
+    'GPS',
+    'WCDMA',
+    'MCS',
+    'UIM',
+    'MPROC',
+    'MCFG',
+    ]
+else:
+   MODEM_PUBLIC_APIS = [
+    'ONEX',
+    'NAS',
+    'GERAN',
+    'MMODE',
+    'MCS',
+    'RFA',
+    'HDR',
+    'UTILS',
+    'GPS',
+    'WCDMA',
+    'MCS',
+    'UIM',
+    ]
+
+MULTIMEDIA_APIS = [
+    'AUDIO',
+    'ADSPINFO',
+    ]
+
+#-----------------------------------------
+# Necessary Restricted API's
+#-----------------------------------------
+if env.has_key('USES_QDSP6'):
+   MODEM_RESTRICTED_APIS =[
+    'MMODE',
+    'ONEX',
+    'GERAN',
+    'HDR',
+    'GPS',
+    'MCS',
+    'NAS',
+    'MDSP',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    'UIM',
+    'FW',
+    'LTE',
+    ]
+else:
+   MODEM_RESTRICTED_APIS =[
+    'MMODE',
+    'ONEX',
+    'GERAN',
+    'HDR',
+    'GPS',
+    'MCS',
+    'NAS',
+    'MDSP',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    'UIM',
+    ]
+
+if env.has_key('USES_QDSP6'):
+    MODEM_PROTECTED_APIS =[
+    'UTILS',
+    ]
+
+MULTIMEDIA_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+]
+
+#-------------------------------------------------------------------------------
+# We need the Multimedia API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MULTIMEDIA_PUBLIC_APIS, area="MULTIMEDIA")
+
+#-------------------------------------------------------------------------------
+# Add modem protected API
+#-------------------------------------------------------------------------------
+if env.has_key('USES_QDSP6'):
+   env.RequireProtectedApi(MODEM_PROTECTED_APIS)
+
+#----------------------------------------------------------------------------#
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#----------------------------------------------------------------------------#
+REQUIRED_NON_SCONS_APIS = [
+    'BREW',
+    'MODEM_SERVICES',
+    'MULTIMEDIA_AUDIO',
+    'BASE_PATHS', #mdsp/cdma/inc
+    ]
+
+
+#-------------------------------------------------------------------------------
+# We need the Core BSP API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+#-------------------------------------------------------------------------------
+# We need MODEM PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need different restricted API's within MODEM
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Images that this VU is added .
+#-------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM']
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+WCDMA_COMMON_C_SOURCES = [
+    '${BUILDPATH}/wcdmadiag.c',
+]
+
+WCDMA_COMMON_SEGMENT_LOADING_C_SOURCES = [
+    '${BUILDPATH}/wcdma_interface.c',
+]
+
+WCDMA_COMMON_C_PRIVATE_SOURCES = [
+    '${BUILDPATH}/wnv.c',
+    '${BUILDPATH}/wnv_map.c',
+    '${BUILDPATH}/wnv_l1.c',
+    '${BUILDPATH}/wnv_rrc.c',
+    '${BUILDPATH}/wnv_common.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add our library to the MODEM_AMSS image
+#-------------------------------------------------------------------------------
+
+# Add our library to the MODEM_AMSS image conditionally
+if env.has_key('USES_FEATURE_SEGMENT_LOADING'):
+    env.AddLibrary(IMAGES, '${BUILDPATH}/wcdma/common_a', WCDMA_COMMON_C_SOURCES+WCDMA_COMMON_SEGMENT_LOADING_C_SOURCES)
+else:
+    env.AddLibrary(IMAGES, '${BUILDPATH}/wcdma/common_a', WCDMA_COMMON_C_SOURCES)
+
+env.AddBinaryLibrary(IMAGES,'${BUILDPATH}/wcdma/common_b',WCDMA_COMMON_C_PRIVATE_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])

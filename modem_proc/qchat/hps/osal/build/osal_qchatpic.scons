@@ -1,0 +1,342 @@
+# -------------------------------------------------------------------------------- #
+#                       O S A L _ Q C H A T P I C . S C O N S                                      
+#
+# DESCRIPTION                                                                      
+#       Scons file for the osal_qchatpic.
+#                                                                                  
+#                                                                                  
+# INITIALIZATION AND SEQUENCING REQUIREMENTS                                       
+#       None.                                                                      
+#                                                                                  
+#
+# Copyright (c) 2010-2011 Qualcomm Technologies, Inc. All Rights Reserved.
+#
+# This software is the confidential and proprietary information of
+# Qualcomm Technologies, Inc. ("Proprietary Information").  You shall
+# not disclose such Proprietary Information, and shall use it only in
+# accordance with the terms of the license agreement(s) you entered
+# into with Qualcomm Technologies, Inc. or its affiliates and any
+# applicable third party license terms accompanying the software.
+# 
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/qchat/hps/osal/build/osal_qchatpic.scons#1 $
+# $DateTime: 2016/12/13 07:57:51 $
+# 
+#  when        who      what, where, why
+# ---------   -----     ------------------------------------------------------------
+# 01/06/11    Suren	    Initial version created.
+#
+#===================================================================================#
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+if 'USES_QCHAT' not in env:
+    Return()
+    
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+env.Replace(QCHAT_PIC_ROOT = '${QCHAT_ROOT}/hps')
+SRCPATH = "${QCHAT_PIC_ROOT}"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CDEFINES = [
+   "AMSS_PIC=1",
+   "TARGET_CLIENT=1",
+   "FEATURE_QCHAT_USES_MODEM_HEAP",
+ #  "OSAL_MEM_DBG",
+   "FEATURE_DS_PROFILE_REGISTRY_API",
+   "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+   ])
+
+env.Append(CPPDEFINES = [
+   "AMSS_PIC=1",
+   "TARGET_CLIENT=1",
+   "FEATURE_QCHAT_USES_MODEM_HEAP",
+ #  "OSAL_MEM_DBG",
+   "FEATURE_DS_PROFILE_REGISTRY_API",
+   "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+   ])
+
+if 'USES_QCHAT_MSG2P0' in env:
+   env.Append(CDEFINES = [
+      "FEATURE_QCHAT_MSG2P0",
+      "MSG_BT_SSID_DFLT=MSG_SSID_QCHAT_OSAL",
+      "FEATURE_QCHAT_USES_MODEM_HEAP",
+   ])
+   
+   env.Append(CPPDEFINES = [
+      "FEATURE_QCHAT_MSG2P0",
+      "MSG_BT_SSID_DFLT=MSG_SSID_QCHAT_OSAL",
+      "FEATURE_QCHAT_USES_MODEM_HEAP",
+   ])
+if 'USES_QCHAT_OVERLOAD_NEW' in env:
+   env.Append(CDEFINES = [
+      "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+   ])
+   
+   env.Append(CPPDEFINES = [
+      "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+   ])
+
+
+env['HPS_EBN'] = ARGUMENTS.get('HPS_EBN','Dev-HPS-Build')
+env.PrintInfo('HPS EBN=${HPS_EBN}\n')
+env.Append(CPPDEFINES=["EBN=\\\"${HPS_EBN}\\\""])
+env.Append(CDEFINES=["EBN=\\\"${HPS_EBN}\\\""])
+
+env.Append(CCFLAGS = " -fexceptions ")
+env.Append(CXXFLAGS = " -fexceptions ")
+
+env.RequirePublicApi([
+        'APR',
+        ],
+        area='APR')
+
+env.RequirePublicApi([
+        'MVS',
+        'CVD',
+        'MMUTILS',
+        ],
+        area='AVS')
+    
+env.RequirePublicApi([
+        'DAL',
+        'DEBUGTRACE',
+        'MEMORY',
+	
+        # needs to be last also contains wrong comdef.h
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        'DATAMODEM',
+        'PROTOCOLS',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'HDR',
+        'PUBLIC',
+        'COMMON',
+        'CP',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='LTE')
+
+env.RequirePublicApi([
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'QCHAT',
+        ],
+        area='QMIMSGS')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UIM')
+
+CORE_APIS = [
+   'DEBUGTOOLS',
+   'SYSTEMDRIVERS',
+   'SERVICES',
+   'STORAGE',
+   'SECUREMSM',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+   ]
+
+MODEM_PUBLIC_APIS = [
+   'ONEX',
+   'DATA',
+   'DATACOMMON',
+   'HDR',
+   'WCDMA',
+   'MCS',
+   'MMODE',
+   'UIM',
+   ]
+
+MULTIMEDIA_PUBLIC_APIS = [
+    'MMUTILS',
+    'CVD',
+    'APR',
+   'AUDIO',
+]
+
+MODEM_RESTRICTED_APIS = [
+   'BC',
+   'DATA',
+   'DATACOMMON',
+   'DATAMODEM',
+   'HDR',
+   'LTE',
+   'MCS',
+   'MMODE',
+   'NAS',
+   'RFA',
+   ]
+
+#-------------------------------------------------------------------------------
+# We need the Core API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+#-------------------------------------------------------------------------------
+# We need the MODEM PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need the MULTIMEDIA PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MULTIMEDIA_PUBLIC_APIS, area="MULTIMEDIA")
+
+#-------------------------------------------------------------------------------
+# We need different restricted API's within MODEM
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# We need QCHAT PIC's API
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('QCHAT_PIC_INC', [
+   "${INC_ROOT}/qchat/hps/inc",
+   "${QCHAT_PIC_ROOT}/osal/common/inc",
+   "${QCHAT_PIC_ROOT}/osal/amss/inc",     
+   "${QCHAT_PIC_ROOT}/multiproc/oemcust/inc",   
+   "${QCHAT_PIC_ROOT}/multiproc/qmi/autogen/inc",
+   "${QCHAT_PIC_ROOT}/multiproc/qmi/serialization/inc",   
+   ])
+
+#-------------------------------------------------------------------------------
+# VIOLATIONS
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('VIOLATIONS',[
+   "${INC_ROOT}/datamodem/interface/sysapi/inc",
+   "${INC_ROOT}/datamodem/3gpp/api",
+   "${INC_ROOT}/datamodem/3gpp2/api",
+   "${INC_ROOT}/datamodem/variation/inc",
+   "${INC_ROOT}/datamodem/cust/inc",
+   "${INC_ROOT}/datamodem/interface/dsprofile/inc",
+   "${INC_ROOT}/apr/osal/inc",
+   "${INC_ROOT}/apr/utils/inc",
+   ])
+
+#----------------------------------------------------------------------------------
+# OSAL AMSS INTERNAL FILES (located under $(QChat4.0Main)\common\osal\amss ONLY !!!
+#----------------------------------------------------------------------------------
+OSAL_AMSS_SOURCES = [
+   '${BUILDPATH}/osal/amss/src/osal_amssext.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_ipcinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_hpsinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_amssheap.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_heapinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_loginternal.cpp',  
+   '${BUILDPATH}/osal/amss/src/osal_mainternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_netmgrinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_qosinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_qosmgrinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_servsysmgrinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_socketinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_stdlibinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_systeminternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_threadinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_timerinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_ta_netmgrinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_ta_socketinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_ta_qosmgrinternal.cpp',
+   '${BUILDPATH}/osal/amss/src/osal_ta_tsp.cpp',
+   ]
+
+if 'USES_QCHAT_5P0' in env:
+   OSAL_AMSS_SOURCES.append([
+      '${BUILDPATH}/osal/amss/src/osalboot.cpp',
+      '${BUILDPATH}/osal/amss/src/osal_port.cpp',      
+   ])   
+
+if 'USES_QCHAT_MVS' in env:
+   OSAL_AMSS_SOURCES.append([
+      '${BUILDPATH}/osal/amss/src/osal_mediainternal.cpp',
+      '${BUILDPATH}/osal/amss/src/osal_mspinternal.cpp',
+   ])   
+
+if 'USES_QCHAT_MVS' not in env:
+   OSAL_AMSS_SOURCES.append([
+      '${BUILDPATH}/osal/amss/src/osal_mspinternal_dummy.cpp',
+   ])   
+
+if 'USES_QCHAT_CVD' in env:
+   OSAL_AMSS_SOURCES.append([
+      '${BUILDPATH}/osal/amss/src/osal_mediainternal_cvd.cpp',
+      '${BUILDPATH}/osal/amss/src/osal_mspinternal_cvd.cpp',
+      '${BUILDPATH}/osal/amss/src/qchatcvd_mvsutils.cpp',
+   ])   
+
+if 'USES_QCHAT_CVD' not in env:
+   OSAL_AMSS_SOURCES.append([
+      '${BUILDPATH}/osal/amss/src/osal_mspinternal_cvd_dummy.cpp',
+   ])   
+
+
+#---------------------------------------------------------------------------------
+# OSAL COMMON FILES (located under $(QChat4.0Main)\common\osal\Common\src ONLY !!!
+#---------------------------------------------------------------------------------
+OSAL_COMMON_SOURCES = [
+   '${BUILDPATH}/osal/common/src/osal.cpp',
+   '${BUILDPATH}/osal/common/src/osal_ipc.cpp',
+   '${BUILDPATH}/osal/common/src/osal_hps.cpp',
+   '${BUILDPATH}/osal/common/src/osal_dlist.cpp',
+   '${BUILDPATH}/osal/common/src/osal_log.cpp',   
+   '${BUILDPATH}/osal/common/src/osal_diaglog.cpp',
+   '${BUILDPATH}/osal/common/src/osal_media.cpp',
+   '${BUILDPATH}/osal/common/src/osal_memdebug.cpp',
+   '${BUILDPATH}/osal/common/src/osal_memory.cpp',
+   '${BUILDPATH}/osal/common/src/osal_memoryext.cpp',
+   '${BUILDPATH}/osal/common/src/osal_netmgr.cpp',
+   '${BUILDPATH}/osal/common/src/osal_qos.cpp',
+   '${BUILDPATH}/osal/common/src/osal_qosmgr.cpp',
+   '${BUILDPATH}/osal/common/src/osal_socket.cpp',
+   '${BUILDPATH}/osal/common/src/osal_system.cpp',
+   '${BUILDPATH}/osal/common/src/osal_thread.cpp',
+   '${BUILDPATH}/osal/common/src/osal_timer.cpp',
+   '${BUILDPATH}/osal/common/src/osal_ta_netmgr.cpp',
+   '${BUILDPATH}/osal/common/src/osal_ta_socket.cpp',
+   '${BUILDPATH}/osal/common/src/osal_ta_qosmgr.cpp',
+   ]	
+
+PIC_HPS_SOURCES = [
+      '${BUILDPATH}/osal/common/src/qhpsmgr.cpp',
+      '${BUILDPATH}/osal/common/src/qhpslog.cpp',
+   ]
+
+# Compile the source and convert to a library
+#   if env.has_key('USES_NO_STRIP_NO_ODM'):
+if 'USES_QCHAT_4P0' in env or 'USES_QCHAT_5P0' in env:
+   env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/osal_qchatpic', 
+                                    OSAL_COMMON_SOURCES + 
+                                    OSAL_AMSS_SOURCES +
+                                    PIC_HPS_SOURCES)
+                                       

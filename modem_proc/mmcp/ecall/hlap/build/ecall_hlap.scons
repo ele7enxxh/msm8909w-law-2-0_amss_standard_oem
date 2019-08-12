@@ -1,0 +1,206 @@
+#===============================================================================
+#
+# ECALL_HLAP Subsystem build script
+#
+# Copyright(c) 2012 Qualcomm Technologies Incorporated.
+# All rights reserved. 
+# Qualcomm Confidential and Proprietary 
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: 2010/11/29 22:13:16 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/17/12   DL      Added GPS to MODEM_PUBLIC_APIS
+# 05/29/12   DL      Added new vocoder interface to eCall 
+# 02/02/12   DL      Initial revision
+#
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Verify that USES_ECALL_APP is set, otherwise bail out now
+#-------------------------------------------------------------------------------
+if 'USES_ECALL_APP' not in env:
+  Return()
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-----------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-----------------------------------------
+env.Append(CPPDEFINES = [
+  "MSG_BT_SSID_DFLT=MSG_SSID_ECALL",
+])
+
+
+#-------------------------------------------------------------------------------
+# Request Necessary Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+  'SERVICES',
+  'DEBUGTOOLS',
+  'STORAGE',
+  'KERNEL',
+  'SYSTEMDRIVERS',
+  'DAL',
+  'MPROC',
+  'POWER',
+]
+
+MULTIMEDIA_PUBLIC_APIS = [
+  'AUDIO',
+  'APR',
+  'MMUTILS',
+  'CVD',
+]
+
+MODEM_PUBLIC_APIS = [
+  'MMODE',
+  'PBM',
+  'MCS',
+  'UIM',
+  'NAS',
+  'GERAN',
+  'UTILS',
+  'WCDMA',
+  'ONEX',
+  'HDR',
+  'GPS',
+]
+
+API_PUBLIC_APIS = [
+  'COMMON',
+  'LOC',
+]
+
+APR_PUBLIC_APIS = [
+  'APR',
+]
+
+AVS_PUBLIC_APIS = [
+  'MMUTILS',
+  'CVD', 
+]
+
+# We need the following Core Public API's
+env.RequirePublicApi(CORE_PUBLIC_APIS, area="CORE")
+
+# We need the following Multimedia Public API's
+env.RequirePublicApi(MULTIMEDIA_PUBLIC_APIS, area="MULTIMEDIA")
+
+# We need the following Modem Public API's
+env.RequirePublicApi(MODEM_PUBLIC_APIS, area="MODEM")
+
+# We need the following API Public API's
+env.RequirePublicApi(API_PUBLIC_APIS, area="QMIMSGS")
+
+# We need the following APR Public API's
+env.RequirePublicApi(APR_PUBLIC_APIS, area="APR")
+
+# We need the following AVS Public API's
+env.RequirePublicApi(AVS_PUBLIC_APIS, area="AVS")
+
+# We also need our Public API (in same area as we are)
+env.RequirePublicApi(['ECALL'])
+
+
+#-------------------------------------------------------------------------------
+# Request Necessary Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+  'GPS',
+  'MMODE',
+  'NAS',
+  'MCS',
+  'LTE',
+  'WCDMA',
+  'UIM',
+  'GERAN',
+  'UTILS',
+  'ONEX',
+  'HDR',
+]
+
+# We need the following Modem Restriced API's
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+# We also need our Restricted API (in same area as we are)
+env.RequireRestrictedApi(['ECALL'])
+
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+if 'USES_ECALL_APP' in env:
+  ECALL_APP_SOURCES = [
+    '${BUILDPATH}/ecall_app_task.c',
+    '${BUILDPATH}/ecall_diag.c',
+    '${BUILDPATH}/ecall_gps.c',
+    '${BUILDPATH}/ecall_msd.c',
+    '${BUILDPATH}/ecall_app.c',
+]
+
+
+# Ship our code as binary library and add it to the MODEM image
+env.AddLibrary(['MODEM_MODEM'], '${BUILDPATH}/ecall', ECALL_APP_SOURCES)
+
+if 'USES_MSGR' in env:
+    env.AddUMID('${BUILDPATH}/ecall_app_msgr.umid', ['${INC_ROOT}/mmcp/ecall/hlap/inc/ecall_app_task.h'])
+
+# --------------------------------------------------------------------------- #
+#                           RCInit framework                                  #
+# --------------------------------------------------------------------------- #
+
+# Build products for RCINIT
+RCINIT_ECALL_APP_BUILD_TAG = ['MODEM_MODEM'] # modem
+
+# RCInit: Initialization function descriptor for ECALL_APP
+# This entry defines the function to be called to initialize ECALL_APP data
+# structures before the task is started.  The function associated with
+# 'init_function' is called during the initialization phase of RCInit.
+RCINIT_ECALL_APP_INIT_FUNC = {
+   'sequence_group' : env.subst('$MODEM_UPPERLAYER'),
+   'init_name'      : 'ecall_app_task_init',
+   'init_function'  : 'ecall_app_task_init_before_task_start',
+   #'dependencies'  : ['one,two,three'],                  # optional [python list]
+}
+
+# RCInit: Task descriptor for ECALL_APP (compile-time provisioning information)
+# This entry defines the task parameters that will be used by RCInit to
+# start the ECALL_APP task.  The task will be started once ALL of the initialization
+# functions within the sequence group have been completed.
+RCINIT_ECALL_APP_TASK_FUNC = {
+   'thread_name'         : 'ecall_app',
+   'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+   'stack_size_bytes'    : env.subst('$ECALL_APP_STKSZ'),
+   'priority_amss_order' : 'ECALL_APP_PRI_ORDER',
+   'stack_name'          : 'ecall_app_stack',                   # opt, defaults to '<thread_name>_stack'
+   'thread_entry'        : 'ecall_app_task',                    # opt, defaults to '<thread_name>_task'
+   'tcb_name'            : 'ecall_app_tcb',                     # opt, defaults to '<thread_name>_tcb'
+   'cpu_affinity'        : env.subst('$MODEM_CPU_AFFINITY')
+}
+
+if 'USES_MODEM_RCINIT' in env:
+   # Add the init and task definitions to the RCInit framework.
+   # These entries will be used to generate sections in rcinit_autogen.c
+   print "RCINIT has been enabled in ECALL_APP"
+   env.AddRCInitFunc(RCINIT_ECALL_APP_BUILD_TAG, RCINIT_ECALL_APP_INIT_FUNC)
+   env.AddRCInitTask(RCINIT_ECALL_APP_BUILD_TAG, RCINIT_ECALL_APP_TASK_FUNC)
+else:
+   print "RCINIT has NOT been enabled in ECALL_APP"

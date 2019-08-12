@@ -1,0 +1,125 @@
+#-------------------------------------------------------------------------------
+# PBM
+#-------------------------------------------------------------------------------
+
+ifeq ($(USES_PBMTASK), yes)
+ifneq ($(USES_PBM_REMOTE), yes)
+PBM_SOURCES=\
+        pbm.c         \
+        pbmlib.c      \
+        pbmlibutils.c \
+        pbmcache.c    \
+        pbmefs.c      \
+        pbmuim.c      \
+        pbmgsdi.c     \
+        pbmtask.c     \
+        pbm_conversion.c     \
+        pbmutils.c        
+else
+PBM_SOURCES=\
+        pbm_conversion.c     \
+        pbmlibutils.c
+endif
+else
+PBM_SOURCES=\
+        pbmlib.c
+endif
+ifeq ($(USES_PBMTASK), yes)
+ifneq ($(USES_PBM_REMOTE), yes)
+ifeq ($(USES_EXPORT_PBMLIB_FUSION),yes)
+ifeq ($(MSM_ID), 9X00)
+ifeq ($(USES_MDM_MSM_FUSION), yes)
+PBM_SOURCES += pbmlib_fusion.c
+endif
+ifeq ($(FEATURE_MDM_FUSION), yes)
+ifneq ($(USES_MDM_MSM_FUSION), yes)
+PBM_SOURCES += pbmlib_fusion.c
+endif
+endif
+endif
+endif
+ifneq ($(USES_NO_QMI),yes)
+ifeq ($(USES_QMI_SERVICE_SPLIT),yes)
+PBM_SOURCES += qmi_pbm.c
+PBM_SOURCES += qmi_pbm_if.c
+PBM_SOURCES += qmi_pbm_cmd_list.c
+endif
+endif
+endif
+endif
+
+
+PBM_OBJS :=  $(addprefix $(TARGETDIR)/, $(PBM_SOURCES:%.c=%.o))
+vpath %.c $(PBM)
+
+ifeq ($(BIG),yes)
+        PBM_OBJS := $(TARGETDIR)/pbm.lib
+else
+	PBM_OBJS :=  $(addprefix $(TARGETDIR)/, $(PBM_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/pbm.lib : $(PBM_SOURCES)
+	$(group_c_compile)
+
+### Start Lint block ###
+# To lint PBM in supported targets, run the following (in build dir)
+# lintg <build_id> pbm
+PBM_LINT_OBJS := $(PBM_LINT_OBJS) $(addprefix $(LINTDIR)/, $(PBM_SOURCES:%.c=%.lint))
+
+# Specify group target for linting PBM subsystem
+$(LINTDIR)/pbm_lint : $(PBM_LINT_OBJS)
+### End Lint block ###
+
+#============================================================================
+# Support for exporting the Phone Book Manager (PBM) API from modem to apps
+#============================================================================
+ifneq ($(USES_FEATURE_CMI_PBM),yes)
+ifeq ($(USES_EXPORT_PBMLIB),yes)
+  PBMLIB_CLIENT_SOURCES = \
+    pbmlib_clnt.c \
+    pbmlib_xdr.c
+
+  PBMLIB_SERVER_SOURCES = \
+    pbmlib_svc.c \
+    pbmlib_xdr.c
+
+  PBMLIB_CLIENT_OBJS := $(addprefix $(TARGETDIR)/, $(PBMLIB_CLIENT_SOURCES:%.c=%.o))
+  PBMLIB_SERVER_OBJS := $(addprefix $(TARGETDIR)/, $(PBMLIB_SERVER_SOURCES:%.c=%.o))
+
+  vpath %.h $(PBM)
+  vpath %.c $(PBM)/rpc
+
+  ifneq ($(REMOTE_API_LOC_KNOWN),yes)
+    htorpc_pbmlib : REMOTE_API_LOC = $(PBM)/rpc
+  endif
+
+  HTORPC_DEPS += pbmlib
+
+  HTORPC_pbmlib_ARGS = -a pbmlib
+
+endif
+ifeq ($(USES_EXPORT_PBMLIB_FUSION),yes)
+     PBMLIB_FUSION_CLIENT_SOURCES = \
+       pbmlib_fusion_xdr.c \
+       pbmlib_fusion_clnt.c
+
+     PBMLIB_FUSION_SERVER_SOURCES = \
+       pbmlib_fusion_svc.c \
+       pbmlib_fusion_xdr.c
+
+     PBMLIB_FUSION_CLIENT_OBJS := $(addprefix $(TARGETDIR)/, $(PBMLIB_FUSION_CLIENT_SOURCES:%.c=%.o))
+     PBMLIB_FUSION_SERVER_OBJS := $(addprefix $(TARGETDIR)/, $(PBMLIB_FUSION_SERVER_SOURCES:%.c=%.o))
+
+     vpath %.h $(PBM)
+     vpath %.c $(PBM)/rpc
+   
+     ifneq ($(REMOTE_API_LOC_KNOWN),yes)
+       htorpc_pbmlib_fusion : REMOTE_API_LOC = $(PBM)/rpc
+     endif
+   
+     HTORPC_DEPS += pbmlib_fusion
+   
+     HTORPC_pbmlib_fusion_ARGS = -a pbmlib_fusion
+   
+endif   
+endif

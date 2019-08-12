@@ -1,0 +1,96 @@
+#===============================================================================
+#
+# App Core
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains schedulerents describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(ARMCC_OPT = " --enum_is_int  --interface_enums_are_32_bit ")
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/keymaster/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+#env.Append(ARMCC_OPT = ' --arm')
+
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/keymaster/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/keymaster/inc",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/services/src",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/environment/inc",
+])
+
+
+CBSP_API = [
+   'SERVICES',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#----------------------------------------------------------------------------
+# App core Objects
+#----------------------------------------------------------------------------   
+APP_CORE_ENTRY_SOURCES = [      
+        '${BUILDPATH}/km_app_main.c',
+        '${BUILDPATH}/application_access_control.c',
+        '${BUILDPATH}/generate_key_handler.c',
+        '${BUILDPATH}/get_key_characteristics.c',
+        '${BUILDPATH}/get_supported_features.c',
+        '${BUILDPATH}/key_op_handler.c',        
+        '${BUILDPATH}/info_tags.c',
+        '${BUILDPATH}/rot_binding.c',
+        '${BUILDPATH}/user_auth_key_validity.c',
+        '${BUILDPATH}/symmetric_algorithm.c',
+        '${BUILDPATH}/asymmetric_algorithm.c',
+        '${BUILDPATH}/algorithm.c',
+        '${BUILDPATH}/hmac_algorithm.c',
+        '${BUILDPATH}/gatekeeper.c',
+        '${BUILDPATH}/km_utils.c',
+        '${BUILDPATH}/import_export.c',
+        '${BUILDPATH}/platform/km_platform_utils.c',
+        '${BUILDPATH}/platform/km_algorithm_platform.c',
+	'${BUILDPATH}/km_0_3.c',
+]
+
+APP_CORE_ENTRY_SOURCES_SHIP = [
+        '${BUILDPATH}/km_customize.c',
+]
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary('KEYMASTER_IMAGE', '${BUILDPATH}/keymaster_ta', APP_CORE_ENTRY_SOURCES)
+env.AddLibrary('KEYMASTER_IMAGE', '${BUILDPATH}/km_customize', APP_CORE_ENTRY_SOURCES_SHIP)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

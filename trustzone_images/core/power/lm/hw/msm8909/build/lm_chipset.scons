@@ -1,0 +1,60 @@
+#=============================================================================
+# CHIPINFO
+#
+# Targets:    MSM8974, MDM9x25
+# Processors: RPM
+#
+#=============================================================================
+#                    Copyright 2011 Qualcomm Technologies Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#=============================================================================
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/power/lm/hw/msm8909/build/lm_chipset.scons#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/power/lm/hw/msm8909/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'SECUREMSM',
+
+   # Must be last due to comdef.h issues
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.PublishPrivateApi('LM', [
+   '${BUILD_ROOT}/core/power/lm/hw/msm8909/inc',   
+   ]
+)
+LM_SOURCES =  [
+  '${BUILDPATH}/lm_main.c'
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(['TZOS_IMAGE'], '${BUILDPATH}/lm_lib', LM_SOURCES)
+
+

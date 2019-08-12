@@ -1,0 +1,51 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for HAL QDSS-STM Library.
+#
+# Copyright (c) 2009-2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/debugtrace/stm/hal/build/stmhal.scons#1 $
+
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+  'DEBUGTRACE',
+   'SERVICES',
+   'HAL',
+   'DAL',
+   'SYSTEMDRIVERS',
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireProtectedApi(['DEBUGTRACE'])
+env.RequirePrivateApi('QDSS_STM_HAL')
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+STM_HAL_SRC = ['${BUILDPATH}/halqdss_stm_config.c']
+
+env.AddLibrary(['RPM_IMAGE','MODEM_IMAGE','CORE_QDSP6_SW','WCN_IMAGE','CBSP_WCN_IMAGE','CORE_GSS'],'${BUILDPATH}/stm_hal',STM_HAL_SRC)
+
+
+

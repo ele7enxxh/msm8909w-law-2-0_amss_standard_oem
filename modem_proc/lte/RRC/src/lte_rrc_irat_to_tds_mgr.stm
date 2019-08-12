@@ -1,0 +1,485 @@
+/*!
+  @file
+  lte_rrc_irat_to_tds_mgr.stm
+
+  @brief
+  This module contains the state machine description of the LTE to TDS RAT manager.
+*/
+
+/*===========================================================================
+
+  Copyright (c) 2011 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header:$
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+08/11/11   gp      Initial Revision
+           
+===========================================================================*/
+
+/*!===========================================================================
+
+                      STATE MACHINE DESCRIPTION
+
+This state machine implements the RRC W RAT manager module that interacts with
+the TDSCDMA stack specifically W RRC for various inter-RAT procedures like
+reselection, redirection and handovers etc.
+
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_IRAT_TO_TDS_MGR_SM
+{
+  ENTRY           lte_rrc_irat_to_tds_sm_entry; /* State machine entry func */
+  EXIT            lte_rrc_irat_to_tds_sm_exit;  /* State machine exit func */
+
+  INITIAL_STATE   INITIAL;                    /* State machine initial state */
+  
+  ERROR_HOOK      lte_rrc_stm_error;           /* Common error handler */
+  DEBUG_HOOK      lte_rrc_stm_debug;           /* Common debug handler */
+  
+  /************ external message defines ************/ 
+  INPUT_DEF_FILE  tds_rrc_msg.h;             /* TDSCDMA RRC header */
+  INPUT_DEF_FILE  lte_cphy_msg.h;
+  
+  /************ internal message defines ************/
+  INPUT_DEF_FILE  lte_rrc_stm.h;               /* STM common defs */
+  INPUT_DEF_FILE  lte_rrc_int_msg.h;           /* Internal msg defs */
+  INPUT_DEF_FILE  lte_rrc_ext_msg.h;           /* External msg defs */
+  
+  INSTANCES       1;                           /* optional if only 1 */
+
+  /*!=========================================================================
+
+                             INITIAL
+
+  o	This is the main standby state of the IRAT manager
+
+  o	The IRAT manager waits for requests to start the Inter-RAT procedure 
+    like redirection and reselection here.
+                               
+  =========================================================================*/
+
+  STATE INITIAL
+  {
+    ENTRY                       lte_rrc_irat_to_tds_sm_initial_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+
+      /*! Redirection to TDSCDMA request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_REDIR_REQI         lte_rrc_irat_to_tds_sm_redir_reqi;
+
+      /*! Reselection to TDSCDMA request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_RESEL_REQI         lte_rrc_irat_to_tds_sm_resel_reqi;
+
+      /*! TDS Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_CAPABILITIES_REQI  lte_rrc_irat_to_tds_sm_capabilities_req;
+
+      /*! TDS Capabilities response from TDS RRC */
+      TDSCDMA_RRC_LTE_UTRA_CAPABILITIES_RSP           lte_rrc_irat_to_tds_sm_capabilities_rsp;
+
+      /*! PLMN Srch Req for TDS */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_PLMN_SRCH_REQI     lte_rrc_irat_to_tds_sm_plmn_srch_reqi;
+
+      /*! Abort Request from PLMN */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI              lte_rrc_irat_to_tds_sm_abort_irat_initial;
+
+      /*! Mobility to TDS indication */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_MOBILITY_INDI      lte_rrc_irat_to_tds_sm_ho_req;
+
+      /*! Get CGI Req for TDS */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_GET_CGI_REQI       lte_rrc_irat_to_tds_sm_get_cgi_reqi;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_GET_PLMN_PRTL_SRCH_REQI lte_rrc_irat_to_tds_sm_get_plmn_prtl_results_reqi;
+
+      /*! TDS PLMN Srch Response from TDS RRC */
+      TDSCDMA_RRC_LTE_PLMN_SRCH_RSP                   lte_rrc_irat_to_tds_sm_plmn_srch_rsp;
+
+      /*! Deactivate Req */
+      LTE_RRC_DEACTIVATE_REQ                          lte_rrc_to_tds_mgr_sm_deactivate_req;
+
+       /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI                      lte_rrc_irat_to_tds_sm_lte_depri_indi;
+
+      /*! SIB updated indication from SIB */
+      LTE_RRC_SIB_UPDATED_INDI                        lte_rrc_irat_to_tds_sm_sib_updated_indi;
+
+      /*! Redirection to TDSCDMA request from CSP */
+      TDSCDMA_RRC_LTE_IRAT_INFO_IND                   lte_rrc_irat_to_tds_sm_irat_info_ind;
+    }
+  }
+
+  /*!=========================================================================
+
+                             WT_FOR_SUSPEND_CNF
+
+                             
+   o IRAT manager moves to this state if it gets a redirection/reselection request.
+     This state is used to suspend the LTE stack.
+   
+   o	In this state, for redirection, LTE ML1 is stopped
+      
+   o	For Reselections, LTE ML1 is suspended
+                               
+  =========================================================================*/
+
+  STATE WT_FOR_SUSPEND_CNF
+  {
+    ENTRY                       lte_rrc_irat_to_tds_sm_wt_for_suspend_cnf_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+      /*! UMTS key response from NAS */
+      LTE_RRC_NAS_UMTS_KEY_RSP                      lte_rrc_irat_to_tds_sm_umts_key_rsp;
+
+      /*! Mode change confirmation from Controller */
+      LTE_RRC_MODE_CHANGE_CNFI                      lte_rrc_irat_to_tds_sm_suspended;
+
+      /*! Redirection/Reselection Abort Request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI              lte_rrc_irat_to_tds_sm_abort_during_suspend;
+
+      /*! TDs Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_CAPABILITIES_REQI  lte_rrc_irat_to_tds_sm_capabilities_req;
+
+      /*! TDS Capabilities response from TDS RRC */
+      TDSCDMA_RRC_LTE_UTRA_CAPABILITIES_RSP           lte_rrc_irat_to_tds_sm_capabilities_rsp;
+
+      /*! Suspend Ind from PLMN */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_PLMN_SRCH_SUSPEND_INDI lte_rrc_irat_to_tds_sm_suspend_during_suspend;
+
+
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_GET_PLMN_PRTL_SRCH_REQI lte_rrc_irat_to_tds_sm_get_plmn_prtl_results_reqi;
+
+      /*! TDS PLMN Srch Response from TDS RRC */
+      TDSCDMA_RRC_LTE_PLMN_SRCH_RSP                   lte_rrc_irat_to_tds_sm_plmn_srch_rsp;
+
+      /*! Deactivate Req */
+      LTE_RRC_DEACTIVATE_REQ                          lte_rrc_to_tds_mgr_sm_deactivate_req;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI                    lte_rrc_irat_to_tds_sm_lte_depri_indi;
+	  
+	  /*! Not camped indication from CSP while handling OOS indication in Suspended state*/
+      LTE_RRC_NOT_CAMPED_INDI                      lte_rrc_irat_to_tds_sm_not_camped_indi_suspended;
+    }
+  }
+
+  /*!=========================================================================
+
+                             WT_FOR_UMTS_KEYS
+
+                             
+   o IRAT manager moves to this state during PS HO to wait for Mapped UMTS
+     keys to being PS HO with TDSCDMA
+
+  =========================================================================*/
+
+  STATE WT_FOR_UMTS_KEYS
+  {
+    ENTRY                       lte_rrc_irat_to_tds_sm_wt_for_umts_keys_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+      /*! UMTS key response from NAS */
+      LTE_RRC_NAS_UMTS_KEY_RSP                      lte_rrc_irat_to_tds_sm_umts_key_rsp;
+
+      /*! Abort Request from CSP */
+      /* TODO: Handle Abort while waiting for UMTS keys */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI              lte_rrc_irat_to_tds_sm_abort_during_wt_umts_keys;
+
+      /*! TDS Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_CAPABILITIES_REQI  lte_rrc_irat_to_tds_sm_capabilities_req;
+
+      /*! TDS Capabilities response from TDS RRC */
+      TDSCDMA_RRC_LTE_UTRA_CAPABILITIES_RSP           lte_rrc_irat_to_tds_sm_capabilities_rsp;
+
+      /*! Deactivate Req */
+      LTE_RRC_DEACTIVATE_REQ                          lte_rrc_to_tds_mgr_sm_deactivate_req;
+
+       /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI                      lte_rrc_irat_to_tds_sm_lte_depri_indi;
+    }
+  }
+
+  /*!=========================================================================
+
+                             WT_TO_ABORT_DURING_SUSPEND
+
+                             
+   o	The Inter-RAT procedure needs to be aborted for higher priority user requests.  
+   
+   o	The Inter-RAT manager waits in this state if the IRAT procedure has been 
+      aborted while it is trying to suspend the stack.
+   
+   o	It resumes the stack to process the higher priority request.
+                             
+  =========================================================================*/
+
+  STATE WT_TO_ABORT_DURING_SUSPEND
+  {
+    ENTRY                       lte_rrc_irat_to_tds_sm_wt_to_abort_during_suspend_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+      LTE_RRC_MODE_CHANGE_CNFI                      lte_rrc_irat_to_tds_sm_start_abort;
+
+      /*! TDS Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_CAPABILITIES_REQI  lte_rrc_irat_to_tds_sm_capabilities_req;
+
+      /*! TDS Capabilities response from TDS RRC */
+      TDSCDMA_RRC_LTE_UTRA_CAPABILITIES_RSP           lte_rrc_irat_to_tds_sm_capabilities_rsp;
+
+      /*! Deactivate Req */
+      LTE_RRC_DEACTIVATE_REQ                          lte_rrc_to_tds_mgr_sm_deactivate_req;
+
+       /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI                      lte_rrc_irat_to_tds_sm_lte_depri_indi;
+	  
+	  /*! Abort Request from PLMN/CRP/CSP/MEAS */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI              lte_rrc_irat_to_tds_sm_abort_during_abort;
+    }
+  }
+
+  /*!=========================================================================
+
+                             WT_FOR_RESUME_CNF
+
+  o	If the IRAT procedure is aborted, the LTE stack needs to be resumed and 
+    this state is used to wait for the stack to be resumed.
+
+  =========================================================================*/
+
+  STATE WT_FOR_RESUME_CNF
+  {
+    ENTRY                       lte_rrc_irat_to_tds_sm_wt_for_resume_cnf_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+      /*! Mode change confirmation from Controller */
+      LTE_RRC_MODE_CHANGE_CNFI                      lte_rrc_irat_to_tds_sm_resumed;
+
+      /*! Redirection/Reselection Abort Request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI              lte_rrc_irat_to_tds_sm_abort_during_resume;
+
+      /*! TDS Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_CAPABILITIES_REQI  lte_rrc_irat_to_tds_sm_capabilities_req;
+
+      /*! TDS Capabilities response from TDS RRC */
+      TDSCDMA_RRC_LTE_UTRA_CAPABILITIES_RSP           lte_rrc_irat_to_tds_sm_capabilities_rsp;
+
+      /*! Suspend Ind from PLMN */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_PLMN_SRCH_SUSPEND_INDI lte_rrc_irat_to_tds_sm_suspend_during_resume;
+
+
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_GET_PLMN_PRTL_SRCH_REQI lte_rrc_irat_to_tds_sm_get_plmn_prtl_results_reqi;
+
+      /*! TDS PLMN Srch Response from TDS RRC */
+      TDSCDMA_RRC_LTE_PLMN_SRCH_RSP                   lte_rrc_irat_to_tds_sm_plmn_srch_rsp;
+
+      /*! Deactivate Req */
+      LTE_RRC_DEACTIVATE_REQ                          lte_rrc_to_tds_mgr_sm_deactivate_req;
+      
+       /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI                       lte_rrc_irat_to_tds_sm_lte_depri_indi;
+    }
+  }
+
+
+  /*!=========================================================================
+
+                            IRAT_TO_TDS_IN_PROGRESS
+
+                            
+    o	After the LTE stack is successfully suspended (ML1 being either suspended 
+      or stopped), the IRAT manager send the redirection/reselection request 
+      to the target RAT and waits in this state.
+
+    o	There are three possibilities of in this state
+      o	IRAT procedure is successful.
+        1.	If the IRAT procedure is successful, LTE NAS deactivates LTE RRC 
+            and IRAT manager moves to Inactive state.
+      o	IRAT procedure fails.
+        1.	If the IRAT procedure fails, for reselections, IRAT manager 
+            resumes the LTE stack and for redirections, IRAT manager deactivates LTE.
+      o	IRAT procedure needs to be aborted.
+        1.	If the IRAT procedure needs to be aborted in this state, IRAT manager 
+            issues the abort request to the target RAT and goes to waiting 
+            for the abort confirmation.
+                            
+  =========================================================================*/
+  STATE IRAT_TO_TDS_IN_PROGRESS
+  {
+    ENTRY                       lte_rrc_irat_to_tds_sm_irat_to_tds_in_progress_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+
+      /*! LTE Stopped indication */
+      LTE_RRC_STOPPED_INDI                          lte_rrc_irat_to_tds_sm_stopped;
+
+      /*! Redirection Failed Indication received from TDS RRC */
+      TDSCDMA_RRC_LTE_REDIR_FAILED_RSP                lte_rrc_irat_to_tds_sm_redir_failed;
+
+      /*! Reselection Failed Indication received from TDS RRC */
+      TDSCDMA_RRC_LTE_RESEL_FAILED_RSP                lte_rrc_irat_to_tds_sm_resel_failed;
+
+      /*! IRAT (PSHO/Resel/Redir/PLMN Srch etc. ) Abort Request */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI              lte_rrc_irat_to_tds_sm_abort_irat;
+
+      /*! TDS Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_CAPABILITIES_REQI  lte_rrc_irat_to_tds_sm_capabilities_req;
+
+      /*! TDS Capabilities response from TDS RRC */
+      TDSCDMA_RRC_LTE_UTRA_CAPABILITIES_RSP           lte_rrc_irat_to_tds_sm_capabilities_rsp;
+
+      /*! TDS PLMN Srch Response from TDS RRC */
+      TDSCDMA_RRC_LTE_PLMN_SRCH_RSP                   lte_rrc_irat_to_tds_sm_plmn_srch_rsp;
+
+      /*! TDS Abort PLMN Response from TDS RRC */
+      TDSCDMA_RRC_LTE_ABORT_PLMN_SRCH_RSP             lte_rrc_irat_to_tds_sm_abort_plmn_srch_rsp;
+
+      /*! L2W PS HO Response from TDS RRC */
+      TDSCDMA_RRC_LTE_PSHO_RSP                        lte_rrc_irat_to_tds_sm_psho_rsp;
+
+      /*! TDS Get CGI Response from TDS RRC */
+      TDSCDMA_RRC_LTE_GET_CGI_RSP                     lte_rrc_irat_to_tds_sm_get_cgi_rsp;
+      
+      /*! Suspend Ind from PLMN */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_PLMN_SRCH_SUSPEND_INDI lte_rrc_irat_to_tds_sm_suspend_plmn_srch;
+      
+
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_GET_PLMN_PRTL_SRCH_REQI lte_rrc_irat_to_tds_sm_get_plmn_prtl_results_reqi;
+      
+      /*! Deactivate Req */
+      LTE_RRC_DEACTIVATE_REQ                          lte_rrc_to_tds_mgr_sm_deactivate_req; 
+
+       /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI                      lte_rrc_irat_to_tds_sm_lte_depri_indi;   
+    }
+  }
+
+/*!=========================================================================
+
+                             WT_FOR_TDS_ABORT_RSP
+
+  o	The Inter-RAT procedure needs to be aborted for higher priority user requests.  
+  
+  o	The Inter-RAT manager waits in this state if the IRAT procedure has been 
+    aborted and a request has been sent to the target RAT to abort.
+  
+
+  =========================================================================*/
+  STATE WT_FOR_TDS_ABORT_RSP
+  {
+    ENTRY           lte_rrc_irat_to_tds_sm_wt_for_tds_abort_rsp_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      /*! Redirection Abort Confirmation from TDS RRC  */
+      TDSCDMA_RRC_LTE_ABORT_REDIR_RSP                 lte_rrc_irat_to_tds_sm_redir_abort_rsp;
+
+      /*! Reselection Abort Confirmation from TDS RRC  */
+      TDSCDMA_RRC_LTE_ABORT_RESEL_RSP                 lte_rrc_irat_to_tds_sm_resel_abort_rsp;
+
+      /*! TDS Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_CAPABILITIES_REQI  lte_rrc_irat_to_tds_sm_capabilities_req;
+
+      /*! TDS Capabilities response from TDS RRC */
+      TDSCDMA_RRC_LTE_UTRA_CAPABILITIES_RSP           lte_rrc_irat_to_tds_sm_capabilities_rsp;
+
+      /*! TDS Abort PLMN Response from TDS RRC */
+      TDSCDMA_RRC_LTE_ABORT_PLMN_SRCH_RSP             lte_rrc_irat_to_tds_sm_abort_plmn_srch_rsp;
+
+      /*! PSHO Abort Confirmation from TDS RRC  */
+      TDSCDMA_RRC_LTE_ABORT_PSHO_RSP                  lte_rrc_irat_to_tds_sm_abort_psho_rsp;
+
+      /*! TDS Abort CGI Response from TDS RRC */
+      TDSCDMA_RRC_LTE_ABORT_CGI_RSP                   lte_rrc_irat_to_tds_sm_abort_cgi_rsp;
+
+      /*! TDS PLMN Srch Response from TDS RRC */
+      TDSCDMA_RRC_LTE_PLMN_SRCH_RSP                   lte_rrc_irat_to_tds_sm_plmn_srch_rsp;
+
+      /*! Deactivate Req */
+      LTE_RRC_DEACTIVATE_REQ                          lte_rrc_to_tds_mgr_sm_deactivate_req;    
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI                     lte_rrc_irat_to_tds_sm_lte_depri_indi;
+	  
+	  /*! Abort Request from PLMN/CRP/CSP/MEAS */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI              lte_rrc_irat_to_tds_sm_abort_during_abort;
+    }
+  }
+    /*!=========================================================================
+
+                             WT_TO_SUSPEND_DURING_SUSPEND
+
+                             
+   o	The Inter-RAT procedure needs to be aborted for higher priority user requests.  
+   
+   o	The Inter-RAT manager waits in this state if the IRAT procedure has been 
+      aborted while it is trying to suspend the stack.
+   
+   o	It resumes the stack to process the higher priority request.
+                             
+  =========================================================================*/
+
+  STATE WT_TO_SUSPEND_DURING_SUSPEND
+  {
+    ENTRY                      lte_rrc_irat_to_tds_sm_wt_to_suspend_during_suspend_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+      LTE_RRC_MODE_CHANGE_CNFI                      lte_rrc_irat_to_tds_sm_start_suspend;
+
+      /*! TDS Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_CAPABILITIES_REQI  lte_rrc_irat_to_tds_sm_capabilities_req;
+
+      /*! TDS Capabilities response from TDS RRC */
+      TDSCDMA_RRC_LTE_UTRA_CAPABILITIES_RSP           lte_rrc_irat_to_tds_sm_capabilities_rsp;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_GET_PLMN_PRTL_SRCH_REQI lte_rrc_irat_to_tds_sm_get_plmn_prtl_results_reqi;
+
+      /*! TDS PLMN Srch Response from TDS RRC */
+      TDSCDMA_RRC_LTE_PLMN_SRCH_RSP                   lte_rrc_irat_to_tds_sm_plmn_srch_rsp;
+
+      /*! Deactivate Req */
+      LTE_RRC_DEACTIVATE_REQ                          lte_rrc_to_tds_mgr_sm_deactivate_req;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI                      lte_rrc_irat_to_tds_sm_lte_depri_indi;
+    }
+  }
+}

@@ -1,0 +1,64 @@
+#-------------------------------------------------------------------------------
+# SM
+#-------------------------------------------------------------------------------
+
+SM_SOURCES=\
+	smcm.c	\
+	smgmm.c	\
+	smix.c	\
+	smrabm.c	\
+	smsndcp.c	\
+	smtask.c	\
+	smtimers.c	\
+	smutils.c    
+
+ifeq ($(USES_LTE), yes)
+SM_SOURCES+=\
+	esm_bcm.c  \
+	esm_bpm.c  \
+	esm_context_active.c  \
+	esm_context_active_pedning.c  \
+        esm_context_modify_pending.c\
+	esm_context_inactive.c \
+	esm_context_state.c  \
+	esm_proc_abort.c  \
+	esm_proc_active.c  \
+	esm_proc_inactive.c  \
+	esm_proc_state.c  \
+	esm_utils.c  \
+	sm_multimode_handler.c  \
+	esmtask.c
+endif             
+
+SM_CINCPATH=\
+             $(SM)          \
+             $(CNM)           \
+             $(RRC)           \
+             $(UIM)           \
+             $(GSDI)          \
+             $(CUST)          \
+	     $(DIAG)          \
+             $(SM)           \
+             $(REX)           \
+             $(MM)            \
+             $(MN)            \
+             $(TASK)          \
+             $(NV)            \
+             $(CM)            \
+             $(SM)            \
+             $(RABM)          \
+             $(REG)           \
+             $(CLK)           \
+             $(TRAMP)         \
+             $(RF)            \
+             $(HW)            \
+             $(SD)            \
+             $(UTILS)
+
+SM_OBJS :=  $(addprefix $(TARGETDIR)/, $(SM_SOURCES:%.c=%.o))
+$(SM_OBJS): INCLUDES = $(addprefix -I, $(SM_CINCPATH))
+$(SM_OBJS): CFLAGS := $(CFLAGS) -DFEATURE_6200_COMPATIBILITY
+SM_DEPS :=  $(addprefix $(TARGETDIR)/, $(SM_SOURCES:%.c=%.dep))
+$(SM_DEPS): INCLUDES = $(addprefix -I, $(SM_CINCPATH))
+vpath %.c $(SM)
+

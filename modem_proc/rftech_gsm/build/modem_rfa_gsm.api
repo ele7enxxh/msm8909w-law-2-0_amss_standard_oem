@@ -1,0 +1,153 @@
+#r===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011-2014 Qualcomm Technologies, Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies, Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies, Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rftech_gsm/build/modem_rfa_gsm.api#1 $
+# $DateTime: 2016/12/13 07:59:51 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/16/14   dej     Clean-up SCons and add support for TABASCO
+# 06/02/14   dr      Adding support for JOLOKIA
+# 02/18/14   ec	     Changes to allow compilation on DPM project
+# 05/22/13   sml     Removing obsolete path containing modem
+# 05/14/13   ra      Added support for Bolt
+# 03/07/13   cj      Added rf/meas/ftm/inc to RFTECH_GSM_VIOLATIONS
+# 02/04/13   dej     Branch MSM layer to RFMODEM component(s)
+# 12/05/12   sar     Created
+#===============================================================================
+
+Import('env')
+
+if env.PathExists('${INC_ROOT}/rfa'):
+    env.Replace(RF_ROOT = '${INC_ROOT}/rfa')
+
+env.Replace(RFTECH_GSM_ROOT = env.GetBuildPath(Dir('..')))
+
+
+env.PublishPublicApi('RFTECH_GSM',['${RFTECH_GSM_ROOT}/api'])
+
+if env.get('CHIPSET') not in ('mdm9x35'):
+   env.PublishRestrictedApi ('RFTECH_GSM_VIOLATIONS',[
+       '${INC_ROOT}/mcs/hwio/inc',
+       '${INC_ROOT}/mcs/hwio/inc/${CHIPSET}'
+       ])
+
+#Start public VIOLATIONS
+env.PublishRestrictedApi ('RFTECH_GSM_VIOLATIONS',[
+    '${RF_ROOT}/device/rfdev_intf/inc',
+	'${RF_ROOT}/rf/meas/ftm/inc',
+    '${RF_ROOT}/rf/common/ftm/inc',
+    '${RF_ROOT}/rf/common/hwtc/inc',
+    '${RF_ROOT}/rf/common/rf/core/inc',
+    '${RF_ROOT}/rf/common/rf/mc/inc',
+    '${RF_ROOT}/rf/common/rf/nv/inc',
+    '${RF_ROOT}/rf/common/rf/rfc/inc',
+    '${RF_ROOT}/rf/hal/common/inc',
+    '${RF_ROOT}/rf/task/common/inc',
+    '${RF_ROOT}/rf/task/rex_msgr/inc',
+    '${RF_ROOT}/rf/mdsp/qdsp6_gsm/inc',
+    '${RF_ROOT}/rf/mdsp/qdsp6_meas/inc',
+    '${RF_ROOT}/rfc/common/inc',
+    '${RF_ROOT}/rfc/vreg_mgr/common/inc',
+    '${RF_ROOT}/rf/rfd/common/inc',
+    '${RF_ROOT}/rf/rfd/nikel/inc',
+    '${RF_ROOT}/rf/common/stubs/inc',
+    '${RF_ROOT}/rf/wcdma/ftm/inc',
+    '${INC_ROOT}/wcdma/cust/inc',
+    '${RF_ROOT}/variation/inc',
+    '${INC_ROOT}/geran/variation/inc',
+    '${INC_ROOT}/geran/cust/inc',
+    '${INC_ROOT}/wcdma/mac/inc',
+    '${INC_ROOT}/wcdma/l1/offline/inc',
+    '${INC_ROOT}/wcdma/rlc/inc',
+    '${INC_ROOT}/wcdma/rrc/inc',
+    '${INC_ROOT}/wcdma/variation/inc',
+    '${INC_ROOT}/utils/osys',
+    '${RF_ROOT}/cust/inc',
+    '${INC_ROOT}/fw/api/common',
+    '${RF_ROOT}/rf/mdsp/qdsp6_common/inc',
+    '${INC_ROOT}/mcs/variation/inc',
+    '${INC_ROOT}/mcs/cust/inc',
+    '${RF_ROOT}/rf/meas/rf/rfc/inc',
+    '${RF_ROOT}/rf/common/rf/atuner/inc',
+    '${RF_ROOT}/rfc/rf_card/rfc_configurable_test_card/gsm/inc',
+    '${RF_ROOT}/rfc/rf_card/rfc_configurable_test_card/common/inc',
+# Paths for builds with modem
+    '${INC_ROOT}/rfa/device/rfdev_intf/inc',
+    '${INC_ROOT}/rfa/rf/common/ftm/inc',
+    '${INC_ROOT}/rfa/rf/common/hwtc/inc',
+    '${INC_ROOT}/rfa/rf/common/rf/core/inc',
+    '${INC_ROOT}/rfa/rf/common/rf/mc/inc',
+    '${INC_ROOT}/rfa/rf/common/rf/nv/inc',
+    '${INC_ROOT}/rfa/rf/common/rf/rfc/inc',
+    '${INC_ROOT}/rfa/rf/hal/common/inc',
+    '${INC_ROOT}/rfa/rf/task/common/inc',
+    '${INC_ROOT}/rfa/rf/task/rex_msgr/inc',
+    '${INC_ROOT}/rfa/rf/mdsp/qdsp6_gsm/inc',
+    '${INC_ROOT}/rfa/rf/mdsp/qdsp6_meas/inc',
+    '${INC_ROOT}/rfa/rfc/common/inc',
+    '${INC_ROOT}/rfa/rfc/vreg_mgr/common/inc',
+    '${INC_ROOT}/rfa/rf/rfd/common/inc',
+    '${INC_ROOT}/rfa/rf/rfd/nikel/inc',
+    '${INC_ROOT}/rfa/rf/common/stubs/inc',
+    '${INC_ROOT}/rfa/rf/wcdma/ftm/inc',
+    '${INC_ROOT}/wcdma/cust/inc',
+    '${INC_ROOT}/rfa/variation/inc',
+    '${INC_ROOT}/geran/variation/inc',
+    '${INC_ROOT}/geran/cust/inc',
+    '${INC_ROOT}/wcdma/mac/inc',
+    '${INC_ROOT}/wcdma/l1/offline/inc',
+    '${INC_ROOT}/wcdma/rlc/inc',
+    '${INC_ROOT}/wcdma/rrc/inc',
+    '${INC_ROOT}/wcdma/variation/inc',
+    '${INC_ROOT}/utils/osys',
+    '${INC_ROOT}/rfa/cust/inc',
+    '${INC_ROOT}/fw/api/common',
+    '${INC_ROOT}/rfa/rf/mdsp/qdsp6_common/inc',
+    '${INC_ROOT}/mcs/variation/inc',
+    '${INC_ROOT}/mcs/cust/inc',
+    '${INC_ROOT}/rfa/rf/meas/rf/rfc/inc',
+    '${INC_ROOT}/rfa/modem/geran/variation/inc',
+    '${INC_ROOT}/geran/variation/inc',
+    '${INC_ROOT}/geran/cust/inc',
+    '${INC_ROOT}/wcdma/variation/inc',
+    '${INC_ROOT}/rftech_gsm/api',
+    '${INC_ROOT}/rftech_wcdma/api',
+    ])
+
+#This violation needs to eventually be updated to include 
+#TRITON RFC Target folder when available
+if env.get('CHIPSET') in ('msm8x26','msm8x10','mdm9x35','msm8962','msm8926','msm8916'):
+  env.PublishRestrictedApi( 'RFTECH_GSM_VIOLATIONS', [
+        '${RF_ROOT}/rfc/dime/target/msm8974/inc',
+    ])
+else:
+  env.PublishRestrictedApi( 'RFTECH_GSM_VIOLATIONS', [    
+        '${RF_ROOT}/rfc/dime/target/${CHIPSET}/inc',
+    ])
+

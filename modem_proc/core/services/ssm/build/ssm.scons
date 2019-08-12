@@ -1,0 +1,201 @@
+#===============================================================================
+#
+# SSM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/services/ssm/build/ssm.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+if env.has_key('MODEM_PROC'):
+  env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_SSM'])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/services/ssm/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DEBUGTOOLS',
+   'DAL',
+   'MPROC',
+   'DIAG',
+   'STORAGE',
+   'SECUREMSM',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'MPROC_QMI_PRIVATE',
+   'WIREDCONNECTIVITY',
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+SSM_PROTECTED_API = [
+    'CRYPTO',
+]
+env.RequireProtectedApi(SSM_PROTECTED_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SSM_PHASE_I_C_SOURCES = [
+  '${BUILDPATH}/ssm_parser.c',
+  '${BUILDPATH}/ssm_task.c',
+  '${BUILDPATH}/ssm_smdl.c',
+  '${BUILDPATH}/ssm_ipc.c',
+  '${BUILDPATH}/ssm_mode.c',
+  '${BUILDPATH}/ssm_diag.c'
+]
+
+SSM_OCH_C_SOURCES = [
+  '${BUILDPATH}/ssm_diag_och.c',
+  '${BUILDPATH}/ssm_key_handler.c',
+  '${BUILDPATH}/ssm_diag_key_handler.c',
+  '${BUILDPATH}/ssm_och.c',
+  '${BUILDPATH}/ssm_ach.c',
+  '${BUILDPATH}/ssm_diag_ach.c'
+]
+
+
+SSM_TEST_C_SOURCES = [
+  '${BUILDPATH}/ssm_test.c',
+  '${BUILDPATH}/ssm_diag_test.c',
+  '${BUILDPATH}/ssm_ach_test.c',
+  '${BUILDPATH}/ssm_och_test.c',
+  '${BUILDPATH}/ssm_key_handler_test.c'
+]
+
+#if "USES_CLEAN_PACK" not in env:
+  #env.Append(CPPDEFINES=["FEATURE_SSM_TEST_DEBUG"])
+
+if env['MSMID'] in ['9x25', '9x35','9x45']:
+  env.Append(CPPDEFINES=["FEATURE_SSM_SEC_CHANNEL_NOT_AVAILABLE"])
+
+if env.has_key('MODEM_PROC'):
+  env.Append(CPPDEFINES=["FEATURE_SSM_PERIPHERAL_SERVER_PROC"])
+
+elif env.has_key('ADSP_PROC'):
+  env.Append(CPPDEFINES=["FEATURE_SSM_PERIPHERAL_CLIENT_PROC"])
+  env.Append(CPPDEFINES=["FEATURE_SSM_ADSP_PROC"])
+
+#ssm_test_obj = env.Object(SSM_TEST_C_SOURCES)
+#ssm_test_lib  = env.Library('${BUILDPATH}/ssm_test', [ssm_test_obj] );
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/src/ssm_phase_1', [SSM_PHASE_I_C_SOURCES])
+
+if env.has_key('MODEM_PROC'):
+   env.AddLibrary(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/src/ssm_och', [SSM_OCH_C_SOURCES])
+
+
+#if "USES_CLEAN_PACK" not in env:
+#  env.AddLibsToImage(
+#     ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+#     'APPS_IMAGE', 'CBSP_APPS_IMAGE',
+#     'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+#     [ssm_test_lib])
+
+#-------------------------------------------------------------------------------
+# Clean pack files
+#-------------------------------------------------------------------------------
+
+env.CleanPack(
+   ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+   'APPS_IMAGE', 'CBSP_APPS_IMAGE',
+   'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], 
+   SSM_TEST_C_SOURCES)
+
+
+#-------------------------------------------------------------------------------
+if env.has_key('MODEM_PROC') and 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitTask(           # SSM
+    RCINIT_IMG,                 # define TMC_RCINIT_REXTASK_SSM
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',             # required
+      'thread_name'                : 'ssm',                        # required
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'SHARED_BACKGROUND_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+      'thread_entry'               : 'ssm_task',
+    })
+
+else :
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitTask(           # SSM
+    RCINIT_IMG,                 # define TMC_RCINIT_REXTASK_SSM
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',             # required
+      'thread_name'                : 'ssm',                        # required
+      'thread_type'                : 'RCINIT_TASK_QURTTASK',
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'SHARED_BACKGROUND_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+      'thread_entry'               : 'ssm_task',
+    })
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitFunc(           # Code Fragment in TMC: YES
+    RCINIT_IMG,                 # define TMC_RCINIT_INIT_SSM_PARSER_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+     'init_name'                  : 'ssm_parser_init',                 # required
+     'init_function'              : 'ssm_parser_init',                 # required
+     'dependencies'               : ['timer_init']
+    })
+
+if env.has_key('MODEM_PROC') and 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitFunc(           # Code Fragment in TMC: YES
+    RCINIT_IMG,                 # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_2',                   # required
+     'init_name'                  : 'ssm_parser_post_init',                 # required
+     'init_function'              : 'ssm_parser_post_init',                 # required
+    })
+
+if env.has_key('MODEM_PROC') and 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitFunc(           # Code Fragment in TMC: YES
+    RCINIT_IMG,                 # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_2',                   # required
+     'init_name'                  : 'ssm_och_delayed_init',                 # required
+     'init_function'              : 'ssm_och_delayed_init',                 # required
+    })
+
+

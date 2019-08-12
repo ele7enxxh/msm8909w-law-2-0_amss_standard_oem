@@ -1,0 +1,30 @@
+import os
+import fnmatch
+import itertools
+
+Import('env')
+env = env.Clone()
+
+SRCPATH = ".."
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+CBSP_API = [
+   'SERVICES',
+   'MPROC',
+   'DAL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.Append(CPPDEFINES = ["FEATURE_Q_NO_SELF_QPTR"])
+
+source_patterns = ['*.c', '*.cpp']
+sources = []
+for root, dirnames, filenames in os.walk(SRCPATH):
+    matches = itertools.chain(*[fnmatch.filter(filenames, pattern) for pattern in source_patterns])
+    matches = ['${BUILDPATH}' + os.path.join(root, filename)[2:] for filename in matches]
+    sources.extend(matches)
+
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/services.lib', sources)
+

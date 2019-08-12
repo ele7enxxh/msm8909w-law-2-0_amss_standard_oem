@@ -1,0 +1,92 @@
+#===============================================================================
+#
+# TZ Common Version Control
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2014 by QUALCONFIG, Incorporated.
+# All Rights Reserved.
+# QUALConfig Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsapps/common/version/shared/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains configurable changes made to the module.
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/19/15   wt      Removed AOSTLM image
+# 07/24/14   wt      Added AOSTLM image
+# 01/15/13   cz      removed the drmprov image used BUILDPATH
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/common/version/shared"
+
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --arm')
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/common/version/shared/inc/",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/inc/",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/src/",
+   "${COREBSP_ROOT}/api/securemsm/trustzone/qsee",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/applib/qsee/src",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES'
+]
+
+env.RequirePublicApi(CBSP_API)
+
+#----------------------------------------------------------------------------
+# CONFIG Shared Library
+#----------------------------------------------------------------------------   
+
+SME_TZCOMMON_VERSION_SHARED_LIB_SOURCES = [      
+        '${BUILDPATH}/src/appsver.c'
+]
+
+sme_tzcommon_version_shared_lib = '${BUILDPATH}/sme_tzcommon_version_shared'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary (['PLAYREADY_IMAGE'],sme_tzcommon_version_shared_lib, [SME_TZCOMMON_VERSION_SHARED_LIB_SOURCES])
+env.AddBinaryLibrary (['WIDEVINE_IMAGE'],sme_tzcommon_version_shared_lib, [SME_TZCOMMON_VERSION_SHARED_LIB_SOURCES])
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+NOSHIP_SOURCES = env.FindFiles("*", SRCPATH + "/inc")
+env.CleanPack('PLAYREADY_IMAGE', NOSHIP_SOURCES)
+env.CleanPack('WIDEVINE_IMAGE', NOSHIP_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

@@ -1,0 +1,48 @@
+#===============================================================================
+#
+# sfs Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/scmm/main/latest/securemsm/sfs/build/SConscript#1 $
+#  $DateTime: 2009/10/02 00:38:04 $
+#  $Author: cbirch $
+#  $Change: 1042912 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/25/10    yh      Added 3 source files.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+env.Replace(BUILDPATH = env.subst('${BUILDPATH}/${BUILD_ID}'))
+
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+
+env.PublishPrivateApi('SECUREMSM', [
+   '${INC_ROOT}/core/securemsm/sfs/environment/env/amss/inc',
+   '${INC_ROOT}/core/securemsm/sfs/environment/env/sbl/inc',
+   '${INC_ROOT}/core/securemsm/sfs/shared/inc',
+   '${INC_ROOT}/core/securemsm/sfs/shared/src',
+])
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+

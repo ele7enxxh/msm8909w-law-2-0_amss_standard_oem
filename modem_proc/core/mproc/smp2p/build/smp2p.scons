@@ -1,0 +1,192 @@
+#===============================================================================
+#
+# SMP2P Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/mproc/smp2p/build/smp2p.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/20/15   rv      Add FEATURE_SMP2P_LOOPBACK_CLIENT.
+# 06/30/15   rv      Add 8937 XML config.
+# 06/11/15   rv      Add 9607 XML config.
+# 10/30/13   bt      Add APQ/MPQ-specific XML config.
+# 10/18/13   bt      Add 8916-specific XML config.
+# 10/11/13   bt      Add 8994 XML config.
+# 05/10/13   bt      Fix bad Scons updates.
+# 05/07/13   bt      Support both multi-image and single-image DevConfig.
+# 05/01/13   bt      CleanPack SMP2P files.
+# 04/13/13   bt      Move smp2p_list.c to smem_list.c.
+# 03/06/13   bt      Deliver all source for TN Apps builds.
+# 02/20/13   bt      Add more DevConfig labels for new targets.
+# 01/22/13   bt      Add RCINIT function to Apps processors.
+# 10/25/12   pa      Initial revision for 8974/Badger.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/mproc/smp2p/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # needed for PRNG random numbers
+   'SECUREMSM',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+if env.has_key('ADSP_PROC'):
+  env.Append(CPPDEFINES=['MPROC_LPASS_PROC'])
+
+#-------------------------------------------------------------------------------
+# SMP2P Loopback client support
+# Add FEATURE_SMP2P_LOOPBACK_CLIENT definition to enable the SMP2P loopback client
+#-------------------------------------------------------------------------------
+#env.Append(CPPDEFINES=['FEATURE_SMP2P_LOOPBACK_CLIENT'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SMP2P_CORE = [
+   '${BUILDPATH}/smp2p.c',
+   '${BUILDPATH}/smp2p_internal.c',
+]
+
+SMP2P_REX_SOURCES = [
+   '${BUILDPATH}/smp2p_dal.c',
+   '${BUILDPATH}/smp2p_dal_loopback.c'
+]
+
+SMP2P_QURT_SOURCES = [
+   '${BUILDPATH}/smp2p_dal.c',
+   '${BUILDPATH}/smp2p_dal_loopback.c'
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+# Add Image-specific Libraries, whose sources should be packed out.
+env.AddBinaryLibrary(['CORE_QDSP6_SW', 'WCN_IMAGE'], '${BUILDPATH}/smp2p_core', 
+                     [SMP2P_CORE])
+
+env.AddBinaryLibrary(['WCN_IMAGE'], '${BUILDPATH}/smp2p_rex', 
+                     [SMP2P_REX_SOURCES])
+
+if env.has_key('MODEM_PROC'):
+  env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smp2p_rex', 
+                       [SMP2P_REX_SOURCES])
+
+if env.has_key('ADSP_PROC'):
+  env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smp2p_qurt', 
+                       [SMP2P_QURT_SOURCES])
+
+#-------------------------------------------------------------------------------
+# Add Sources to image
+#-------------------------------------------------------------------------------
+# On TN Apps, all sources can be shipped.
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'], 
+               '${BUILDPATH}/smp2p_core', 
+               [SMP2P_CORE])
+
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'], 
+               '${BUILDPATH}/smp2p_rex', 
+               [SMP2P_REX_SOURCES])
+
+#-------------------------------------------------------------------------------
+# CleanPack (Remove) all remaining files for peripheral processors
+#-------------------------------------------------------------------------------
+PACK_OUT = env.FindFiles(['*.h', '*.c', '*.s'], SRCPATH)
+# Don't include RPM in this list, because it already does we want automatically.
+env.CleanPack(['CORE_QDSP6_SW', 'WCN_IMAGE'], PACK_OUT)
+
+#-------------------------------------------------------------------------------
+# RCINIT Task and Init Fields and Initialization
+#-------------------------------------------------------------------------------
+RCINIT_INIT_SMP2P_INIT = {
+  'sequence_group'             : 'RCINIT_GROUP_0',             # required
+  'init_name'                  : 'smp2p',                      # required
+  'init_function'              : 'smp2p_init',                 # required
+  'dependencies'               : ['smem','time','timer_init']
+}
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_PROC', 'CORE_QDSP6_SW', 'WCN_IMAGE', 
+                 'CBSP_APPS_IMAGE', 'APPS_IMAGE']
+   # SMP2P INIT
+   env.AddRCInitFunc( RCINIT_IMG, RCINIT_INIT_SMP2P_INIT )
+
+#-------------------------------------------------------------------------------
+# Device Config
+#-------------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+  if env['MSM_ID'] in ['9x25', '9x35']:
+    env.Replace(SMP2P_PLATFORM = 'mdm')
+  elif env['MSM_ID'] in ['8084', '8092', '8094']:
+    env.Replace(SMP2P_PLATFORM = 'adr')
+  elif env['MSM_ID'] in ['8916', '8936', '8909']:
+    env.Replace(SMP2P_PLATFORM = 'amwr')
+  elif env['MSM_ID'] in ['9607']:
+    env.Replace(SMP2P_PLATFORM = 'amr')
+  else:
+    env.Replace(SMP2P_PLATFORM = 'msm')
+  SMP2P_DEVCFG_XML = SRCPATH + '/../config/smp2p_' + env['SMP2P_PLATFORM'] + \
+                       '.xml'
+  env.AddDevCfgInfo(['DAL_DEVCFG_IMG'], 
+  {
+    '8974_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_msm.xml'],
+    '8926_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_msm.xml'],
+    '8626_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_msm.xml'],
+    '8962_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_msm.xml'], 
+    '8610_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_msm.xml'],
+    '8994_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_msm.xml'],
+    '8952_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_msm.xml'],
+    '8976_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_msm.xml'],
+    '8937_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_msm.xml'],
+    # 9x25: no WCNSS processor.
+    '9625_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_mdm.xml'],
+    '9635_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_mdm.xml'],
+    # APQ/MPQs: no MPSS or WCNSS processor.
+    '8084_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_adr.xml'],
+    '8092_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_adr.xml'],
+    '8094_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_adr.xml'],
+    # No ADSP processor.
+    '8916_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_amwr.xml'],
+    '8936_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_amwr.xml'],
+    '8909_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_amwr.xml'],
+    # APPS, MPSS & RPM
+    '9607_xml' : ['${BUILD_ROOT}/core/mproc/smp2p/config/smp2p_amr.xml'],
+    # For single-image DevConfig (WCNSS, TN Apps, etc)
+    'devcfg_xml' : SMP2P_DEVCFG_XML,
+  })

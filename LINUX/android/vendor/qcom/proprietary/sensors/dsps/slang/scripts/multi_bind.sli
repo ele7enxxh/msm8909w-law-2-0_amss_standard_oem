@@ -1,0 +1,115 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub main( @argv)
+{
+    my ( $sensor1, $sensor2, $report_rate, $sample_rate, $duration, $calibration, $decimation, $hpflag ) = @argv;
+
+    if ( !( defined( $sensor1) && defined( $sensor2) && defined( $report_rate))) {
+        print( "missing -args=sensor1,sensor2,report_rate\n");
+        return;
+    }
+
+    if ( !defined( $hpflag)) {
+       $hpflag = 0;
+    }
+    if ( !defined( $calibration)) {
+       $calibration = "full";
+    }
+    if ( !defined( $decimation)) {
+       $decimation = "sample";
+    }
+    if ( !defined( $duration)) {
+       $duration = 10;
+    }
+    if ( !defined( $sample_rate)) {
+       $sample_rate = $report_rate;
+    }
+
+    sloption( "script_handles_indications");
+
+    my $timeout = 3;
+    my $client = slopen();
+    my $add_req = slnew_req( "smgr", "buffered", { report_id => 1,
+                                            action => "add",
+                                            report_rate => $report_rate,
+                                            item => 0,
+                                            sensor_id => $sensor1,
+                                            decimation => $decimation,
+                                            calibration => $calibration,
+                                            sample_rate => $sample_rate,
+                                            sample_quality => $hpflag,
+                                            item => 1,
+                                            sensor_id => $sensor2,
+                                            sample_rate => $sample_rate,
+                                            sample_quality => $hpflag });
+
+    my $add_resp = slsend_recv( $client, $add_req, $timeout);
+    if ( !defined( $add_resp)) {
+        print( "add_resp not defined\n");
+    }
+
+    my ( $sensor, $x, $y, $z, $sscts, $flags, $quality);
+    my ( $in, $sn, $num_items, $num_samples);
+
+    my $total_count = 0;
+    my $ind_count = 0;
+    my $sample_count = 0;
+    my $quantity = $duration * $sample_rate;
+
+    $timeout = 10;                          /* stub can timeout be float ? */
+    while ( $sample_count < $quantity) {
+        my $respind = slrecv( $timeout);
+        if ( !defined( $respind)) {
+            print( "respind not defined\n");
+            break;
+        }
+
+        $total_count += 1;
+        my ( $msg_type) = slget( $respind, {msg_type});
+        if ( $msg_type == 2) {
+            $ind_count += 1;
+
+            ( $num_items) = slget( $respind, { item});
+
+            $in = 0;
+            while ( $in < $num_items) {
+
+                ( $num_samples) = slget( $respind, { item.$in, sample});
+
+                $sn = 0;
+                while ( $sn < $num_samples) {
+                    ( $sensor, $x, $y, $z, $sscts, $flags, $quality) = slget( $respind, { item.$in, sample.$sn, sensor_id, datax, datay, dataz, sscts, flags, quality});
+                    $x /= 65536.0;
+                    $y /= 65536.0;
+                    $z /= 65536.0;
+                    $sscts *= ( 1000.0 / 32768.0);
+
+                    $sample_count += 1;
+                    $sn += 1;
+
+                    print( "$in.$sn: $sensor, $x, $y, $z, $sscts, $flags, $quality\n");
+                }
+                $in += 1;
+            }
+        }
+    }
+
+    print( "total count $total_count, ind count $ind_count, sample_count $sample_count\n");
+
+    $timeout = 3;
+    my $del_req = slnew_req( "smgr", "buffered", { report_id => 1, action => "delete"});
+    my $del_resp = slsend_recv( $client, $del_req, $timeout);
+    if ( defined( $del_resp)) {
+        my ( $del_type) = slget( $del_resp, {msg_type});
+        print( "del_resp msg_type $del_type\n");
+    }
+    else {
+        print( "del_resp not defined\n");
+    }
+
+    my $rc  = slclose( $client);
+    print( "slclose() rc $rc\n");
+}

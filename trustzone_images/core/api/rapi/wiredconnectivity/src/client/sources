@@ -1,0 +1,37 @@
+!if 0
+/*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+
+  Makefile SOURCES
+
+    This file is used by the build system to determine how this directory is
+    to be compiled.
+
+  $Header: $ $DateTime: $ $Author: $
+
+  Copyright (c) 2009 by QUALCOMM Incorporated.  All Rights Reserved.
+
+===========================================================================*/
+!ENDIF
+
+TARGETNAME=core_rapi_wiredconnectivity_client
+RELEASETYPE=PLATFORM
+TARGETTYPE=LIBRARY
+
+WINCE_OVERRIDE_CFLAGS= -Zd
+
+CDEFINES = $(CDEFINES) \
+        -DFEATURE_EXPORT_RDEVMAP \
+        -DFEATURE_EXPORT_HSU_MDM_APIS \
+
+RDEVMAP_CLIENT_SOURCES = \
+    ../rdevmap_clnt.c \
+    ../rdevmap_xdr.c
+
+HSUSB_CLIENT_SOURCES = \
+    ../hsu_mdm_apis_clnt.c \
+    ../hsu_mdm_apis_xdr.c \
+
+SOURCES = \
+        $(RDEVMAP_CLIENT_SOURCES) \
+        $(HSUSB_CLIENT_SOURCES)
+

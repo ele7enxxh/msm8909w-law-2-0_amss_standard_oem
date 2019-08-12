@@ -1,0 +1,12 @@
+#define audioif_prop audioif_prop_8909_xml
+#define avtimer_prop avtimer_prop_8909_xml
+#define dmlite_prop dmlite_prop_8909_xml
+#define resampler_prop resampler_prop_8909_xml
+#define vfr_prop vfr_prop_8909_xml
+#define afe_riva_prop afe_riva_prop_8909_xml
+#define afe_slimbus_prop afe_slimbus_prop_8909_xml
+#define midi_prop midi_prop_8909_xml
+#define lpass_prop lpass_prop_8909_xml
+#define spdiftx_prop spdiftx_prop_8909_xml
+#define hdmi_input_prop hdmi_input_prop_8909_xml
+#define mmpm_prop mmpm_prop_8909_xml

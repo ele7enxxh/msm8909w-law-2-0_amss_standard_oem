@@ -1,0 +1,259 @@
+#===============================================================================
+#
+# SLPC Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcs/slpc/build/slpc.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/07/11   cab     Initial version.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Exit immediately for PLT builds
+#-------------------------------------------------------------------------------
+if 'USES_PLT' in env:
+    Return()
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+    "MSG_BT_SSID_DFLT=MSG_SSID_SLEEP",
+])
+
+# For HWIO macros
+env.PublishPrivateApi('SLPC_HWIO', ["${MCS_ROOT}/slpc/inc/${CHIPSET}"])
+if env['CHIPSET'] in ['mdm9x35']:
+       env.Append(CPPDEFINES = ["SLPC_MDM9x35"])
+
+# VSTMR not supported on all targets
+if 'USES_MCS_VSTMR' in env:
+       env.Append(CPPDEFINES = ["SLPC_VSTMR"])
+
+#env.Append(CPPDEFINES=[('SLPC_TEST',1)])
+
+#-------------------------------------------------------------------------------
+# HWIO
+#-------------------------------------------------------------------------------
+
+if env.has_key('HWIO_IMAGE'):
+  env.AddHWIOFile('HWIO', [
+    {
+      'filename': '${MCS_ROOT}/slpc/src/slpcHWIO.h',
+      'bases': ['MSS_TOP']
+    }
+  ])
+
+#-------------------------------------------------------------------------------
+# RCInit
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['MODEM_MODEM', 'MOB_MCS_SLPC']
+  env.AddRCInitFunc(
+  RCINIT_IMG,       
+  {
+    'sequence_group'             : 'RCINIT_GROUP_3',
+    'init_name'                  : 'slpc_init',          
+    'init_function'              : 'slpc_init',
+    'dependencies'               : ['timer','GPIOInt'],
+    'policy_optin'               : ['default', 'ftm', ],
+  })
+
+if 'USES_RCINIT' in env:
+  # Task 1 of 9 - GSM
+  RCINIT_IMG = ['MODEM_MODEM', 'MOB_MCS_SLPC']
+  env.AddRCInitTask(
+  RCINIT_IMG,
+  {
+    'sequence_group'             : 'RCINIT_GROUP_3',
+    'thread_name'                : 'slpc_gsm',
+    'stack_size_bytes'           : '4096',
+    'priority_amss_order'        : 'SLPC_PRI_ORDER',
+    'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    'policy_optin'               : ['default', 'ftm', ],
+  })
+
+  # Task 2 of 9 - 1x
+  env.AddRCInitTask(
+  RCINIT_IMG,
+  {
+    'sequence_group'             : 'RCINIT_GROUP_3',
+    'thread_name'                : 'slpc_1x',
+    'stack_size_bytes'           : '4096',
+    'priority_amss_order'        : 'SLPC_PRI_ORDER',
+    'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    'policy_optin'               : ['default', 'ftm', ],
+  })
+
+  # Task 3 of 9 - HDR
+  env.AddRCInitTask(
+  RCINIT_IMG,
+  {
+    'sequence_group'             : 'RCINIT_GROUP_3',
+    'thread_name'                : 'slpc_hdr',
+    'stack_size_bytes'           : '4096',
+    'priority_amss_order'        : 'SLPC_PRI_ORDER',
+    'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    'policy_optin'               : ['default', 'ftm', ],
+  })
+
+  # Task 4 of 9 - WCDMA
+  env.AddRCInitTask(
+  RCINIT_IMG,
+  {
+    'sequence_group'             : 'RCINIT_GROUP_3',
+    'thread_name'                : 'slpc_wcdma',
+    'stack_size_bytes'           : '4096',
+    'priority_amss_order'        : 'SLPC_PRI_ORDER',
+    'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    'policy_optin'               : ['default', 'ftm', ],
+  })
+
+  # Task 5 of 9 - WCDMA2
+  env.AddRCInitTask(
+  RCINIT_IMG,
+  {
+    'sequence_group'             : 'RCINIT_GROUP_3',
+    'thread_name'                : 'slpc_wcdma2',
+    'stack_size_bytes'           : '4096',
+    'priority_amss_order'        : 'SLPC_PRI_ORDER',
+    'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    'policy_optin'               : ['default', 'ftm', ],
+  })
+
+  # Task 6 of 9 - LTE
+  env.AddRCInitTask(
+  RCINIT_IMG,
+  {
+    'sequence_group'             : 'RCINIT_GROUP_3',
+    'thread_name'                : 'slpc_lte',
+    'stack_size_bytes'           : '4096',
+    'priority_amss_order'        : 'SLPC_PRI_ORDER',
+    'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    'policy_optin'               : ['default', 'ftm', ],
+  })
+
+  # Task 7 of 9 - tdscdma
+  env.AddRCInitTask(
+  RCINIT_IMG,
+  {
+    'sequence_group'             : 'RCINIT_GROUP_3',
+    'thread_name'                : 'slpc_tds',
+    'stack_size_bytes'           : '4096',
+    'priority_amss_order'        : 'SLPC_PRI_ORDER',
+    'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    'policy_optin'               : ['default', 'ftm', ],
+  })
+
+  # Task 8 of 9 - gsm2
+  env.AddRCInitTask(
+  RCINIT_IMG,
+  {
+    'sequence_group'             : 'RCINIT_GROUP_3',
+    'thread_name'                : 'slpc_gsm2',
+    'stack_size_bytes'           : '4096',
+    'priority_amss_order'        : 'SLPC_PRI_ORDER',
+    'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    'policy_optin'               : ['default', 'ftm', ],
+  })
+
+  # Task 9 of 9 - gsm3
+  env.AddRCInitTask(
+  RCINIT_IMG,
+  {
+    'sequence_group'             : 'RCINIT_GROUP_3',
+    'thread_name'                : 'slpc_gsm3',
+    'stack_size_bytes'           : '4096',
+    'priority_amss_order'        : '170',
+    'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    'policy_optin'               : ['default', 'ftm', ],
+  })
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+SLPC_SRC = [
+    '${BUILDPATH}/src/slpc.c',
+    '${BUILDPATH}/src/slpc_trace.c'
+]
+
+# Compile the slpc source and convert to a library
+env.AddLibrary(['MODEM_MODEM','MOB_MCS_SLPC'],
+               '${BUILDPATH}/slpc',
+               SLPC_SRC)
+
+#-------------------------------------------------------------------------------
+# Test code
+#-------------------------------------------------------------------------------
+
+if 'USES_SLPC_TEST' in env and 'USES_RCINIT' in env:
+    RCINIT_IMG = ['MODEM_MODEM','MOB_MCS_SLPC_UT']
+    env.AddRCInitTask(
+    RCINIT_IMG,      
+    {
+      'sequence_group'             : 'RCINIT_GROUP_7',
+      'thread_name'                : 'slpc_test1',         
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'GSM_L1_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK'
+    })
+    env.AddRCInitTask(
+    RCINIT_IMG,      
+    {
+      'sequence_group'             : 'RCINIT_GROUP_7',
+      'thread_name'                : 'slpc_test2',         
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'GSM_L1_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK'
+    })
+
+    SLPC_TEST_SRC = [
+        '${BUILDPATH}/src/slpc_stubs.c',
+        '${BUILDPATH}/src/slpc_test.c',
+        '${BUILDPATH}/src/slpc_test_output.c',
+        '${BUILDPATH}/src/slpc_test_test1.c',
+        '${BUILDPATH}/src/slpc_test_test2.c',
+        '${BUILDPATH}/src/slpc_test_test3.c',
+        '${BUILDPATH}/src/slpc_test_test4.c',
+        '${BUILDPATH}/src/slpc_test_test5.c',
+    ]
+
+    env.AddLibrary(['MODEM_MODEM','MOB_MCS_SLPC_UT'], 
+                   '${BUILDPATH}/slpc_test', SLPC_TEST_SRC)

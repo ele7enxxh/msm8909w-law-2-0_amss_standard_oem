@@ -1,0 +1,454 @@
+<?xml version="1.0"?>
+<!DOCTYPE image SYSTEM "weaver-1.0.dtd">
+<image>
+    <machine>
+     
+      <interrupt>   
+       
+        <irq num ="0"  trigger="edge"  polarity="rising"/>
+        <irq num ="1"  trigger="edge"  polarity="rising"/>
+        <irq num ="2"  trigger="edge"  polarity="rising"/>
+        <irq num ="3"  trigger="edge"  polarity="rising"/>
+        <irq num ="4"  trigger="edge"  polarity="rising"/>
+        <irq num ="5"  trigger="edge"  polarity="rising"/>
+        <irq num ="6"  trigger="edge"  polarity="rising"/>
+        <irq num ="7"  trigger="edge"  polarity="rising"/>
+        <irq num ="8"  trigger="edge"  polarity="rising"/>
+        <irq num ="9"  trigger="edge"  polarity="rising"/>
+        <irq num ="10" trigger="edge"  polarity="rising"/>
+        <irq num ="11" trigger="edge"  polarity="rising"/>
+        <irq num ="12" trigger="edge"  polarity="rising"/>
+        <irq num ="13" trigger="edge"  polarity="rising"/>
+        <irq num ="14" trigger="edge"  polarity="rising"/>
+        <irq num ="15" trigger="edge"  polarity="rising"/>
+        <irq num ="16" trigger="edge"  polarity="rising"/>
+        <irq num ="17" trigger="edge"  polarity="rising"/>
+        <irq num ="18" trigger="edge"  polarity="rising"/>
+        <irq num ="19" trigger="edge"  polarity="rising"/>
+        <irq num ="20" trigger="edge"  polarity="rising"/>
+        <irq num ="21" trigger="edge"  polarity="rising"/>
+        <irq num ="22" trigger="edge"  polarity="rising"/>
+        <irq num ="23" trigger="edge"  polarity="rising"/>
+
+        <irq num ="24" trigger="level" polarity="high"
+          l2base = "0xa0090000" />
+
+        <irq num ="25" trigger="level" polarity="high"
+             l2base = "0xa0090400" />
+
+        <irq num ="26" trigger="level" polarity="high"
+             l2base = "0xa0090800" />
+
+        <irq num ="27" trigger="level" polarity="high"
+             l2base = "0xa0090c00" l2trigger = "0x00400000"/>
+
+        <irq num ="28" trigger="level" polarity="high"
+             l2base = "0xa0091000" l2trigger = "0xFF000FBF"/> 
+
+        <irq num ="29" trigger="level" polarity="high"
+             l2base = "0xa0091400" l2trigger = "0x783E077F"/>
+
+        <irq num ="30" trigger="edge" polarity="rising"/>
+
+        <irq num ="31" trigger="edge" polarity="rising"/>
+
+      </interrupt>
+
+      <Hexagon_ss_base value = "0xA0080000" />
+
+      <tcxo intmask="0x00000200"/>     <!-- What value for MDM9K -->
+
+      <timer>
+        <base value = "0xA00A0000" />
+        <intno value = "3" />
+        <priority value="255" />
+        <bitmask value="0xff" />
+        <IST_priority value="254" />
+        <IST_bitmask value="0xff" />
+      </timer>
+
+      <timetest_port value="0x70000002" />
+
+      <chicken_bits>
+         <rgdr value = "0x01000000" />
+         <acc0 value = "0" />
+         <acc1 value = "0" />
+         <chicken value = "0" />
+      </chicken_bits>     
+
+      <cache>
+        <l1_iprefetch     enabled="true" lines="1"/>
+        <l2_iprefetch     enabled="true"/>
+
+        <l2_size          value="256"/>
+      </cache>
+
+      <cache_policy name="writeback" value="0x0"/>
+      <cache_policy name="writethrough" value="0x1"/>
+      <cache_policy name="l1_wt_l2_cacheable" value="0x5"/>
+      <cache_policy name="l1_wb_l2_cacheable" value="0x7"/> 
+      <cache_policy name="l1_wb_l2_uncacheable" value="0x0"/>
+      <cache_policy name="uncached" value="0x4"/>
+
+    </machine>
+
+    <kernel>
+      <hthread_mask value = "0xff" />
+      <heap_size value = "0X80000"/>
+      <max_threads value = "80"/>
+      <max_threads_in_tcm value = "10"/>
+      <max_futexes value = "1024"/>      
+      <trace_mask value = "0X01"/>  
+      <trace_size value = "4096" />
+    </kernel>
+
+      <physical_pool name="DEFAULT_PHYSPOOL">
+          <region base="0x00C00000" size="0x02F00000" />
+      </physical_pool>
+
+      <physical_pool name="DRIVER_POOL">
+        <region base="0x90000000" size="0x40000000" />
+      </physical_pool>
+
+      <physical_pool name="TCM_PHYSPOOL">
+          <region base="0xd8020000" size="0x20000" />
+      </physical_pool>
+
+
+
+    <program name="AMSS">
+
+        <stack_size value = "0x1000" />
+        <heap_size name="heap_size" value = "0x400000" />
+        <main_priority value = "1" />
+        <main_bitmask value = "0xff" />
+
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x00008000"
+    	    size="0x00004000"
+    	    cache_policy="l1_wb_l2_uncacheable" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x0000C000"
+    	    size="0x00004000"
+    	    cache_policy="l1_wb_l2_uncacheable" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x00010000"
+    	    size="0x00010000"
+    	    cache_policy="l1_wb_l2_uncacheable" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x00020000"
+    	    size="0x00010000"
+    	    cache_policy="l1_wb_l2_uncacheable" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x00030000"
+    	    size="0x00010000"
+    	    cache_policy="l1_wb_l2_uncacheable" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x00040000"
+    	    size="0x00010000"
+    	    cache_policy="l1_wb_l2_uncacheable" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x00050000"
+    	    size="0x00010000"
+    	    cache_policy="l1_wb_l2_uncacheable" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x00060000"
+    	    size="0x00010000"
+    	    cache_policy="l1_wb_l2_uncacheable" />
+    
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x00070000"
+    	    size="0x00010000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x00B00000"
+    	    size="0x00100000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x03B00000"
+    	    size="0x00100000"
+    	    cache_policy="uncached" />
+    
+        <memsection tlb_lock = "1"
+            direct="true" 
+            attach="rwx" 
+    	    virt_addr="0xa0000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0xa1000000"
+    	    size="0x00100000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x94000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x40000000"
+    	    size="0x00040000"
+    	    cache_policy="l1_wb_l2_uncacheable" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x40040000"
+    	    size="0x00040000"
+    	    cache_policy="l1_wb_l2_uncacheable" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48000000"
+    	    size="0x00004000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48004000"
+    	    size="0x00004000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48008000"
+    	    size="0x00004000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48010000"
+    	    size="0x00010000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48020000"
+    	    size="0x00010000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48030000"
+    	    size="0x00010000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48040000"
+    	    size="0x00004000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48044000"
+    	    size="0x00004000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48048000"
+    	    size="0x00004000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x4804c000"
+    	    size="0x00004000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48050000"
+    	    size="0x00010000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48060000"
+    	    size="0x00010000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48070000"
+    	    size="0x00010000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48080000"
+    	    size="0x00040000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x480c0000"
+    	    size="0x00040000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48100000"
+    	    size="0x00100000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48200000"
+    	    size="0x00100000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48300000"
+    	    size="0x00100000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48400000"
+    	    size="0x00400000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48800000"
+    	    size="0x00400000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48c00000"
+    	    size="0x00100000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48d00000"
+    	    size="0x00100000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48e00000"
+    	    size="0x00100000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x48f00000"
+    	    size="0x00100000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0xb0000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0xb1000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0xb2000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0xb3000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0xb4000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0xb5000000"
+    	    size="0x00004000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x70000000"
+    	    size="0x00001000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x80000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x81000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x88000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x89000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x8c000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x8D000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+        <memsection direct="true" 
+            attach="rwx" 
+    	    virt_addr="0x8E000000"
+    	    size="0x01000000"
+    	    cache_policy="uncached" />
+    
+    </program>
+
+</image>

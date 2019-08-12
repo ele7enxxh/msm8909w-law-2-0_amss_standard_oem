@@ -1,0 +1,104 @@
+#===============================================================================
+#
+# GBA TEST Scons
+#
+# GENERAL DESCRIPTION
+#    build script for test files
+#
+#                       COPYRIGHT INFORMATION
+#
+# Copyright (c) 2014 - 2015 QUALCOMM Technologies, Inc (QTI) and its licensors.
+# All Rights Reserved.  QUALCOMM Technologies Proprietary.
+# Export of this technology or software
+# is regulated by the U.S. Government. Diversion contrary to U.S. law prohibited.
+# 
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $ $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/25/15   sp      Updated copyright
+# 03/13/15   vr      Compile the policyman files from its own folder
+# 03/13/15   vdc     Update test path to get GBA logs in test case
+# 08/18/14   tl      Initial version.
+#===============================================================================
+from glob import glob
+from os.path import join, basename
+
+Import('env')
+env = env.Clone()
+
+if 'USES_MOB' not in env:
+    Return()
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+TESTPATH = "uim/gba/test"
+SRCPATH = "../"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPDEFINES = 'COMPONENT_PATH=\\"'+TESTPATH+'/\\"')
+
+#-------------------------------------------------------------------------------
+# Necessary Public & Restricted API's
+#-------------------------------------------------------------------------------
+CORE_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'SECUREMSM',
+    'DAL',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+# We need the Core BSP API's
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+# We need the UIM API's
+env.RequirePublicApi(['UIM'])
+
+# We need our "inc" dir too + other UIM "inc" dirs
+# We need WCDMA RRC Restricted APIs
+env.RequireRestrictedApi(['UIM'])
+
+env.RequirePublicApi('QTF', area='MOB')
+
+# Need to get access to Modem Restricted headers
+env.RequireRestrictedApi(['VIOLATIONS', 'QTF'])
+
+env.PublishPrivateApi('POLICYMAN', ["${INC_ROOT}/mmcp/policyman/inc"])
+
+env.RequirePrivateApi(['POLICYMAN'])
+
+GBA_UT_SRC = [
+  '${BUILD_ROOT}/mmcp/policyman/src/dynarray.c',
+  '${BUILD_ROOT}/mmcp/policyman/src/mre_efs.c',
+  '${BUILD_ROOT}/mmcp/policyman/src/mre_engine.c',
+  '${BUILD_ROOT}/mmcp/policyman/src/mre_lang.c',
+  '${BUILD_ROOT}/mmcp/policyman/src/mre_namedobj.c',
+  '${BUILD_ROOT}/mmcp/policyman/src/mre_regex.c',
+  '${BUILD_ROOT}/mmcp/policyman/src/mre_rules.c',
+  '${BUILD_ROOT}/mmcp/policyman/src/mre_set.c',
+  '${BUILD_ROOT}/mmcp/policyman/src/mre_util.c',
+  '${BUILD_ROOT}/mmcp/policyman/src/mre_xml.c',
+ ]
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+GBA_UT_SRC += ['${BUILDPATH}/test_sanity/' + basename(fname)
+                  for fname in glob(join(env.subst(SRCPATH) + 'test_sanity/', '*.cpp'))]
+
+# UT's must be added as objects
+env.AddObject(['MOB_UIM_UT'], GBA_UT_SRC)

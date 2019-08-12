@@ -1,0 +1,3322 @@
+;============================================================================
+;  Name:
+;    NAND_TOOLS.CMM
+;
+;  Description:
+;    Internal FLASH Programming Script.
+;
+;
+;  Copyright (c) 2009-2012, 2014 Qualcomm Technologies Incorporated.
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/config_v2/nand_tools.cmm#1 $ 
+; $DateTime: 2015/09/01 00:30:35 $ 
+; $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 08/04/14   sb      Update to support 8909
+; 06/04/14   sb      Update to support 9x45
+; 03/05/12   eo      Replace WDT name reference with SDI 
+; 11/07/12   eo      Add ACDB image programming support for 9x25
+; 09/28/12   sy      Changing flash path 
+; 09/10/12   eo      Flash images using custom partition programming
+; 11/14/11   eo      Skip LPASS image programming (dsp3.mbn) if image not present
+; 08/31/11   eo      Support nand tools on Sparrow for 9x15
+; 08/23/11   eo      Add APPSBL to 9x15 
+; 08/17/11   sv      Swap DSP 1 and DSP2
+; 08/02/11   sv      Added support to program DSP3 image
+; 07/18/11   jz      Added support to load images from other locations
+; 06/22/11   eo      Nand tools support for 9x15
+; 03/28/11   jz      Check error code for partition table too big case
+; 03/21/11   jz      Updated to support new T32 versions
+; 11/23/10   jz      Updated for NOMENUCUSTOM support
+; 11/12/10   jz      Return status to the calling script
+; 08/26/10   sb      Add menu to load factory images in a single step
+; 08/03/10   jz      Choose custom image location for download if not found in default place
+; 06/10/10   sv      Use standard image path for custom and update images
+; 03/02/10   op      Allow to download flash.bin in modem site - Halcyon target
+; 02/03/10   op      Add OSBL, DSP, and AMDD images update
+; 01/07/10   mcg     Add support for FLASH_8K_RPM_NAND_CFG
+; 12/23/09   sv      Add 8K BMP support
+; 12/14/09   op      Allow to select custom partition & image for download 
+; 11/22/09   op      Add download adsp image to Halcyon NOMENU, NOMENUMODEM mode 
+; 11/22/09   op      Add menu to download flash.bin & app images for 8K WM7 
+; 10/26/09   op      Fix Decimal Menu Index for Fsbl, add NOMENUAPPSCEFSEXT opt 
+; 10/20/09   op      Fix Request BuildId when running mjnand without parameter 
+; 10/12/09   mh      Remove option to flash FSBL for 6K, 7K, 9K
+; 10/02/09   eo      Fix "doNoMenu" menu, add ProgramDSP2
+; 10/02/09   op      Fix "Download All" menu, add ProgramDSP2
+; 08/08/09   op      Merge 8K, 9K, Halcyon,SCMM scripts. Support cust image
+; 09/15/09   eo      Restore T32 to ARM9 mode when exit in 9K 
+; 08/14/09   sv      Use sysup script instead of sys.u for 9K 
+; 07/22/09   sv      Initial revision 
+
+;============================================================================;
+
+;============================================================================
+; Declare global variables used
+;============================================================================
+global &BinDir
+global &Platform
+global &Parti &Sbl1 &Sbl2
+global &Apps &AppsBoot &Tz &Sdi &Rpm &Mba &DspSW &DspFW &Dsp3 &QDsp &ADsp &Acdb
+
+;============================================================================
+; Declare Local variables used
+;============================================================================
+; These Indexes are used to store the menu Indexes.
+; The Menu index is set to -1, if the menu is not available,
+; otherwise the menu will be set to the valid index    
+local &exitId
+local &partTblId
+local &dblId
+local &fsblId
+local &osblId
+local &amssId  
+local &appsBootId
+local &appsId
+local &dsp1Id
+local &dsp2Id
+local &allId
+local &mCefId  
+local &aCefId  
+local &custId  
+local &factId
+local &fotaId
+local &appsSysId
+local &appsEfs2RawId
+local &updateImageId
+local &osblUpdateId  
+local &amssUpdateIdId
+local &dspUpdateId
+local &sbl1Id
+local &sbl2Id
+local &rpmId
+local &dsp3Id
+local &TzId
+local &SdiId
+local &MbaId
+local &QdspId
+local &AdspId
+local &AcdbId
+local &lastId
+
+; Boolean Type
+&true=(0==0)
+&false=(0==1)
+; Use this flag to force prompting the filename if it is set
+local &PrompFile
+; Use this flag to force prompting the custom partition and image 
+local &forceCustPrompt
+
+;Set the following menu indexes to not available.
+;These menu indexes will be set to the correct ID later based on the target
+;support
+&fsblId=-1.
+&amssId=-1.
+&appsBootId=-1.
+&appsId=-1.
+&dsp1Id=-1.
+&dsp2Id=-1.
+&dsp3Id=-1.
+&allId=-1.
+&mCefId=-1. 
+&aCefId=-1. 
+&custId=-1.  
+&factId=-1.
+&fotaId=-1.
+&appsSysId=-1.
+&appsEfs2RawId=-1.
+&updateImageId=-1.
+&sbl1Id=-1.
+&sbl2Id=-1.
+&rpmId=-1.
+&TzId=-1.
+&SdiId=-1.
+&MbaId=-1.
+&AdspId=-1.
+&QdspId=-1.
+&AcdbId=-1.
+
+&lastId=28.
+&PrompFile=&false
+&forceCustPrompt=&false
+
+
+LOCAL &CurDir
+&CurDir=os.pwd()
+
+;============================================================================
+; Get the arguments passed in.
+;============================================================================
+ENTRY &arg1 &arg2 &arg3 &arg4 &arg5
+
+;--------------------------------------------------------
+;  Variables for binaries to program
+;--------------------------------------------------------
+  &PartiBin="partition.mbn"
+  &DblBin="dbl.mbn"
+  &FsblBin="fsbl.mbn"
+  &OsblBin="osbl.mbn"
+  &AmssBin="amss.mbn"
+  &Dsp3Bin="dsp3.mbn"
+  &AppsBin="apps.mbn"
+  &AppsBootBin="appsboot.mbn"
+  &CefsBin="cefs_modem.mbn"
+  &CefsAppsBin="cefs_apps.mbn"
+  &FotaBin="fotaui.mbn"
+  &FlashBin="flash.bin"
+  &CustomBin="*.*"
+  &Dsp1Bin="dsp1.mbn"
+  &Dsp2Bin="dsp2.mbn"
+  &BuildID=""
+  &MsmID=""
+  &AppsBinPath=""
+  &FactoryBin="FactoryImage2.mbn"
+  &CustImageFile=""
+  &OsblUpBin="osblupdate.mbn"
+  &AmssUpBin="amssupdate.mbn" 
+  &DspUpBin="dspupdate.mbn"
+
+  &Sbl1Bin="sbl1.mbn"
+  &Sbl2Bin="sbl2.mbn"
+  &RpmBin="rpm.mbn"
+  &TzBin="tz.mbn"
+  &SdiBin="sdi.mbn"
+  &MbaBin="mba.mbn"
+  &ADspBin="dsp2.mbn"
+  &QDspBin="qdsp6sw.mbn"
+  &AcdbBin="acdb.mbn"
+
+;============================================================================
+; Set up some defaults for some variables
+;============================================================================
+&MenuMode="STD"        ; Present normal NAND_TOOLS menu
+&DoDebug="no"          ; Do not do debugging      
+&ProcessBinName="yes"  ; Processs the binary file name
+&Verbose="yes"         ; Present status messages as we process
+&ClearWin="yes"        ; Remove all windows before starting
+&SymbolArg="/NOSYMBOL" ; Don't load any symbols
+&DoVerify="yes"        ; Do not do verify step
+&ImageDir="."          ; Directory to find images in
+&CheckStatusFailed="no"
+&TermBlipBreak="no"    ; set to yes to use buffered IO
+&PartiSent="no"        ; have not yet sent partition table
+&BinDialog="yes"       ; Do not use hard coded binaries, use dialog and path
+&SecureBoot="no"       ; Do not program PBL in Secure Boot mode
+
+
+;============================================================================
+; Set some MSM specific variables used later in flash.target command
+;    &NandCodeAddr=
+;    &NandParamAddr=
+;    &NandCpuType=
+;============================================================================
+if (os.file(nand_param.cmm))
+(
+  do nand_param
+)
+else
+(
+  print "Missing nand_param.cmm"
+  enddo (1==0)
+)
+
+; Set the default path to the folder containing binaries
+ &BinDir="&NandSrcRoot/build/ms/bin"
+ 
+
+;============================================================================
+; For normal use set up the screen with only area window for reports
+; For debug purposes, don't clear
+; In both cases, make sure we have an area window
+;============================================================================
+if "&ClearWin"=="yes"
+(
+  WinCLEAR
+  WinPage.Reset
+)
+
+WINPOS 0. 0. 50% 100%
+area
+
+if "&ClearWin"=="yes"
+(
+  area.RESET
+)
+
+;============================================================================
+; Process the command line arguments and create image names or wildcards
+;============================================================================
+  gosub ProcessCmdLine
+
+  if "&BuildID"==""
+  (
+    print " Please specify MSM ID (i.e.: 9x25)"
+    &t32_cmm_stopped=1
+    enter &MsmID
+    &t32_cmm_stopped=0
+    print
+    &BuildID="&MsmID/nand"  
+  )
+
+  gosub AdjustBinNames
+
+;============================================================================
+; Overwrite the image paths if load_image.cmm is called earlier
+;============================================================================
+if "&Parti"!=""
+(
+  &PartiBin="&Parti"
+)
+if "&Sbl1"!=""
+(
+  &Sbl1Bin="&Sbl1"
+)
+if "&Tz"!=""
+(
+  &TzBin="&Tz"
+)
+if "&Sdi"!=""
+(
+  &SdiBin="&Sdi"
+)
+if "&Mba"!=""
+(
+  &MbaBin="&Mba"
+)
+if "&Sbl2"!=""
+(
+  &Sbl2Bin="&Sbl2"
+)
+if "&Rpm"!=""
+(
+  &RpmBin="&Rpm"
+)
+if "&Apps"!=""
+(
+  &AppsBin="&Apps"
+)
+if "&AppsBoot"!=""
+(
+  &AppsBootBin="&AppsBoot"
+)
+if "&DspSW"!=""
+(
+  &Dsp2Bin="&DspSW"
+)
+if "&DspFW"!=""
+(
+  &Dsp1Bin="&DspFW"
+)
+if "&Dsp3"!=""
+(
+  &Dsp3Bin="&Dsp3"
+)
+if "&QDsp"!=""
+(
+  &QDspBin="&QDsp"
+)
+if "&ADsp"!=""
+(
+  &ADspBin="&ADsp"
+)
+if "&Acdb"!=""
+(
+  &AcdbBin="&Acdb"
+)
+
+;-------------------------------------------------------------------------------
+; Set some variables used later on to peek and poke parameter block
+;   This script file is sourced by both nand.cmm and nandtest.cmm
+;-------------------------------------------------------------------------------
+if (os.file(nand_init.cmm))
+(
+  do nand_init.cmm
+)
+else
+(
+  print "Missing nand_init.cmm"
+  enddo (1==0)
+)
+
+;============================================================================
+; 1) Set variables used to set up the JTAG debugger for this MSM
+; 2) Init important MSM/ASB registers
+;    use existing external script that is MSM specific
+;============================================================================
+if (os.file(&NandConfigDir/nand_msm_init.cmm))
+(
+  do &NandConfigDir/nand_msm_init
+)
+else
+(
+  print "Missing &NandConfigDir/nand_msm_init.cmm"
+  enddo (1==0)
+)
+
+;============================================================================
+; Load our flash programming routine and prepare flash
+;============================================================================
+  data.load.elf "nand_tools.elf"
+
+  ;--------------------------------------------------------
+  ; Need this breakpoint as per Lauterbach Spec so that we
+  ; can hand back control to the Debugger.
+  ;--------------------------------------------------------
+
+    break.delete /ALL
+    break.set swbp /onchip /program
+
+
+  ;--------------------------------------------------------
+  ; Create the ROM mapping to be used with all commands
+  ;--------------------------------------------------------
+  &RomBegin=&NandCodeRomBegin
+  &RomEnd=&NandCodeRomEnd
+  gosub CreateRom
+
+
+;============================================================================
+; Possibly put up terminal window
+;============================================================================
+  if "&UseTerm"=="YES"  
+  (  
+     term.close
+     winclear MYTERM
+     term.size 60 1000
+     term.scroll on
+     WinPOS 50% 0% 50% 100% ,, MYTERM
+     if "&TermBlipBreak"=="yes" 
+     (
+       print "Using buffered terminal IO"
+       term.protocol bs
+       term output_port input_port
+       print "Setting TermBlip breakpoint"
+       b.s term_blip /s /onchip /program
+     )
+     else
+     (
+       term.mode ascii
+       if "&VirtioPlatform"=="no"
+       (
+         term.method dcc
+       )
+       term.view
+       ;term.write c:/temp/term.out
+     )
+
+     on error gosub
+      (
+        term.close
+        print "terminal output closed"
+        enddo (1==0)     ; Terminate here if there is an error
+      )
+  )
+
+;============================================================================
+; Setup default Menus
+;============================================================================
+; 0. Exit Menu 
+; 1. Download Partition table
+; 2. Download dbl
+; 3. download fsbl
+; 4. Download osbl
+; 5. Download amss
+&exitId=0.
+&partTblId=1.
+&dblId=2. 
+if "&NandTargetFamily"!="FLASH_8K_CFG"
+( 
+  &osblId=3.
+  &amssId=4.
+)
+else
+( 
+  &fsblId=3.
+  &osblId=4.
+  &amssId=5.
+)
+;============================================================================
+; Init targets menu
+;============================================================================
+if "&NandTargetFamily"=="FLASH_6K_CFG"
+(
+  &allId=5. 
+  &mCefId=6.
+  &custId=7.
+  &factId=8.
+)
+
+if "&NandTargetFamily"=="FLASH_9K_CFG"
+(
+   &dsp1Id=5.
+   &dsp2Id=6.
+   &allId=7.
+   &mCefId=8.
+   &custId=9.
+   &factId=10.
+)
+
+if "&NandTargetFamily"=="FLASH_9K_CORTEXA5_CFG"
+(
+   &dblId=-1.
+   &osblId=-1.
+   &amssId=-1.
+   &sbl1Id=2.
+   &TzId=3.
+   &SdiId=4.
+   &rpmId=5.
+   &MbaId=6.
+   &QdspId=7.
+   &AdspId=8.
+   &appsBootId=9.   
+   &AcdbId=10.   
+   &appsId=11.   
+   &allId=12.
+   &custId=13.
+)
+
+if "&NandTargetFamily"=="FLASH_9K_CORTEXA7_CFG"
+(
+   &dblId=-1.
+   &osblId=-1.
+   &amssId=-1.
+   &sbl1Id=2.
+   &TzId=3.
+   &SdiId=4.
+   &rpmId=5.
+   &MbaId=6.
+   &QdspId=7.
+   &AdspId=8.
+   &appsBootId=9.   
+   &AcdbId=10.   
+   &appsId=11.   
+   &allId=12.
+   &custId=13.
+)
+
+if "&NandTargetFamily"=="FLASH_8K_CORTEXA7_CFG"
+(
+   &dblId=-1.
+   &osblId=-1.
+   &amssId=-1.
+   &sbl1Id=2.
+   &TzId=3.
+   &SdiId=4.
+   &rpmId=5.
+   &MbaId=6.
+   &QdspId=7.
+   &AdspId=8.
+   &appsBootId=9.   
+   &AcdbId=10.   
+   &appsId=11.   
+   &allId=12.
+   &custId=13.
+)
+
+;============================================================================
+; Invoke the correct menu
+;============================================================================
+
+  if "&MenuMode"=="NOMENU"
+  (
+    ; Load all images
+    gosub DoNoMenu
+  )
+  else if "&MenuMode"=="NOMENUAPPS"
+  (
+    ; Load only apps images
+    ; For split builds, some apps images might not be present
+    gosub DoNoMenuApps
+  )
+  else if "&MenuMode"=="NOMENUMODEM"
+  (
+    ; Load only modem images
+    ; For split builds, appsboot images might not be present
+    gosub DoNoMenuModem
+  )
+  else if "&MenuMode"=="NOMENUAPPSEXT"
+  (
+    ; Load only external apps images from split build.
+    ; For split builds, some apps images might not be present
+    gosub DoNoMenuAppsExt
+  )
+  else if "&MenuMode"=="NOMENUCEFS"
+  (
+    ; Load all Modem images and CEFS Apps or CEFS Modem images
+    ; in a single step.
+    gosub DoNoMenuCEFS
+  )
+  else if "&MenuMode"=="NOMENUFACT"
+  (
+    ; Load Fact images in a single step.
+    gosub DoNoMenuFact
+  )
+  else if "&MenuMode"=="NOMENUAPPSCEFSEXT"
+  (
+    ; Load all Modem images and CEFS Apps or CEFS Modem images
+    ; in a single step.
+    gosub DoNoMenuAppsCefsExt
+  )
+  else if "&MenuMode"=="NOMENUCUSTOM"
+  (
+    ; Load Custom image in a single step
+    gosub DoNoMenuCustom
+  )
+  else if "&MenuMode"=="STD"
+  (
+    gosub NormalMenu
+  )
+  else
+  (
+    print "Invalid menu mode &MenuMode selected"
+    enddo (1==0)
+  )
+
+  ; Close terminal and flush contents if it was in use
+  if "&UseTerm"=="YES"  
+  (  
+     term.close
+  )
+enddo (0==0)
+
+;;======================================================;; 
+;;    _____                 _   _                       ;;
+;;   |  ___|   _ _ __   ___| |_(_) ___  _ __  ___       ;;
+;;   | |_ | | | | '_ \ / __| __| |/ _ \| '_ \/ __|      ;;
+;;   |  _|| |_| | | | | (__| |_| | (_) | | | \__ \      ;;
+;;   |_|   \__,_|_| |_|\___|\__|_|\___/|_| |_|___/      ;;
+;;                                                      ;;
+;;======================================================;; 
+
+;============================================================================
+; Present user with normal main menu for NAND_TOOLS.  Manual selection is done.
+;============================================================================
+NormalMenu:
+
+if "&ClearWin"=="yes"
+(
+  area.RESET
+)
+
+MainMenu:
+
+  print
+  print
+  print "------------------------------------------------"
+  print "|         _   _    _    _   _ ____             |"
+  print "|        | \ | |  / \  | \ | |  _ \            |"
+  print "|        |  \| | / _ \ |  \| | | | |           |"
+  print "|        | |\  |/ ___ \| |\  | |_| |           |"
+  print "|        |_| \_/_/   \_\_| \_|____/            |"
+  print "|                                              |"
+  print "|                                              |"
+  print "|             Multi-Image Boot                 |"
+  print "|             Flash Programmer                 |"
+  print "|                                              |"
+  print "|                                              |"
+  print "|    Copyright (c) 2009 by QUALCOMM, Inc.      |"
+  print "|                                              |"
+  print "-----------------------------------------------"
+  print
+  print "  &exitId Exit"
+  print "  &partTblId Send Partition Table"
+  if "&dblId"=="&id"
+  (
+    print "  &dblId Program DBL image" 
+  ) 
+  if "&fsblId"!="-1."
+  ( 
+    print "  &fsblId Program FSBL image"
+  )
+
+  &forceCustPrompt=&false
+
+  &id=&amssId
+  if ("&NandTargetFamily"=="FLASH_9K_CORTEXA5_CFG")||("&NandTargetFamily"=="FLASH_9K_CORTEXA7_CFG")||("&NandTargetFamily"=="FLASH_8K_CORTEXA7_CFG")
+  (
+    &id=&sbl1Id
+  )
+
+  while &id<&lastId 
+  (
+    if "&osblId"=="&id"
+    (
+      print "  &osblId Program OSBL image"
+    )
+
+    if "&amssId"=="&id"
+    (
+      print "  &amssId Program AMSS image"
+    )
+
+    if "&sbl1Id"=="&id"
+    (
+      print "  &sbl1Id Program SBL1 image"
+    )
+    
+    if "&TzId"=="&id"
+    (
+      print "  &TzId Program TZ image"
+    )
+
+    if "&SdiId"=="&id"
+    (
+      print "  &SdiId Program SDI image"
+    )
+
+    if "&sbl2Id"=="&id"
+    (
+      print "  &sbl2Id Program SBL2 image"
+    )
+
+    if "&rpmId"=="&id"
+    (
+      print "  &rpmId Program RPM image"
+    )
+
+    if "&MbaId"=="&id"
+    (
+      print "  &MbaId Program MBA image"
+    )
+
+    if "&appsBootId"=="&id"
+    (
+      print "  &appsBootId Program APPS Boot Image"
+    )
+
+    if "&appsId"=="&id"
+    (
+      print "  &appsId Program APPS Image"
+    )
+
+    if "&dsp1Id"=="&id"
+    (
+      print "  &dsp1Id Program DSP1 Image"
+    )
+
+    if "&dsp2Id"=="&id"
+    (
+      print "  &dsp2Id Program DSP2 Image"
+    )
+
+    if "&dsp3Id"=="&id"
+    (
+      print "  &dsp3Id Program DSP3 Image"
+    )
+
+    if "&AdspId"=="&id"
+    (
+      print "  &AdspId Program ADSP Image"
+    )
+
+    if "&QdspId"=="&id"
+    (
+      print "  &QdspId Program QDSP Image"
+    )
+
+    if "&AcdbId"=="&id"
+    (
+      print "  &AcdbId Program ACDB Image"
+    )
+
+    if "&custId"=="&id" 
+    (  
+      if "&custId"<"&allId"
+      (
+        print "  &custId Program ADSP Q5 Image"
+      )
+      else
+      (
+      print "  &custId Program Custom Image (Requires partition name)"
+      )
+    )
+
+    if "&allId"=="&id"
+    (
+      print "  &allId Do it all"
+      print
+      print "Miscellaneous Options below not part of Do it all"
+      print
+    )
+
+    if "&mCefId"=="&id"
+    (
+      print "  &mCefId Program MODEM CEFS image"
+    )
+
+    if "&aCefId"=="&id"
+    (
+      print "  &aCefId Program APPS CEFS image"
+    )
+
+    if "&fotaId"=="&id"
+    (  
+     print "  &fotaId Program Fota UI image"
+    )
+
+    if "&appsSysId"=="&id"
+    (  
+     print "  &appsSysId Program APPS SYSTEM image (Only for WM builds)"
+    )
+
+    if "&appsEfs2RawId"=="&id"
+    (  
+      print "  &appsEfs2RawId Program APPSEFS2 RAW image"
+    )
+
+    if "&factId"=="&id"
+    (  
+      print "  &factId Program Factory Image"
+    )
+
+    if "&updateImageId"=="&id"
+    (  
+      print "  &updateImageId Program updated Images"
+    )
+
+    &id=&id+1.
+  )
+
+  print
+  print " Please make a choice: "
+
+  &t32_cmm_stopped=1
+  enter &Choice
+  &t32_cmm_stopped=0
+  print
+  print
+  if "&ClearWin"=="yes"
+  (
+    area.RESET
+  )
+
+  if "&Choice."=="&exitId"
+  (
+    print "...exiting NAND  Flash Programmer"
+    gosub CleanUp
+    gosub CleanUpExit
+    return
+  )
+
+  if "&Choice."=="&partTblId"
+  (
+    print "Sending Partition Table"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    goto MainMenu
+  )
+
+
+  if "&Choice."=="&dblId"
+  (
+    print "Programming DBL Into NAND Flash"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramDBL
+    goto MainMenu
+  )
+
+  if "&Choice."=="&fsblId"
+  (
+    print "Programming FSBL Into NAND Flash"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramFSBL
+    goto MainMenu
+  )
+
+  if "&Choice."=="&osblId"
+  (
+    print "Programming OSBL Into NAND Flash"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramOSBL
+    goto MainMenu
+  )
+
+  if "&Choice."=="&sbl1Id"
+  (
+    print "Programming SBL1 Into NAND Flash"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+
+    gosub ProgramCUSTOMPARTI "0:SBL" &Sbl1Bin
+    goto MainMenu
+  )
+
+  if "&Choice."=="&sbl2Id"
+  (
+    print "Programming SBL2 Into NAND Flash"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+
+    gosub ProgramSBL2
+    goto MainMenu
+  )
+  
+  if "&Choice."=="&TzId"
+  (
+    print "Programming TZ Into NAND Flash"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+
+    gosub ProgramCUSTOMPARTI "0:TZ" &TzBin
+    goto MainMenu
+  )
+  
+  if "&Choice."=="&SdiId"
+  (
+    print "Programming SDI Into NAND Flash"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+
+    gosub ProgramCUSTOMPARTI "0:SDI" &SdiBin
+    goto MainMenu
+  )
+  
+  if "&Choice."=="&MbaId"
+  (
+    print "Programming MBA Into NAND Flash"
+    print
+    print
+    &partitionName=
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+
+    gosub ProgramCUSTOMPARTI "0:MBA" &MbaBin
+    goto MainMenu
+  )
+
+  if "&Choice."=="&rpmId"
+  (
+    print "Programming RPM Into NAND Flash"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+
+    gosub ProgramCUSTOMPARTI "0:RPM" &RpmBin
+    goto MainMenu
+  )
+
+  if "&Choice."=="&AdspId"
+  (
+    print "Programming ADSP Into NAND Flash"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+
+    gosub ProgramCUSTOMPARTI "0:ADSP" &ADspBin
+    goto MainMenu
+  )
+
+  if "&Choice."=="&QdspId"
+  (
+    print "Programming QDSP Into NAND Flash"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+
+    gosub ProgramCUSTOMPARTI "0:QDSP" &QDspBin
+    goto MainMenu
+  )
+
+  if "&Choice."=="&AcdbId"
+  (
+    print "Programming ACDB Into NAND Flash"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+
+    gosub ProgramCUSTOMPARTI "0:ACDB" &AcdbBin
+    goto MainMenu
+  )
+
+  if "&Choice."=="&amssId"&&"&amssId"!="-1."
+  (
+    print "Programming AMSS image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramAMSS
+    goto MainMenu
+  )
+
+
+  if "&Choice."=="&appsBootId"&&"&appsBootId"!="-1."
+  (
+    print "Programming APPS BOOT image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+
+    gosub ProgramCUSTOMPARTI "0:aboot" &AppsBootBin
+    goto MainMenu
+  )
+
+  if "&Choice."=="&appsId"&&"&appsId"!="-1."
+  (
+    print "Programming APPS image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+
+    gosub ProgramCUSTOMPARTI "0:APPS" &AppsBin
+    goto MainMenu
+  )
+
+
+  if "&Choice."=="&dsp1Id"&&"&dsp1Id"!="-1."
+  (
+    print "Programming DSP1 image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramDSP1
+    goto MainMenu
+  )
+
+  if "&Choice."=="&dsp2Id"&&"&dsp2Id"!="-1."
+  (
+    print "Programming DSP2 image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramDSP2
+    goto MainMenu
+  )
+
+  if "&Choice."=="&dsp3Id"&&"&dsp3Id"!="-1."
+  (
+    print "Programming DSP3 image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramDSP3
+    goto MainMenu
+  )
+
+  if "&Choice."=="&allId" 
+  (
+    print "Programming ALL images"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    if "&dblId"!="-1."
+    (
+      gosub ProgramDBL
+    )
+    if "&fsblId"!="-1."
+    ( 
+      gosub ProgramFSBL
+    )
+    if "&osblId"!="-1."
+    (
+    gosub ProgramOSBL
+    )
+    if "&sbl1Id"!="-1."
+    (
+      gosub ProgramCUSTOMPARTI "0:SBL" &Sbl1Bin
+    )
+    if "&sbl2Id"!="-1."
+    (
+      gosub ProgramSBL2
+    )
+    if "&TzId"!="-1." 
+    (
+      gosub ProgramCUSTOMPARTI "0:TZ" &TzBin
+    )
+    if "&SdiId"!="-1." 
+    (
+      gosub ProgramCUSTOMPARTI "0:SDI" &SdiBin
+    )
+    if "&MbaId"!="-1."
+    (
+      gosub ProgramCUSTOMPARTI "0:MBA" &MbaBin
+    )
+    if "&rpmId"!="-1."
+    (
+      gosub ProgramCUSTOMPARTI "0:RPM" &RpmBin
+    )
+    if "&AdspId"!="-1."
+    (
+      gosub ProgramCUSTOMPARTI "0:ADSP" &ADspBin
+    )
+    if "&QdspId"!="-1."
+    (
+      gosub ProgramCUSTOMPARTI "0:QDSP" &QDspBin
+    )
+    if "&AcdbId"!="-1."
+    (
+      gosub ProgramCUSTOMPARTI "0:ACDB" &AcdbBin
+    )
+    if "&appsBootId"!="-1."&&"&appsBootId"<"&allId"
+    (
+      gosub ProgramCUSTOMPARTI "0:aboot" &AppsBootBin
+    )
+    if "&appsId"!="-1."&&"&appsId"<"&allId"
+    (
+      gosub ProgramCUSTOMPARTI "0:APPS" &AppsBin
+    )
+    if "&amssId"!="-1."
+    (
+      gosub ProgramAMSS
+    )
+    if "&dsp1Id"!="-1."&&"&dsp1Id"<"&allId"
+    (
+      gosub ProgramDSP1
+    )
+    if "&dsp2Id"!="-1."&&"&dsp2Id"<"&allId"
+    (
+      gosub ProgramDSP2
+    )
+    if "&dsp3Id"!="-1."&&"&dsp3Id"<"&allId"
+    (
+      gosub ProgramDSP3
+    )
+    if "&custId"!="-1."&&"&custId"<"&allId" 
+    (
+      gosub ProgramCUSTOM
+    )
+    goto MainMenu
+  )
+
+  if "&Choice."=="&mCefId"&&"&mCefId"!="-1."
+  (
+    print "Programming MODEM CEFS image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramCEFS
+    goto MainMenu
+  )
+
+  if "&Choice."=="&aCefId"&&"&aCefId"!="-1."
+  (
+    print "Programming APPS CEFS image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramCEFSAPPS
+    goto MainMenu
+  )
+
+  if "&Choice."=="&fotaId"&&"&fotaId"!="-1."
+  (
+    print "Programming FOTA image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramFOTAUI
+    goto MainMenu
+  )
+
+  if "&Choice."=="&custId"&&"&custId"!="-1."
+  (
+    print "Programming CUSTOM image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    &forceCustPrompt=&true
+    gosub ProgramCUSTOM
+    goto MainMenu
+  )
+
+  if "&Choice."=="&appsSysId"&&"&appsSysId"!="-1."
+  (
+    print "Programming APPS SYSTEM image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramAPPSSYS
+    goto MainMenu
+  )
+
+  if "&Choice."=="&appsEfs2RawId"&&"&appsEfs2RawId"!="-1."
+  (
+    print "Programming APPSEFS2 RAW image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramAPPSEFS2RAW
+    goto MainMenu
+  )
+  if "&Choice."=="&factId"&&"&factId"!="-1."
+  (
+    print "Programming Factory image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub ProgramFactoryImage
+    goto MainMenu
+  )
+
+  if "&Choice."=="&updateImageId"&&"&updateImageId"!="-1."
+  (  
+    print "Programming updated image"
+    print
+    print
+    gosub SendSecurityMode
+    gosub SendPartiTbl
+    gosub ProgramUpdatedImage
+  )
+
+  goto MainMenu
+
+return  ; NormalMenu
+
+
+
+
+;============================================================================
+; Do not present user with menu.  Program both BootLoader and Code Images
+;============================================================================
+
+DoNoMenu:
+  gosub SendSecurityMode
+  gosub SendPartiTbl
+
+;  &forceCustPrompt=&true
+
+  if "&sbl1Id"!="-1."
+  (
+    gosub ProgramCUSTOMPARTI "0:SBL" &Sbl1Bin
+  )
+  if "&TzId"!="-1."
+  (
+    gosub ProgramCUSTOMPARTI "0:TZ" &TzBin
+  )
+  if "&SdiId"!="-1."
+  (
+    gosub ProgramCUSTOMPARTI "0:SDI" &SdiBin
+  )
+  if "&MbaId"!="-1."
+  (
+    gosub ProgramCUSTOMPARTI "0:MBA" &MbaBin
+  )
+  if "&rpmId"!="-1."
+  (
+    gosub ProgramCUSTOMPARTI "0:RPM" &RpmBin
+  )
+  if "&AdspId"!="-1."
+  (
+    gosub ProgramCUSTOMPARTI "0:ADSP" &ADspBin
+  )
+  if "&QdspId"!="-1."
+  (
+    gosub ProgramCUSTOMPARTI "0:QDSP" &QDspBin
+  )
+  if "&appsBootId"!="-1."
+  (
+    gosub ProgramCUSTOMPARTI "0:aboot" &AppsBootBin
+  )
+  if "&AcdbId"!="-1."
+  (
+    gosub ProgramCUSTOMPARTI "0:ACDB" &AcdbBin
+  )
+
+  if "&appsId"!="-1."
+  (
+    gosub ProgramCUSTOMPARTI "0:APPS" &AppsBin
+  )
+
+  if "&dsp1Id"!="-1."
+  (
+    gosub ProgramDSP1
+  )
+
+  if "&dsp2Id"!="-1."
+  (
+    gosub ProgramDSP2
+  )
+
+  if "&dsp3Id"!="-1."
+  (
+    gosub ProgramDSP3
+  )
+
+;  if "&custId"!="-1."
+;  (
+;     gosub ProgramCUSTOM
+;  )
+
+;  &forceCustPrompt=&false
+  gosub CleanUp
+  gosub CleanUpExit
+return  ; DoNoMenu
+
+;============================================================================
+; Do not present user with menu.  Program only the apps images.
+;============================================================================
+DoNoMenuApps:
+  gosub SendSecurityMode
+  gosub SendPartiTbl
+  gosub ProgramAPPSBOOT
+  gosub ProgramAPPS
+  gosub CleanUp
+  gosub CleanUpExit
+return  ; DoNoMenuApps
+
+;============================================================================
+; Do not present user with menu.  Program only the modem images.
+;============================================================================
+DoNoMenuModem:
+  gosub SendSecurityMode
+  gosub SendPartiTbl
+  gosub ProgramDBL
+  if "&fsblId"!="-1."
+  ( 
+    gosub ProgramFSBL
+  )
+  gosub ProgramOSBL
+  gosub ProgramAMSS
+  ; Apps Boot image can reside on the Modem or the Apps Side in split build.
+  ; Download of this image will be skipped if not found.
+
+  if "&appsBootId"!="-1."
+  (
+    gosub ProgramAPPSBOOT
+  )
+  if "&dsp1Id"!="-1."
+  (
+    gosub ProgramDSP1
+  )
+
+  if "&custId"!="-1."
+  (
+     gosub ProgramCUSTOM
+  )
+  gosub CleanUp
+  gosub CleanUpExit
+return  ; DoNoMenuModem
+
+;============================================================================
+; Do not present user with menu.  Program both BootLoader and Code Images.
+;============================================================================
+DoNoMenuCEFS:
+  gosub SendSecurityMode
+  gosub SendPartiTbl
+  gosub ProgramDBL
+  if "&fsblId"!="-1."
+  ( 
+    gosub ProgramFSBL
+  )
+  gosub ProgramOSBL
+  gosub ProgramAMSS
+  gosub ProgramAPPSBOOT
+  gosub ProgramAPPS
+
+  ;Check to see which CEFS image needs to be programmed.  This logic assumes
+  ;target has the correct CEFS image available.
+  if (os.file(&CefsAppsBin))
+  (
+    gosub ProgramCEFSAPPS
+  )
+  else if (os.file(&CefsBin))
+  (
+    gosub ProgramCEFS
+  )
+  else
+  (
+    print "ERROR: &CefsAppsBin or &CefsBin images not found!"
+    enddo (1==0)
+  )
+  gosub CleanUp
+  gosub CleanUpExit
+return  ; DoNoMenuCEFS
+
+;============================================================================
+; Do not present user with menu.  Program both BootLoader and Code Images.
+;============================================================================
+DoNoMenuFact:
+  print "FactoryBin  is &FactoryBin"
+  gosub SendSecurityMode
+  gosub ProgramFactoryImage
+  gosub CleanUp
+  gosub CleanUpExit
+return  ; DoNoMenuFact
+
+;============================================================================
+; Do not present user with menu.  Program only the apps images (external WM).
+;============================================================================
+DoNoMenuAppsExt:
+  ; Program apps images
+  gosub SendSecurityMode
+  gosub SendPartiTbl
+  ;These images are optional in the Apps Split Builds. 
+  ;One or more may be present. 
+  ;Download of this image will be skipped if not found.
+  gosub ProgramAPPSBOOT
+  gosub ProgramAPPSSYS
+  gosub ProgramAPPS
+  gosub CleanUp
+  gosub CleanUpExit
+return  ; DoNoMenuApps
+
+;============================================================================
+; Do not present user with menu.  Program only the apps images (external WM).
+;============================================================================
+DoNoMenuAppsCefsExt:
+  ; Program apps images
+  gosub SendSecurityMode
+  gosub SendPartiTbl
+  ;These images are optional in the Apps Split Builds. 
+  ;One or more may be present. 
+  ;Download of this image will be skipped if not found.
+  gosub ProgramAPPSBOOT
+  gosub ProgramAPPS
+
+  ;Check to see which CEFS image needs to be programmed.  This logic assumes
+  ;target has the correct CEFS image available.
+  if (os.file(&CefsAppsBin))
+  (
+    gosub ProgramCEFSAPPS
+  )
+  else if (os.file(&CefsBin))
+  (
+    gosub ProgramCEFS
+  )
+  else
+  (
+    ; This case shall not give any errors as some targets (7x30 l4 RIM) do not use cefs_modem.mbn
+    print "&CefsAppsBin or &CefsBin images not found - skip"
+  )
+
+  gosub CleanUp
+  gosub CleanUpExit
+return  ; DoNoMenuApps
+
+;============================================================================
+; Do not present user with menu.  Program only the apps images (external WM).
+;============================================================================
+DoNoMenuCustom:
+  ; Custom image load - load binary starting from a first block(0:ALL)
+  ; in a single step.
+  gosub SendSecurityMode
+  gosub SendPartiTbl
+  gosub ProgramCUSTOM
+  gosub CleanUp
+  gosub CleanUpExit
+return  ; DoNoMenuCustom
+
+;=========================================================
+; --- Function to send Partition table
+;=========================================================
+SendPartiTbl:
+
+  ; Send partition table once only per invocation of this file
+  if "&PartiSent"=="yes"
+  (
+    return
+  )
+  else
+  (
+    &PartiSent="yes"
+  )
+
+
+  if "&Verbose"=="yes"
+  (
+    print "Sending Partition table"
+  )
+
+  &Command="Send Partition Table"
+  data.set &ParmCmd %LONG &PartiTblCmd
+  data.set &ParmReserved %LONG &PartiNoOverride
+  &CurrentCmd=&PartiTblCmd
+
+
+  ; Load the partition table into the parameter block
+  ; in the data area
+  if "&Verbose"=="yes"
+  (
+    print "Choose Partition Table Binary"
+  )
+  &FileSize=os.file.size(&PartiBin)
+  data.set &ParmSize %LONG &FileSize
+  data.load.binary &PartiBin &ParmData /NOSYMBOL
+  r.s pc &StartAddr
+  go
+
+  ; check status but do not exit if it fails because we will
+  ; give the user a chance to override the partition table
+
+  &CheckStatusExit="no"
+  gosub check_status
+
+  if "&CheckStatusFailed"=="yes"
+  (
+    ; Make sure that failure was because of parititon table mismatch
+    if &Result==0x23   ; 0x23 -> ERR_PARTI_NOMATCH
+    (
+      print "      "
+      print "      "
+      print " Partition table sent does not match partition table in flash"
+      print "      "
+      print "      "
+      print "      __        __               _             "
+      print "      \ \      / /_ _ _ __ _ __ (_)_ __   __ _ "
+      print "       \ \ /\ / / _` | '__| '_ \| | '_ \ / _` |"
+      print "        \ V  V / (_| | |  | | | | | | | | (_| |"
+      print "         \_/\_/ \__,_|_|  |_| |_|_|_| |_|\__, |"
+      print "                                         |___/ "
+      print " "
+      print
+      print
+      print
+      print " You may force the new table to be accepted"
+      print " If you do, it will erase the entire NAND flash"
+      print " "
+      print " "
+      print
+      print " Please enter YES to continue, any other value will abort:: "
+
+      &t32_cmm_stopped=1
+      enter &WarnChoice
+      &t32_cmm_stopped=0
+      print
+      print
+
+      if "&WarnChoice"=="YES"
+      (
+        print "Sending new partition table and erasing entire flash"
+      )
+      else
+      (
+        &PartiSent="no"
+        print "Bailing out, correct answer not given"
+        return
+      )
+
+      &Command="Send Partition Table"
+      data.set &ParmCmd %LONG &PartiTblCmd
+      data.set &ParmReserved %LONG &PartiOverride
+      &CurrentCmd=&PartiTblCmd
+
+      ; Load the partition table into the parameter block
+      ; in the data area
+      if "&Verbose"=="yes"
+      (
+        print "Choose Partition Table Binary"
+      )
+
+      ;Determine the size of the file and send it
+      &FileSize=os.file.size(&PartiBin)
+
+      data.set &ParmSize %LONG &FileSize
+      data.load.binary &PartiBin &ParmData /NOSYMBOL
+      r.s pc &StartAddr
+      go
+
+      ; check status and exit if it fails
+      &CheckStatusExit="yes"
+      gosub check_status
+    )
+
+    if &Result==0x49   ; 0x49 -> ERR_PARTI_TOO_BIG
+    (
+      print "Partition table too big! - exceeded page size"
+      print "Press any key to return to Main menu"
+      print ""
+      INKEY
+      print "Going back to Main menu..."
+      print
+    )
+  )
+
+return
+
+
+;=========================================================
+; --- Function to program Device Boot loader DBL
+;=========================================================
+ProgramDBL:
+
+  goSub StartTime "Programming DBL"
+
+  ;--------------------------------------------------------
+  ; Initialize the JNAND program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for DBL Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &DblImg
+  &CurrentCmd=&InitImgCmd
+
+  r.s pc &StartAddr
+  go
+
+
+  &CheckStatusExit="yes"
+  gosub check_status  ;; will not return if error 
+
+  &PbnImage="&DblBin"
+
+  &ImageName="DBL"
+  gosub DoProgramming  
+
+  goSub EndTime "Programming DBL"
+
+return
+
+
+;=========================================================
+; --- Function to program FSBL Image
+;=========================================================
+ProgramFSBL:
+
+  goSub StartTime "Programming FSBL Image"
+
+  ;--------------------------------------------------------
+  ; Initialize the NAND_TOOLS program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for FSBL Image Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &FsblImg
+  &CurrentCmd=&InitImgCmd
+
+  r.s pc &StartAddr
+  go
+  &CheckStatusExit="yes"
+  gosub check_status  ;; will not return if error 
+
+  &PbnImage="&FsblBin"
+
+  &ImageName="FSBL"
+  gosub DoProgramming  
+
+  goSub EndTime "Programming FSBL Image"
+
+return
+
+
+;=========================================================
+; --- Function to program OSBL Image
+;=========================================================
+ProgramOSBL:
+
+  goSub StartTime "Programming OSBL Image"
+
+  ;--------------------------------------------------------
+  ; Initialize the NAND_TOOLS program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for OSBL Image Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &OsblImg
+  &CurrentCmd=&InitImgCmd
+
+  r.s pc &StartAddr
+  go
+
+  gosub check_status  ;; will not return if error 
+
+  &PbnImage="&OsblBin"
+
+  &ImageName="OSBL"
+  gosub DoProgramming  
+
+  goSub EndTime "Programming OSBL Image"
+
+return
+
+
+;=========================================================
+; --- Function to program AMSS Image
+;=========================================================
+ProgramAMSS:
+
+  goSub StartTime "Programming AMSS Image"
+
+  ;--------------------------------------------------------
+  ; Initialize the NAND_TOOLS program - must succeed
+  ;  will probe flash and set up first block for writing
+  ;  We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for AMSS Image Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &AmssImg
+  &CurrentCmd=&InitImgCmd
+
+
+  r.s pc &StartAddr
+  go
+
+  gosub check_status  ;; will not return if error 
+
+  &PbnImage="&AmssBin"
+
+  &ImageName="AMSS"
+  gosub DoProgramming  
+
+  goSub EndTime "Programming AMSS Image"
+
+return
+
+
+;=========================================================
+; --- Function to program APPS Image
+;=========================================================
+ProgramAPPS:
+
+  ;AppsImg might not be present in the Modem Folder on Split build 
+  ;configurations
+  
+  if ("&MenuMode"=="STD")&&((!os.file(&AppsBin))||(&PrompFile))
+  (
+    print "Please enter App image name: "
+    local &filename
+    dialog.file *.mbn
+    entry &filename
+    if "&filename"==""
+    (
+      print "Failed to select image"
+      return   
+    )
+    &AppsBin="&filename" 
+  )
+  
+  if (!os.file(&AppsBin))
+  (
+    print "Image not found : &AppsBin - Skipping"
+  )
+  else
+  (
+    goSub StartTime "Programming APPS Image"
+  
+    ;--------------------------------------------------------
+    ; Initialize the NAND program - must succeed
+    ;  will probe flash and set up first block for writing
+    ; We have to set this command up by hand as it is one
+    ;  that we added to the flash.* protocol and JTAG does
+    ;  not know about it.
+    ;--------------------------------------------------------
+    ;
+    if "&Verbose"=="yes"
+    (
+      print "Probing flash and setting up"
+    )
+    &Command="Flash Initialize for APPS Image Programming"
+    data.set &ParmCmd %LONG &InitImgCmd
+    data.set &ParmReserved %LONG &AppsImg
+    &CurrentCmd=&InitImgCmd
+  
+    r.s pc &StartAddr
+    go
+
+    gosub check_status  ;; will not return if error 
+  
+    &PbnImage="&AppsBin"
+  
+    &ImageName="APPS"
+    gosub DoProgramming  
+ 
+    goSub EndTime "Programming APPS Image"
+  )
+return
+
+;=========================================================
+; --- Function to program APPS BOOT Image
+;=========================================================
+ProgramAPPSBOOT:
+
+  if ("&MenuMode"=="STD")&&((!os.file(&AppsBootBin))||(&PrompFile))
+  (
+    print "Please enter App boot image name: "
+    local &filename
+    dialog.file *.mbn
+    entry &filename
+    if "&filename"==""
+    (
+      print "Failed to select image"
+      return   
+    )
+    &AppsBootBin="&filename" 
+  )
+
+  ; AppsBoot Image can reside on the modem or apps build in split build 
+  ; configurations. Adding flexibility to skip it if not found on the build
+  ; location pointed.
+  if (!os.file(&AppsBootBin))
+  (
+    print "Image not found: &AppsBootBin - Skipping"
+  )
+  else
+  (
+    goSub StartTime "Programming APPS BOOT Image"
+  
+    ;--------------------------------------------------------
+    ; Initialize the NAND program - must succeed
+    ;  will probe flash and set up first block for writing
+    ; We have to set this command up by hand as it is one
+    ;  that we added to the flash.* protocol and JTAG does
+    ;  not know about it.
+    ;--------------------------------------------------------
+    ;
+    if "&Verbose"=="yes"
+    (
+      print "Probing flash and setting up"
+    )
+    &Command="Flash Initialize for APPS BOOT Image Programming"
+    data.set &ParmCmd %LONG &InitImgCmd
+    data.set &ParmReserved %LONG &AppsBootImg
+    &CurrentCmd=&InitImgCmd
+  
+    r.s pc &StartAddr
+    go
+
+    gosub check_status  ;; will not return if error 
+  
+    &PbnImage="&AppsBootBin"
+  
+    &ImageName="APPS BOOT"
+    gosub DoProgramming  
+ 
+    goSub EndTime "Programming APPS BOOT Image"
+  )
+  
+return                                
+
+;=====================================================
+; --- Function to program Compact EFS image
+;=====================================================
+ProgramCEFS:
+
+  goSub StartTime "Programming MODEM CEFS image"
+  
+  
+  ;--------------------------------------------------------
+  ; Initialize the NAND_TOOLS program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for MODEM CEFS Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &ModemCefsImg
+  &CurrentCmd=&InitImgCmd
+
+  r.s pc &StartAddr
+  go    
+  
+  &CheckStatusExit="yes"
+  gosub check_status  ;; will not return if error 
+
+  &PbnImage="&CefsBin"
+
+  &ImageName="MODEM CEFS"
+  gosub DoProgramming  
+ 
+  goSub EndTime "Programming MODEM CEFS image"
+
+return
+
+
+;=====================================================
+; --- Function to program Compact EFS image
+;=====================================================
+ProgramCEFSAPPS:
+
+  goSub StartTime "Programming APPS CEFS image"
+
+
+  ;--------------------------------------------------------
+  ; Initialize the NAND program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for APPS CEFS Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &AppsCefsImg
+  &CurrentCmd=&InitImgCmd
+  r.s pc &StartAddr
+  go
+
+  &CheckStatusExit="yes"
+  gosub check_status  ;; will not return if error
+
+  &PbnImage="&CefsAppsBin"
+
+  &ImageName="APPS CEFS"
+  gosub DoProgramming
+
+  goSub EndTime "Programming APPS CEFS image"
+
+return
+
+;=====================================================
+; --- Function to program RAW image to APPSEFS2
+;=====================================================
+ProgramAPPSEFS2RAW:
+
+  goSub StartTime "Programming APPSEFS2 RAW image"
+
+  ;--------------------------------------------------------
+  ; Initialize the NAND program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for APPSEFS RAW Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &AppsEfs2Raw
+  &CurrentCmd=&InitAppsEfs2RawCmd
+  r.s pc &StartAddr
+  go
+
+  &CheckStatusExit="yes"
+  gosub check_status  ;; will not return if error
+
+  &PbnImage="&AppsEfs2RawBin"
+
+  &ImageName="APPSEFS Raw"
+  gosub DoProgramming
+
+  goSub EndTime "Programming APPSEFS RAW image"
+
+return
+
+;=====================================================
+; --- Function to program FOTA UI image
+;=====================================================
+ProgramFOTAUI:
+
+  goSub StartTime "Programming FOTA UI image"
+
+
+  ;--------------------------------------------------------
+  ; Initialize the NAND program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for FOTA UI Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &FotaImg
+  &CurrentCmd=&InitImgCmd
+  r.s pc &StartAddr
+  go
+
+  &CheckStatusExit="yes"
+  gosub check_status  ; will not return if error
+
+  &PbnImage="&FotaBin"
+
+  &ImageName="FOTA UI"
+  gosub DoProgramming
+
+  goSub EndTime "Programming FOTA UI image"
+
+return
+
+;=====================================================
+; --- Function to program APPS System image
+;=====================================================
+ProgramAPPSSYS:
+
+  ; AppsSys Image may not exist on some build configurations.
+  ; Adding flexibility to skip it if not found on the build
+  ; location pointed.
+  if ("&MenuMode"=="STD")&&((!os.file(&FlashBin))||(&PrompFile))
+  (
+    print "Please enter Flash image name: "
+    local &filename
+    dialog.file *.bin
+    entry &filename
+    if "&filename"==""
+    (
+      print "Failed to select image"
+      return   
+    )
+    &FlashBin="&filename" 
+  )
+
+  if (!os.file(&FlashBin))
+  (
+     print "Image Not found: &FlashBin - Skipping"
+  )
+  else
+  (
+    goSub StartTime "Programming APPS SYSTEM image"
+  
+    ;--------------------------------------------------------
+    ; Initialize the JNAND program - must succeed
+    ;  will probe flash and set up first block for writing
+    ; We have to set this command up by hand as it is one
+    ;  that we added to the flash.* protocol and JTAG does
+    ;  not know about it.
+    ;--------------------------------------------------------
+    ;
+    if "&Verbose"=="yes"
+    (
+      print "Probing flash and setting up"
+    )
+    &Command="Flash Initialize for APPS SYS Image Programming"
+
+    if "&Platform"!="WM"&&"&MenuMode"!="NOMENUAPPSEXT"
+    (
+       print "Apps System programming not supported on &Platform platform"
+    )
+    else
+    ( 
+      &AppsSysImg=&AppsWm60SysImg
+
+      data.set &ParmCmd %LONG &InitImgCmd
+      data.set &ParmReserved %LONG &AppsSysImg
+      &CurrentCmd=&InitImgCmd
+
+      r.s pc &StartAddr
+      go    
+  
+      &CheckStatusExit="yes"
+      gosub check_status  ;; will not return if error 
+  
+      &PbnImage="&FlashBin"
+
+      &ImageName="FLASH"
+      gosub DoProgramming  
+ 
+      goSub EndTime "Programming APPS SYSTEM image"
+    )
+  )
+return
+
+;=====================================================
+; --- Function to program Factory image
+;=====================================================
+ProgramFactoryImage:
+
+  goSub StartTime "Programming Factory image"
+  
+  
+  ;--------------------------------------------------------
+  ; Initialize the NAND program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+
+  if (!os.file(&FactoryBin))
+  (
+    print "Please enter Factory image name: "
+    local &filename
+    dialog.file *.mbn
+    entry &filename
+    if "&filename"==""
+    (
+      print "Failed to select Factory image"
+      enddo (1==0)
+    )
+    &FactoryBin="&filename" 
+  )
+
+  if (!os.file(&FactoryBin))
+  (
+    print "&FactoryBin not found"
+    print "Press any key to return to Main menu"
+    print ""
+
+    INKEY
+
+    print "Going back to Main menu..."
+    print
+    print
+  )
+  else
+  (
+    &Command="Flash Initialize for Factory Image Programming"
+    data.set &ParmCmd %LONG &InitImgCmd
+    data.set &ParmReserved %LONG &FactoryImg
+    &CurrentCmd=&InitImgCmd
+    r.s pc &StartAddr
+    go    
+  
+    &CheckStatusExit="yes"
+    gosub check_status  ;; will not return if error 
+
+    print "Flash Initialize for Factory Image Programming - Done"
+    &PbnImage="&FactoryBin"
+
+    &ImageName="Factory"
+    gosub DoProgramming  
+ 
+    goSub EndTime "Programming Factory image"
+  )
+return
+
+;=====================================================
+; --- Function to program DSP1 image
+;=====================================================
+ProgramDSP1:
+
+  goSub StartTime "Programming DSP1 image"
+  
+  ;--------------------------------------------------------
+  ; Initialize the JNAND program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for DSP1 Image Programming"
+  
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &Dsp1Img
+  &CurrentCmd=&InitImgCmd
+
+  r.s pc &StartAddr
+  go    
+  
+  &CheckStatusExit="yes"
+  gosub check_status  ;; will not return if error 
+  
+  &PbnImage="&Dsp1Bin"
+
+  &ImageName="DSP1"
+  gosub DoProgramming  
+ 
+  goSub EndTime "Programming DSP1 image"
+
+return
+
+;=====================================================
+; --- Function to program DSP2 image
+;=====================================================
+ProgramDSP2:
+
+  goSub StartTime "Programming DSP2 image"
+  
+  ;--------------------------------------------------------
+  ; Initialize the JNAND program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for DSP2 Image Programming"
+  
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &Dsp2Img
+  &CurrentCmd=&InitImgCmd
+
+  r.s pc &StartAddr
+  go    
+  
+  &CheckStatusExit="yes"
+  gosub check_status  ;; will not return if error 
+  
+  &PbnImage="&Dsp2Bin"
+
+  &ImageName="DSP2"
+  gosub DoProgramming  
+ 
+  goSub EndTime "Programming DSP2 image"
+
+return
+
+
+
+;=========================================================
+; --- Function to Custom program partition images as input
+;=========================================================
+ProgramCUSTOMPARTI:
+
+  local &PartiChoice
+  local &PartiNameLen
+
+  entry &PartiName &CustomFile
+  
+  goSub StartTime "Programming CUSTOM Image"
+  if "&MenuMode"=="STD"
+  (
+    ;--------------------------------------------------------
+    ; Initialize the NAND program - must succeed
+    ;  will probe flash and set up first block for writing
+    ; We have to set this command up by hand as it is one
+    ;  that we added to the flash.* protocol and JTAG does
+    ;  not know about it.
+    ;--------------------------------------------------------
+    ;
+    if "&Verbose"=="yes"
+    (
+      print "Probing flash and setting up"
+      print ""
+      print ""
+    )
+    
+    if (("&PartiName"=="")||("&CustomFile"=="")) 
+    (
+      print "Partition Name '&Partiname' or CustomFile '&CustomFile' not set."
+      print "Press any key to return to Main menu"
+      print ""
+  
+      INKEY
+  
+      print "Going back to Main menu..."
+      print
+      print
+      return
+    )
+
+    &PartiChoice=&PartiName
+    &PartiNameLen=STRING.LEN("&PartiName")
+    &CustomBin="&CustomFile"
+
+    if (!os.file(&CustomFile))
+    (
+      print "Please enter &CustomFile image: "
+      local &filename
+      dialog.file &BinDir/&BuildID/*.mbn
+      entry &filename
+      if "&filename"==""
+      (
+        print "Failed to select Customer image"
+      )
+      else
+      (
+        &CustomBin="&filename"
+      ) 
+    )
+    else
+    (
+      &PartiChoice=&PartiName
+      &PartiNameLen=STRING.LEN("&PartiName")
+      &CustomBin="&CustomFile"
+    )
+  )
+  else if "&MenuMode"=="NOMENU"
+  (
+    if (("&PartiName"!="")&&("&CustomFile"!=""))
+    (
+      &PartiChoice=&PartiName
+      &PartiNameLen=STRING.LEN("&PartiName")
+      &CustomBin="&CustomFile"
+    )
+    else
+    (
+       print "ERROR: Partition name or Custom image name unknown."
+       enddo (1==0)
+    )
+  )
+  else if "&MenuMode"=="NOMENUCUSTOM"
+  (
+    ; Support 0:ALL custom programming
+    &PartiChoice="0:ALL"
+    &CustomBin="&CustImageFile"
+    print "Download CUSTOM image"
+  )
+
+  if (!os.file(&CustomBin))
+  (
+    print "&CustomBin image not found - Skipping "
+  )
+  else
+  (
+    print " Download &CustomBin  image"
+    data.set &ParmData "&PartiChoice" 0x0
+
+    ;Set the correct size for the string
+    data.set &ParmSize %LONG &PartiNameLen
+
+    if "&Verbose"=="yes"
+    (
+      print
+      print "Programming partition &PartiChoice"
+    )
+
+    &Command="Flash Initialize for CUSTOM Image Programming"
+    data.set &ParmCmd %LONG &InitImgCmd
+    data.set &ParmReserved %LONG &CustomImg
+    
+    &CurrentCmd=&InitImgCmd
+
+    r.s pc &StartAddr
+    go
+
+    gosub check_status  ;; will not return if error
+
+    &PbnImage="&CustomBin"
+
+    &ImageName="CUSTOM"
+
+    print "Programming &ImageName &PbnImage"
+    gosub DoProgramming
+    goSub EndTime "Programming CUSTOM Image"
+  )
+return
+
+;=========================================================
+; --- Function to program Image to a Custom Partition
+;=========================================================
+ProgramCUSTOM:
+
+  local &PartiChoice
+  local &PartiNameLen
+  
+  goSub StartTime "Programming CUSTOM Image"
+  if "&MenuMode"=="STD"
+  (
+    ;--------------------------------------------------------
+    ; Initialize the NAND program - must succeed
+    ;  will probe flash and set up first block for writing
+    ; We have to set this command up by hand as it is one
+    ;  that we added to the flash.* protocol and JTAG does
+    ;  not know about it.
+    ;--------------------------------------------------------
+    ;
+    if "&Verbose"=="yes"
+    (
+      print "Probing flash and setting up"
+      print ""
+      print ""
+    )
+    
+    if "&custId">"&allId" 
+    (
+      ; Prompt user for a partition name that will be programmed with this image
+      print "Please enter partition name to program (e.g. 0:QDSP): "
+      &t32_cmm_stopped=1
+      enter &PartiChoice
+      &t32_cmm_stopped=0
+  
+      &PartiNameLen=STRING.LEN("&PartiChoice")
+  
+      if (&PartiNameLen<3)
+      (
+        print "Partition Name '&PartiChoice' is too short a name!"
+        print "Press any key to return to Main menu"
+        print ""
+  
+        INKEY
+  
+        print "Going back to Main menu..."
+        print
+        print
+        return
+      )
+      print "Please enter Customer image: "
+      local &filename
+      dialog.file &BinDir/&BuildID/*.mbn
+      entry &filename
+      if "&filename"==""
+      (
+        print "Failed to select Customer image"
+        enddo (1==0)
+      )
+      &CustomBin="&filename" 
+    )
+    else
+    (
+      ; Custom image is part of "do All" menu
+      ; If image can not be found then prompt for image 
+      if (&forceCustPrompt)
+      (
+        &forceCustPrompt=&false
+        print "Please enter partition name to program (e.g. 0:QDSP): "
+        &t32_cmm_stopped=1
+        enter &PartiChoice
+        &t32_cmm_stopped=0
+  
+        &PartiNameLen=STRING.LEN("&PartiChoice")
+  
+        if (&PartiNameLen<3)
+        (
+          print "Partition Name '&PartiChoice' is too short a name!"
+          print "Press any key to return to Main menu"
+          print ""
+  
+          INKEY
+  
+          print "Going back to Main menu..."
+          print
+          print
+          return
+        )
+        print "Please enter Customer image: "
+        local &filename
+        dialog.file &BinDir/&BuildID/*.mbn
+        entry &filename
+        if "&filename"==""
+        (
+          print "Failed to select Customer image"
+          enddo (1==0)
+        )
+        &CustomBin="&filename" 
+      )
+      else
+      (
+        if (&PartiName!="")
+        (
+          &PartiChoice="0:QDSP"
+        )
+      )
+    )
+  )
+  else if "&MenuMode"=="NOMENUCUSTOM"
+  (
+    ; Support 0:ALL custom programming
+    &PartiChoice="0:ALL"
+    &CustomBin="&CustImageFile"
+    print "Download CUSTOM image"
+  )
+
+  if (!os.file(&CustomBin))
+  (
+    print "&CustomBin image not found - Skipping "
+  )
+  else
+  (
+    print " Download &CustomBin  image"
+    data.set &ParmData "&PartiChoice" 0x0
+
+    ;Set the correct size for the string
+    data.set &ParmSize %LONG &PartiNameLen
+
+    if "&Verbose"=="yes"
+    (
+      print
+      print "Programming partition &PartiChoice"
+    )
+    if ("&PartiChoice"=="0:FOTA")
+    (
+      &Command="Flash Initialize for FOTA UI Programming"
+      data.set &ParmCmd %LONG &InitImgCmd
+      data.set &ParmReserved %LONG &FotaImg
+    )
+    else
+    (
+      &Command="Flash Initialize for CUSTOM Image Programming"
+      data.set &ParmCmd %LONG &InitImgCmd
+      data.set &ParmReserved %LONG &CustomImg
+    )
+    
+    &CurrentCmd=&InitImgCmd
+
+    r.s pc &StartAddr
+    go
+
+    gosub check_status  ;; will not return if error
+
+    &PbnImage="&CustomBin"
+
+    if ("&PartiChoice"=="0:FOTA")
+    (
+      &ImageName="FOTA UI"
+    )
+    else
+    (
+      &ImageName="CUSTOM"
+    )
+    print "Programming &ImageName &PbnImage"
+    gosub DoProgramming
+    goSub EndTime "Programming CUSTOM Image"
+  )
+return
+
+;=========================================================
+; --- Function to program Image to a updated Partition
+;=========================================================
+ProgramUpdatedImage:
+
+  local &PartiChoice
+  local &PartiNameLen
+  local &UdImageBin
+  local &filename
+  
+  goSub StartTime "Programming Updated Image"
+  
+  ;--------------------------------------------------------
+  ; Initialize the JNAND program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+    print ""
+    print ""
+  )
+  
+  ; Prompt user for a partition name that will be programmed with this image 
+  print "------------------------------------------"
+  print "      Select Updated Image Menu"
+  print "------------------------------------------"
+  print ""
+  print "0: Return to previous Menu"
+  print "1: Update OSBL image"
+  print "2: Update AMSS image"
+  print "3: Update DSP image"
+  print "Select updated image partition choice:  "
+  &t32_cmm_stopped=1
+  enter &Choice
+  &t32_cmm_stopped=0
+  
+  if ("&Choice"=="0")
+  (
+    return
+  )
+  else if ("&Choice"=="1")
+  (
+    &PartiChoice="0:OSBL_UPDATE"
+    &UdImageBin="&OsblUpBin"
+    data.set &ParmReserved %LONG &OsblUpdatedImg
+  )
+  else if ("&Choice"=="2")
+  (
+    &PartiChoice="0:AMSS_UPDATE"
+    &UdImageBin="&AmssUpBin"
+    data.set &ParmReserved %LONG &CustomImg
+  )
+  else if ("&Choice"=="3")
+  (
+    &PartiChoice="0:DSP_UPDATE"
+    &UdImageBin="&DspUpBin"
+    data.set &ParmReserved %LONG &CustomImg
+  )
+  else 
+  (
+    print "Invalid choice"
+    print "Press any key to return to Main menu"
+    print ""
+    
+    INKEY
+
+    print "Going back to Main menu..."
+ 
+    return
+  )
+  
+  &PartiNameLen=STRING.LEN("&PartiChoice")
+
+  if (!os.file(&UdImageBin))
+  (
+    print "Please enter updated image: "
+    dialog.file &BinDir/&BuildID/*.mbn
+    entry &filename
+    if "&filename"==""
+    (  
+       print "Failed to select Customer image"
+       print "Partition Name '&PartiChoice' is too short a name!"
+       print "Press any key to return to Main menu"
+       print ""
+       INKEY
+       print "Going back to Main menu..."
+       print
+       print
+       return   
+    )
+    
+    &UdImageBin="&filename"
+  )
+  
+  data.set &ParmData "&PartiChoice" 0x0 
+  
+  ;Set the correct size for the string
+  data.set &ParmSize %LONG &PartiNameLen
+  
+  if "&Verbose"=="yes"
+  (
+    print
+    print "Programming partition &PartiChoice"
+  )
+  
+  &Command="Flash Initialize for updated Image Programming"
+  
+  data.set &ParmCmd %LONG &InitImgCmd
+  &CurrentCmd=&InitImgCmd
+  
+  r.s pc &StartAddr
+  go
+  
+  gosub check_status  ;; will not return if error 
+  
+  &PbnImage="&UdImageBin"
+  print "Prgramming update &PbnImage"
+  
+  &ImageName="UPDATED"
+  gosub DoProgramming  
+ 
+  
+  goSub EndTime "Programming updated Image"
+return
+
+;=====================================================
+; --- Function to Program flash part but not verify
+;=====================================================
+DoProgramming:
+
+   ;--------------------------------------------------------
+   ; put into program mode 
+   ;--------------------------------------------------------
+   flash.program all
+
+   ;--------------------------------------------------------
+   ; actual flash programming happens here
+   ;--------------------------------------------------------
+   &Command="Flash Program"
+   &CurrentCmd=&ProgramCmd
+
+   if "&Verbose"=="yes"
+   (
+     print "Choose &ImageName Binary"
+   )
+   data.load.binary &PbnImage /NOSYMBOL
+
+   &CheckStatusExit="yes"
+   gosub check_status  ;; will not return if error
+
+   ;--------------------------------------------------------
+   ; OK we're finished, turn off programming mode.
+   ; If we do not turn it off, any data writes within
+   ; the address range of the defined ROM will be taken
+   ; as flash programming commands and this will cause
+   ; failures if the code size overlaps the parameter
+   ; block address.
+   ;--------------------------------------------------------
+   flash.program off
+
+   ;--------------------------------------------------------
+   ; Finalize the NAND_TOOLS program - must succeed
+   ;  writes out the last code block and any boot info blocks
+   ; We have to set this command up by hand as it is one
+   ;  that we added to the flash.* protocol and JTAG does
+   ;  not know about it.
+   ;--------------------------------------------------------
+   ;
+   if "&Verbose"=="yes"
+   (
+     print "Finalizing flash programming"
+   )
+   &Command="Flash Finalize"
+   data.set &ParmCmd %LONG &FinishCmd
+   &CurrentCmd=&FinishCmd
+
+   r.s pc &StartAddr
+
+   go
+   &CheckStatusExit="yes"
+   gosub check_status  ;; will not return if error
+
+return
+
+;=====================================================
+; --- Function to check command status return
+;       and exit if 0x100
+;=====================================================
+check_status:
+   wait !run()
+
+   &Result=data.long(A:&ParmStatus)
+   if &Result==0x100
+   (
+     print " "
+     print "---- &Command failed"
+     &Result=data.long(A:&ParmReserved)
+     do flash_prog_error &Result
+     print " "
+
+     if "&CheckStatusExit"=="no"
+     (
+       ; If conversion of user partition table failed,
+       ; bail out. Conversion failure is not the same
+       ; as the partition mismatch. In case of partition
+       ; mismatch, conversion would have succeed.
+       ;
+       ;  0x35 -> User partition table magic or version mismatch
+       ;  0x36 -> User to System partition table conversion failed
+       ;  0x38 -> System partition table sent when expecting User table
+       if ((&Result==0x35)||(&Result==0x36)||(&Result==0x38))
+       (
+         &CheckStatusExit="yes"
+       )
+     )
+
+     if "&CheckStatusExit"=="yes"
+     (
+       print "EXITING due to failed command:: &Command"
+
+       if "&UseTerm"=="YES"
+       (
+         print "Closing teminal window on error"
+         term.close
+       )
+       enddo (1==0)
+     )
+     else
+     (
+      &CheckStatusFailed="yes"
+     )
+   )
+   else
+   (
+     if (&Result==&CurrentCmd)
+     (
+       print " "
+       print "----  DID NOT COMPLETE &Command"
+       print " "
+       print "EXITING due to failed command:: &Command"
+
+       if "&UseTerm"=="YES"
+       (
+         print "Closing teminal window on error"
+         term.close
+       )
+       enddo (1==0)
+     )
+     else
+     (
+       if "&Verbose"=="yes"
+       (
+         print "+++++ &Command Succeeded"
+       )
+     )
+   )
+return
+
+;=====================================================
+; --- Function to create the FLASH map
+;=====================================================
+CreateRom:
+  ;======================================================
+  ; Map flash readonly - must encompass the addresse
+  ;     of the image being loaded
+  ;======================================================
+   map.readonly &RomBegin--&RomEnd
+
+   ;--------------------------------------------------------
+   ; reset our flash command
+   ;--------------------------------------------------------
+   flash.res
+
+   ;--------------------------------------------------------
+   ; Let flash command know where our routine and buffer is located
+   ; code at &NandCodeAddr, data at &NandParamAddr, buffer size = 16K
+   ; Earlier versions of JTAG s/w would allow larger buffer of 64k
+   ; but now we seem to be limited to 16k
+   ;--------------------------------------------------------
+   ;
+   flash.target &NandCodeAddr &NandParamAddr 4000
+
+   ;--------------------------------------------------------
+   ; Define our flash range and tell flash command we're using
+   ; our own flash programming routine via keyword "target"
+   ; right now, we are defining 3 MBytes for code which in
+   ; the NAND environment is meaningless, as this has to do
+   ; with memory mapping in the flash, but we have to use it
+   ; to use the other FLASH.* functions
+   ;--------------------------------------------------------
+   ;
+   flash.create &RomBegin--&RomEnd target byte
+return
+
+;=====================================================
+; --- Function to clean up the FLASH map after each
+;     iteration of the loop
+;=====================================================
+CleanUp:
+   ;--------------------------------------------------------
+   ; ok we're finished, turn off programming mode
+   ;--------------------------------------------------------
+   flash.program off
+   FLASH.Reset
+   MAP.Reset
+return
+
+;=====================================================
+; --- Function to clean up just before exit
+;=====================================================
+CleanUpExit:
+    ;--------------------------------------------------------
+    ; ok we're finished completely, clean up for exit
+    ;--------------------------------------------------------
+    b.delete /all
+    if "&SecureBoot"!="yes"  
+    (  
+      ; Generate a reset
+      sys.d
+      if "&NandTargetFamily"=="FLASH_9K_CFG" 
+      ( 
+         ; 9K has issues with sys.u alone so use sysup.cmm script from build/ms 
+         cd &NandSrcRoot/build/ms 
+         do sysup.cmm 
+         ; Restore T32 to Mode B (ARM9 in daisy chain mode)
+         do daisyModeB.cmm
+         cd &CurDir 
+      )
+      sys.u
+    )   
+    if "&UseTerm"=="YES"  
+    (  
+      term.close
+    )
+return
+
+;=====================================================
+; --- Function to print start time
+;=====================================================
+StartTime:
+  LOCAL &msg
+  ENTRY &msg
+
+  if "&Verbose"=="yes"
+  (
+    &DateStart=CLOCK.DATE()
+    &TimeStart=CLOCK.TIME()
+    PRINT " "
+    PRINT "Start &msg at &DateStart at &TimeStart"
+  )
+
+return
+
+;=====================================================
+; --- Function to print end time
+;=====================================================
+EndTime:
+  LOCAL &msg
+  ENTRY &msg
+  if "&Verbose"=="yes"
+  (
+    &DateEnd=CLOCK.DATE()
+    &TimeEnd=CLOCK.TIME()
+    PRINT " "
+    PRINT "End &msg at &DateEnd at &TimeEnd"
+    print " "                                             
+  )
+return
+
+;============================================================================
+; Process the arguments and set modes accordingly
+;============================================================================
+ProcessCmdLine:
+
+  ; Any mode can take DEBUG, must be first, process it first
+  if "&arg1"=="DEBUG"
+  (
+    print "NAND_TOOLS called with arg1 = &arg1 arg2 = &arg2  arg3 = &arg3"
+    print "arg3 = &arg3  arg4 = &arg4  arg5 = &arg5"
+
+    ; Strip out DEBUG and shift arguments
+    &DoDebug="yes"
+    &arg1="&arg2"
+    &arg2="&arg3"
+    &arg3="&arg4"
+    &arg4="&arg5"
+  )
+
+  ; Any mode can take TRUSTED, must be second if with DEBUG, otherwise first
+  if "&arg1"=="TRUSTED"
+  (
+    ; Strip out TRUSTED and shift arguments
+    &SecureBoot="yes"
+    &arg1="&arg2"
+    &arg2="&arg3"
+    &arg3="&arg4"
+  )
+
+  if "&arg1"=="NOMENU"||"&arg1"=="NOMENUAPPS"||"&arg1"=="NOMENUMODEM"||"&arg1"=="NOMENUCEFS"||"&arg1"=="NOMENUFACT"||"&arg1"=="NOMENUAPPSEXT"||"&arg1"=="NOMENUAPPSCEFSEXT"||"&arg1"=="NOMENUCUSTOM"
+  (
+    ; NOMENU mode can take an optional BUILDID argument
+    &MenuMode="&arg1"
+    if "&arg2"!=""
+    (
+      &BuildID="&arg2/nand"
+    )
+
+    if "&arg1"=="NOMENUAPPSEXT"||"&arg1"=="NOMENUAPPSCEFSEXT"
+    (
+      if "&arg3"==""
+      (
+        print "Fatal Error:  Parameter NOMENUAPPSEXT/NOMENUAPPSCEFSEXTS requires a valid path to the external binaries"
+        gosub CleanUp   
+        gosub CleanUpExit
+        enddo (1==0)
+      )
+      &AppsBinPath="&arg3"
+    ) 
+
+    if "&arg1"=="NOMENUCUSTOM"
+    (
+      if !os.file(&arg3)
+      (
+        print "Fatal Error:  Parameter NOMENUCUSTOM requires a valid file path to the custom image"
+        gosub CleanUp   
+        gosub CleanUpExit
+        enddo (1==0)
+      )
+      &CustImageFile="&arg3"
+    )
+
+    if "&BuildID"==""
+    (
+      print "Fatal Error:  Parameter NOMENU requires a valid Build ID"
+      gosub CleanUp
+      gosub CleanUpExit
+      enddo (1==0)
+    )
+    &Verbose="no"
+  )
+  else
+  (
+    if "&arg1"!=""
+    (
+      &BuildID="&arg1/nand"
+    )
+  )
+
+  if "&DoDebug"=="yes"
+  (
+    print "MenuMode is &MenuMode"
+    print "Debug is &DoDebug"
+    print "SecureBoot is &SecureBoot"
+    print "Verbose is &Verbose"
+    print "BuildID is &BuildID"
+  )
+
+return  ; ProcessCmdLine
+
+;============================================================================
+; If not in factory mode, process the elf name, helping the user all we
+; can so that they have as little work to do as possible.
+;
+; Processing is slightly different if invoked with NOMENU, STD or FACTORY
+;============================================================================
+AdjustBinNames:
+
+  if ("&arg1"=="NOMENUAPPSEXT")||("&arg1"=="NOMENUAPPSCEFSEXT")
+  (
+      ; Adjust path
+      &AppsBin="&AppsBinPath/&AppsBin"
+      &AppsBootBin="&AppsBinPath/&AppsBootBin"
+      &FlashBin="&AppsBinPath/&FlashBin"
+      &CefsAppsBin="&AppsBinPath/&CefsAppsBin"
+      &CefsBin="&AppsBinPath/&CefsBin"
+      &PartiBin="&BinDir/&BuildID/&PartiBin"
+  
+      if "&DoDebug"=="yes"
+      (
+        print "AppsBoot    is &AppsBootBin"
+        print "Appsbin     is &AppsBin"
+        print "FlashBin    is &FlashBin"
+        print "PartiBin    is &PartiBin"
+      )
+  )
+  else
+  (
+    ; If we have no BuildID name, have user choose an elf file
+    if "&BuildID"==""
+    (
+      &PartiBin="&BinDir/*.mbn"
+      &DblBin="&BinDir/*.mbn"
+      &FsblBin="&BinDir/*.mbn"
+      &OsblBin="&BinDir/*.mbn"
+      &AmssBin="&BinDir/*.mbn"
+      &AppsBin="&BinDir/*.mbn"
+      &AppsBootBin="&BinDir/*.mbn"
+      &Dsp1Bin="&BinDir/*.mbn"
+      &Dsp2Bin="&BinDir/*.mbn"
+  
+      &CefsBin="&BinDir/*.mbn"
+      &CefsAppsBin="&BinDir/*.mbn"
+      &FotaBin="&BinDir/*.mbn"
+      &FlashBin="&BinDir/*.bin"
+      &AppsEfs2RawBin="&BinDir/*.*"
+      &CustomBin="&BinDir/*.*"
+      &FactoryBin="&BinDir/*.*"
+      &OsblUpBin="&BinDir/*.*"
+      &AmssUpBin="&BinDir/*.*" 
+      &DspUpBin="&BinDir/*.*"
+      &Sbl1Bin="&BinDir/&BuildID/*.*"
+      &Sbl2Bin="&BinDir/&BuildID/*.*"
+      &RpmBin="&BinDir/&BuildID/*.*"
+      &Dsp3Bin="&BinDir/&BuildID/*.*"
+      &ADspBin="&BinDir/&BuildID/*.*"
+      &QDspBin="&BinDir/&BuildID/*.*"
+      &AcdbBin="&BinDir/&BuildID/*.*"
+    )
+    else
+    (
+      &PartiBin="&BinDir/&BuildID/&PartiBin"
+      &DblBin="&BinDir/&BuildID/&DblBin"
+      &FsblBin="&BinDir/&BuildID/&FsblBin"
+      &OsblBin="&BinDir/&BuildID/&OsblBin"
+      &AmssBin="&BinDir/&BuildID/&AmssBin"
+      &AppsBin="&BinDir/&BuildID/&AppsBin"
+      &AppsBootBin="&BinDir/&BuildID/&AppsBootBin"
+      &Dsp1Bin="&BinDir/&BuildID/&Dsp1Bin"
+      &Dsp2Bin="&BinDir/&BuildID/&Dsp2Bin"
+
+      &CefsBin="&BinDir/&BuildID/&CefsBin"
+      &CefsAppsBin="&BinDir/&BuildID/&CefsAppsBin"
+      &FotaBin="&BinDir/&BuildID/&FotaBin"
+      &FlashBin="&BinDir/&BuildID/&FlashBin"
+      if "&NandTargetFamily"=="FLASH_7K_DUAL_NAND_CFG"
+      (
+        &CustomBin="adsp.mbn"
+      )
+
+      &CustomBin="&BinDir/&BuildID/&CustomBin"
+      &FactoryBin="&BinDir/&BuildID/&FactoryBin"
+      &AppsEfs2RawBin="&BinDir/&BuildID/&AppsEfs2RawBin"
+      &OsblUpBin="&BinDir/&BuildID/osblupdate.mbn"
+      &AmssUpBin="&BinDir/&BuildID/amssupdate.mbn" 
+      &DspUpBin="&BinDir/&BuildID/dspupdate.mbn"
+
+      &Sbl1Bin="&BinDir/&BuildID/&Sbl1Bin"
+      &Sbl2Bin="&BinDir/&BuildID/&Sbl2Bin"
+      &TzBin="&BinDir/&BuildID/&TzBin"
+      &SdiBin="&BinDir/&BuildID/&SdiBin"
+      &RpmBin="&BinDir/&BuildID/&RpmBin"
+      &MbaBin="&BinDir/&BuildID/&MbaBin"
+      &Dsp3Bin="&BinDir/&BuildID/&Dsp3Bin"
+      &ADspBin="&BinDir/&BuildID/&ADspBin"
+      &QDspBin="&BinDir/&BuildID/&QDspBin"
+      &AcdbBin="&BinDir/&BuildID/&AcdbBin"
+    )
+
+    if "&DoDebug"=="yes"
+    (
+      print "PblBin      is &PblBin"
+      print "PartiBin    is &PartiBin"
+      print "DblBin      is &DblBin"
+      print "FsblBin     is &FsblBin"
+      print "OsblBin     is &OsblBin"
+      print "AmssBin     is &AmssBin"
+      print "AppsBoot    is &AppsBootBin"
+      print "AppsBin     is &AppsBin"
+      print "Dsp1Bin     is &Dsp1Bin"
+      print "Dsp2Bin     is &Dsp2Bin"
+      print "CefsBin     is &CefsBin"
+      print "CefsAppsBin is &CefsAppsBin"
+      print "FotaBin     is &FotaBin"
+      print "FlashBin    is &FlashBin"
+      print "CustomBin   is &CustomBin"
+      print "AppsEfs2RawBin is &AppsEfs2RawBin"
+      print "FactoryBin  is &FactoryBin"
+    )  
+  )
+
+return   ;AdjustBinNames
+
+
+
+;=====================================================
+; --- Function to send the security mode
+;=====================================================
+SendSecurityMode:
+
+  ; Send security mode once only per invocation of this file
+  if "&SecurityModeSent"=="yes"
+  (
+    return
+  )
+  else
+  (
+    &SecurityModeSent="yes"
+  )
+
+  if "&Verbose"=="yes"
+  (
+    print "Sending Security Mode"
+  )
+
+  &Command="Send Security Mode"
+  data.set &ParmCmd %LONG &SecModeCmd
+  &CurrentCmd=&SecModeCmd
+
+  if "&SecureBoot"=="yes"
+  (
+    data.set &ParmReserved %LONG &SecModeTrusted
+  )
+  else
+  (
+    data.set &ParmReserved %LONG &SecModeNonTrusted
+  )
+  r.s pc &StartAddr
+  go
+
+  &CheckStatusExit="yes"
+  gosub check_status  ;; will not return if error
+
+return
+
+ProgramSBL1:
+
+  goSub StartTime "Programming SBL1 Image"
+
+  ;--------------------------------------------------------
+  ; Initialize the NAND_TOOLS program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for SBL1 Image Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &Sbl1Img
+  &CurrentCmd=&InitImgCmd
+
+  r.s pc &StartAddr
+  go
+
+  gosub check_status  ;; will not return if error 
+
+  &PbnImage="&Sbl1Bin"
+
+  &ImageName="SBL1"
+  gosub DoProgramming  
+
+  goSub EndTime "Programming SBL1 Image"
+
+return
+
+ProgramSBL2:
+
+  goSub StartTime "Programming SBL2 Image"
+
+  ;--------------------------------------------------------
+  ; Initialize the NAND_TOOLS program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for SBL2 Image Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &Sbl2Img
+  &CurrentCmd=&InitImgCmd
+
+  r.s pc &StartAddr
+  go
+
+  gosub check_status  ;; will not return if error 
+
+  &PbnImage="&Sbl2Bin"
+
+  &ImageName="SBL2"
+  gosub DoProgramming  
+
+  goSub EndTime "Programming SBL2 Image"
+
+return
+
+ProgramRPM:
+
+  goSub StartTime "Programming RPM Image"
+
+  ;--------------------------------------------------------
+  ; Initialize the NAND_TOOLS program - must succeed
+  ;  will probe flash and set up first block for writing
+  ; We have to set this command up by hand as it is one
+  ;  that we added to the flash.* protocol and JTAG does
+  ;  not know about it.
+  ;--------------------------------------------------------
+  ;
+  if "&Verbose"=="yes"
+  (
+    print "Probing flash and setting up"
+  )
+  &Command="Flash Initialize for RPM Image Programming"
+  data.set &ParmCmd %LONG &InitImgCmd
+  data.set &ParmReserved %LONG &RpmImg
+  &CurrentCmd=&InitImgCmd
+
+  r.s pc &StartAddr
+  go
+
+  gosub check_status  ;; will not return if error 
+
+  &PbnImage="&RpmBin"
+
+  &ImageName="RPM"
+  gosub DoProgramming  
+
+  goSub EndTime "Programming RPM Image"
+
+return
+
+;=========================================================
+; --- Function to program DSP3 Image
+;=========================================================
+ProgramDSP3:
+  if ("&MenuMode"=="STD")&&((!os.file(&Dsp3Bin))||(&PrompFile))
+  (
+    print "Please enter DSP3 image name: "
+    local &filename
+    dialog.file *.mbn
+    entry &filename
+    if "&filename"==""
+    (
+      print "Failed to select image"
+      return   
+    )
+    &Dsp3Bin="&filename" 
+  )
+
+  ; Adding flexibility to skip DSP3 image if not found on the build
+  ; location pointed.
+  if (!os.file(&Dsp3Bin))
+  (
+    print "Image not found: &Dsp3Bin - Skipping"
+  )
+  else
+  (
+    goSub StartTime "Programming DSP3 Image"
+
+    ;--------------------------------------------------------
+    ; Initialize the NAND_TOOLS program - must succeed
+    ;  will probe flash and set up first block for writing
+    ;  We have to set this command up by hand as it is one
+    ;  that we added to the flash.* protocol and JTAG does
+    ;  not know about it.
+    ;--------------------------------------------------------
+    ;
+    if "&Verbose"=="yes"
+    (
+      print "Probing flash and setting up"
+    )
+    &Command="Flash Initialize for DSP3 Image Programming"
+    data.set &ParmCmd %LONG &InitImgCmd
+    data.set &ParmReserved %LONG &Dsp3Img
+    &CurrentCmd=&InitImgCmd
+
+
+    r.s pc &StartAddr
+    go
+
+    gosub check_status  ;; will not return if error 
+
+    &PbnImage="&Dsp3Bin"
+
+    &ImageName="DSP3"
+    gosub DoProgramming  
+
+    goSub EndTime "Programming DSP3 Image"
+  )
+
+return

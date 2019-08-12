@@ -1,0 +1,148 @@
+#===============================================================================
+#
+# MPOWER MCPM scon script.
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mpower/mcpm/test/build/mcpm_l1emulator.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/15/13   vs      Ported from Dime release branch.
+#
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+import re
+from glob import glob
+from os.path import join, basename
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+SRCPATH = ".."
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Convert warnings to errors in all MCPM components
+#-------------------------------------------------------------------------------
+# Enable warnings -> errors for all, except LLVM toolchain (6.x.x) during migration
+#import os
+#if not os.environ.get('HEXAGON_RTOS_RELEASE').startswith('6'):
+#
+env.Append(CFLAGS = " -Werror-medium ")
+
+#-----------------------------------------------------------------------------------------
+# Process source files giving any files in ${CHIPSET} folders precedence over default ones
+#-----------------------------------------------------------------------------------------
+Import('L1EM_CMN_DIRS')
+Import('L1EM_TARGET_DIRS')
+Import('L1EM_CHIPSET_DIR')
+
+#final list of all source files to compile for L1EM
+SOURCE_FILES     = []
+#sub-dirs where source files can be located inside <CMN/HW>_SEARCH_PATHS
+SRC_SUB_PATHS    = [ '/src' ]
+HW_SOURCE_FILES  = [] #list of all *.c files in HW folders
+VAR_SOURCE_FILES = []
+L1EM_TOP_DIR     = 'test/'
+#Files that can exist in both chipset level and HW default folders are filtered for uniqueness
+#giving the chipset *.c files precedence over default *.c ones. Any other file not matching any
+#of these names can still exist in either chipset or any other HW dir location.
+hw_chipset_files   = []
+hw_files_to_filter = []
+
+#add all .c files from common directories
+for dir_paths in L1EM_CMN_DIRS:
+  for sub_dirs in SRC_SUB_PATHS:
+    SOURCE_FILES += env.FindFiles([ '*.c' ], dir_paths + sub_dirs, posix=True)
+
+env.PrintInfo("L1EM common source files: " + ', '.join(SOURCE_FILES))
+
+#1. Generate a list of files that are redefinable and need to be filtered.
+#   a. Find all *.c files that may be redefined in chipset level folders. All files in L1EM_CHIPSET_DIR
+#      are considered re-definable for specific chipsets.
+#   b. Convert the list to only the basenames for the files for duplicate name search.
+#
+#2. Find all unique files in HW folders that are not to be filtered:
+#   a. First make a list of all *.c files in HW folders
+#   b. Then eliminate ones matching names to be filtered
+#
+#1.a:
+for dir_paths in L1EM_CHIPSET_DIR:
+  for sub_dirs in SRC_SUB_PATHS:
+    filt_file              = env.FindFiles([ '*.c' ], dir_paths + sub_dirs, posix=True)
+    if filt_file:
+      hw_chipset_files += filt_file
+
+#1.b:
+for file in hw_chipset_files:
+  file                = basename(file)
+  hw_files_to_filter += [ file ]
+
+# 2.a:
+for hw_paths in L1EM_TARGET_DIRS:
+  for sub_dirs in SRC_SUB_PATHS:
+    src_file     = env.FindFiles([ '*.c' ], hw_paths + sub_dirs, posix=True)
+    if src_file:
+      #print "=====> ADD " + ', '.join(src_file) + " to list!"
+      HW_SOURCE_FILES += src_file
+
+# 2.b:
+for hw_files in HW_SOURCE_FILES:
+  filter_file = False
+  for dup_source_files in hw_files_to_filter:
+    #print "=====> CHECK " + dup_source_files + " in " + hw_files
+    if dup_source_files in hw_files:
+      filter_file = True
+
+  if not filter_file:
+    #print "=====> KEEP " + hw_files + " in new list!"
+    # Add this file to list of files to compile as it's name is not in filter list
+    SOURCE_FILES += [ hw_files ]
+
+# Add chipset specific files found
+SOURCE_FILES += hw_chipset_files
+
+#To prevent colluding the directory space with .o files, construct the variant name where the
+#object files will be built. For a file in location <dir>/test/<abc>/fl.c the variant name
+#must have the dest build directory location in the name itself - build/<abc>/fl.c.
+for fname in SOURCE_FILES:
+  var_str = re.sub(r".*" + L1EM_TOP_DIR, '', fname)
+  VAR_SOURCE_FILES += ['${BUILDPATH}/' + var_str ]
+
+#SOURCE_FILES = [file.replace(SRCPATH, '${BUILDPATH}') for file in SOURCE_FILES]
+
+env.PrintInfo("L1EM all source files to compile: " + ', '.join(SOURCE_FILES))
+env.PrintInfo("L1EM all variant source files to compile: " + ', '.join(VAR_SOURCE_FILES))
+#----------------------------------------------------------------------------------------
+
+# build and link
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/mcpm_l1em', VAR_SOURCE_FILES)
+
+if not 'USES_INTERNAL_BUILD' in env:
+  # clean stubs out for external variants
+  env.CleanPack(['MODEM_MODEM'], SOURCE_FILES)
+
+#-------------------------------------------------------------------------------
+# Invoke sub build files
+#-------------------------------------------------------------------------------
+#env.LoadSoftwareUnits()
+
+
+
+

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  CPU VDD Sleep Low Power Resource/Mode definitions
+
+  Copyright (c) 2011-2014 QUALCOMM Technologies Incorporated.
+  All Rights Reserved.
+  Qualcomm Confidential and Proprietary
+
+-->
+
+<!--
+For both: "l2_cache.no_ret + cpu_vdd.pc_l2_noret" and 
+          "l2_cache.ret    + cpu_vdd.pc_l2_ret  " 
+
+cpu_vdd Enter Latency: LPRM Enter
+                     : 220
+
+cpu_vdd Exit  Latency: LPRM Exit + SPM Enter,Exit +  SPM PMIC Warm  + Qurt Exit 
+345Mhz+L2Ret    10876: 220       + 384            +  9600           + 672     
+345Mhz+L2NoRet  10966: 310       + 384            +  9600           + 672                   
+576Mhz+L2Ret    10836: 180       + 384            +  9600           + 672     
+
+      l2 Enter Latency: LPRM Enter 
+                      : 120
+
+l2 / tcm Exit  Latency: LPRM Exit + Qurt Entry Overhead
+Qurt L2            782: 110       + (35*19.2=672)
+Qurt TCM Res    192000: 110       + (10000us*19.2=192000)
+
+Format of Enter/Exit/Backoff latency fields:
+"<Fixed>,<Scaled>"
+Fixed - Unscaled value that is always added to each frequency table entry
+Scaled - Value that will be scaled at 1:1 ratio according to frequency table entries
+         and the initial base profile frequency given via ProfileFreq
+
+Bitwise attribute values (see sleep_mode_attribute enum for full description):
+  0x01 - No reference count
+  0x02 - No function lock
+  0x04 - No latency optimization
+  0x08 - No automatic latency tracking
+-->
+
+<LPRDefinition>
+  <LPR Name="cpu_vdd" CoreMask="0xFFFFFFFF" InitFn="cpu_vdd_lpr_init" ProfileFreq="576000">
+    <Mode Name="pc_l2_tcm_noret"
+          Dependency="l2.noret + tcm.noret + LM + CLM"
+          Order="LAST"
+          PowerSavings="-20, 20"
+          EnterLat="50,140"
+          ExitLat="924, 5982"
+          Backoff="924, 5982"
+          EnterFn="cpu_vdd_pc_l2_tcm_noret_enter"
+          ExitFn="cpu_vdd_pc_exit"
+          Attributes="8"
+          >
+    </Mode>
+    <Mode Name="pc_l2_noret"
+          Dependency="l2.noret + tcm.ret + LM + CLM"
+          Order="LAST"
+          PowerSavings="-20, 20"
+          EnterLat="50,140"
+          ExitLat="924, 5982"
+          Backoff="924, 5982"
+          EnterFn="cpu_vdd_pc_l2_noret_enter"
+          ExitFn="cpu_vdd_pc_exit"
+          Attributes="8"
+          >
+    </Mode>
+    <Mode Name="pc_l2_tcm_ret"
+          Dependency="l2.ret + tcm.ret + LM + CLM"
+          Order="LAST"
+          PowerSavings="-20, 20"
+          EnterLat="50,140"
+          ExitLat="924, 9982"
+          Backoff="924, 5982"
+          EnterFn="cpu_vdd_pc_l2_tcm_ret_enter"
+          ExitFn="cpu_vdd_pc_exit"
+          Attributes="8"
+          >
+    </Mode>
+  </LPR>
+  <LPR Name="l2" CoreMask="0xFFFFFFFF" ProfileFreq="384000">
+    <Mode Name="noret"
+          Supported="FALSE"
+          Dependency="cpu_vdd.pc_l2_tcm_noret|cpu_vdd.pc_l2_noret"
+          Order=""
+          PowerSavings="-429073355, 5"
+          EnterLat="5000,1600"
+          ExitLat="75,536"
+          Backoff="75,110"
+          EnterFn="l2_noret_enter"
+          ExitFn="l2_exit"
+          >
+    </Mode>
+    <Mode Name="ret"
+          Dependency="cpu_vdd.pc_l2_tcm_ret"
+          Order=""
+          PowerSavings="-500, 4"
+          EnterLat="650,150"
+          ExitLat="100,200"
+          Backoff="100,200"
+          EnterFn="l2_ret_enter"
+          ExitFn="l2_exit"
+          >
+    </Mode>
+  </LPR>
+  <LPR Name="tcm" CoreMask="0xFFFFFFFF" ProfileFreq="384000">
+    <Mode Name="noret"
+          Supported="FALSE"
+          Dependency="cpu_vdd.pc_l2_tcm_noret"
+          Order=""
+          PowerSavings="1"
+          EnterLat="175,150"
+          ExitLat="192000,536"
+          Backoff="192000,110"
+          EnterFn="tcm_noret_enter"
+          ExitFn="l2_exit"
+          >
+    </Mode>
+    <Mode Name="ret"
+          Dependency="cpu_vdd.pc_l2_tcm_ret|cpu_vdd.pc_l2_noret"
+          Order=""
+          PowerSavings="1"
+          EnterLat="300,350"
+          ExitLat="100,410"
+          Backoff="100,90"
+          EnterFn="tcm_ret_enter"
+          ExitFn="l2_exit"
+          >
+    </Mode>
+  </LPR>
+</LPRDefinition>

@@ -1,0 +1,96 @@
+
+Import('env')
+
+env = env.Clone()
+
+#----------------------------------------------------------------------
+#  TFTP-Client source files
+#----------------------------------------------------------------------
+
+TFTP_CLIENT_SOURCES = [
+    '../client/src/tftp_client.c',
+]
+
+tftp_client_objects = env.Object (TFTP_CLIENT_SOURCES)
+
+#----------------------------------------------------------------------
+#  TFTP-Client common-source files
+#----------------------------------------------------------------------
+
+TFTP_CLIENT_COMMON_SOURCES = [
+    '../common/src/tftp_connection.c',
+    '../common/src/tftp_log.c',
+    '../common/src/tftp_malloc.c',
+    '../common/src/tftp_pkt.c',
+    '../common/src/tftp_protocol.c',
+]
+
+tftp_client_common_objects = env.Object (TFTP_CLIENT_COMMON_SOURCES)
+
+#----------------------------------------------------------------------
+#  TFTP-Client OS source files
+#----------------------------------------------------------------------
+
+TFTP_CLIENT_OS_SOURCES = [
+    '../os/src/tftp_file_modem.c',
+    '../os/src/tftp_msg_modem.c',
+    '../os/src/tftp_os_modem.c',
+    '../os/src/tftp_socket_ipcr_modem.c',
+    '../os/src/tftp_string_modem.c',
+    '../os/src/tftp_threads_modem.c',
+    '../os/src/tftp_utils_modem.c',
+]
+
+tftp_client_os_objects = env.Object (TFTP_CLIENT_OS_SOURCES)
+
+#----------------------------------------------------------------------
+#  Simulator MPSS source files
+#----------------------------------------------------------------------
+SIM_TFTP_CLIENT_MPSS_SOURCES = [
+    '../../sim/mpss/sim_DDITimetick.c',
+    '../../sim/mpss/msg.c',
+    '../../sim/mpss/pthread.c',    
+    '../../sim/mpss/queue.c',
+    '../../sim/mpss/qurt.c',
+    '../../sim/mpss/sim_diag.c',
+    '../../sim/mpss/sim_efs.c',
+    '../../sim/mpss/sim_rfsa.c',
+    '../../sim/mpss/sim_rmts.c',
+    '../../sim/mpss/sim_ipcr_socket_mpss.c',
+    '../../sim/mpss/stringl/strlcat.c',
+    '../../sim/mpss/stringl/strlcpy.c',
+    '../../sim/mpss/test_utils.c',
+]
+
+sim_tftp_client_mpss_objects = env.Object (SIM_TFTP_CLIENT_MPSS_SOURCES)
+
+#----------------------------------------------------------------------
+#  Simulator source files
+#----------------------------------------------------------------------
+SIM_TFTP_CLIENT_MAIN_SOURCES = [
+    '../../sim/main/client_helper.c',
+    '../../sim/main/main.c',
+    '../../sim/main/pdump.c',
+    '../../sim/main/reset_device.c',
+    '../../sim/main/sim_framework.c',
+    '../../sim/main/sim_ipcr_socket_cb.c',
+    '../../sim/main/sim_os.c',
+    '../../sim/main/sim_threads.c',
+    '../../sim/main/sim_utils.c',
+    '../../sim/main/stub_err.c',
+]
+
+sim_tftp_client_main_objects = env.Object (SIM_TFTP_CLIENT_MAIN_SOURCES)
+
+
+#----------------------------------------------------------------------
+#  All TFTP-client and simulator source objects
+#----------------------------------------------------------------------
+all_tftp_client_objects  = tftp_client_objects
+all_tftp_client_objects += tftp_client_common_objects
+all_tftp_client_objects += tftp_client_os_objects
+all_tftp_client_objects += sim_tftp_client_mpss_objects
+all_tftp_client_objects += sim_tftp_client_main_objects
+
+Return('all_tftp_client_objects')
+

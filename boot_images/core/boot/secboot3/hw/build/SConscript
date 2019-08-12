@@ -1,0 +1,38 @@
+#===============================================================================
+#
+# Secboot3 SBL Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/rel/1.0/boot_images/core/boot/secboot3/msm8960/build/SConscript#28 $
+#  $DateTime: 2011/08/01 14:06:23 $
+#  $Author: coresvc $
+#  $Change: 1861678 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/01/10   plc     Refactored for SB3.0
+# 03/04/10   plc     Initial port for SBL1
+#
+#===============================================================================
+Import('env')
+
+# set default script name
+script_fname = "${CHIPSET}.sconscript"
+
+# change name for other targets that migh start with q, etc
+if env['MSM_ID'] in ['xxxx']:
+   script_fname = "xxxx.sconscript"
+
+env.SConscript(script_fname, exports='env')

@@ -1,0 +1,46 @@
+#===============================================================================
+#
+# DD Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2015 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03-16-15   PS      Updated license
+# 04-04-14   MW      Clean vendor files
+# 12-19-12   sc      initial version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_SMR',
+]
+env.RequireRestrictedApi(SENSORS_API)
+
+env.RequirePublicApi( ['SERVICES'] )
+
+if 'SENSORS_DD_DEV_FLAG' not in env:
+   CLEAN_LIST=[]
+   CLEAN_LIST.extend(env.FindFiles('*', '../vendor'))
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], CLEAN_LIST)
+
+env.LoadSoftwareUnits()

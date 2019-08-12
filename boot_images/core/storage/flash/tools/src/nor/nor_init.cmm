@@ -1,0 +1,104 @@
+;============================================================================
+;  Name:
+;    NOR_INIT.CMM
+;
+;  Variable initialization script used by erasenor.cmm
+;
+;
+;  Copyright (c) 2010-2011 Qualcomm Technologies Incorporated. 
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 04/06/11   jz      Added support to read platform ID from EEPROM
+; 09/02/08   sv      Create initial version
+;============================================================================;
+
+;-------------------------------------------------------------------------------
+; These variables implement the structure above in PRACTICE variables
+;
+;  &NORCodeAddr and &NORParamAddr come from a generated file and are
+;  the only varibles which contain any MSM specific information
+;-------------------------------------------------------------------------------
+;
+GLOBAL &StartAddr &ParmBlk
+GLOBAL &ParmFlashaddr &ParmFlashwidth &ParmWidth
+GLOBAL &ParmOffset &ParmAddr &ParmSize
+GLOBAL &ParmReserved &ParmStatus &ParmCmd &ParmData &ParmID
+GLOBAL &ReportBytesGap &ReportBlocksGap &ReportImageSize
+GLOBAL &EraseCmd &ProgramCmd &InitCmd &InitBootCmd &FinishCmd
+GLOBAL &TestCmd &ReportCmd &VerifyCmd &EraseChipCmd &StressTestCmd
+GLOBAL &ReportInt &Result &CmdName &RetrieveID &ValidateBoot
+
+
+GLOBAL &InitImgCmd &EraseChipCmd
+GLOBAL &EraseBlockCmd &ReadPageCmd &FillPageCmd &PartiDumpInit &DumpParti
+GLOBAL &HardwarePresent &DetectPlatformID
+
+GLOBAL &SingleImg &CustomImg
+
+&StartAddr=        &NorCodeAddr
+&ParmBlk=          &NorParamAddr
+
+;print "parm block at " &ParmBlk
+
+; addresses of contents of parameter block
+;
+&ParmFlashaddr=    &ParmBlk+0x00
+&ParmFlashwidth=   &ParmBlk+0x04
+&ParmWidth=        &ParmBlk+0x08
+&ParmOffset=       &ParmBlk+0x0C
+&ParmAddr=         &ParmBlk+0x10
+&ParmSize=         &ParmBlk+0x14
+&ParmReserved=     &ParmBlk+0x18
+&ParmID=           &ParmBlk+0x18
+&ParmStatus=       &ParmBlk+0x1C
+&ParmCmd=          &ParmBlk+0x1C
+&ParmData=         &ParmBlk+0x20
+
+&ReportBytesGap=   &ParmBlk+0x00
+&ReportBlocksGap=  &ParmBlk+0x04
+&ReportImageSize=  &ParmBlk+0x08
+
+
+; command values for parameter block
+;
+&ProgramCmd=       0x01 ;; Lauterbach cmd to program flash
+&FinishCmd=        0x23 ;; our cmd to cause RAM copy of block map to be written
+&EraseChipCmd=     0x02 ;; our cmd to erase entire NOR flash
+&InitImgCmd=       0x22 ;; our cmd to initialize for image programming 
+
+
+; Commands for Multi-Image Boot
+&StressTestCmd=    0x46 ;; our cmd to start the stress test
+&EraseBlockCmd=    0x47 ;; our cmd to Erase a Block
+&ReadPageCmd=      0x48 ;; our cmd to Read a Page
+&FillPageCmd=      0x49 ;; our cmd to Write a Page
+&PartiDumpInit=    0x4A ;; our cmd to init for patition dump
+&DumpParti=        0x4B ;; our cmd to dump a partition
+&DetectPlatformID= 0x4C ;; our cmd to detect platform ID in EEPROM
+
+&PartiNoOverride=0x0
+&PartiOverride=0x1
+
+&HardwarePresent=0x1
+
+&NoImageId=    0x00  ;; Id to specify No Image  
+&SingleImg=    0x1A  ;; Id for ALL Image 
+&CustomImg=    0x0D  ;; Id for Custom Image 
+&LastImg=      0x1B  ;; Id to specify unknown Image
+
+
+; misc
+;
+&ReportInt=    0x0
+&Result=       0x0
+&CmdName=      "No command yet"
+
+enddo

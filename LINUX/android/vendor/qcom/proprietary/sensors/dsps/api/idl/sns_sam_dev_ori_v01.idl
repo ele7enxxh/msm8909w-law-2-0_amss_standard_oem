@@ -1,0 +1,328 @@
+/*****************************************************************************
+  @FILE     sns_sam_dev_ori_v01.idl
+
+  @BRIEF    Message definition for the Device Orientation service
+
+  @DESCRIPTION
+  This file defines messages used by Device Orientation service.
+
+  As prerequisite, the sensor algorithm must use the common interface
+  defined in the Sensor Algorithm Framework (SAM)
+
+  The messages defined herein will be passed to the Sensor framework using
+  the sensor1_write() API.
+
+  Copyright (c) 2016 Qualcomm Technologies, Inc.
+  All Rights Reserved.
+  Confidential and Proprietary - Qualcomm Technologies, Inc.
+
+*****************************************************************************/
+include "sns_sam_common_v01.idl";
+
+revision 0;
+
+const SNS_SAM_DEV_ORI_SUID = 0x9beea197625543ea;
+
+//! @ENUM SNS_SAM_DEV_ORI_STATE_ENUM_V01
+//Following orientations are defined in SAE coordinate system.
+enum
+{
+  SNS_SAM_DEV_ORI_UNKNOWN      = -1,     // Device orientation unknown
+  SNS_SAM_DEV_ORI_X_UP         = 0,      // X axis is vertical and points up
+  SNS_SAM_DEV_ORI_Y_UP         = 1,      // Y axis in vertical and points up
+  SNS_SAM_DEV_ORI_X_DOWN       = 2,      // X axis is vertical and points down
+  SNS_SAM_DEV_ORI_Y_DOWN       = 3       // Y axis in vertical and points down
+} sns_sam_dev_ori_state_e;
+
+//============================================================================
+/** @COMMAND SNS_SAM_DEV_ORI_CANCEL
+    @BRIEF Cancels all requests to the algorithm service from this client.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//============================================================================
+/** @COMMAND SNS_SAM_DEV_ORI_VERSION
+    @BRIEF This command requests algorithm service version.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//============================================================================
+/** @COMMAND SNS_SAM_DEV_ORI_ENABLE
+    @BRIEF This command enables the device orientation service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @COMMAND_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_DEV_ORI_ENABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  //! Notify Suspend
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional sns_suspend_notification_s notify_suspend;
+  /**< Identifies whether indications for this request are to be sent
+       when the processor is in the Suspend state.
+
+       If this field is not specified, the default value is set to:
+       notify_suspend->proc_type                  = SNS_PROC_APPS
+       notify_suspend->send_indications_during_suspend  = FALSE
+
+       This field does not have any bearing on error indication
+       messages, which are sent even during Suspend.
+    */
+} sns_sam_dev_ori_enable_req_msg;
+
+//! @MSG     SNS_SAM_DEV_ORI_ENABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  //! Result Code
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_common_resp_s resp = 2;
+
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint8 instance_id;
+  /**<
+    Algorithm instance ID, which is maintained/assigned by the SAM.
+       The client must use this instance ID for future messages associated with
+       the current algorithm instance.
+    */
+} sns_sam_dev_ori_enable_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_DEV_ORI_DISABLE
+    @BRIEF This command disables the device orientation service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @COMMAND_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_DEV_ORI_DISABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< Identifies the algorithm instance to be disabled.  */
+} sns_sam_dev_ori_disable_req_msg;
+
+//! @MSG     SNS_SAM_DEV_ORI_DISABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  //! Result Code
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_common_resp_s resp = 2;
+
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint8 instance_id;
+  /**< Identifies the algorithm instance.  */
+} sns_sam_dev_ori_disable_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_DEV_ORI_GET_REPORT
+    @BRIEF This command fetches latest report output of device orientation service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @COMMAND_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_DEV_ORI_GET_REPORT_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< Identifies the algorithm instance.  */
+} sns_sam_dev_ori_get_report_req_msg;
+
+//! @MSG     SNS_SAM_DEV_ORI_GET_REPORT_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  //! Result Code
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_common_resp_s resp = 2;
+
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint8 instance_id;
+  /**< Identifies the algorithm instance.  */
+
+  //! Event Timestamp
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint32 timestamp;
+  /**< Timestamp of input with which latest device orientation report was computed
+  in SSC ticks  */
+
+  //! Orientation state report
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional sns_sam_dev_ori_state_e dev_ori_state;
+  /**< device orientation algorithm report  */
+} sns_sam_dev_ori_get_report_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_DEV_ORI_REPORT
+    @BRIEF Report from the device orientation service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @COMMAND_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_DEV_ORI_REPORT_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  //! Event Timestamp
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint32 timestamp;
+  /**< Timestamp of input with which latest device orientation report was computed
+  in SSC ticks  */
+
+  //! Orientation value
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_sam_dev_ori_state_e dev_ori_state;
+  /**< device orientation algorithm report  */
+} sns_sam_dev_ori_report_ind_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_DEV_ORI_ERROR
+    @BRIEF Asynchronous error report from the device orientation service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_DEV_ORI_ERROR_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//============================================================================
+
+message {
+  //! Error
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 error;
+  /**< Sensors error code */
+
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< Identifies the algorithm instance.  */
+
+  //! Timestamp
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint32 timestamp;
+  /**< Timestamp of when the error was detected, in SSC ticks */
+} sns_sam_dev_ori_error_ind_msg;
+
+
+//============================================================================
+// Service definition
+//============================================================================
+service SNS_SAM_DEV_ORI_SVC {
+  //! @ID SNS_SAM_DEV_ORI_CANCEL
+  sns_common_cancel_req_msg            SNS_SAM_DEV_ORI_CANCEL_REQ,
+  sns_common_cancel_resp_msg           SNS_SAM_DEV_ORI_CANCEL_RESP
+    = 0x00;
+
+  //! @ID SNS_SAM_DEV_ORI_VERSION
+  sns_common_version_req_msg           SNS_SAM_DEV_ORI_VERSION_REQ,
+  sns_common_version_resp_msg          SNS_SAM_DEV_ORI_VERSION_RESP
+    = 0x01;
+
+  //! @ID SNS_SAM_DEV_ORI_ENABLE
+  sns_sam_dev_ori_enable_req_msg       SNS_SAM_DEV_ORI_ENABLE_REQ,
+  sns_sam_dev_ori_enable_resp_msg      SNS_SAM_DEV_ORI_ENABLE_RESP
+    = 0x02;
+
+  //! @ID SNS_SAM_DEV_ORI_DISABLE
+  sns_sam_dev_ori_disable_req_msg      SNS_SAM_DEV_ORI_DISABLE_REQ,
+  sns_sam_dev_ori_disable_resp_msg     SNS_SAM_DEV_ORI_DISABLE_RESP
+    = 0x03;
+
+  //! @ID SNS_SAM_DEV_ORI_GET_REPORT
+  sns_sam_dev_ori_get_report_req_msg   SNS_SAM_DEV_ORI_GET_REPORT_REQ,
+  sns_sam_dev_ori_get_report_resp_msg  SNS_SAM_DEV_ORI_GET_REPORT_RESP
+    = 0x04;
+
+  //! @ID SNS_SAM_DEV_ORI_REPORT
+  sns_sam_dev_ori_report_ind_msg       SNS_SAM_DEV_ORI_REPORT_IND
+    = 0x05;
+
+  //! @ID SNS_SAM_DEV_ORI_ERROR
+  sns_sam_dev_ori_error_ind_msg        SNS_SAM_DEV_ORI_ERROR_IND
+    = 0x06;
+
+  //! @ID SNS_SAM_GET_ALGO_ATTRIBUTES
+  sns_sam_get_algo_attrib_req_msg      SNS_SAM_DEV_ORI_GET_ATTRIBUTES_REQ,
+  sns_sam_get_algo_attrib_resp_msg     SNS_SAM_DEV_ORI_GET_ATTRIBUTES_RESP
+    = 0x24;
+
+} = SNS_QMI_SVC_ID_62;
+
+//============================================================================
+// File footer
+//============================================================================
+/**
+@FOOTER
+*/
+
+//============================================================================
+// End of Module
+//============================================================================

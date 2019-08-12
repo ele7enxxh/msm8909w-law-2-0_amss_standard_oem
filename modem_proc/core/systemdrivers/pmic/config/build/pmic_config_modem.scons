@@ -1,0 +1,240 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2013 Qualcomm Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //source/qcom/qct/modem/rfa2/pmic2/config/msm8974_pm8941_badger/modemproc/v2_0/main/latest/build/pmic_config_modem.scons#2 $
+# $DateTime: 2012/06/26 11:06:57 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/12/14   mr      Resolved issue of .scons file for MSM8909. (CR-769500)
+# 12/05/14   mr      Added Dual PMIC support for MSM8909. (CR-764010)
+# 01/23/13   vk      Enable device configuration.
+# 06/25/12   hs      Moved to core\systemdrivers.
+# 06/20/12   hs      Created
+#===============================================================================
+
+Import('env')
+
+LIB_NAME        = 'pmic_config_modem'
+IMAGE_SOURCES   = ['MODEM_MODEM','CORE_MODEM','CORE_QDSP6_SW','SBL3_BOOT_IMAGE', 'RPM_IMAGE', 'PMIC_BOOT_DRIVER', 'MODEM_APPS']
+
+LIB_SRC         = 'src'
+LIB_PROTECTED   = 'protected'
+
+
+from glob import glob
+
+env = env.Clone()
+
+# Method to abort processing of this file, if not required for current air interface mode, etc
+#if ( (USES_TEST_FLAG1 in env and USES_TEST_FLAG2 not in env) or USES_TEST_FLAG3 not in env)):
+#   Return( )
+
+#-------------------------------------------------------------------------------
+# Source PATH:
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+#BUILDPATH =  image_name / processor_name, eg modem_libs / arm11 = directory where built objects stored
+env.VariantDir('${BUILDPATH}', SRCPATH , duplicate=0)
+
+
+env.RequireProtectedApi([
+    'PMIC_APPLICATION',
+    'PMIC_COMM',
+    'PMIC_CONFIG',
+    'PMIC_DRIVERS',
+    'PMIC_FRAMEWORK',
+    'PMIC_NPA',
+    'PMIC_DEVICES',
+    'PMIC_UTILS',
+    ])
+
+env.RequirePublicApi([
+    'DAL',
+    'BUSES',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    ],
+    area='CORE')
+
+
+env.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+
+# Add Device Configuration files
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(['DAL_DEVCFG_IMG'],{
+                   '8974_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8x41/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8x41/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8x41/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8x41/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pma8084/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pma8084/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pma8084/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pma8084/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],
+                    '9625_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],
+                    '8926_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],
+                    '8962_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],
+                    '8916_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],
+                    '8936_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],
+                    '8084_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/msm8974/pma8084/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/msm8974/pma8084/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/msm8974/pma8084/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/msm8974/pma8084/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],
+                    '8909_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8909/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8909/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8909/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8909/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8916/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8916/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8916/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm8916/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],
+                    '8937_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],
+                    '8917_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/msm8917/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/msm8917/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/msm8917/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/msm8917/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],
+					'9607_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],			  
+                    '8952_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml'],
+					'8976_xml' : ['${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.xml',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_target.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_node_rsrcs.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/${CHIPSET}/pm_config_modem_npa_pam.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.c',
+                                  '${BUILD_ROOT}/core/systemdrivers/pmic/config/common/pm_config_common.xml']
+
+
+   })
+
+#================================================================
+
+#this statement must appear outside of 'USES_NO_STRIP_NO_ODM' test so that AddBinaryLibrary can be launched
+LIB_SOURCES = []  #empy list
+
+SOURCE_FILES = [ ]
+
+PACK_FILES = [ ]
+
+if env['CHIPSET'] in ['msm8909']:
+   #find all .c, .cpp, .s files
+   SOURCE_FILES.extend(glob(SRCPATH + '/'+ env['CHIPSET'] +'/pm8909/*.c'))
+   SOURCE_FILES.extend(glob(SRCPATH + '/'+ env['CHIPSET'] +'/pm8909/*.cpp'))
+   SOURCE_FILES.extend(glob(SRCPATH + '/'+ env['CHIPSET'] +'/pm8909/*.s'))
+   SOURCE_FILES.extend(glob(SRCPATH + '/'+ env['CHIPSET'] +'/pm8916/*.c'))
+   SOURCE_FILES.extend(glob(SRCPATH + '/'+ env['CHIPSET'] +'/pm8916/*.cpp'))
+   SOURCE_FILES.extend(glob(SRCPATH + '/'+ env['CHIPSET'] +'/pm8916/*.s'))
+elif env['CHIPSET'] in ['msm8917']:
+   #find all .c, .cpp, .s files
+   SOURCE_FILES.extend(glob(SRCPATH + '/msm8937/*.c'))
+   SOURCE_FILES.extend(glob(SRCPATH + '/msm8937/*.cpp'))
+   SOURCE_FILES.extend(glob(SRCPATH + '/msm8937/*.s'))
+else:
+   #find all .c, .cpp, .s files
+   SOURCE_FILES.extend(glob(SRCPATH + '/'+ env['CHIPSET'] +'/*.c'))
+   SOURCE_FILES.extend(glob(SRCPATH + '/'+ env['CHIPSET'] +'/*.cpp'))
+   SOURCE_FILES.extend(glob(SRCPATH + '/'+ env['CHIPSET'] +'/*.s'))
+
+
+for filename in SOURCE_FILES:
+    LIB_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+if env['CHIPSET'] in ['msm8974']:
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'mdm9x25')))
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'msm8926')))
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'msm8962')))
+elif env['CHIPSET'] in ['mdm9x25']:
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'msm8974')))
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'msm8926')))
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'msm8962')))
+elif env['CHIPSET'] in ['msm8926']:
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'msm8974')))
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'mdm9x25')))
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'msm8962')))
+elif env['CHIPSET'] in ['msm8962']:
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'msm8974')))
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'mdm9x25')))
+    PACK_FILES.extend(env.FindFiles(['*.h', '*.xml', '*.c', '*.cpp', '*.s'], (SRCPATH + '/'+ 'msm8926')))
+
+env.CleanPack(IMAGE_SOURCES, PACK_FILES)
+
+#this statement must appear outside of 'USES_NO_STRIP_NO_ODM' test so that the pre-built library will be added to the list file
+env.AddLibrary(IMAGE_SOURCES, '${BUILDPATH}/'+LIB_NAME+'_protected',[
+    LIB_SOURCES,
+    ])
+

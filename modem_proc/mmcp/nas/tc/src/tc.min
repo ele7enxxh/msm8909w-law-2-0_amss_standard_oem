@@ -1,0 +1,44 @@
+#============================================================================
+#  Name:
+#    SEC.MIN
+#
+#  Description:
+#    An includable component of the makefile to build the DMSS software,
+#    this file lists the source files for the Security Services feature.
+#
+# Copyright (c) 2001, 2002 by QUALCOMM, Incorporated.  All Rights Reserved.
+#============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/nas/tc/src/tc.min#1 $
+#
+# when       who     what, where, why
+# -------    ---     --------------------------------------------------------
+#07/11/06   rk       created file to incorporate changed file name.
+#============================================================================
+
+#-------------------------------------------------------------------------------
+# 
+#-------------------------------------------------------------------------------
+
+TC_SOURCES=\
+	tc_loopback.c \
+	tccm.c \
+	tcgmm.c \
+	tcrabm.c \
+	tcrrc.c \
+	tctask.c
+
+vpath %.c $(TC) 
+
+ifeq ($(BIG),yes)
+	TC_OBJS  := $(TARGETDIR)/tc.lib
+else
+	TC_OBJS :=  $(addprefix $(TARGETDIR)/, $(TC_SOURCES:%.c=%.o))
+endif
+
+
+$(TARGETDIR)/tc.lib : $(TC_SOURCES)
+	$(group_c_compile)
+

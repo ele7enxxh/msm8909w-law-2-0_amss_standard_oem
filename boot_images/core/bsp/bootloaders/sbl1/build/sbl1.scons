@@ -1,0 +1,51 @@
+#===============================================================================
+#
+# SBL Image Sconscript
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/bsp/bootloaders/sbl1/build/sbl1.scons#2 $
+#  $DateTime: 2015/09/13 23:33:33 $
+#  $Author: pwbldsvc $
+#  $Change: 9017835 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/30/14   sve     Initial Version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+parameters = {
+  # Alias - first alias is always the target then the other possibles aliases
+  'aliases'         : ['sbl1','boot','cbsp','cbsp_modem'],
+  'image_build_tags': ['HSUSB_BOOT_DRIVER'],
+  'SCL_PATH'        : '${COREBSP_ROOT}/boot/secboot3/hw/msm8909/sbl1/sbl1.scl',
+  'ENV_VARS'        : {
+    'SBL1_ROOT': "${COREBSP_ROOT}/boot/secboot3/hw/msm8909/sbl1",
+    'INSTALL_NAME': 'sbl1',
+  },
+  'CPPDEFINES'      : []
+}
+
+env.Append(CPPDEFINES = ['DEVICEPROGRAMMER_BUFFERS_BASE=0x80000000',
+                         'SBL1_DEVICEPROGRAMMER_USB_ZI_BASE=+0x0',
+                         'SBL1_DATA_ZI_BASE=+0x0',
+						 'BOOT_MMU_TABLE_H=\\"boot_mmu_table.h\\"'])  
+  
+# set default script name
+script_fname = "${CHIPSET}.scons"
+
+env.SConscript(script_fname, exports='env parameters')
+

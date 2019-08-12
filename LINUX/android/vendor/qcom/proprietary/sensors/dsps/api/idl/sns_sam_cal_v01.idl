@@ -1,0 +1,172 @@
+/*****************************************************************************
+  @FILE     sns_sam_cal.idl
+
+  @BRIEF    Message definition for Calibration algorithms.
+
+  @DESCRIPTION
+  This file defines messages provided to clients to use
+  calibration algorithm services.
+
+  @COPYRIGHT
+  Copyright (c) 2016 Qualcomm Technologies, Inc.
+  All Rights Reserved.
+  Confidential and Proprietary - Qualcomm Technologies, Inc.
+
+*****************************************************************************/
+include "sns_sam_common_v01.idl";
+
+revision 0;
+
+//! @ENUM   SNS_SAM_CAL_ACCURACY_ENUM
+enum {
+   CAL_ACCURACY_UNRELIABLE = 0,
+   CAL_ACCURACY_LOW = 1,
+   CAL_ACCURACY_MEDIUM = 2,
+   CAL_ACCURACY_HIGH = 3
+} sns_sam_calibration_accuracy_e;
+
+//! @ENUM   SNS_SAM_CAL_UPDATE_TYPE_ENUM
+enum {
+   CAL_UPDATE_RESET = 0
+} sns_sam_cal_update_type_e;
+
+//============================================================================
+/** @COMMAND SNS_SAM_CAL_ENABLE
+    @BRIEF This command enables a Calibration algorithm.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_CAL_ENABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  /**< Blank enable request*/
+} sns_sam_cal_enable_req_msg;
+
+//! @MSG     SNS_SAM_CAL_ENABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s                resp = 2;
+  optional uint8                             instance_id;
+ /**< Instance ID identifies the algorithm instance.  */
+} sns_sam_cal_enable_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_CAL_DISABLE
+    @BRIEF This command disables a Calibration algorithm.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_CAL_DISABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8                            instance_id;
+  /**< Instance ID identifies the algorithm instance.  */
+} sns_sam_cal_disable_req_msg;
+
+//! @MSG     SNS_SAM_CAL_DISABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s                resp = 2;
+  optional uint8                             instance_id;
+  /**< Instance ID identifies the algorithm instance. */
+} sns_sam_cal_disable_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_CAL_REPORT
+    @BRIEF Report containing Calibration algorithm output
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_CAL_REPORT_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8                            instance_id;
+  /**< Instance ID identifies the algorithm instance. */
+  mandatory uint32                           timestamp;
+  /**< Timestamp of input used to generate the latest algorithm output */
+  mandatory float                            bias[3];
+  /**< if Magnetometer Calibration: Bias offset in Gauss.
+       if Gyroscope Calibration: Bias in radians. */
+  mandatory sns_sam_calibration_accuracy_e           accuracy;
+} sns_sam_cal_report_ind_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_CAL_ERROR
+    @BRIEF Asynchronous error indication for a calibration algorithm.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_CAL_ERROR_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//============================================================================
+
+message {
+  mandatory uint8                            error;
+  /**< Sensor1 error code */
+  mandatory uint8                            instance_id;
+  /**< Instance ID identifies the algorithm instance. */
+} sns_sam_cal_error_ind_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_CAL_UPDATE
+    @BRIEF This command updates the Calibration algorithm configuration.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_CAL_UPDATE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8                            instance_id;
+  /**< Instance ID identifies the algorithm instance. */
+  mandatory sns_sam_cal_update_type_e   update_type;
+  /**< Update type, 0=reset */
+} sns_sam_cal_update_req_msg;
+
+//! @MSG     SNS_SAM_CAL_UPDATE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s                resp = 2;
+  optional uint8                             instance_id;
+ /**< Instance ID identifies the algorithm instance.  */
+} sns_sam_cal_update_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_CAL_CANCEL
+    @BRIEF Cancels all requests to the algorithm service from this client.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//============================================================================
+/** @COMMAND SNS_SAM_CAL_VERSION
+    @BRIEF This command requests algorithm service version.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+

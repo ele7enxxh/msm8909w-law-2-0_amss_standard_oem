@@ -1,0 +1,93 @@
+###################################
+# Instructions to run the example #
+###################################
+
+* The following environment variables are required. The can be passed through
+  make command as well.
+
+  - Q6_RTOS_SOURCE  --- QURT source directory
+
+  - Q6_TOOLS_ROOT   --- Tools installation location
+
+  - Q6VERSION       --- v2, v3 or v4
+
+* Instructions to build and run the example
+
+  - Set the environment variables
+
+  - For Windows set the PATH to <Q6 tools root>/qc/lib/iss and
+    <Q6 tools root>/qc/lib/iss/<Q6 version v2, v3 or v4>.
+    qdsp6-sim need the .dll s at these locations.
+
+  - make
+
+#################
+# Configuration #
+#################
+refer to config/build_config.def. Following configurations are defined:
+
+CONFIG_STATIC=y
+CONFIG_SECTIONS=y
+CONFIG_RELOC_IMAGE=n
+
+###############
+# Description #
+###############
+Linker script file a.linker shows how to place sepcial kernel
+sections into TCM. 
+
+The following three symbols are needed to tell kernel where to copy the TCM
+section and size of it.
+           __tcm_qurt_pa_load_start__
+           __tcm_qurt_pa_load_end__
+           __tcm_qurt_pa_run_start__
+
+These three symbols are declared as weak so that if they can be ignored if
+this feature is not used.
+
+__tcm_va_start has to be set to the virtual address of corresponding to
+__tcm_qurt_pa_run_start__
+
+Same rule for ITCM. For v4, use a.linker.v4 as linker script.
+
+As in linker script a.linker, TCM sections are put into virtual address
+0xd8000000 and ITCM section are put into virtual address 0xe8000000. 
+They are both one-to-one mapping. The following memsection entries
+set up the mapping.
+
+      <memsection   resident="1"
+                    kernel = "0"
+                    direct="true" 
+                    attach="RWX" 
+                    virt_addr="0xd8000000" 
+                    size="0x00010000"
+    	            cache_policy="l1_wb_l2_uncacheable" />    
+
+      <memsection   resident="1"
+                    kernel = "0"
+                    direct="true" 
+                    attach="RWX" 
+                    virt_addr="0xe8000000" 
+                    size="0x00010000"
+    	            cache_policy="l1_wb_l2_uncacheable" />
+
+Special NOTES:
+
+ o The example uses one-to-one mapping for TCM, meaning physical
+   is same as virtual (logical) address. This can be changed, but care
+   must be taken to avoid conflicts because current qmemory_region_create
+   API will always try to allocate one-to-one mapping.
+         
+ o The 8MB kernel code virtual range limit is removed
+
+* Instructions to run and step through the example using T32
+
+  - Add the following to the PATH environment variable
+    - <Tools path>\qc\bin
+    - <Tools path>\iss\bin
+    - <Tools path>\iss\bin\<Q6 version> (Not Required for V4 targets.)
+
+  - cd to <build dir>
+  - t32mqdsp6.exe -c t32sim.cfg (Make sure you have the <X:\T32> added to PATH)
+  - Ignore license warning if any
+  - On the T32 window, "do t32sim.cmm"

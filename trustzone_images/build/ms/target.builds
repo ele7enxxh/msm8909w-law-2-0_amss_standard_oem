@@ -1,0 +1,3540 @@
+#==============================================================================
+# MSM7600 Build Configuration Definition File.
+#
+# Copyright (c) 2009 QUALCOMM Inc.  All Rights Reserved
+#==============================================================================
+#==============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: $
+# $DateTime: 2006/05/11 15:46:12 $
+# $Author:  $
+#
+# when       who    what, where, why
+# -------    ---    -------------------------------------------
+# 08/11/12   rk     Adding flags for playready 2.0
+# 09/28/11   plc    Adding build info for 8064
+# 09/21/11   sy     Adding temp build id for 8064. Remove Nand definition in flashless
+# 09/15/11   aus    Moved SBL1 address change inside boot files
+# 09/13/11   sy     Adding 8064 compilation
+# 09/12/11   sy     Update Apps memory map
+# 09/02/11   aus    Updated the SBL1 address to be 252KB
+# 08/30/11   aus    Updated address for SBL1 to support Dload mode PBL
+#                   and enable cache for Sahara
+# 08/30/11   aus    Updated addresses for APPSBOOT and DLOAD
+# 08/13/11   sy     Remove RUMI flags for bringup
+# 08/12/11   sy     Clean up
+# 08/05/11   sy     Enable dache in Nand only
+# 07/18/11   sy     Enable flashless boot
+# 07/14/11   sy     Turn on dcache, adding flashless build id
+# 07/08/11   sy     Changing memory region and default boot setting for 9x15
+# 06/30/11   sy     Removing hsusb_8660 and add qhsusb into compilation
+# 06/30/11   sy     Adding 9x15 build id
+# 10/21/10   sy     Add secboot, qfprom, ddr framework
+# 10/12/10   sy     Add in define for bootlogger, cachemmu , deadbattery and V2
+# 03/30/10   plc    Added in LPDDR2 feature define (For TomW)
+# 02/20/09   adb    Audio for MM
+# 02/20/09   adb    Changed PMEM allocation / more DATA/RDM features for SMD
+# 02/19/09   adb    Add RUIM support / add DATA feature to open SMD
+# 01/18/07   rr      Brew 4.0.1 compatibility
+# 11/17/06   gfr    Updates for JTAG download build.
+# 09/01/06   kvk    Adedd Data on APPS and WPLT support
+# 08/23/06   kvk    Added Timetest support
+# 04/18/06   hg     Initial version.  Ported from msm7200.builds
+#==============================================================================
+#
+# Global Definitions.
+#
+#------------------------------------------------------------------------------
+
+asic M7600
+
+#------------------------------------------------------------------------------
+
+TAG_MAP {
+H0:     MSM Identifier
+H1:     Platform Identifier
+H2:     RAM Config
+H3:     Flash Config
+H4:     RF Config
+S1:     Air Interface
+S2,3:   Application Features
+S4:     Image Type }
+
+
+#------------------------------------------------------------------------------
+# General Aliases.
+#------------------------------------------------------------------------------
+define 4KB        0x0001000
+define 8KB        0x0002000
+define 12KB       0x0003000
+define 16KB       0x0004000
+define 20KB       0x0005000
+define 24KB       0x0006000
+define 30KB       0x0007800
+define 64KB       0x0010000
+define 128KB      0x0020000
+define 143KB      0x0023C00
+define 144KB      0x0024000
+define 176KB      0x002C000
+define 192KB      0x0030000
+define 200KB      0x0032000
+define 216KB      0x0036000
+define 232KB      0x003A000
+define 252KB      0x003F000
+define 256KB      0x0040000
+define 272KB      0x0044000
+define 320KB      0x0050000
+define 384KB      0x0060000
+define 448KB      0x0070000
+define 512KB      0x0080000
+define 768KB      0x00C0000
+define 1408KB     0x0160000
+define 1536KB     0x0180000
+define 0MB        0x0000000
+define 1MB        0x0100000
+define 2MB        0x0200000
+define 3MB        0x0300000
+define 4MB        0x0400000
+define 6MB        0x0600000
+define 7MB        0x0700000
+define 8MB        0x0800000
+define 9MB        0x0900000
+define 10MB       0x0A00000
+define 11MB       0x0B00000
+define 12MB       0x0C00000
+define 13MB       0x0D00000
+define 14MB       0x0E00000
+define 15MB       0x0F00000
+define 16MB       0x1000000
+define 17MB       0x1100000
+define 18MB       0x1200000
+define 19MB       0x1300000
+define 20MB       0x1400000
+define 21MB       0x1500000
+define 22MB       0x1600000
+define 23MB       0x1700000
+define 24MB       0x1800000
+define 25MB       0x1900000
+define 26MB       0x1A00000
+define 27MB       0x1B00000
+define 28MB       0x1C00000
+define 29MB       0x1D00000
+define 30MB       0x1E00000
+define 31MB       0x1F00000
+define 32MB       0x2000000
+define 33MB       0x2100000
+define 34MB       0x2200000
+define 35MB       0x2300000
+define 36MB       0x2400000
+define 39MB       0x2700000
+define 38MB       0x2600000
+define 40MB       0x2800000
+define 41MB       0x2900000
+define 44MB       0x2C00000
+define 45MB       0x2D00000
+define 46MB       0x2E00000
+define 47MB       0x2F00000
+define 48MB       0x3000000
+define 49MB       0x3100000
+define 50MB       0x3200000
+define 52MB       0x3400000
+define 53MB       0x3500000
+define 54MB       0x3600000
+define 55MB       0x3700000
+define 56MB       0x3800000
+define 64MB       0x4000000
+define 65MB       0x4100000
+define 66MB       0x4200000
+define 67MB       0x4300000
+define 68MB       0x4400000
+define 72MB       0x4800000
+define 73MB       0x4900000
+define 76MB       0x4C00000
+define 78MB       0x4E00000
+define 79MB       0x4F00000
+define 80MB       0x5000000
+define 82MB       0x5200000
+define 83MB       0x5300000
+define 84MB       0x5400000
+define 86MB       0x5600000
+define 88MB       0x5800000
+define 89MB       0x5900000
+define 96MB       0x6000000
+define 99MB       0x6300000
+define 108MB      0x6C00000
+define 110MB      0x6E00000
+define 112MB      0x7000000
+define 114MB      0x7200000
+define 116MB      0x7400000
+#define 120MB      0x7800000
+define 123MB      0x7B00000
+define 125MB      0x7D00000
+define 126MB      0x7E00000
+define 128MB      0x8000000
+define 131MB      0x8300000
+define 134MB      0x8600000
+define 139MB      0x8B00000
+define 256MB      0x10000000
+define 135MB      0x8700000
+define 136MB      0x8800000
+
+define ZIF        RF_ZIF_6100
+define ZRF6500    RF_ZIF_6500
+define GZRF6500   RF_GZIF_6500
+define CZRF6500   RF_CZIF_6500
+define JIZRF6500  RF_JIZIF_6500
+define ZRF7500    RF_ZIF_7500
+define GZRF7500   RF_GZIF_7500
+
+#==============================================================================
+#
+# Hardware Components
+#
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# Common MSM configurations
+#------------------------------------------------------------------------------
+[HardComponent: MSMCommon]
+define FEATURE_PBM_USE_EFS_PB
+define FEATURE_PA_ACCESS_PROBE_CONFIG
+define FEATURE_8K_STUFF_TO_BE_PURGED
+define FEATURE_MSMHWIO
+define IRAM_SIZE                    0x2000
+define FEATURE_OSBL_LOAD_AND_BOOT_ADSP
+define ADSP_FW_ISOLATION_ENABLED
+define FEATURE_EBI0
+define FEATURE_DEDICATED_AXI_IMEM
+
+# ram_part_mem_info_structure location
+define SCL_RAM_PART_MEM_INFO_ADDR 0
+define FEATURE_ERR_HAS_F3_TRACE
+diag_smd_support makeonly
+
+define ADIE_I_H         "adie_sbi.h"
+define CLKRGM_H         "clkregim.h"
+define CLKRGMI_H        "clkregim.h"
+define CLKRGM_MSM_H     "clkregim.h"
+define CPLD_MSM_H       "cpld_t3.h"
+define DMOV_MSM_H       "dmov_7500.h"
+define GPIO_H           "comdef.h"
+define HS_H             "hs_mb7500.h"
+define TSIF_DRV_MSM_H   "tsif_drvi_7500.h"
+define PMEM_MSM_H       "pmem_7500.h"
+define SBI_LIB_H        "sbi_lib_api.h"
+define SBI_MSM_H        "sbi.h"
+define TLMM_MSM_H       "tlmm.h"
+define FEATURE_SATURN
+define USES_NVRUIM_NOT_FROM_NV
+hw7500                  makeonly
+hal                     makeonly
+
+define FEATURE_TOOLSDIAG_INIT  if MODEM_PROC
+pmic_on_apps makeonly  #temporary place holder to verify PMIC on Apps side
+
+define FEATURE_PWRDB
+define FEATURE_DLOAD_HW_RESET_DETECT
+define FEATURE_DLOAD_MEM_DEBUG
+define FEATURE_MODEM_HEAP
+
+#------------------------------------------------------------------------------
+# Common target configurations
+#------------------------------------------------------------------------------
+[HardComponent: TargetCommon]
+define FEATURE_NPA
+define LEDS                         HWIO_ADDR(HAPPY_LED)
+define FEATURE_KEYPAD_MULTI_KEY
+define FEATURE_SLEEP_CLK_STABILITY
+define FEATURE_PMIC
+define FEATURE_PMIC_TCXO_CONTROL
+undef FEATURE_PMIC_MANAGED_LDO
+define FEATURE_PMIC_NO_RTC_ALARM        if APPS_PROC
+define FEATURE_PMIC_LCDKBD_LED_DRIVER
+define FEATURE_PMIC_LOW_POWER_MODE
+define FEATURE_IBATT
+define SBI_HAS_GPIO_BUS
+define FEATURE_TCXOMGR
+define FEATURE_SD_SUPPORTS_BASE_INFO
+define FEATURE_KEYPAD_OWNS_KEYPRESS_ISR
+define DISP_DEVICE_16BPP
+define FEATURE_TGL14_TIMING
+undef FEATURE_BATTERY_CHARGER
+define FEATURE_CHG_TASK
+define FEATURE_CBSP_TEST
+define FEATURE_NV_ITEM_MGR
+
+# Fast Dead Battery Charging Enable
+hsu_chg_boot makeonly
+define FEATURE_OSBL_USB_BATT_CHG
+define BOOT_WEAK_BATTERY_THRESHOLD 3400
+define BOOT_I_DEVICE_POWER_CONSUMPTION 60
+
+define ERR_DECOUPLE_ENC
+define FEATURE_I2C_CHIP_ENABLE
+define FEATURE_PMIC_HAS_SSBI
+define FEATURE_RDEVMAP_DS_DEFAULT_TO_USB
+define FEATURE_RDEVMAP_DIAG_DEFAULT_TO_USB
+phlp_xcvr makeonly
+define ADC_CHANNELS_H "adc_channels_surf7500.h"
+
+
+
+#------------------------------------------------------------------------------
+# 7630 Memory map for L4 with 256 MB DDR
+#------------------------------------------------------------------------------
+[HardComponent: EBI0_LPDDR1Only_MemMapDDR256 ]
+
+define FEATURE_QFUSE_PROGRAMMING
+
+# IMEM Base address & Size
+define SCL_IMEM_BASE 0xFE800000
+define SCL_IMEM_SIZE 0x40000
+
+# RPM code Base
+define SCL_RPM_CODE_RAM_BASE 0x00020000
+define SCL_RPM_CODE_RAM_SIZE 144KB
+
+# SCL IRAM BASE
+define SCL_IRAM_BASE SCL_RPM_CODE_RAM_BASE
+define SCL_IRAM_SIZE SCL_RPM_CODE_RAM_SIZE
+
+# APP boot code with interrupt vectors at 0x40100000
+define SCL_APPS_BOOT_BASE 0x88F00000
+define SCL_APPS_BOOT_SIZE 1MB
+
+# Apps code or #linux code
+#define SCL_APPS_CODE_BASE 0x80200000
+#define SCL_APPS_TOTAL_SIZE 45MB
+
+define SCL_SBL1_CODE_BASE 0xFE800000
+define SCL_SBL1_TOTAL_SIZE 128KB
+
+define SCL_SBL2_CODE_BASE 0x2E000000
+define SCL_SBL2_TOTAL_SIZE 192KB
+
+define SCL_SBL3_CODE_BASE 0x8FF00000
+define SCL_SBL3_TOTAL_SIZE 1MB
+
+define SCL_RPM_CODE_BASE 0x00020000
+define SCL_RPM_TOTAL_SIZE 144KB
+
+define SCL_SDI_CODE_BASE 0xFE800000
+define SCL_SDI_TOTAL_SIZE 12KB
+
+define SCL_TZ_CODE_BASE 0xFE806000
+define SCL_TZ_TOTAL_SIZE 232KB
+
+# Base/size of non-relocatable TZ region in DDR
+define SCL_TZ_DDR_BASE  0x0FC00000
+define SCL_TZ_DDR_SIZE  1408KB
+
+# Location to load and execute TZBSP Test
+define SCL_TZBSP_TEST_BASE 0x8000
+
+#TZ adds DCVS support which requires external
+#configurability. The DCVS definitions are:
+define GPU_DCVS_NUMGAPS           5
+define GPU_DCVS_MINGAPCOUNT       25
+define GPU_DCVS_NUMBUSY           5
+define GPU_DCVS_PENALTY           90
+define GPU_DCVS_DOWN_PENALTY      90
+define GPU_DCVS_NUMPWRLEVELS      10
+
+
+#SHARED IMEM BASE is 0xFE80 5000
+define SHARED_IMEM_BASE 0xFE805000
+define SHARED_IMEM_SIZE 4KB
+
+#This allows RPM to discover where TZ keeps its
+#diagnostics page including VMID configuration.
+define SHARED_IMEM_TZ_OFFSET  0x720
+define SHARED_IMEM_TZ_BASE    (SHARED_IMEM_BASE + SHARED_IMEM_TZ_OFFSET)
+
+#SHARED_IMEM_BOOT_BASE is 0xFE83 F000
+define SHARED_IMEM_BOOT_BASE SHARED_IMEM_BASE
+# Allocate 200 bytes for boot
+define SHARED_IMEM_BOOT_SIZE 0X00C8
+define DLOAD_ID_ADDR  SHARED_IMEM_BOOT_BASE
+
+define SHARED_IMEM_BOOT_MAGIC_NUM_ADDR (SHARED_IMEM_BOOT_BASE+0x8)
+define SHARED_IMEM_BOOT_ETB_ADDR (SHARED_IMEM_BOOT_BASE+0x10)
+
+#SHARED_IMEM_USB_BASE is 0xFE83 F0C8
+define SHARED_IMEM_USB_BASE (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+# Allocate 200 bytes for USB
+define SHARED_IMEM_USB_SIZE 0X00C8
+
+#SHARED_IMEM_BOOT_CDT_BASE is 0xFE83 F190
+define SHARED_IMEM_BOOT_CDT_BASE   (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+# Allocate 1024 bytes for EEPROM configuration data table information like ddr parameters etc
+define SHARED_IMEM_BOOT_CDT_SIZE  (0x400)
+
+#EFS_COOKIE_IMEM_START_ADDRESS is 0xFE83 F590
+define EFS_COOKIE_IMEM_START_ADDRESS   (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+# Allocate 200 bytes for efs cookie
+define EFS_COOKIE_IMEM_SIZE_IN_BYTES  (0x00C8)
+
+#SHARED_IMEM_HLOS_BASE is 0xFE83 F658
+define SHARED_IMEM_HLOS_BASE   (EFS_COOKIE_IMEM_START_ADDRESS + EFS_COOKIE_IMEM_SIZE_IN_BYTES)
+# Allocate 200 bytes for HLOS shared imem
+define SHARED_IMEM_HLOS_SIZE  (0x00C8)
+
+#SHARED_IMEM_UNUSED_BASE is 0xFE83 F720
+define SHARED_IMEM_UNUSED_BASE   (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+# Allocate 112 bytes for HLOS
+define SHARED_IMEM_UNUSED_SIZE  (SHARED_IMEM_SIZE - (SHARED_IMEM_HLOS_BASE - SHARED_IMEM_BASE))
+
+define TZBSP_PBL_SBL_RECLAIMED_END              0xFE805000
+
+define TZBSP_PBL_SBL_RECLAIMED_SIZE_SECBOOT_EN  20KB
+define TZBSP_PBL_SBL_RECLAIMED_SIZE_SECBOOT_DIS 8KB
+
+#-----------------------------------------------------
+
+define SCL_DLOAD_BUFFERS_BASE 0x80100000
+define SCL_DLOAD_BUFFERS_SIZE 1MB
+
+# Put shared EFS (???) /* FS_CACHE_BASE */
+define SCL_SHARED_EFS_RAM_BASE_8660 0x8F800000
+define SCL_SHARED_EFS_RAM_SIZE 3MB
+
+# NANDPRG
+define SCL_NPRG_CODE_BASE          0x82F00000
+define SCL_NPRG_TOTAL_SIZE         320KB
+
+
+# Put shared RAM memory
+define SCL_SHARED_RAM_BASE         0x0FA00000
+define SCL_SHARED_RAM_SIZE          2MB
+
+# Put modem EFS
+define SCL_MODEM_EFS_RAM_SIZE      3MB
+
+# Modem Heap1 Base
+define SCL_MODEM_HEAP1_BASE       0x46000000
+define SCL_MODEM_HEAP1_SIZE        0MB
+
+#LPASS
+define SCL_ADSP_Q5_CODE_BASE      0x8DA00000
+define SCL_ADSP_Q5_SIZE      24MB
+
+# Modem code
+define SCL_MODEM_CODE_BASE         0x89000000
+define SCL_MODEM_TOTAL_SIZE        68MB
+
+
+# Total available space in EBI1
+define SCL_EBI1_MEM_TOTAL_SIZE      0xF8000000  // 3.896 GB
+
+# defining EBI 0 - mem region
+define SCL_EBI0_MEM_BASE            0xffffffff
+#define SCL_EBI0_MEM_TOTAL_SIZE      SCL_EBI1_MEM_TOTAL_SIZE
+# Sizes of the heaps
+#define SCL_MM_HEAP2_GENERIC_SIZE           64KB
+#define SCL_CS_KHEAP_SIZE                   16MB  if APPS_PROC
+
+# Legacy definitions (is this value correct???)
+#define SCL_APPS_RAM_BASE            0x40200000
+#define SCL_APPS_RAM_SIZE            0
+#define SCL_APPS_CODE_SIZE           SCL_APPS_TOTAL_SIZE
+#define SCL_APPS_AMSS_TOTAL_SIZE     SCL_APPS_TOTAL_SIZE
+#define SCL_EBI0_SIZE                SCL_EBI0_MEM_TOTAL_SIZE
+
+# Allocations within the multimedia heaps
+#define SCL_MM_HEAP1_GRAPHICS_MAX_SIZE                   2MB
+#define SCL_MM_HEAP2_GRAPHICS_MIN_SIZE                   1MB
+#define SCL_MM_HEAP2_GRAPHICS_MAX_SIZE                   20MB
+
+#Ram Partition Table dynamic generation
+define SCL_SMI_MEM_BASE 0xffffffff
+define SCL_EBI1_MEM_BASE 0x00000000
+define SCL_BOOT_REGION_BASE SCL_SBL3_CODE_BASE
+define SCL_BOOT_REGION_SIZE SCL_SBL3_TOTAL_SIZE
+
+#Boot Logger buffer size
+define SCL_SBL1_BOOT_LOG_BUF_SIZE 1024
+define SCL_SBL2_BOOT_LOG_BUF_SIZE 1536
+define SCL_SBL3_BOOT_LOG_BUF_SIZE 1536
+define SCL_BOOT_LOG_META_INFO_SIZE 64
+
+
+#------------------------------------------------------------------------------
+# 7630 Memory map for L4 with 256 MB DDR, 384KB IMEM
+#------------------------------------------------------------------------------
+[HardComponent: EBI0_LPDDR1Only_MemMapDDR256_IMEM384 ]
+
+define FEATURE_QFUSE_PROGRAMMING
+
+# IMEM Base address & Size
+define SCL_IMEM_BASE 0xFE800000
+define SCL_IMEM_SIZE 0x60000
+
+# RPM code Base
+define SCL_RPM_CODE_RAM_BASE 0x00020000
+define SCL_RPM_CODE_RAM_SIZE 144KB
+
+# SCL IRAM BASE
+define SCL_IRAM_BASE SCL_RPM_CODE_RAM_BASE
+define SCL_IRAM_SIZE SCL_RPM_CODE_RAM_SIZE
+
+# APP boot code with interrupt vectors at 0x40100000
+define SCL_APPS_BOOT_BASE 0x88F00000
+define SCL_APPS_BOOT_SIZE 1MB
+
+# Apps code or #linux code
+#define SCL_APPS_CODE_BASE 0x80200000
+#define SCL_APPS_TOTAL_SIZE 45MB
+
+define SCL_SBL1_CODE_BASE 0xFE800000
+define SCL_SBL1_TOTAL_SIZE 128KB
+
+define SCL_SBL2_CODE_BASE 0x2E000000
+define SCL_SBL2_TOTAL_SIZE 192KB
+
+define SCL_SBL3_CODE_BASE 0x8FF00000
+define SCL_SBL3_TOTAL_SIZE 1MB
+
+define SCL_RPM_CODE_BASE 0x00020000
+define SCL_RPM_TOTAL_SIZE 144KB
+
+define SCL_SDI_CODE_BASE 0xFE800000
+define SCL_SDI_TOTAL_SIZE 12KB
+
+define SCL_TZ_CODE_BASE 0xFE806000
+define SCL_TZ_TOTAL_SIZE 232KB
+
+# Base/size of non-relocatable TZ region in DDR
+define SCL_TZ_DDR_BASE  0x0FC00000
+define SCL_TZ_DDR_SIZE  1408KB
+
+# Location to load and execute TZBSP Test
+define SCL_TZBSP_TEST_BASE 0x8000
+
+#TZ adds DCVS support which requires external
+#configurability. The DCVS definitions are:
+define GPU_DCVS_NUMGAPS           5
+define GPU_DCVS_MINGAPCOUNT       25
+define GPU_DCVS_NUMBUSY           5
+define GPU_DCVS_PENALTY           90
+define GPU_DCVS_DOWN_PENALTY      90
+define GPU_DCVS_NUMPWRLEVELS      10
+
+
+#SHARED IMEM BASE is 0xFE80 5000
+define SHARED_IMEM_BASE 0xFE805000
+define SHARED_IMEM_SIZE 4KB
+
+#This allows RPM to discover where TZ keeps its
+#diagnostics page including VMID configuration.
+define SHARED_IMEM_TZ_OFFSET  0x720
+define SHARED_IMEM_TZ_BASE    (SHARED_IMEM_BASE + SHARED_IMEM_TZ_OFFSET)
+
+#SHARED_IMEM_BOOT_BASE is 0xFE83 F000
+define SHARED_IMEM_BOOT_BASE SHARED_IMEM_BASE
+# Allocate 200 bytes for boot
+define SHARED_IMEM_BOOT_SIZE 0X00C8
+define DLOAD_ID_ADDR  SHARED_IMEM_BOOT_BASE
+
+define SHARED_IMEM_BOOT_MAGIC_NUM_ADDR (SHARED_IMEM_BOOT_BASE+0x8)
+define SHARED_IMEM_BOOT_ETB_ADDR (SHARED_IMEM_BOOT_BASE+0x10)
+
+#SHARED_IMEM_USB_BASE is 0xFE83 F0C8
+define SHARED_IMEM_USB_BASE (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+# Allocate 200 bytes for USB
+define SHARED_IMEM_USB_SIZE 0X00C8
+
+#SHARED_IMEM_BOOT_CDT_BASE is 0xFE83 F190
+define SHARED_IMEM_BOOT_CDT_BASE   (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+# Allocate 1024 bytes for EEPROM configuration data table information like ddr parameters etc
+define SHARED_IMEM_BOOT_CDT_SIZE  (0x400)
+
+#EFS_COOKIE_IMEM_START_ADDRESS is 0xFE83 F590
+define EFS_COOKIE_IMEM_START_ADDRESS   (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+# Allocate 200 bytes for efs cookie
+define EFS_COOKIE_IMEM_SIZE_IN_BYTES  (0x00C8)
+
+#SHARED_IMEM_HLOS_BASE is 0xFE83 F658
+define SHARED_IMEM_HLOS_BASE   (EFS_COOKIE_IMEM_START_ADDRESS + EFS_COOKIE_IMEM_SIZE_IN_BYTES)
+# Allocate 200 bytes for HLOS shared imem
+define SHARED_IMEM_HLOS_SIZE  (0x00C8)
+
+#SHARED_IMEM_UNUSED_BASE is 0xFE83 F720
+define SHARED_IMEM_UNUSED_BASE   (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+# Allocate 112 bytes for HLOS
+define SHARED_IMEM_UNUSED_SIZE  (SHARED_IMEM_SIZE - (SHARED_IMEM_HLOS_BASE - SHARED_IMEM_BASE))
+
+define TZBSP_PBL_SBL_RECLAIMED_END              0xFE805000
+
+define TZBSP_PBL_SBL_RECLAIMED_SIZE_SECBOOT_EN  20KB
+define TZBSP_PBL_SBL_RECLAIMED_SIZE_SECBOOT_DIS 8KB
+
+#-----------------------------------------------------
+
+define SCL_DLOAD_BUFFERS_BASE 0x80100000
+define SCL_DLOAD_BUFFERS_SIZE 1MB
+
+# Put shared EFS (???) /* FS_CACHE_BASE */
+define SCL_SHARED_EFS_RAM_BASE_8660 0x8F800000
+define SCL_SHARED_EFS_RAM_SIZE 3MB
+
+# NANDPRG
+define SCL_NPRG_CODE_BASE          0x82F00000
+define SCL_NPRG_TOTAL_SIZE         320KB
+
+
+# Put shared RAM memory
+define SCL_SHARED_RAM_BASE         0x0FA00000
+define SCL_SHARED_RAM_SIZE          2MB
+
+# Put modem EFS
+define SCL_MODEM_EFS_RAM_SIZE      3MB
+
+# Modem Heap1 Base
+define SCL_MODEM_HEAP1_BASE       0x46000000
+define SCL_MODEM_HEAP1_SIZE        0MB
+
+#LPASS
+define SCL_ADSP_Q5_CODE_BASE      0x8DA00000
+define SCL_ADSP_Q5_SIZE      24MB
+
+# Modem code
+define SCL_MODEM_CODE_BASE         0x89000000
+define SCL_MODEM_TOTAL_SIZE        68MB
+
+
+# Total available space in EBI1
+define SCL_EBI1_MEM_TOTAL_SIZE      0xF8000000  // 3.896 GB
+
+# defining EBI 0 - mem region
+define SCL_EBI0_MEM_BASE            0xffffffff
+#define SCL_EBI0_MEM_TOTAL_SIZE      SCL_EBI1_MEM_TOTAL_SIZE
+# Sizes of the heaps
+#define SCL_MM_HEAP2_GENERIC_SIZE           64KB
+#define SCL_CS_KHEAP_SIZE                   16MB  if APPS_PROC
+
+# Legacy definitions (is this value correct???)
+#define SCL_APPS_RAM_BASE            0x40200000
+#define SCL_APPS_RAM_SIZE            0
+#define SCL_APPS_CODE_SIZE           SCL_APPS_TOTAL_SIZE
+#define SCL_APPS_AMSS_TOTAL_SIZE     SCL_APPS_TOTAL_SIZE
+#define SCL_EBI0_SIZE                SCL_EBI0_MEM_TOTAL_SIZE
+
+# Allocations within the multimedia heaps
+#define SCL_MM_HEAP1_GRAPHICS_MAX_SIZE                   2MB
+#define SCL_MM_HEAP2_GRAPHICS_MIN_SIZE                   1MB
+#define SCL_MM_HEAP2_GRAPHICS_MAX_SIZE                   20MB
+
+#Ram Partition Table dynamic generation
+define SCL_SMI_MEM_BASE 0xffffffff
+define SCL_EBI1_MEM_BASE 0x00000000
+define SCL_BOOT_REGION_BASE SCL_SBL3_CODE_BASE
+define SCL_BOOT_REGION_SIZE SCL_SBL3_TOTAL_SIZE
+
+#Boot Logger buffer size
+define SCL_SBL1_BOOT_LOG_BUF_SIZE 1024
+define SCL_SBL2_BOOT_LOG_BUF_SIZE 1536
+define SCL_SBL3_BOOT_LOG_BUF_SIZE 1536
+define SCL_BOOT_LOG_META_INFO_SIZE 64
+
+
+#------------------------------------------------------------------------------
+# 9x25 Memory map for L4 with 256 MB DDR - TZ currently sits at 0x0 for RUMI
+#------------------------------------------------------------------------------
+[HardComponent: EBI0_LPDDR1Only_MemMapDDR256_9x25 ]
+
+define FEATURE_QFUSE_PROGRAMMING
+
+# IMEM Base address & Size
+define SCL_IMEM_BASE 0xFE800000
+#define SCL_IMEM_BASE 0xFC426000
+define SCL_IMEM_SIZE 0x40000
+
+# SCL IRAM BASE
+define SCL_IRAM_BASE SCL_RPM_CODE_RAM_BASE
+define SCL_IRAM_SIZE SCL_RPM_CODE_RAM_SIZE
+
+define SCL_TZ_CODE_BASE 0x0100000
+define SCL_TZ_TOTAL_SIZE 0x4B000 
+
+# Location to load and execute TZBSP Test
+define SCL_TZBSP_TEST_BASE 0x00208000
+
+define SCL_APPS_BOOT_BASE 0x88F00000
+define SCL_APPS_BOOT_SIZE 1MB
+
+define GPU_DCVS_NUMGAPS           5
+define GPU_DCVS_MINGAPCOUNT       25
+define GPU_DCVS_NUMBUSY           5
+define GPU_DCVS_PENALTY           90
+define GPU_DCVS_DOWN_PENALTY      90
+define GPU_DCVS_NUMPWRLEVELS      10
+
+#SHARED IMEM BASE is 0xFE80 5000
+define SHARED_IMEM_BASE (SCL_IMEM_BASE + 30KB)
+define SHARED_IMEM_SIZE 4KB
+
+#This allows RPM to discover where TZ keeps its
+#diagnostics page including VMID configuration.
+define SHARED_IMEM_TZ_BASE (SHARED_IMEM_BASE + 0x720)
+
+#SHARED_IMEM_BOOT_BASE is 0xFE83 F000
+define SHARED_IMEM_BOOT_BASE SHARED_IMEM_BASE
+# Allocate 200 bytes for boot
+define SHARED_IMEM_BOOT_SIZE 0X00C8
+define DLOAD_ID_ADDR  SHARED_IMEM_BOOT_BASE
+
+define SHARED_IMEM_BOOT_MAGIC_NUM_ADDR (SHARED_IMEM_BOOT_BASE+0x8)
+define SHARED_IMEM_BOOT_ETB_ADDR (SHARED_IMEM_BOOT_BASE+0x10)
+
+#SHARED_IMEM_USB_BASE is 0xFE83 F0C8
+define SHARED_IMEM_USB_BASE (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+# Allocate 200 bytes for USB
+define SHARED_IMEM_USB_SIZE 0X00C8
+
+#SHARED_IMEM_BOOT_CDT_BASE is 0xFE83 F190
+define SHARED_IMEM_BOOT_CDT_BASE   (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+# Allocate 1024 bytes for EEPROM configuration data table information like ddr parameters etc
+define SHARED_IMEM_BOOT_CDT_SIZE  (0x400)
+
+#EFS_COOKIE_IMEM_START_ADDRESS is 0xFE83 F590
+define EFS_COOKIE_IMEM_START_ADDRESS   (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+# Allocate 200 bytes for efs cookie
+define EFS_COOKIE_IMEM_SIZE_IN_BYTES  (0x00C8)
+
+#SHARED_IMEM_HLOS_BASE is 0xFE83 F658
+define SHARED_IMEM_HLOS_BASE   (EFS_COOKIE_IMEM_START_ADDRESS + EFS_COOKIE_IMEM_SIZE_IN_BYTES)
+# Allocate 200 bytes for HLOS shared imem
+define SHARED_IMEM_HLOS_SIZE  (0x00C8)
+
+#SHARED_IMEM_UNUSED_BASE is 0xFE83 F720
+define SHARED_IMEM_UNUSED_BASE   (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+# Allocate 112 bytes for HLOS
+define SHARED_IMEM_UNUSED_SIZE  (SHARED_IMEM_SIZE - (SHARED_IMEM_HLOS_BASE - SHARED_IMEM_BASE))
+
+#-----------------------------------------------------
+
+define SCL_DLOAD_BUFFERS_BASE 0x80100000
+define SCL_DLOAD_BUFFERS_SIZE 1MB
+
+# Put shared EFS (???) /* FS_CACHE_BASE */
+define SCL_SHARED_EFS_RAM_BASE_8660 0x8F800000
+define SCL_SHARED_EFS_RAM_SIZE 3MB
+
+# NANDPRG
+define SCL_NPRG_CODE_BASE          0x82F00000
+define SCL_NPRG_TOTAL_SIZE         320KB
+
+# Put shared RAM memory
+define SCL_SHARED_RAM_BASE         0x00000000
+define SCL_SHARED_RAM_SIZE          1MB
+
+# Put modem EFS
+define SCL_MODEM_EFS_RAM_SIZE      3MB
+
+# Modem Heap1 Base
+define SCL_MODEM_HEAP1_BASE       0x46000000
+define SCL_MODEM_HEAP1_SIZE        0MB
+
+#LPASS
+define SCL_ADSP_Q5_CODE_BASE      0x8DA00000
+define SCL_ADSP_Q5_SIZE      24MB
+
+# Modem code
+define SCL_MODEM_CODE_BASE         0x89000000
+define SCL_MODEM_TOTAL_SIZE        68MB
+
+
+# Total available space in EBI1
+define SCL_EBI1_MEM_TOTAL_SIZE      0xF8000000  // 3.896 GB
+
+# defining EBI 0 - mem region
+define SCL_EBI0_MEM_BASE            0xffffffff
+
+#Ram Partition Table dynamic generation
+define SCL_EBI1_MEM_BASE 0x00000000
+
+
+#Boot Logger buffer size
+define SCL_SBL1_BOOT_LOG_BUF_SIZE 1024
+define SCL_SBL2_BOOT_LOG_BUF_SIZE 1536
+define SCL_SBL3_BOOT_LOG_BUF_SIZE 1536
+define SCL_BOOT_LOG_META_INFO_SIZE 64
+
+
+#end 9x25 DDR Config
+
+
+#------------------------------------------------------------------------------
+# 9x35 Memory Map - TZ currently sits at 0x0 for RUMI
+#------------------------------------------------------------------------------
+[HardComponent: EBI0_LPDDR1Only_MemMapDDR256_9x35 ]
+
+define FEATURE_QFUSE_PROGRAMMING
+
+# IMEM Base address & Size
+define SCL_IMEM_BASE 0xFE800000
+define SCL_IMEM_SIZE 0x40000
+
+# SCL IRAM BASE
+define SCL_IRAM_BASE SCL_RPM_CODE_RAM_BASE
+define SCL_IRAM_SIZE SCL_RPM_CODE_RAM_SIZE
+
+define SCL_TZ_CODE_BASE 0x01000000
+define SCL_TZ_TOTAL_SIZE 0x00100000
+
+# Location to load and execute TZBSP Test
+define SCL_TZBSP_TEST_BASE 0x00208000
+
+define SCL_APPS_BOOT_BASE 0x00000000
+define SCL_APPS_BOOT_SIZE 1MB
+
+define GPU_DCVS_NUMGAPS           5
+define GPU_DCVS_MINGAPCOUNT       25
+define GPU_DCVS_NUMBUSY           5
+define GPU_DCVS_PENALTY           90
+define GPU_DCVS_DOWN_PENALTY      90
+define GPU_DCVS_NUMPWRLEVELS      10
+
+#SHARED IMEM BASE is 0xFE80 5000
+define SHARED_IMEM_BASE (SCL_IMEM_BASE + 30KB)
+define SHARED_IMEM_SIZE 4KB
+
+#This allows RPM to discover where TZ keeps its
+#diagnostics page including VMID configuration.
+define SHARED_IMEM_TZ_BASE (SHARED_IMEM_BASE + 0x720)
+
+#SHARED_IMEM_BOOT_BASE is 0xFE83 F000
+define SHARED_IMEM_BOOT_BASE SHARED_IMEM_BASE
+# Allocate 200 bytes for boot
+define SHARED_IMEM_BOOT_SIZE 0X00C8
+define DLOAD_ID_ADDR  SHARED_IMEM_BOOT_BASE
+
+define SHARED_IMEM_BOOT_MAGIC_NUM_ADDR (SHARED_IMEM_BOOT_BASE+0x8)
+define SHARED_IMEM_BOOT_ETB_ADDR (SHARED_IMEM_BOOT_BASE+0x10)
+
+#SHARED_IMEM_USB_BASE is 0xFE83 F0C8
+define SHARED_IMEM_USB_BASE (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+# Allocate 200 bytes for USB
+define SHARED_IMEM_USB_SIZE 0X00C8
+
+#SHARED_IMEM_BOOT_CDT_BASE is 0xFE83 F190
+define SHARED_IMEM_BOOT_CDT_BASE   (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+# Allocate 1024 bytes for EEPROM configuration data table information like ddr parameters etc
+define SHARED_IMEM_BOOT_CDT_SIZE  (0x400)
+
+#EFS_COOKIE_IMEM_START_ADDRESS is 0xFE83 F590
+define EFS_COOKIE_IMEM_START_ADDRESS   (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+# Allocate 200 bytes for efs cookie
+define EFS_COOKIE_IMEM_SIZE_IN_BYTES  (0x00C8)
+
+#SHARED_IMEM_HLOS_BASE is 0xFE83 F658
+define SHARED_IMEM_HLOS_BASE   (EFS_COOKIE_IMEM_START_ADDRESS + EFS_COOKIE_IMEM_SIZE_IN_BYTES)
+# Allocate 200 bytes for HLOS shared imem
+define SHARED_IMEM_HLOS_SIZE  (0x00C8)
+
+#SHARED_IMEM_UNUSED_BASE is 0xFE83 F720
+define SHARED_IMEM_UNUSED_BASE   (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+# Allocate 112 bytes for HLOS
+define SHARED_IMEM_UNUSED_SIZE  (SHARED_IMEM_SIZE - (SHARED_IMEM_HLOS_BASE - SHARED_IMEM_BASE))
+
+#-----------------------------------------------------
+
+
+define SCL_DLOAD_BUFFERS_BASE 0x1C000000
+define SCL_DLOAD_BUFFERS_SIZE 1MB
+
+# Put shared EFS (???) /* FS_CACHE_BASE */
+define SCL_SHARED_EFS_RAM_BASE_8660 0x8F800000
+define SCL_SHARED_EFS_RAM_SIZE 3MB
+
+# NANDPRG
+define SCL_NPRG_CODE_BASE          0x82F00000
+define SCL_NPRG_TOTAL_SIZE         320KB
+
+# Put shared RAM memory
+define SCL_SHARED_RAM_BASE         0x02200000
+define SCL_SHARED_RAM_SIZE          1MB
+
+# Put modem EFS
+define SCL_MODEM_EFS_RAM_SIZE      3MB
+
+# Modem Heap1 Base
+define SCL_MODEM_HEAP1_BASE       0x46000000
+define SCL_MODEM_HEAP1_SIZE        0MB
+
+#LPASS
+define SCL_ADSP_Q5_CODE_BASE      0x06400000
+define SCL_ADSP_Q5_SIZE      9MB
+
+# Modem code
+define SCL_MODEM_CODE_BASE         0x01300000
+define SCL_MODEM_TOTAL_SIZE        81MB
+
+
+# Total available space in EBI1
+define SCL_EBI1_MEM_TOTAL_SIZE      128MB
+
+# defining EBI 0 - mem region
+define SCL_EBI0_MEM_BASE            0x0
+
+#Ram Partition Table dynamic generation
+define SCL_EBI1_MEM_BASE 0x00000000
+
+
+#Boot Logger buffer size
+define SCL_SBL1_BOOT_LOG_BUF_SIZE 1024
+define SCL_SBL2_BOOT_LOG_BUF_SIZE 1536
+define SCL_SBL3_BOOT_LOG_BUF_SIZE 1536
+define SCL_BOOT_LOG_META_INFO_SIZE 64
+
+
+#end 9x35 DDR Config
+
+#------------------------------------------------------------------------------
+# 8x26 Memory map for L4 with 256 MB DDR - TZ currently sits at 0x0 for RUMI
+#------------------------------------------------------------------------------
+[HardComponent: EBI0_LPDDR1Only_MemMapDDR256_8x26 ]
+
+define FEATURE_QFUSE_PROGRAMMING
+
+# IMEM Base address & Size
+define SCL_IMEM_BASE 0xFE800000
+define SCL_IMEM_SIZE 0x6000
+
+# SCL IRAM BASE
+define SCL_IRAM_BASE SCL_RPM_CODE_RAM_BASE
+define SCL_IRAM_SIZE SCL_RPM_CODE_RAM_SIZE
+
+define SCL_TZ_CODE_BASE 0x0FC00000
+define SCL_TZ_TOTAL_SIZE 1408KB
+
+# Location to load and execute TZBSP Test
+define SCL_TZBSP_TEST_BASE 0x00008000
+
+define SCL_APPS_BOOT_BASE 0x10000000
+define SCL_APPS_BOOT_SIZE 1MB
+
+define GPU_DCVS_NUMGAPS           5
+define GPU_DCVS_MINGAPCOUNT       25
+define GPU_DCVS_NUMBUSY           5
+define GPU_DCVS_PENALTY           90
+define GPU_DCVS_DOWN_PENALTY      90
+define GPU_DCVS_NUMPWRLEVELS      10
+
+#SHARED IMEM BASE is 0xFE80 5000
+define SHARED_IMEM_BASE (SCL_IMEM_BASE + 20KB)
+define SHARED_IMEM_SIZE 4KB
+
+#This allows RPM to discover where TZ keeps its
+#diagnostics page including VMID configuration.
+define SHARED_IMEM_TZ_BASE (SHARED_IMEM_BASE + 0x720)
+
+#SHARED_IMEM_BOOT_BASE is 0xFE83 F000
+define SHARED_IMEM_BOOT_BASE SHARED_IMEM_BASE
+# Allocate 200 bytes for boot
+define SHARED_IMEM_BOOT_SIZE 0X00C8
+define DLOAD_ID_ADDR  SHARED_IMEM_BOOT_BASE
+
+define SHARED_IMEM_BOOT_MAGIC_NUM_ADDR (SHARED_IMEM_BOOT_BASE+0x8)
+define SHARED_IMEM_BOOT_ETB_ADDR (SHARED_IMEM_BOOT_BASE+0x10)
+
+#SHARED_IMEM_USB_BASE is 0xFE83 F0C8
+define SHARED_IMEM_USB_BASE (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+# Allocate 200 bytes for USB
+define SHARED_IMEM_USB_SIZE 0X00C8
+
+#SHARED_IMEM_BOOT_CDT_BASE is 0xFE83 F190
+define SHARED_IMEM_BOOT_CDT_BASE   (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+# Allocate 1024 bytes for EEPROM configuration data table information like ddr parameters etc
+define SHARED_IMEM_BOOT_CDT_SIZE  (0x400)
+
+#EFS_COOKIE_IMEM_START_ADDRESS is 0xFE83 F590
+define EFS_COOKIE_IMEM_START_ADDRESS   (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+# Allocate 200 bytes for efs cookie
+define EFS_COOKIE_IMEM_SIZE_IN_BYTES  (0x00C8)
+
+#SHARED_IMEM_HLOS_BASE is 0xFE83 F658
+define SHARED_IMEM_HLOS_BASE   (EFS_COOKIE_IMEM_START_ADDRESS + EFS_COOKIE_IMEM_SIZE_IN_BYTES)
+# Allocate 200 bytes for HLOS shared imem
+define SHARED_IMEM_HLOS_SIZE  (0x00C8)
+
+#SHARED_IMEM_UNUSED_BASE is 0xFE83 F720
+define SHARED_IMEM_UNUSED_BASE   (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+# Allocate 112 bytes for HLOS
+define SHARED_IMEM_UNUSED_SIZE  (SHARED_IMEM_SIZE - (SHARED_IMEM_HLOS_BASE - SHARED_IMEM_BASE))
+
+#-----------------------------------------------------
+
+define SCL_DLOAD_BUFFERS_BASE 0x80100000
+define SCL_DLOAD_BUFFERS_SIZE 1MB
+
+# Put shared EFS (???) /* FS_CACHE_BASE */
+define SCL_SHARED_EFS_RAM_BASE_8660 0x8F800000
+define SCL_SHARED_EFS_RAM_SIZE 3MB
+
+# NANDPRG
+define SCL_NPRG_CODE_BASE          0x82F00000
+define SCL_NPRG_TOTAL_SIZE         320KB
+
+# Put shared RAM memory
+define SCL_SHARED_RAM_BASE         0x0FA00000
+define SCL_SHARED_RAM_SIZE          2MB
+
+# Put modem EFS
+define SCL_MODEM_EFS_RAM_SIZE      3MB
+
+# Modem Heap1 Base
+define SCL_MODEM_HEAP1_BASE       0x46000000
+define SCL_MODEM_HEAP1_SIZE        0MB
+
+#LPASS
+define SCL_ADSP_Q5_CODE_BASE      0x8DA00000
+define SCL_ADSP_Q5_SIZE      24MB
+
+# Modem code
+define SCL_MODEM_CODE_BASE         0x89000000
+define SCL_MODEM_TOTAL_SIZE        68MB
+
+
+# Total available space in EBI1
+define SCL_EBI1_MEM_TOTAL_SIZE      0xF8000000  // 3.896 GB
+
+# defining EBI 0 - mem region
+define SCL_EBI0_MEM_BASE            0xffffffff
+
+#Ram Partition Table dynamic generation
+define SCL_EBI1_MEM_BASE 0x00000000
+
+
+#Boot Logger buffer size
+define SCL_SBL1_BOOT_LOG_BUF_SIZE 1024
+define SCL_SBL2_BOOT_LOG_BUF_SIZE 1536
+define SCL_SBL3_BOOT_LOG_BUF_SIZE 1536
+define SCL_BOOT_LOG_META_INFO_SIZE 64
+
+#end 8x26 DDR Config
+
+#------------------------------------------------------------------------------
+# 8x10 Memory map for L4 with 256 MB DDR - TZ currently sits at 0x0 for RUMI
+#------------------------------------------------------------------------------
+[HardComponent: EBI0_LPDDR1Only_MemMapDDR256_8x10 ]
+
+define FEATURE_QFUSE_PROGRAMMING
+
+# IMEM Base address & Size
+define SCL_IMEM_BASE 0xFE800000
+define SCL_IMEM_SIZE 0x8000
+
+# SCL IRAM BASE
+define SCL_IRAM_BASE SCL_RPM_CODE_RAM_BASE
+define SCL_IRAM_SIZE SCL_RPM_CODE_RAM_SIZE
+
+define SCL_TZ_CODE_BASE 0x0DB00000
+define SCL_TZ_TOTAL_SIZE 1408KB
+
+# Location to load and execute TZBSP Test
+define SCL_TZBSP_TEST_BASE 0x00008000
+
+define SCL_APPS_BOOT_BASE 0x88F00000
+define SCL_APPS_BOOT_SIZE 1MB
+
+define GPU_DCVS_NUMGAPS           5
+define GPU_DCVS_MINGAPCOUNT       25
+define GPU_DCVS_NUMBUSY           5
+define GPU_DCVS_PENALTY           90
+define GPU_DCVS_DOWN_PENALTY      90
+define GPU_DCVS_NUMPWRLEVELS      10
+
+
+#SHARED IMEM BASE is 0xFE80 5000
+define SHARED_IMEM_BASE (SCL_IMEM_BASE + 20KB)
+define SHARED_IMEM_SIZE 4KB
+
+#This allows RPM to discover where TZ keeps its
+#diagnostics page including VMID configuration.
+define SHARED_IMEM_TZ_BASE (SHARED_IMEM_BASE + 0x720)
+
+#SHARED_IMEM_BOOT_BASE is 0xFE83 F000
+define SHARED_IMEM_BOOT_BASE SHARED_IMEM_BASE
+# Allocate 200 bytes for boot
+define SHARED_IMEM_BOOT_SIZE 0X00C8
+define DLOAD_ID_ADDR  SHARED_IMEM_BOOT_BASE
+
+define SHARED_IMEM_BOOT_MAGIC_NUM_ADDR (SHARED_IMEM_BOOT_BASE+0x8)
+define SHARED_IMEM_BOOT_ETB_ADDR (SHARED_IMEM_BOOT_BASE+0x10)
+
+#SHARED_IMEM_USB_BASE is 0xFE83 F0C8
+define SHARED_IMEM_USB_BASE (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+# Allocate 200 bytes for USB
+define SHARED_IMEM_USB_SIZE 0X00C8
+
+#SHARED_IMEM_BOOT_CDT_BASE is 0xFE83 F190
+define SHARED_IMEM_BOOT_CDT_BASE   (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+# Allocate 1024 bytes for EEPROM configuration data table information like ddr parameters etc
+define SHARED_IMEM_BOOT_CDT_SIZE  (0x400)
+
+#EFS_COOKIE_IMEM_START_ADDRESS is 0xFE83 F590
+define EFS_COOKIE_IMEM_START_ADDRESS   (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+# Allocate 200 bytes for efs cookie
+define EFS_COOKIE_IMEM_SIZE_IN_BYTES  (0x00C8)
+
+#SHARED_IMEM_HLOS_BASE is 0xFE83 F658
+define SHARED_IMEM_HLOS_BASE   (EFS_COOKIE_IMEM_START_ADDRESS + EFS_COOKIE_IMEM_SIZE_IN_BYTES)
+# Allocate 200 bytes for HLOS shared imem
+define SHARED_IMEM_HLOS_SIZE  (0x00C8)
+
+#SHARED_IMEM_UNUSED_BASE is 0xFE83 F720
+define SHARED_IMEM_UNUSED_BASE   (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+# Allocate 112 bytes for HLOS
+define SHARED_IMEM_UNUSED_SIZE  (SHARED_IMEM_SIZE - (SHARED_IMEM_HLOS_BASE - SHARED_IMEM_BASE))
+
+#-----------------------------------------------------
+
+define SCL_DLOAD_BUFFERS_BASE 0x80100000
+define SCL_DLOAD_BUFFERS_SIZE 1MB
+
+# Put shared EFS (???) /* FS_CACHE_BASE */
+define SCL_SHARED_EFS_RAM_BASE_8660 0x8F800000
+define SCL_SHARED_EFS_RAM_SIZE 3MB
+
+# NANDPRG
+define SCL_NPRG_CODE_BASE          0x82F00000
+define SCL_NPRG_TOTAL_SIZE         320KB
+
+# Put shared RAM memory
+define SCL_SHARED_RAM_BASE         0x0D900000
+define SCL_SHARED_RAM_SIZE          2MB
+
+# Put modem EFS
+define SCL_MODEM_EFS_RAM_SIZE      3MB
+
+# Modem Heap1 Base
+define SCL_MODEM_HEAP1_BASE       0x46000000
+define SCL_MODEM_HEAP1_SIZE        0MB
+
+#LPASS
+define SCL_ADSP_Q5_CODE_BASE      0x8DA00000
+define SCL_ADSP_Q5_SIZE      24MB
+
+# Modem code
+define SCL_MODEM_CODE_BASE         0x89000000
+define SCL_MODEM_TOTAL_SIZE        68MB
+
+
+# Total available space in EBI1
+define SCL_EBI1_MEM_TOTAL_SIZE      0x40000000  // 1 GB
+
+# defining EBI 0 - mem region
+define SCL_EBI0_MEM_BASE            0xffffffff
+
+#Ram Partition Table dynamic generation
+define SCL_EBI1_MEM_BASE 0x00000000
+
+
+#Boot Logger buffer size
+define SCL_SBL1_BOOT_LOG_BUF_SIZE 1024
+define SCL_SBL2_BOOT_LOG_BUF_SIZE 1536
+define SCL_SBL3_BOOT_LOG_BUF_SIZE 1536
+define SCL_BOOT_LOG_META_INFO_SIZE 64
+
+#end 8x10 DDR Config
+
+#------------------------------------------------------------------------------
+# 8916 Memory map for L4 with 256 MB DDR - TZ currently sits at 0x0 for RUMI
+#------------------------------------------------------------------------------
+[HardComponent: EBI0_LPDDR1Only_MemMapDDR256_8x16 ]
+
+define FEATURE_QFUSE_PROGRAMMING
+
+# IMEM Base address & Size
+define SCL_IMEM_BASE 0x08600000
+define SCL_IMEM_SIZE 0x8000
+
+# SCL IRAM BASE
+define SCL_IRAM_BASE SCL_RPM_CODE_RAM_BASE
+define SCL_IRAM_SIZE SCL_RPM_CODE_RAM_SIZE
+
+define SCL_TZ_CODE_BASE 0x86500000
+define SCL_TZ_TOTAL_SIZE 1536KB
+
+# Location to load and execute TZBSP Test
+define SCL_TZBSP_TEST_BASE 0x80008000
+
+define SCL_APPS_BOOT_BASE 0x8F600000
+define SCL_APPS_BOOT_SIZE 1MB
+
+define GPU_DCVS_NUMGAPS           5
+define GPU_DCVS_MINGAPCOUNT       25
+define GPU_DCVS_NUMBUSY           5
+define GPU_DCVS_PENALTY           90
+define GPU_DCVS_DOWN_PENALTY      90
+define GPU_DCVS_NUMPWRLEVELS      10
+
+
+#SHARED IMEM BASE is 0xFE80 5000
+define SHARED_IMEM_BASE SCL_IMEM_BASE
+define SHARED_IMEM_SIZE 4KB
+
+#This allows RPM to discover where TZ keeps its
+#diagnostics page including VMID configuration.
+define SHARED_IMEM_TZ_BASE (SHARED_IMEM_BASE + 0x720)
+
+#SHARED_IMEM_BOOT_BASE is 0xFE83 F000
+define SHARED_IMEM_BOOT_BASE SHARED_IMEM_BASE
+# Allocate 200 bytes for boot
+define SHARED_IMEM_BOOT_SIZE 0X00C8
+define DLOAD_ID_ADDR  SHARED_IMEM_BOOT_BASE
+
+define SHARED_IMEM_BOOT_MAGIC_NUM_ADDR (SHARED_IMEM_BOOT_BASE+0x8)
+define SHARED_IMEM_BOOT_ETB_ADDR (SHARED_IMEM_BOOT_BASE+0x10)
+
+#SHARED_IMEM_USB_BASE is 0xFE83 F0C8
+define SHARED_IMEM_USB_BASE (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+# Allocate 200 bytes for USB
+define SHARED_IMEM_USB_SIZE 0X00C8
+
+#SHARED_IMEM_BOOT_CDT_BASE is 0xFE83 F190
+define SHARED_IMEM_BOOT_CDT_BASE   (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+# Allocate 1024 bytes for EEPROM configuration data table information like ddr parameters etc
+define SHARED_IMEM_BOOT_CDT_SIZE  (0x400)
+
+#EFS_COOKIE_IMEM_START_ADDRESS is 0xFE83 F590
+define EFS_COOKIE_IMEM_START_ADDRESS   (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+# Allocate 200 bytes for efs cookie
+define EFS_COOKIE_IMEM_SIZE_IN_BYTES  (0x00C8)
+
+#SHARED_IMEM_HLOS_BASE is 0xFE83 F658
+define SHARED_IMEM_HLOS_BASE   (EFS_COOKIE_IMEM_START_ADDRESS + EFS_COOKIE_IMEM_SIZE_IN_BYTES)
+# Allocate 200 bytes for HLOS shared imem
+define SHARED_IMEM_HLOS_SIZE  (0x00C8)
+
+#SHARED_IMEM_UNUSED_BASE is 0xFE83 F720
+define SHARED_IMEM_UNUSED_BASE   (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+# Allocate 112 bytes for HLOS
+define SHARED_IMEM_UNUSED_SIZE  (SHARED_IMEM_SIZE - (SHARED_IMEM_HLOS_BASE - SHARED_IMEM_BASE))
+
+#-----------------------------------------------------
+
+define SCL_DLOAD_BUFFERS_BASE 0x80100000
+define SCL_DLOAD_BUFFERS_SIZE 1MB
+
+# Put shared EFS (???) /* FS_CACHE_BASE */
+define SCL_SHARED_EFS_RAM_BASE_8660 0x8F800000
+define SCL_SHARED_EFS_RAM_SIZE 3MB
+
+# NANDPRG
+define SCL_NPRG_CODE_BASE          0x82F00000
+define SCL_NPRG_TOTAL_SIZE         320KB
+
+# Put shared RAM memory
+define SCL_SHARED_RAM_BASE         0x86300000
+define SCL_SHARED_RAM_SIZE          1MB
+
+# Put modem EFS
+define SCL_MODEM_EFS_RAM_SIZE      3MB
+
+# Modem Heap1 Base
+define SCL_MODEM_HEAP1_BASE       0x46000000
+define SCL_MODEM_HEAP1_SIZE        0MB
+
+#LPASS
+define SCL_ADSP_Q5_CODE_BASE      0x8DA00000
+define SCL_ADSP_Q5_SIZE      24MB
+
+# Modem code
+define SCL_MODEM_CODE_BASE         0x89000000
+define SCL_MODEM_TOTAL_SIZE        68MB
+
+
+# Total available space in EBI1
+define SCL_EBI1_MEM_TOTAL_SIZE      0x40000000  // 1 GB
+
+# defining EBI 0 - mem region
+define SCL_EBI0_MEM_BASE            0xffffffff
+
+#Ram Partition Table dynamic generation
+define SCL_EBI1_MEM_BASE 0x80000000
+
+
+#Boot Logger buffer size
+define SCL_SBL1_BOOT_LOG_BUF_SIZE 1024
+define SCL_SBL2_BOOT_LOG_BUF_SIZE 1536
+define SCL_SBL3_BOOT_LOG_BUF_SIZE 1536
+define SCL_BOOT_LOG_META_INFO_SIZE 64
+
+#end 8x10 DDR Config
+
+#------------------------------------------------------------------------------
+# 8936 Memory map for L4 with 256 MB DDR - TZ currently sits at 0x0 for RUMI
+#------------------------------------------------------------------------------
+[HardComponent: EBI0_LPDDR1Only_MemMapDDR256_8x36 ]
+
+define FEATURE_QFUSE_PROGRAMMING
+
+# IMEM Base address & Size
+define SCL_IMEM_BASE 0x08600000
+define SCL_IMEM_SIZE 0x8000
+
+# SCL IRAM BASE
+define SCL_IRAM_BASE SCL_RPM_CODE_RAM_BASE
+define SCL_IRAM_SIZE SCL_RPM_CODE_RAM_SIZE
+
+define SCL_TZ_CODE_BASE 0x86500000
+define SCL_TZ_TOTAL_SIZE 1536KB
+
+# Location to load and execute TZBSP Test
+define SCL_TZBSP_TEST_BASE 0x80008000
+
+define SCL_APPS_BOOT_BASE 0x8F600000
+define SCL_APPS_BOOT_SIZE 1MB
+
+define GPU_DCVS_NUMGAPS           5
+define GPU_DCVS_MINGAPCOUNT       25
+define GPU_DCVS_NUMBUSY           5
+define GPU_DCVS_PENALTY           90
+define GPU_DCVS_DOWN_PENALTY      90
+define GPU_DCVS_NUMPWRLEVELS      10
+
+
+#SHARED IMEM BASE is 0xFE80 5000
+define SHARED_IMEM_BASE SCL_IMEM_BASE
+define SHARED_IMEM_SIZE 4KB
+
+#This allows RPM to discover where TZ keeps its
+#diagnostics page including VMID configuration.
+define SHARED_IMEM_TZ_BASE (SHARED_IMEM_BASE + 0x720)
+
+#SHARED_IMEM_BOOT_BASE is 0xFE83 F000
+define SHARED_IMEM_BOOT_BASE SHARED_IMEM_BASE
+# Allocate 200 bytes for boot
+define SHARED_IMEM_BOOT_SIZE 0X00C8
+define DLOAD_ID_ADDR  SHARED_IMEM_BOOT_BASE
+
+define SHARED_IMEM_BOOT_MAGIC_NUM_ADDR (SHARED_IMEM_BOOT_BASE+0x8)
+define SHARED_IMEM_BOOT_ETB_ADDR (SHARED_IMEM_BOOT_BASE+0x10)
+
+#SHARED_IMEM_USB_BASE is 0xFE83 F0C8
+define SHARED_IMEM_USB_BASE (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+# Allocate 200 bytes for USB
+define SHARED_IMEM_USB_SIZE 0X00C8
+
+#SHARED_IMEM_BOOT_CDT_BASE is 0xFE83 F190
+define SHARED_IMEM_BOOT_CDT_BASE   (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+# Allocate 1024 bytes for EEPROM configuration data table information like ddr parameters etc
+define SHARED_IMEM_BOOT_CDT_SIZE  (0x400)
+
+#EFS_COOKIE_IMEM_START_ADDRESS is 0xFE83 F590
+define EFS_COOKIE_IMEM_START_ADDRESS   (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+# Allocate 200 bytes for efs cookie
+define EFS_COOKIE_IMEM_SIZE_IN_BYTES  (0x00C8)
+
+#SHARED_IMEM_HLOS_BASE is 0xFE83 F658
+define SHARED_IMEM_HLOS_BASE   (EFS_COOKIE_IMEM_START_ADDRESS + EFS_COOKIE_IMEM_SIZE_IN_BYTES)
+# Allocate 200 bytes for HLOS shared imem
+define SHARED_IMEM_HLOS_SIZE  (0x00C8)
+
+#SHARED_IMEM_UNUSED_BASE is 0xFE83 F720
+define SHARED_IMEM_UNUSED_BASE   (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+# Allocate 112 bytes for HLOS
+define SHARED_IMEM_UNUSED_SIZE  (SHARED_IMEM_SIZE - (SHARED_IMEM_HLOS_BASE - SHARED_IMEM_BASE))
+
+#-----------------------------------------------------
+
+define SCL_DLOAD_BUFFERS_BASE 0x80100000
+define SCL_DLOAD_BUFFERS_SIZE 1MB
+
+# Put shared EFS (???) /* FS_CACHE_BASE */
+define SCL_SHARED_EFS_RAM_BASE_8660 0x8F800000
+define SCL_SHARED_EFS_RAM_SIZE 3MB
+
+# NANDPRG
+define SCL_NPRG_CODE_BASE          0x82F00000
+define SCL_NPRG_TOTAL_SIZE         320KB
+
+# Put shared RAM memory
+define SCL_SHARED_RAM_BASE         0x86300000
+define SCL_SHARED_RAM_SIZE          1MB
+
+# Put modem EFS
+define SCL_MODEM_EFS_RAM_SIZE      3MB
+
+# Modem Heap1 Base
+define SCL_MODEM_HEAP1_BASE       0x46000000
+define SCL_MODEM_HEAP1_SIZE        0MB
+
+#LPASS
+define SCL_ADSP_Q5_CODE_BASE      0x8DA00000
+define SCL_ADSP_Q5_SIZE      24MB
+
+# Modem code
+define SCL_MODEM_CODE_BASE         0x89000000
+define SCL_MODEM_TOTAL_SIZE        68MB
+
+
+# Total available space in EBI1
+define SCL_EBI1_MEM_TOTAL_SIZE      0x40000000  // 1 GB
+
+# defining EBI 0 - mem region
+define SCL_EBI0_MEM_BASE            0xffffffff
+
+#Ram Partition Table dynamic generation
+define SCL_EBI1_MEM_BASE 0x80000000
+
+
+#Boot Logger buffer size
+define SCL_SBL1_BOOT_LOG_BUF_SIZE 1024
+define SCL_SBL2_BOOT_LOG_BUF_SIZE 1536
+define SCL_SBL3_BOOT_LOG_BUF_SIZE 1536
+define SCL_BOOT_LOG_META_INFO_SIZE 64
+
+#end 8x36 DDR Config
+
+
+#------------------------------------------------------------------------------
+# 8909 Memory map for L4 with 256 MB DDR - TZ currently sits at 0x0 for RUMI
+#------------------------------------------------------------------------------
+[HardComponent: EBI0_LPDDR1Only_MemMapDDR256_8x09 ]
+
+define FEATURE_QFUSE_PROGRAMMING
+
+# IMEM Base address & Size
+define SCL_IMEM_BASE 0x08600000
+define SCL_IMEM_SIZE 0x8000
+
+# SCL IRAM BASE
+define SCL_IRAM_BASE SCL_RPM_CODE_RAM_BASE
+define SCL_IRAM_SIZE SCL_RPM_CODE_RAM_SIZE
+
+define SCL_TZ_CODE_BASE 0x87E80000
+define SCL_TZ_TOTAL_SIZE 1536KB
+
+
+# Location to load and execute TZBSP Test
+define SCL_TZBSP_TEST_BASE 0x80008000
+
+define SCL_APPS_BOOT_BASE 0x8F600000
+define SCL_APPS_BOOT_SIZE 1MB
+
+define GPU_DCVS_NUMGAPS           5
+define GPU_DCVS_MINGAPCOUNT       15
+define GPU_DCVS_NUMBUSY           5
+define GPU_DCVS_PENALTY           95
+define GPU_DCVS_DOWN_PENALTY      110
+define GPU_DCVS_NUMPWRLEVELS      10
+
+
+#SHARED IMEM BASE is 0xFE80 5000
+define SHARED_IMEM_BASE SCL_IMEM_BASE
+define SHARED_IMEM_SIZE 4KB
+
+#This allows RPM to discover where TZ keeps its
+#diagnostics page including VMID configuration.
+define SHARED_IMEM_TZ_BASE (SHARED_IMEM_BASE + 0x720)
+
+#SHARED_IMEM_BOOT_BASE is 0xFE83 F000
+define SHARED_IMEM_BOOT_BASE SHARED_IMEM_BASE
+# Allocate 200 bytes for boot
+define SHARED_IMEM_BOOT_SIZE 0X00C8
+define DLOAD_ID_ADDR  SHARED_IMEM_BOOT_BASE
+
+define SHARED_IMEM_BOOT_MAGIC_NUM_ADDR (SHARED_IMEM_BOOT_BASE+0x8)
+define SHARED_IMEM_BOOT_ETB_ADDR (SHARED_IMEM_BOOT_BASE+0x10)
+
+#SHARED_IMEM_USB_BASE is 0xFE83 F0C8
+define SHARED_IMEM_USB_BASE (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+# Allocate 200 bytes for USB
+define SHARED_IMEM_USB_SIZE 0X00C8
+
+#SHARED_IMEM_BOOT_CDT_BASE is 0xFE83 F190
+define SHARED_IMEM_BOOT_CDT_BASE   (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+# Allocate 1024 bytes for EEPROM configuration data table information like ddr parameters etc
+define SHARED_IMEM_BOOT_CDT_SIZE  (0x400)
+
+#EFS_COOKIE_IMEM_START_ADDRESS is 0xFE83 F590
+define EFS_COOKIE_IMEM_START_ADDRESS   (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+# Allocate 200 bytes for efs cookie
+define EFS_COOKIE_IMEM_SIZE_IN_BYTES  (0x00C8)
+
+#SHARED_IMEM_HLOS_BASE is 0xFE83 F658
+define SHARED_IMEM_HLOS_BASE   (EFS_COOKIE_IMEM_START_ADDRESS + EFS_COOKIE_IMEM_SIZE_IN_BYTES)
+# Allocate 200 bytes for HLOS shared imem
+define SHARED_IMEM_HLOS_SIZE  (0x00C8)
+
+#SHARED_IMEM_UNUSED_BASE is 0xFE83 F720
+define SHARED_IMEM_UNUSED_BASE   (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+# Allocate 112 bytes for HLOS
+define SHARED_IMEM_UNUSED_SIZE  (SHARED_IMEM_SIZE - (SHARED_IMEM_HLOS_BASE - SHARED_IMEM_BASE))
+
+#-----------------------------------------------------
+
+define SCL_DLOAD_BUFFERS_BASE 0x80100000
+define SCL_DLOAD_BUFFERS_SIZE 1MB
+
+# Put shared EFS (???) /* FS_CACHE_BASE */
+define SCL_SHARED_EFS_RAM_BASE_8660 0x8F800000
+define SCL_SHARED_EFS_RAM_SIZE 3MB
+
+# NANDPRG
+define SCL_NPRG_CODE_BASE          0x82F00000
+define SCL_NPRG_TOTAL_SIZE         320KB
+
+# Put shared RAM memory
+define SCL_SHARED_RAM_BASE         0x87D00000
+define SCL_SHARED_RAM_SIZE          1MB
+
+# Put modem EFS
+define SCL_MODEM_EFS_RAM_SIZE      3MB
+
+# Modem Heap1 Base
+define SCL_MODEM_HEAP1_BASE       0x46000000
+define SCL_MODEM_HEAP1_SIZE        0MB
+
+#LPASS
+define SCL_ADSP_Q5_CODE_BASE      0x8DA00000
+define SCL_ADSP_Q5_SIZE      24MB
+
+# Modem code
+define SCL_MODEM_CODE_BASE         0x89000000
+define SCL_MODEM_TOTAL_SIZE        68MB
+
+
+# Total available space in EBI1
+define SCL_EBI1_MEM_TOTAL_SIZE      0x40000000  // 1 GB
+
+# defining EBI 0 - mem region
+define SCL_EBI0_MEM_BASE            0xffffffff
+
+#Ram Partition Table dynamic generation
+define SCL_EBI1_MEM_BASE 0x80000000
+
+
+#Boot Logger buffer size
+define SCL_SBL1_BOOT_LOG_BUF_SIZE 1024
+define SCL_SBL2_BOOT_LOG_BUF_SIZE 1536
+define SCL_SBL3_BOOT_LOG_BUF_SIZE 1536
+define SCL_BOOT_LOG_META_INFO_SIZE 64
+
+#end 8x10 DDR Config
+#
+#------------------------------------------------------------------------------
+# 8909 Wearable Memory map for L4 with 256 MB DDR - TZ currently sits at 0x0 for RUMI
+#------------------------------------------------------------------------------
+[HardComponent: EBI0_LPDDR1Only_MemMapDDR256_8x09W ]
+
+define FEATURE_QFUSE_PROGRAMMING
+
+# IMEM Base address & Size
+define SCL_IMEM_BASE 0x08600000
+define SCL_IMEM_SIZE 0x8000
+
+# SCL IRAM BASE
+define SCL_IRAM_BASE SCL_RPM_CODE_RAM_BASE
+define SCL_IRAM_SIZE SCL_RPM_CODE_RAM_SIZE
+
+define SCL_TZ_CODE_BASE 0x87E80000
+define SCL_TZ_TOTAL_SIZE 1536KB
+
+
+# Location to load and execute TZBSP Test
+define SCL_TZBSP_TEST_BASE 0x80008000
+
+define SCL_APPS_BOOT_BASE 0x8F600000
+define SCL_APPS_BOOT_SIZE 1MB
+
+define GPU_DCVS_NUMGAPS           5
+define GPU_DCVS_MINGAPCOUNT       15
+define GPU_DCVS_NUMBUSY           5
+define GPU_DCVS_PENALTY           95
+define GPU_DCVS_DOWN_PENALTY      110
+define GPU_DCVS_NUMPWRLEVELS      10
+
+
+#SHARED IMEM BASE is 0xFE80 5000
+define SHARED_IMEM_BASE SCL_IMEM_BASE
+define SHARED_IMEM_SIZE 4KB
+
+#This allows RPM to discover where TZ keeps its
+#diagnostics page including VMID configuration.
+define SHARED_IMEM_TZ_BASE (SHARED_IMEM_BASE + 0x720)
+
+#SHARED_IMEM_BOOT_BASE is 0xFE83 F000
+define SHARED_IMEM_BOOT_BASE SHARED_IMEM_BASE
+# Allocate 200 bytes for boot
+define SHARED_IMEM_BOOT_SIZE 0X00C8
+define DLOAD_ID_ADDR  SHARED_IMEM_BOOT_BASE
+
+define SHARED_IMEM_BOOT_MAGIC_NUM_ADDR (SHARED_IMEM_BOOT_BASE+0x8)
+define SHARED_IMEM_BOOT_ETB_ADDR (SHARED_IMEM_BOOT_BASE+0x10)
+
+#SHARED_IMEM_USB_BASE is 0xFE83 F0C8
+define SHARED_IMEM_USB_BASE (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+# Allocate 200 bytes for USB
+define SHARED_IMEM_USB_SIZE 0X00C8
+
+#SHARED_IMEM_BOOT_CDT_BASE is 0xFE83 F190
+define SHARED_IMEM_BOOT_CDT_BASE   (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+# Allocate 1024 bytes for EEPROM configuration data table information like ddr parameters etc
+define SHARED_IMEM_BOOT_CDT_SIZE  (0x400)
+
+#EFS_COOKIE_IMEM_START_ADDRESS is 0xFE83 F590
+define EFS_COOKIE_IMEM_START_ADDRESS   (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+# Allocate 200 bytes for efs cookie
+define EFS_COOKIE_IMEM_SIZE_IN_BYTES  (0x00C8)
+
+#SHARED_IMEM_HLOS_BASE is 0xFE83 F658
+define SHARED_IMEM_HLOS_BASE   (EFS_COOKIE_IMEM_START_ADDRESS + EFS_COOKIE_IMEM_SIZE_IN_BYTES)
+# Allocate 200 bytes for HLOS shared imem
+define SHARED_IMEM_HLOS_SIZE  (0x00C8)
+
+#SHARED_IMEM_UNUSED_BASE is 0xFE83 F720
+define SHARED_IMEM_UNUSED_BASE   (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+# Allocate 112 bytes for HLOS
+define SHARED_IMEM_UNUSED_SIZE  (SHARED_IMEM_SIZE - (SHARED_IMEM_HLOS_BASE - SHARED_IMEM_BASE))
+
+#-----------------------------------------------------
+
+define SCL_DLOAD_BUFFERS_BASE 0x80100000
+define SCL_DLOAD_BUFFERS_SIZE 1MB
+
+# Put shared EFS (???) /* FS_CACHE_BASE */
+define SCL_SHARED_EFS_RAM_BASE_8660 0x8F800000
+define SCL_SHARED_EFS_RAM_SIZE 3MB
+
+# NANDPRG
+define SCL_NPRG_CODE_BASE          0x82F00000
+define SCL_NPRG_TOTAL_SIZE         320KB
+
+# Put shared RAM memory
+define SCL_SHARED_RAM_BASE         0x87D00000
+define SCL_SHARED_RAM_SIZE          1MB
+
+# Put modem EFS
+define SCL_MODEM_EFS_RAM_SIZE      3MB
+
+# Modem Heap1 Base
+define SCL_MODEM_HEAP1_BASE       0x46000000
+define SCL_MODEM_HEAP1_SIZE        0MB
+
+#LPASS
+define SCL_ADSP_Q5_CODE_BASE      0x8DA00000
+define SCL_ADSP_Q5_SIZE      24MB
+
+# Modem code
+define SCL_MODEM_CODE_BASE         0x89000000
+define SCL_MODEM_TOTAL_SIZE        68MB
+
+
+# Total available space in EBI1
+define SCL_EBI1_MEM_TOTAL_SIZE      0x40000000  // 1 GB
+
+# defining EBI 0 - mem region
+define SCL_EBI0_MEM_BASE            0xffffffff
+
+#Ram Partition Table dynamic generation
+define SCL_EBI1_MEM_BASE 0x80000000
+
+
+#Boot Logger buffer size
+define SCL_SBL1_BOOT_LOG_BUF_SIZE 1024
+define SCL_SBL2_BOOT_LOG_BUF_SIZE 1536
+define SCL_SBL3_BOOT_LOG_BUF_SIZE 1536
+define SCL_BOOT_LOG_META_INFO_SIZE 64
+
+#end 8x10 DDR Config
+
+#------------------------------------------------------------------------------
+# 9x07 Memory map for L4 with 256 MB DDR - TZ currently sits at 0x0 for RUMI
+#------------------------------------------------------------------------------
+[HardComponent: EBI0_LPDDR1Only_MemMapDDR256_9x07 ]
+
+define FEATURE_QFUSE_PROGRAMMING
+
+# IMEM Base address & Size
+define SCL_IMEM_BASE 0x08600000
+
+define SCL_TZ_CODE_BASE 0x87E00000
+define SCL_TZ_TOTAL_SIZE 1536KB
+
+
+# Location to load and execute TZBSP Test
+define SCL_TZBSP_TEST_BASE 0x80008000
+
+define SCL_APPS_BOOT_BASE 0x87A00000 
+define SCL_APPS_BOOT_SIZE 1MB
+
+define GPU_DCVS_NUMGAPS           5
+define GPU_DCVS_MINGAPCOUNT       15
+define GPU_DCVS_NUMBUSY           5
+define GPU_DCVS_PENALTY           95
+define GPU_DCVS_DOWN_PENALTY      110
+define GPU_DCVS_NUMPWRLEVELS      10
+
+
+#SHARED IMEM BASE
+define SHARED_IMEM_BASE SCL_IMEM_BASE
+define SHARED_IMEM_SIZE 4KB
+
+#This allows RPM to discover where TZ keeps its
+#diagnostics page including VMID configuration.
+define SHARED_IMEM_TZ_BASE (SHARED_IMEM_BASE + 0x720)
+
+#SHARED_IMEM_BOOT_BASE is 0xFE83 F000
+define SHARED_IMEM_BOOT_BASE SHARED_IMEM_BASE
+# Allocate 200 bytes for boot
+define SHARED_IMEM_BOOT_SIZE 0X00C8
+define DLOAD_ID_ADDR  SHARED_IMEM_BOOT_BASE
+
+define SHARED_IMEM_BOOT_MAGIC_NUM_ADDR (SHARED_IMEM_BOOT_BASE+0x8)
+define SHARED_IMEM_BOOT_ETB_ADDR (SHARED_IMEM_BOOT_BASE+0x10)
+
+#SHARED_IMEM_USB_BASE is 0xFE83 F0C8
+define SHARED_IMEM_USB_BASE (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+# Allocate 200 bytes for USB
+define SHARED_IMEM_USB_SIZE 0X00C8
+
+#SHARED_IMEM_BOOT_CDT_BASE is 0xFE83 F190
+define SHARED_IMEM_BOOT_CDT_BASE   (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+# Allocate 1024 bytes for EEPROM configuration data table information like ddr parameters etc
+define SHARED_IMEM_BOOT_CDT_SIZE  (0x400)
+
+#EFS_COOKIE_IMEM_START_ADDRESS is 0xFE83 F590
+define EFS_COOKIE_IMEM_START_ADDRESS   (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+# Allocate 200 bytes for efs cookie
+define EFS_COOKIE_IMEM_SIZE_IN_BYTES  (0x00C8)
+
+#SHARED_IMEM_HLOS_BASE is 0xFE83 F658
+define SHARED_IMEM_HLOS_BASE   (EFS_COOKIE_IMEM_START_ADDRESS + EFS_COOKIE_IMEM_SIZE_IN_BYTES)
+# Allocate 200 bytes for HLOS shared imem
+define SHARED_IMEM_HLOS_SIZE  (0x00C8)
+
+#SHARED_IMEM_UNUSED_BASE is 0xFE83 F720
+define SHARED_IMEM_UNUSED_BASE   (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+# Allocate 112 bytes for HLOS
+define SHARED_IMEM_UNUSED_SIZE  (SHARED_IMEM_SIZE - (SHARED_IMEM_HLOS_BASE - SHARED_IMEM_BASE))
+
+# Put shared RAM memory
+define SCL_SHARED_RAM_BASE         0x87D00000
+define SCL_SHARED_RAM_SIZE          1MB
+
+# Total available space in EBI1
+define SCL_EBI1_MEM_TOTAL_SIZE      0x40000000  // 1 GB
+
+# defining EBI 0 - mem region
+define SCL_EBI0_MEM_BASE            0xffffffff
+
+#Ram Partition Table dynamic generation
+define SCL_EBI1_MEM_BASE 0x80000000
+
+
+#Boot Logger buffer size
+define SCL_SBL1_BOOT_LOG_BUF_SIZE 1024
+define SCL_SBL2_BOOT_LOG_BUF_SIZE 1536
+define SCL_SBL3_BOOT_LOG_BUF_SIZE 1536
+define SCL_BOOT_LOG_META_INFO_SIZE 64
+
+#end 9x07 DDR Config
+
+
+#------------------------------------------------------------------------------
+# 7600 Common memory config for L4 with DDR only
+#------------------------------------------------------------------------------
+[HardComponent: L4DDROnly]
+define FEATURE_PMEM
+#define FEATURE_PMEM_7K_MM_HEAP1_EBI1
+define FEATURE_PMEM_7K_COMBINE_HEAP1_HEAP2
+define FEATURE_PMEM_7K_L4_HEAP      if MODEM_PROC
+define BOOT_MODE_NAND
+define SHADOW_MODE
+define TCM_RAM_BASE                 0x80000000
+define TCM_RAM_SIZE                 4KB
+define IMEM_RAM_BASE 0xFE800000
+define IMEM_BANK_SIZE (64 * 1024)
+define IMEM_NUM_BANKS 4
+#define IMEM_RAM_SIZE (IMEM_NUM_BANKS * IMEM_BANK_SIZE)
+define IMEM_RAM_SIZE 0x20000
+define FEATURE_PMEM_REMOTE
+define SCL_MODEM_RELOCATABLE_CODE_BASE 0x90000000
+define SCL_MODEM_RELOCATABLE_CODE_SIZE 0x20000000
+pmem_remote makeonly
+split_code_data makeonly
+define FEATURE_PMEM_7K_IMEM
+
+
+#------------------------------------------------------------------------------
+# Ram dump memory regions for blackbird
+#------------------------------------------------------------------------------
+[HardComponent: ram_dump_memory_regions]
+
+define CONVERT_TO_MB_SHIFT 20
+
+define SD_PATH "/mmc1/"
+
+# memory dump regions
+
+# Boot ROM 128KB from 0x0
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION0_BASE to lie
+# in ROM
+define REGION0_BASE 0x0
+define REGION0_SIZE 0x0020000
+
+# Q6 TCM 256KB from 0xFE800000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION1_BASE to lie
+# in Q6 TCM
+define REGION1_BASE 0xFE800000
+define REGION1_SIZE 0x00040000
+
+# System IMEM 16KB from 0x2B000000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION2_BASE to lie
+# in System IMEM
+define REGION2_BASE 0x2B000000
+define REGION2_SIZE 0x4000
+
+# RPM Code RAM 144KB from 0x20000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION3_BASE to lie
+# in Code Ram
+define REGION3_BASE SCL_RPM_CODE_RAM_BASE
+define REGION3_SIZE SCL_RPM_CODE_RAM_SIZE
+
+# EBI1 ram 128MB from  (EBI1 CS0 start addr)
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION4_BASE to lie
+
+
+# in ebi1 memory region
+define REGION4_BASE 0x40000000
+define REGION4_SIZE 0x08000000
+
+# RPM Message RAM 16KB from 0x00104000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION5_BASE to lie
+# in Code Ram
+define REGION5_BASE 0x00104000
+
+define REGION5_SIZE 0x4000
+
+
+# Array of Memory regions to be dumped by RAM Dump Feature
+# ** This array is used by RAM dump via mem-debug utility, **
+# ** as well as SD-dump on boot using cookie               **
+# New regions should be added here to this array, before the
+# NULL last entry.
+# Regions that span multiple chips, in which you wish to dump
+# CS0 and CS1 separately will need logic added to
+# 'dload_debug_9x15.c',
+# all other regions may be added to this array.
+
+# Element format: {"Region Base Address","Region Size in Bytes","Friendly Region Name String","Output Filename"}
+define MEMORY_REGION1 {REGION1_BASE, REGION1_SIZE, "Q6 TCM region", "Q6_TCM.BIN"}
+define MEMORY_REGION2 {REGION2_BASE, REGION2_SIZE, "System IMEM region", "SYS_IMEM.BIN"}
+define MEMORY_REGION3 {REGION3_BASE, REGION3_SIZE, "RPM Code RAM region", "CODERAM.BIN"}
+
+define MEMORY_REGION4 {REGION4_BASE, REGION4_SIZE, "EBI 1 region", "EBI1.BIN"}
+
+define MEMORY_REGION5 {REGION5_BASE, REGION5_SIZE, "RPM msg region", "RPM_MSG.BIN"}
+define MEMORY_REGION_LAST {NULL, NULL, NULL, NULL}
+
+# Memory Region Table note: Must be on one line as '\' operator not defined in .builds environment
+define MEMORY_REGION_TABLE MEMORY_REGION1,MEMORY_REGION2,MEMORY_REGION3,MEMORY_REGION4,MEMORY_REGION5,MEMORY_REGION_LAST
+
+#------------------------------------------------------------------------------
+# Ram dump memory regions for Avenger
+#------------------------------------------------------------------------------
+[HardComponent: ram_dump_memory_regions_8064]
+
+# define FEATURE_BOOT_RAMDUMPS_TO_SD_CARD
+define CONVERT_TO_MB_SHIFT 20
+
+define SD_PATH "/mmc1/"
+
+# memory dump regions
+
+# Boot ROM 128KB from 0x0
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION0_BASE to lie
+# in ROM
+define REGION0_BASE 0x0
+define REGION0_SIZE 0x0020000
+
+# System IMEM  384KB from 0xFE800000
+#
+#    Region A   64KB from 0xFE800000 REGION1
+#    Region B  188KB from 0xFE810000 REGION7 (TrustZone: XPU-Protected)
+#    Region C    4KB from 0xFE83f000 REGION8
+#
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION1_BASE to lie
+# in IMEM
+define REGION1_BASE 0xFE800000
+define REGION1_SIZE 0x00010000
+
+define REGION7_BASE 0xFE810000
+define REGION7_SIZE 0x0002f000
+
+define REGION8_BASE 0xFE83f000
+define REGION8_SIZE 0x00001000
+
+
+#MM IMEM  192KB from 0x2e000000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION2_BASE to lie
+# in multimedia imem
+define REGION2_BASE 0x2e000000
+define REGION2_SIZE 0x0030000
+
+# RPM Code RAM 144KB from 0x20000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION3_BASE to lie
+# in Code Ram
+define REGION3_BASE SCL_RPM_CODE_RAM_BASE
+define REGION3_SIZE SCL_RPM_CODE_RAM_SIZE
+
+# SMI RAM 64MB from 0x38000000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION4_BASE to lie
+# in SMI memory [points to SMI CS0 start addr]
+define REGION4_BASE 0x38000000
+define REGION4_SIZE 0x4000000
+
+# 176KB from 0x12000000 (SPS RAM)
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION5_BASE to lie
+# in SPS ram region
+define REGION5_BASE 0x12000000
+define REGION5_SIZE 0x002C000
+
+# EBI1 ram 1GB from  (EBI1 CS0 start addr)
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION6_BASE to lie
+# in ebi1 memory region
+define REGION6_BASE 0x80000000
+define REGION6_SIZE 0x40000000
+
+# RPM Message RAM 16KB from 0x00104000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION7_BASE to lie
+# in Code Ram
+define REGION9_BASE 0x00108000
+define REGION9_SIZE 0x5fff
+
+# SPS Buffer RAM 16KB from 0x12040000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION11_BASE to lie
+# in SPS Buffer Ram
+define REGION10_BASE 0x12040000
+define REGION10_SIZE 0x4000
+
+# SPS Pipe Memory 32KB from 0x12800000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION11_BASE to lie
+# in SPS Pipe Memory
+define REGION11_BASE 0x12800000
+define REGION11_SIZE 0x8000
+
+
+# MDSP Ram A 32KB from 0x09000000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION12_BASE to lie
+# in MDSP Ram A
+define REGION12_BASE 0x09000000
+define REGION12_SIZE 0x8000
+
+# MDSP Ram B 32KB from 0x09200000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION13_BASE to lie
+# in MDSP Ram B
+define REGION13_BASE 0x09200000
+define REGION13_SIZE 0x8000
+
+# MDSP Ram C 62KB from 0x09400000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION14_BASE to lie
+# in MDSP Ram C
+define REGION14_BASE 0x09400000
+define REGION14_SIZE 0xF800
+
+# MM GMEM 512kb from 0x2E030000
+# ** DO NOT ** change the region addresses
+# Boot Code assumes REGION15_BASE to lie
+# in Multimedia GMEM
+define REGION15_BASE 0x2E030000
+define REGION15_SIZE 0x00080000
+
+# Array of Memory regions to be dumped by RAM Dump Feature
+# ** This array is used by RAM dump via mem-debug utility, **
+# ** as well as SD-dump on boot using cookie               **
+# New regions should be added here to this array, before the
+# NULL last entry.
+# Regions that span multiple chips, in which you wish to dump
+# CS0 and CS1 separately will need logic added to
+# 'dload_debug_8960.c', (i.e. EB1 CS0/CS1, SMI CS0/CS1),
+# all other regions may be added to this array.
+
+# Element format: {"Region Base Address","Region Size in Bytes","Friendly Region Name String","Output Filename"}
+define MEMORY_REGION1 {REGION1_BASE, REGION1_SIZE, " System IMEM-A", "IMEM_A.BIN"}
+define MEMORY_REGION2 {REGION2_BASE, REGION2_SIZE, " MM IMEM region", "MM_IMEM.BIN"}
+define MEMORY_REGION3 {REGION3_BASE, REGION3_SIZE, "RPM Code RAM region", "CODERAM.BIN"}
+
+define MEMORY_REGION5 {REGION5_BASE, REGION5_SIZE, "SPS RAM region", "SPS_RAM.BIN"}
+
+define MEMORY_REGION8 {REGION8_BASE, REGION8_SIZE, " System IMEM-C", "IMEM_C.BIN"}
+define MEMORY_REGION9 {REGION9_BASE, REGION9_SIZE, "RPM Msg RAM region", "RPM_MSG.BIN"}
+define MEMORY_REGION10 {REGION10_BASE, REGION10_SIZE, "SPS Buff RAM region", "SPS_BUFF.BIN"}
+define MEMORY_REGION11 {REGION11_BASE, REGION11_SIZE, "SPS Pipe Mem region", "SPS_PIPE.BIN"}
+define MEMORY_REGION12 {REGION12_BASE, REGION12_SIZE, "MDSP Ram A region", "MDSP_A.BIN"}
+define MEMORY_REGION13 {REGION13_BASE, REGION13_SIZE, "MDSP Ram B region", "MDSP_B.BIN"}
+define MEMORY_REGION14 {REGION14_BASE, REGION14_SIZE, "MDSP Ram C region", "MDSP_C.BIN"}
+define MEMORY_REGION_LAST {NULL, NULL, NULL, NULL}
+
+# Memory Region Table note: Must be on one line as '\' operator not defined in .builds environment
+define MEMORY_REGION_TABLE MEMORY_REGION1,MEMORY_REGION8,MEMORY_REGION2,MEMORY_REGION3,MEMORY_REGION9,MEMORY_REGION5,MEMORY_REGION10,MEMORY_REGION11,MEMORY_REGION12,MEMORY_REGION13,MEMORY_REGION14,MEMORY_REGION_LAST
+
+[HardComponent: WAVERIDER]
+use ram_dump_memory_regions
+define FEATURE_EFS_EFS2_ON_RMTS
+# Feature flag For 8960 boot bringup
+define ADSP_RTOS_DMOV_ENABLE
+define T_CLKREGIM_BRINGUP           if APPS_PROC
+define FEATURE_SROC
+# BUSMON
+bus_mon_axi_bus_hang_fixed makeonly  #already defined above
+define FEATURE_QFUSE_PROGRAMMING
+
+[HardComponent: BLACKBIRD]
+use ram_dump_memory_regions
+define ADSP_RTOS_DMOV_ENABLE
+define T_CLKREGIM_BRINGUP           if APPS_PROC
+define FEATURE_SROC
+# BUSMON
+bus_mon_axi_bus_hang_fixed makeonly  #already defined above
+define FEATURE_QFUSE_PROGRAMMING
+
+[HardComponent: AVENGER]
+use ram_dump_memory_regions_8064
+define FEATURE_EFS_EFS2_ON_RMTS
+# Feature flag For 8064 boot bringup
+define ADSP_RTOS_DMOV_ENABLE
+define T_CLKREGIM_BRINGUP           if APPS_PROC
+define FEATURE_SROC
+# BUSMON
+bus_mon_axi_bus_hang_fixed makeonly  #already defined above
+define FEATURE_QFUSE_PROGRAMMING
+
+
+#==============================================================================
+#
+# Software Components
+#
+#==============================================================================
+
+# ------------------------------------------------------------------
+# NAND Partition Table:
+# ------------------------------------------------------------------
+# Refer to miparti.h for partition attribute types
+# Format: {"Partition Name","Size in KB","Pad in KB","Which flash","attr 1","attr 2","attr 3","attr 4"}
+[SoftComponent: NandPartition]
+define FLASH_PARTITION_COUNT 4
+define FLASH_PARTITION_TABLE {FLASH_PARTITION_0,FLASH_PARTITION_1,FLASH_PARTITION_2,FLASH_PARTITION_3}
+
+
+define FLASH_PARTITION_0 {"0:MIBIB", 0x6, 0x4, 0, 0xFF, 0xFF, 0xFF, 0xFE}
+#define FLASH_PARTITION_1 {"0:SBL1", 1000, 100, 0, 0xFF, 0xFF, 0xFF, 0xFF}
+define FLASH_PARTITION_1 {"0:SBL2", 3000, 300, 0, 0xFF, 0xFF, 0xFF, 0xFF}
+define FLASH_PARTITION_2 {"0:SBL3", 3000, 300, 0, 0xFF, 0xFF, 0xFF, 0xFF}
+define FLASH_PARTITION_3 {"0:APPSBL1", 0xFFFFFFFF, 0xFFFF, 0, 0xFF, 0xFF, 0xFF, 0xFF}
+
+#------------------------------------------------------------------------------
+# MBN Tools Configuration and Definitions
+#------------------------------------------------------------------------------
+[SoftComponent: MBNToolsConfigure_8960]
+mbntools makeonly
+define IMAGE_KEY_SBL1_IMG_DEST_ADDR     SCL_SBL1_CODE_BASE
+define IMAGE_KEY_SBL2_IMG_DEST_ADDR     SCL_SBL2_CODE_BASE
+define IMAGE_KEY_SBL3_IMG_DEST_ADDR     SCL_SBL3_CODE_BASE
+define IMAGE_KEY_RPM_IMG_DEST_ADDR      SCL_RPM_CODE_BASE
+define IMAGE_KEY_TZ_IMG_DEST_ADDR       SCL_TZ_CODE_BASE
+define IMAGE_KEY_AMSS_IMG_DEST_ADDR     SCL_MODEM_CODE_BASE
+define IMAGE_KEY_APPSBL_IMG_DEST_ADDR   SCL_TZBSP_TEST_BASE
+define IMAGE_KEY_APPS_IMG_DEST_ADDR     SCL_APPS_CODE_BASE
+define IMAGE_KEY_FLASH_AUTO_DETECT_MAX_PAGE 8192
+define IMAGE_KEY_FLASH_AUTO_DETECT_MIN_PAGE 2048
+define IMAGE_KEY_MAX_SIZE_OF_VERIFY_BUFFER  8192
+define IMAGE_KEY_BOOT_SMALL_PREAMBLE        1
+define IMAGE_KEY_EMMCBLD_IMG_DEST_ADDR SCL_SBL2_CODE_BASE+80
+
+[SoftComponent: MBNToolsConfigure_8930]
+mbntools makeonly
+define IMAGE_KEY_SBL1_IMG_DEST_ADDR     SCL_SBL1_CODE_BASE
+define IMAGE_KEY_SBL2_IMG_DEST_ADDR     SCL_SBL2_CODE_BASE
+define IMAGE_KEY_SBL3_IMG_DEST_ADDR     SCL_SBL3_CODE_BASE
+define IMAGE_KEY_RPM_IMG_DEST_ADDR      SCL_RPM_CODE_BASE
+define IMAGE_KEY_TZ_IMG_DEST_ADDR       SCL_TZ_CODE_BASE
+define IMAGE_KEY_AMSS_IMG_DEST_ADDR     SCL_MODEM_CODE_BASE
+define IMAGE_KEY_APPSBL_IMG_DEST_ADDR   SCL_TZBSP_TEST_BASE
+define IMAGE_KEY_APPS_IMG_DEST_ADDR     SCL_APPS_CODE_BASE
+define IMAGE_KEY_FLASH_AUTO_DETECT_MAX_PAGE 8192
+define IMAGE_KEY_FLASH_AUTO_DETECT_MIN_PAGE 2048
+define IMAGE_KEY_MAX_SIZE_OF_VERIFY_BUFFER  8192
+define IMAGE_KEY_BOOT_SMALL_PREAMBLE        1
+define IMAGE_KEY_EMMCBLD_IMG_DEST_ADDR SCL_SBL2_CODE_BASE+80
+
+[SoftComponent: MBNToolsConfigure_9x15]
+mbntools makeonly
+define IMAGE_KEY_SBL1_IMG_DEST_ADDR     SCL_SBL1_CODE_BASE+0x50
+define IMAGE_KEY_SBL2_IMG_DEST_ADDR     SCL_SBL2_CODE_BASE
+define IMAGE_KEY_RPM_IMG_DEST_ADDR      SCL_RPM_CODE_BASE
+define IMAGE_KEY_TZ_IMG_DEST_ADDR       SCL_TZ_CODE_BASE
+define IMAGE_KEY_AMSS_IMG_DEST_ADDR     SCL_MODEM_CODE_BASE
+define IMAGE_KEY_APPSBL_IMG_DEST_ADDR   SCL_TZBSP_TEST_BASE
+define IMAGE_KEY_APPS_IMG_DEST_ADDR     SCL_APPS_CODE_BASE
+define IMAGE_KEY_FLASH_AUTO_DETECT_MAX_PAGE 8192
+define IMAGE_KEY_FLASH_AUTO_DETECT_MIN_PAGE 2048
+define IMAGE_KEY_MAX_SIZE_OF_VERIFY_BUFFER  8192
+define IMAGE_KEY_BOOT_SMALL_PREAMBLE        1
+define IMAGE_KEY_EMMCBLD_IMG_DEST_ADDR SCL_SBL2_CODE_BASE+80
+define IMAGE_KEY_EHOSTDL_IMG_DEST_ADDR  SCL_SBL1_CODE_BASE+0x50
+define IMAGE_KEY_HOSTDL_IMG_DEST_ADDR  SCL_NPRG_CODE_BASE+0x28
+
+[SoftComponent: MBNToolsConfigure_9x25]
+mbntools makeonly
+define IMAGE_KEY_TZ_IMG_DEST_ADDR       SCL_TZ_CODE_BASE
+define IMAGE_KEY_AMSS_IMG_DEST_ADDR     SCL_MODEM_CODE_BASE
+define IMAGE_KEY_APPSBL_IMG_DEST_ADDR   SCL_TZBSP_TEST_BASE
+define IMAGE_KEY_APPS_IMG_DEST_ADDR     SCL_APPS_CODE_BASE
+define IMAGE_KEY_FLASH_AUTO_DETECT_MAX_PAGE 8192
+define IMAGE_KEY_FLASH_AUTO_DETECT_MIN_PAGE 2048
+define IMAGE_KEY_MAX_SIZE_OF_VERIFY_BUFFER  8192
+define IMAGE_KEY_BOOT_SMALL_PREAMBLE        1
+
+[SoftComponent: MBNToolsConfigure_8064]
+mbntools makeonly
+define IMAGE_KEY_SBL1_IMG_DEST_ADDR     SCL_SBL1_CODE_BASE
+define IMAGE_KEY_SBL2_IMG_DEST_ADDR     SCL_SBL2_CODE_BASE
+define IMAGE_KEY_SBL3_IMG_DEST_ADDR     SCL_SBL3_CODE_BASE
+define IMAGE_KEY_RPM_IMG_DEST_ADDR      SCL_RPM_CODE_BASE
+define IMAGE_KEY_TZ_IMG_DEST_ADDR       SCL_TZ_CODE_BASE
+define IMAGE_KEY_AMSS_IMG_DEST_ADDR     SCL_MODEM_CODE_BASE
+define IMAGE_KEY_APPSBL_IMG_DEST_ADDR   SCL_TZBSP_TEST_BASE
+define IMAGE_KEY_APPS_IMG_DEST_ADDR     SCL_APPS_CODE_BASE
+define IMAGE_KEY_FLASH_AUTO_DETECT_MAX_PAGE 8192
+define IMAGE_KEY_FLASH_AUTO_DETECT_MIN_PAGE 2048
+define IMAGE_KEY_MAX_SIZE_OF_VERIFY_BUFFER  8192
+define IMAGE_KEY_BOOT_SMALL_PREAMBLE        1
+define IMAGE_KEY_EMMCBLD_IMG_DEST_ADDR SCL_SBL2_CODE_BASE+80
+
+
+
+#----------------------------------------------------------------------------
+# Virtio Modem Bringup flags for 8660
+#----------------------------------------------------------------------------
+[SoftComponent: 8660_modem_bringup]
+define FEATURE_BOOT_FROM_RAM
+define T_VIRTIO
+define BOOT_WATCHDOG_DISABLED
+
+
+
+#------------------------------------------------------------------------------
+# SENSORS
+#------------------------------------------------------------------------------
+#[SoftComponent: Sensors]
+#define FEATURE_SENSORS           if MODEM_PROC
+#sensors makeonly
+
+[SoftComponent: MEID]
+define FEATURE_MEID_SUPPORT
+define FEATURE_EXPORT_MCCMEID
+EXPORT_MCCMEID makeonly
+
+#------------------------------------------------------------------------------
+# Native Linux
+#------------------------------------------------------------------------------
+[SoftComponent: NativeLinux]
+define              FEATURE_NATIVELINUX
+build_nativelinux_apps    makeonly if APPS_PROC
+build_nativelinux_modem   makeonly if MODEM_PROC
+NATIVE_LINUX_MODEM        makeonly if MODEM_PROC
+unuse BREW
+unuse BREW_APPMGR
+define FEATURE_BT_QSOC
+
+
+# --- begin added lines (090914, sross)---
+#define FEATURE_FIRST_UART  if MODEM_PROC
+#define FEATURE_USE_UART1DM if MODEM_PROC
+linux_bt makeonly
+
+define FEATURE_BT_FTM_TASK
+bt_ftm_modem  makeonly
+define FEATURE_BT_SOC_BITRATE_115200 if MODEM_PROC
+define FEATURE_BT_QSOC_ALL if MODEM_PROC
+define FEATURE_BT_QSOC_SLEEP if MODEM_PROC
+define FEATURE_BT_QSOC_MARIMBA_A0
+define FEATURE_BT_QSOC_MARIMBA_B0
+define FEATURE_BT_MARIMBA if MODEM_PROC
+# --- end added lines (090914, sross)---
+
+#------------------------------------------------------------------------------
+# L4 Linux
+#------------------------------------------------------------------------------
+[SoftComponent: L4Linux]
+define FEATURE_L4LINUX
+define FEATURE_IG_QDIAG   if APPS_PROC
+define QDIAG_DEBUG        if APPS_PROC
+qdiag makeonly            if APPS_PROC
+
+[SoftComponent: HDR]
+define FEATURE_HDR
+define FEATURE_HYBRID_HDR
+define FEATURE_HDR_CUSTOM_CONFIG
+define FEATURE_HYBR_HDR_REDIAL_WAIT_ACQ_FAIL
+define FEATURE_HDR_DEFAULT_TO_REV_0
+hdr make
+
+
+
+
+[SoftComponent: qvp_csvt_live_no_ui]
+qvpnoui make   # Used only for making custqvpnoui.h
+csvt_h324 makeonly
+csvt_qvpapp makeonly
+qvpcodec makeonly
+
+[SoftComponent: qvp_csvt_live]
+qvplive make  # Used Only for making custqvplive.h
+csvt_ui makeonly
+csvt_h324 makeonly
+csvt_qvpapp makeonly
+qvpcodec makeonly
+
+[SoftComponent: qvp_csvt_loopback]
+qvploop make  # Used only for making custqvploop.h
+csvt_ui makeonly
+csvt_qvpapp makeonly
+qvpcodec makeonly
+
+[SoftComponent: qvp_sdp_rtp]
+qvp_sdp makeonly
+qvp_rtp makeonly
+
+[SoftComponent: qvp_sdp_only]
+qvp_sdp makeonly
+
+# IMS integration
+[SoftComponent: ims]
+define FEATURE_QIMFIF_REGMANAGER    if APPS_PROC
+define FEATURE_IMS                  if APPS_PROC
+define FEATURE_IMS_VIDEOSHARE       if APPS_PROC
+define FEATURE_VS_FILE_STREAM       if APPS_PROC  # or put into custqvp.h
+define FEATURE_IMS_ENABLERXDM       if APPS_PROC
+define FEATURE_IMS_ENABLERPRESENCE  if APPS_PROC
+ims makeonly
+ims_xdm makeonly
+ims_presence makeonly
+
+[SoftComponent: qipcall]                # IMS integration
+define FEATURE_IMS_VCC                  # IMS integration
+define FEATURE_QIPCALL              if APPS_PROC
+define FEATURE_QDJ                  if APPS_PROC
+define FEATURE_QDTX                 if APPS_PROC
+define FEATURE_QVPHONE_RTP          if APPS_PROC
+define FEATURE_DRAFT_EVRCB          if APPS_PROC
+qipcall makeonly
+#qdj makeonly
+# end IMS integration
+
+[SoftComponent: WLAN]
+wlan makeonly
+define FEATURE_WLAN     if MODEM_PROC
+
+#------------------------------------------------------------------------------
+# FM Radio
+#------------------------------------------------------------------------------
+[SoftComponent: FMRadio]
+define FEATURE_FM
+define FM_MSM7X30
+fmrds make
+
+
+# ------------------------------------------------------------------
+# WLAN release build for Philips
+# ------------------------------------------------------------------
+[SoftComponent: WLANP, WLAN_PHG]
+define FEATURE_WLAN_PHG_REL
+wlan_phg makeonly
+
+# ------------------------------------------------------------------
+# WLAN release build for Atheros
+# ------------------------------------------------------------------
+[SoftComponent: WLANA, WLAN_ATH]
+define FEATURE_WLAN_ATH_REL
+wlan_ath makeonly
+
+
+#------------------------------------------------------------------------------
+# BUS MANAGERS
+#------------------------------------------------------------------------------
+
+# 7K AXI Bus Monitor
+[SoftComponent: BUS_MANAGER]
+define FEATURE_BUSMON if MODEM_PROC
+bus_mon makeonly if MODEM_PROC
+define FEATURE_BUSMON_HAS_NV_CFG if MODEM_PROC
+define FEATURE_BUSMON_HAS_DIAG_CFG if MODEM_PROC
+bus_mon_axi_bus_hang_fixed makeonly if MODEM_PROC
+define FEATURE_BUSMON_AXI_BUS_HANG_FIXED if MODEM_PROC
+
+# 6K AHB Bus Monitor
+[SoftComponent: ProfDiag]
+define FEATURE_PROFDIAG if MODEM_PROC
+define FEATURE_UXMC_TRANSACTION_STATISTICS if MODEM_PROC
+profdiag makeonly if MODEM_PROC
+
+
+#------------------------------------------------------------------------------
+# MDDI Driver
+#------------------------------------------------------------------------------
+[SoftComponent: MDDI]
+mddi                    makeonly
+
+#------------------------------------------------------------------------------
+# Data Mover Driver
+#------------------------------------------------------------------------------
+[SoftComponent: DMOV]
+define ADSP_RTOS_DMOV_ENABLE
+define FEATURE_DMOV
+define FEATURE_REX_SIGS_EXT
+dmov makeonly
+
+#------------------------------------------------------------------------------
+# Error Services
+#------------------------------------------------------------------------------
+[SoftComponent: ERR]
+define FEATURE_ERR_SERVICES
+err_services makeonly
+
+
+#------------------------------------------------------------------------------
+# RAPTOR
+#------------------------------------------------------------------------------
+[SoftComponent: RAPTOR]
+define FEATURE_STATIC_RAPTOR  if APPS_PROC
+define RAPTOR_UMTS_DDA        if APPS_PROC
+static_raptor makeonly
+raptor_umts_dda makeonly
+
+#------------------------------------------------------------------------------
+# HS-UART on ARM9:
+#------------------------------------------------------------------------------
+[SoftComponent: HSUARTARM9]
+define FEATURE_USE_UART1DM        if MODEM_PROC
+
+#------------------------------------------------------------------------------
+# HS-UART on ARM11:
+#------------------------------------------------------------------------------
+[SoftComponent: HSUARTARM11]
+define FEATURE_USE_UART1DM        #need to be defined for modem proc  if APPS_PROC
+define FEATURE_DMOV_HS_UART_ON_APPS
+
+#------------------------------------------------------------------------------
+# UART-12-X: Modem owns UART1 and UART2
+# --------------------------------------------------------
+# * UART Allocation names: UART-<modem UARTS>-<apps UARTS>
+#------------------------------------------------------------------------------
+[SoftComponent: UART-12-X]
+define FEATURE_FIRST_UART               if MODEM_PROC
+undef FEATURE_SECOND_UART              if MODEM_PROC
+define FEATURE_USES_FIRST_UART
+define FEATURE_USES_SECOND_UART
+define FEATURE_FIRST_UART_ON_ANY_PROC
+use HSUARTARM9
+
+
+#------------------------------------------------------------------------------
+# UART-1-2: Modem owns UART1, Apps owns UART2
+# --------------------------------------------------------
+# * UART Allocation names: UART-<modem UARTS>-<apps UARTS>
+#------------------------------------------------------------------------------
+[SoftComponent: UART-1-2]
+define FEATURE_FIRST_UART               if MODEM_PROC
+define FEATURE_SECOND_UART              if APPS_PROC
+define FEATURE_USES_FIRST_UART
+define FEATURE_USES_SECOND_UART
+define FEATURE_FIRST_UART_ON_ANY_PROC
+use HSUARTARM9
+
+#------------------------------------------------------------------------------
+# UART-X-12: Apps owns UART1 and UART2
+# --------------------------------------------------------
+# * UART Allocation names: UART-<modem UARTS>-<apps UARTS>
+#------------------------------------------------------------------------------
+[SoftComponent: UART-X-12]
+define FEATURE_FIRST_UART               if APPS_PROC
+define FEATURE_SECOND_UART              if APPS_PROC
+define FEATURE_USES_FIRST_UART
+define FEATURE_USES_SECOND_UART
+define FEATURE_FIRST_UART_ON_ANY_PROC
+use HSUARTARM11
+
+#------------------------------------------------------------------------------
+# UART-23-1: Modem owns UART2 and UART3, Apps owns UART1
+# --------------------------------------------------------
+# * UART Allocation names: UART-<modem UARTS>-<apps UARTS>
+#------------------------------------------------------------------------------
+[SoftComponent: UART-23-1]
+define FEATURE_FIRST_UART               if APPS_PROC
+undef FEATURE_SECOND_UART              if MODEM_PROC
+undef FEATURE_THIRD_UART               if MODEM_PROC
+define FEATURE_USES_FIRST_UART          if APPS_PROC
+define FEATURE_USES_SECOND_UART
+define FEATURE_USES_THIRD_UART
+define FEATURE_FIRST_UART_ON_ANY_PROC
+define FEATURE_SECOND_UART_ON_ANY_PROC
+define FEATURE_THIRD_UART_ON_ANY_PROC
+
+
+#------------------------------------------------------------------------------
+# USB
+#------------------------------------------------------------------------------
+[SoftComponent: USB_ON_APPS]
+define FEATURE_NO_USB_HW_ON_PROCESSOR   if MODEM_PROC
+define FEATURE_USB_ON_APPS_PROC
+
+
+#------------------------------------------------------------------------------
+# High-Speed USB
+#------------------------------------------------------------------------------
+[SoftComponent: HS_USB_ON_MODEM_PROC]
+undef  FEATURE_NO_USB_HW_ON_PROCESSOR   if MODEM_PROC
+define FEATURE_NO_USB_HW_ON_PROCESSOR   if APPS_PROC
+undef FEATURE_HS_USB_RAMDRIVE
+unuse PICT_BRIDGE_APP
+undef FEATURE_USB_ON_APPS_PROC # Override COMMON_AMSS7600
+define FEATURE_HS_USB_ON_MODEM_PROC
+hs_usb_on_modem_proc makeonly
+
+#------------------------------------------------------------------------------
+# High-Speed USB On-The-Go
+#------------------------------------------------------------------------------
+[SoftComponent: HS_USB_OTG]
+define FEATURE_HS_USB_OTG
+hsu_otg   makeonly
+
+#------------------------------------------------------------------------------
+# High-Speed USB Mass Storage Function Driver
+#------------------------------------------------------------------------------
+[SoftComponent: HS_USB_MS_FD]
+define FEATURE_HS_USB_MS_FD
+hsu_ms_fd   makeonly
+
+#------------------------------------------------------------------------------
+# High-Speed USB MTP
+#------------------------------------------------------------------------------
+[SoftComponent: MTP]
+define FEATURE_HSU_MTP
+#HVM:hsu_mtp   makeonly
+define FEATURE_USB_BREW_EXTENDED_DEVICE
+define FEATURE_USB_LAUNCH_MTP_BACKGROUND_APP
+
+#------------------------------------------------------------------------------
+# Exported APIs in the multi-processor builds.
+#------------------------------------------------------------------------------
+[SoftComponent: Export_APIs]
+define FEATURE_EXPORT_7K_APIS
+export_7k_apis        makeonly
+remoteapis
+
+  # APIs can still be exported individually by following this example:
+  # export_cm               makeonly
+  # define FEATURE_EXPORT_CM
+
+#------------------------------------------------------------------------------
+# Shared Memory Driver
+#------------------------------------------------------------------------------
+[SoftComponent: SMEM]
+define FEATURE_SMEM
+define FEATURE_SMD
+define FEATURE_SMD_MEMCPY
+define FEATURE_SLOW_CLOCK_MULTIPROC_SYNC
+define FEATURE_SLOW_CLOCK_MULTIPROC_SYNC_SMSM
+define SCLK_SYNC_TIMEOUT                50000000
+define FEATURE_TOD_MULTIPROC_SYNC
+define SMEM_MEM_BARRIER_SZ    4KB
+smem                    makeonly
+smd_port_mgr   makeonly
+define FEATURE_SMD_PORT_MGR
+smd makeonly
+define FEATURE_TIME_DEM_SYNCHRONIZE  #added by acheung to use DEM slock_clock_sync apis
+smem_sw_spinlock makeonly
+define FEATURE_SMD_BRIDGE
+smd_bridge     makeonly
+
+#------------------------------------------------------------------------------
+# Spin Lock
+#------------------------------------------------------------------------------
+[SoftComponent: SL]
+define FEATURE_SPINLOCK
+define FEATURE_ARM_ASM_SPINLOCK
+###define FEATURE_SPINLOCK_TEST
+arm_asm_spinlock        makeonly
+
+#------------------------------------------------------------------------------
+# Shared Memory State Machine
+#------------------------------------------------------------------------------
+[SoftComponent: SMSM]
+use    SL
+define FEATURE_SMSM
+
+
+#------------------------------------------------------------------------------
+# Software Component DEBUG: Enable Debug Features
+#------------------------------------------------------------------------------
+[SoftComponent: DEBUG]
+use SL
+define FEATURE_SMEM_LOG
+smem_log makeonly
+define FEATURE_DISABLE_DLOAD_ENTRY_ON_ERROR_FATAL
+###define FEATURE_BRINGUP_DIAG_ONLY        # Changes TMC
+define FEATURE_L4_RECENT_THREADS
+define FEATURE_MEM_DEBUG                   if MODEM_PROC
+define FEATURE_HEAP_SMALLER_OVERHEAD  0    if APPS_PROC
+#------------------------------------------------------------------------------
+# Software Component EFSRamDisk: RAM File System
+#------------------------------------------------------------------------------
+[SoftComponent: EFSRamDisk]
+define FEATURE_EFS_RAMDISK
+define FEATURE_EFS_ROOT_RAMDISK
+define EFS_RAMDISK_SIZE  192000
+efs_root_ramdisk        makeonly
+
+
+
+#------------------------------------------------------------------------------
+# Modem AMSS Software Components for 7600
+#------------------------------------------------------------------------------
+[SoftComponent: MODEM_AMSS7600]
+define FEATURE_UI_HS_NEW_INTERFACE
+define FEATURE_UI_HS_NEW_INTERFACE2
+define FEATURE_DSAT_HS_NEW_INTERFACE
+
+define FEATURE_UI_CORE_REMOVED          if MODEM_PROC
+define FEATURE_UI_DUALPROC_MDM          if MODEM_PROC
+
+#vijay Enable FEATURE_REX_STAT to enable INTLOCK/INTFREE profiling
+define FEATURE_GPTIMERS_7500            if MODEM_PROC
+define FEATURE_DISABLE_FREEZEIO_FOR_VDD_MIN if MODEM_PROC
+define FEATURE_SLEEPCTL_PC
+vocvp3 makeonly                         if MODEM_PROC
+
+undef  FEATURE_APP_CATAPP               if MODEM_PROC
+# %%% undef  FEATURE_APP_BLUETOOTH            if MODEM_PROC
+### temporarily undefine some data features while custdata.h is included
+### on modem side.
+### begin: for vijay, take these out of modem
+undef  FEATURE_PORTMAP_TEST_AUTOMATION  if MODEM_PROC
+undef  FEATURE_MEDIAPLAYER_TEST_AUTOMATION   if MODEM_PROC
+undef  FEATURE_AUDIOSETTINGS_TEST_AUTOMATION if MODEM_PROC
+undef  FEATURE_QCAMERA_TEST_AUTOMATION  if MODEM_PROC
+
+define FEATURE_DISABLE_MCC_FILTERING
+define FEATURE_ENHANCED_NW_SELECTION
+
+[SoftComponent: RUIM]
+define FEATURE_RUIM
+define FEATURE_AUTH
+define FEATURE_UIM1
+define FEATURE_UIM_PMIC_ON_UIM1
+ruim   makeonly
+uim    make
+auth   makeonly
+gstk   makeonly
+undef  FEATURE_SECOND_UART
+define FEATURE_UIM_RUIM
+define FEATURE_UIM_RUN_TIME_ENABLE
+
+#------------------------------------------------------------------------------
+# High-Speed USB Pictbridge Application
+#------------------------------------------------------------------------------
+[SoftComponent: PICT_BRIDGE_APP]
+define FEATURE_APP_PBPRINT    # Reference app
+pict_bridge makeonly
+define FEATURE_PICTBRIDGE_HS  # OEMPictBridge for High Speed USB
+
+#------------------------------------------------------------------------------
+# LCD Display Components
+#------------------------------------------------------------------------------
+[SoftComponent: Display]
+use    MDP
+use    MDDI
+define FEATURE_ERR_LCD
+ui
+vga_content     makeonly
+
+
+# ------------------------------------------------------------------
+#
+# SecureMSM services Software Common Feature Set Definition for L4 builds.
+#
+# ------------------------------------------------------------------
+[SoftComponent: SEC_SVC_SINGLE_PD, drmms_support_includes]
+define FEATURE_DRM_NO_BREW
+sec_clnt makeonly
+sec_svc  makeonly
+sfs      makeonly
+aka      makeonly
+sec    make
+define AMSS_PD
+define SEC_PD
+
+
+# ------------------------------------------------------------------
+#
+# Content Handler Test Software Common Feature Set Definition.
+#
+# ------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# Common includes for AMSS
+#-----------------------------------------------------------------------------
+[SoftComponent: COMMON_AMSS7600_INCLUDES]
+define FEATURE_EFS2
+surf make
+diag
+efs
+pmic
+sio_8660
+#qhsusb
+use SEC_SVC_SINGLE_PD
+
+#------------------------------------------------------------------------------
+# Common AMSS Software Components for 7600
+#------------------------------------------------------------------------------
+[SoftComponent: COMMON_AMSS7600]
+define FEATURE_ULOG_APP
+target
+define FEATURE_PM_STROBE_FLASH
+use    DMOV
+use    QMDP
+use    ONCRPC
+use    ERR
+define FEATURE_DOG_BARK
+define FEATURE_DIAG_FS_ACCESS_VALIDATION
+define FEATURE_MEMHEAP_MT
+define FEATURE_I2C
+define FEATURE_I2C_IO_CTRL
+
+define FEATURE_EFS
+define FEATURE_TIMER_TASK
+define FEATURE_TIME_IPC_TASK
+define FEATURE_GENOFF_STANDALONE
+define FEATURE_DTV_TSIF
+define FEATURE_TSG_EXT
+define FEATURE_MULTIPROCESSOR           # FIXME: This feature should either be
+                                        #  moved to BasicMultiprocessor or its
+                                        #  name should be changed.
+define FEATURE_APPS_TCXO_SLEEP
+define FEATURE_APPS_POWER_COLLAPSE
+define FEATURE_POWER_COLLAPSE
+define FEATURE_PBM_TASK
+define FEATURE_PMIC_USB_OTG
+define FEATURE_USB_OTG
+define FEATURE_USB_ON_APPS_PROC
+define FEATURE_HIGH_POWER_CLK_FREQUENCY_PLAN
+HIGH_POWER_CLK_FREQUENCY_PLAN makeonly
+define FEATURE_DISPLAY_CONTENT_MAP
+define FEATURE_I2C_DIRECT_ON_ARM11
+i2c_on_apps    makeonly
+define FEATURE_BATTERY_NOTIFICATION
+define FEATURE_REX_CS
+define FEATURE_VOC_G711
+define FEATURE_VOC_4GV
+define FEATURE_VOC_AMR_WB
+efs2                    makeonly
+qos                     makeonly        # FIXME: This goes away?
+sdcc                    make
+define FEATURE_DIAG_MP_MASTER_APPS
+define FEATURE_BUSPERF
+bus_perf makeonly
+
+define FEATURE_CLKREGIM_ARM_SLEEP_AT_TCXO
+define FEATURE_CLKREGIM_ADSP_AXI_CONTROL
+
+#David added
+undef  FEATURE_SPLIT_SCAN_LINES
+define FEATURE_APP_UITEST
+
+#RUIM support
+auth   makeonly
+undef  FEATURE_SECOND_UART
+define FEATURE_MMGSDI_NO_TCB_PTR_OR_CRIT_SEC
+#Debug support
+define FEATURE_SAVE_TRACE_EXTENDED
+define FEATURE_OPTIMIZE_TRACE_RECORDS
+#vijay: Faeture defined for AUD compilation
+define FEATURE_MULTISEQUENCER
+#Misc stuff
+mbcbasba makeonly
+hsu       makeonly
+HS_USB_CHG_REMOTE_API makeonly
+
+
+##Uncomment the following line in order to include
+##HS-USB performance tests' files in the build.
+#hsu_performance_tests makeonly
+## not for 7600 HW - define FEATURE_HSU_EBI
+undef FEATURE_HS_USB
+hsu_ecm makeonly
+define FEATURE_USB_DIAG_NMEA
+define FEATURE_BREW_USB_HID
+use HS_USB_OTG
+use HS_USB_MS_FD
+hsu_ms_fd_boot makeonly
+
+use PICT_BRIDGE_APP
+
+define FEATURE_NO_DB
+define FEATURE_MULTIPORT_LED
+define FEATURE_TIME_ALARM
+define FEATURE_MSM_SUPPORT
+define FEATURE_AUTH_DIGITS
+define FEATURE_PBM_USIM_SUPPORT
+
+define FEATURE_TOOLSDIAG_INIT  if MODEM_PROC
+#define FEATURE_NVDIAG_INIT  if MODEM_PROC
+define FEATURE_CMI
+
+#------------------------------------------------------------------------------
+# Common AMSS Software Components for 7600
+#------------------------------------------------------------------------------
+[SoftComponent: AMSS7600]
+use COMMON_AMSS7600
+use COMMON_AMSS7600_INCLUDES
+use MODEM_AMSS7600              if MODEM_PROC
+
+
+#------------------------------------------------------------------------------
+# Basic Multiprocessor Software Configuration
+#------------------------------------------------------------------------------
+[SoftComponent: BasicMultiProcessor]
+use    Export_APIs
+use    SMEM
+use    SMSM
+use    DEBUG
+undef FEATURE_APPS_KEEPALIVE
+undef FEATURE_APPS_KEEPALIVE_VARIABLE_TIMEOUT
+undef DOG_KEEPALIVE_100MS_NUM_SLOTS 10
+define FEATURE_ERROR_MESSAGE_STANDALONE
+DEM                     makeonly
+
+i2c_on_apps    makeonly
+
+
+#------------------------------------------------------------------------------
+# Default Boot Configuration
+#------------------------------------------------------------------------------
+[SoftComponent: DefaultBoot]
+define FEATURE_BOOT_FROM_FLASH
+define FEATURE_L4_FLASH_BOOT
+undef  FEATURE_FULL_JTAG_DOWNLOAD
+define FEATURE_SECBOOT_2_0
+dcache_in_boot makeonly
+
+#Enables logging of messages to ram
+define FEATURE_BOOT_LOGGER_RAM
+boot_logger_ram makeonly
+
+
+#Enables taking of timestamps for logging purposes
+define FEATURE_BOOT_LOGGER_TIMER
+boot_logger_timer makeonly
+
+
+#Enables outputting of logged messages to JTAG terminal window
+define FEATURE_BOOT_LOGGER_JTAG
+boot_logger_jtag makeonly
+
+define TARGET_BOOT_COOKIE_BASE_ADDR DLOAD_ID_ADDR
+define TARGET_BOOT_COOKIE_RANGE_BYTES 0x1FF8
+
+
+[SoftComponent: CommonAppFeaturesLB]
+use    BasicMultiProcessor
+use    QDIAG
+#use    Iguana
+use AMSS7600
+use USB_ON_APPS
+define FEATURE_PBM_USE_EFS_PB
+unuse qipcall
+use NativeLinux
+undef FEATURE_DIAG_MP_MODEM_ONLY
+define FEATURE_DIAG_MP_MASTER_APPS
+define FEATURE_RDM_ALWAYS_NON_PERSISTENT
+define FEATURE_UI_CORE_REMOVED
+define FEATURE_DATA_RM_NET_USES_SM
+define FEATURE_DATA_RM_NET_MULTI
+undef FEATURE_FIRST_UART_ON_ANY_PROC
+undef FEATURE_MDN_BASED_NAI
+#unuse HSUARTARM9
+undef FEATURE_EXTERNAL_APPS_MOUNT
+define FEATURE_MSM_SUPPORT
+define FEATURE_MMOC_SELECTIVE_ACTIVATION
+#define FEATURE_HEADSET_SWITCH
+define FEATURE_HS_POLLING_ON_MODEM
+define FEATURE_HSSD
+define FEATURE_KEYPAD
+define FEATURE_HS
+#use HSUARTARM11
+#define FEATURE_USES_THIRD_UART
+define FEATURE_BOOT_USB_PHY_INIT
+
+
+#==============================================================================
+#
+# MSM Configurations H0,_,_,_,_,_,_,_,_
+#
+#==============================================================================
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# MSM A: WAVERIDER/SHELBY/8064 (8960/9x15/8064)
+#------------------------------------------------------------------------------
+[MSM Identifier: A]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+
+#------------------------------------------------------------------------------
+# MSM F: 8x26
+#------------------------------------------------------------------------------
+[MSM Identifier: F]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+
+#------------------------------------------------------------------------------
+# MSM D: 8x10
+#------------------------------------------------------------------------------
+[MSM Identifier: D]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+
+#------------------------------------------------------------------------------
+# MSM L: 8092
+#------------------------------------------------------------------------------
+[MSM Identifier: L]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+
+#------------------------------------------------------------------------------
+# MSM M: 8916 (temporary)
+#------------------------------------------------------------------------------
+[MSM Identifier: M]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+define TARGET_8916
+
+
+#------------------------------------------------------------------------------
+# MSM G: 8084
+#------------------------------------------------------------------------------
+[MSM Identifier: G]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+
+#------------------------------------------------------------------------------
+# MSM H: 8092
+#------------------------------------------------------------------------------
+[MSM Identifier: H]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+
+#------------------------------------------------------------------------------
+# MSM I: 8092
+#------------------------------------------------------------------------------
+[MSM Identifier: I]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+
+#------------------------------------------------------------------------------
+# MSM J: 9x35
+#------------------------------------------------------------------------------
+[MSM Identifier: J]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+define TARGET_9x35
+
+#------------------------------------------------------------------------------
+# MSM K: 8936 (temporary)
+#------------------------------------------------------------------------------
+[MSM Identifier: K]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+define TARGET_8936
+
+
+#------------------------------------------------------------------------------
+# MSM L: 8909 (temporary)
+#------------------------------------------------------------------------------
+[MSM Identifier: L]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+define TARGET_8909
+
+#------------------------------------------------------------------------------
+# MSM R: 9x07 (temporary)
+#------------------------------------------------------------------------------
+[MSM Identifier: R]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+define TARGET_9x07
+
+#------------------------------------------------------------------------------
+# MSM N: 9x09 (temporary)
+#------------------------------------------------------------------------------
+[MSM Identifier: N]
+use BLACKBIRD
+define FEATURE_KARURA
+define FEATURE_MDP_ILCDC
+define FEATURE_MDP_NEW_ARCH
+#secboot makeonly
+define TARGET_9x09
+
+#==============================================================================
+#
+# Platform Configurations _,H1,_,_,_,_,_,_,_
+#
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# Platform A: 8960 MDP/CDP, 8064 Virtio
+#------------------------------------------------------------------------------
+[Platform Identifier: A]
+use    MSMCommon
+use    TargetCommon
+use    DefaultBoot
+define USES_KARURATURBO
+#secboot makeonly
+
+#------------------------------------------------------------------------------
+# Platform C:  Shelby
+#------------------------------------------------------------------------------
+[Platform Identifier: C]
+use    MSMCommon
+use    TargetCommon
+use    DefaultBoot
+define USES_KARURATURBO
+#secboot makeonly
+
+
+#==============================================================================
+#
+# EBI 1 Memory Configurations _,_,H2,_,_,_,_,_,_
+#
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# RAM Config  A: 256 MB 32-bit DDR (No SMI)
+#------------------------------------------------------------------------------
+[RAM Config: A]
+#use NandPartition
+
+use L4DDROnly
+use EBI0_LPDDR1Only_MemMapDDR256
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  B: 256 MB 32-bit DDR (No SMI), 384KB IMEM
+#------------------------------------------------------------------------------
+[RAM Config: B]
+#use NandPartition
+
+use L4DDROnly
+use EBI0_LPDDR1Only_MemMapDDR256_IMEM384
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  E: 256 MB 32-bit DDR (No SMI)
+#------------------------------------------------------------------------------
+[RAM Config: E]
+#use NandPartition
+
+use L4DDROnly
+#DDR Memory Map config for testing 9x25 TZ on Rumi
+use EBI0_LPDDR1Only_MemMapDDR256_9x25
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  F: 256 MB 32-bit DDR (No SMI)
+#------------------------------------------------------------------------------
+[RAM Config: F]
+#use NandPartition
+
+use L4DDROnly
+#DDR Memory Map config for testing 9x35 TZ on Rumi
+use EBI0_LPDDR1Only_MemMapDDR256_9x35
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  R: 256 MB 32-bit DDR (No SMI)
+#------------------------------------------------------------------------------
+[RAM Config: R]
+#use NandPartition
+
+use L4DDROnly
+#DDR Memory Map config for testing 8x26 TZ on Rumi
+use EBI0_LPDDR1Only_MemMapDDR256_8x26
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  S: 256 MB 32-bit DDR (No SMI) 8962 Pre Silicon
+#------------------------------------------------------------------------------
+[RAM Config: S]
+#use NandPartition
+
+use L4DDROnly
+#DDR Memory Map config for testing 8x26 TZ on Rumi
+use EBI0_LPDDR1Only_MemMapDDR256_8x26
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  T: 256 MB 32-bit DDR (No SMI)
+#------------------------------------------------------------------------------
+[RAM Config: T]
+#use NandPartition
+
+use L4DDROnly
+#DDR Memory Map config for testing 8x10 TZ on Rumi
+use EBI0_LPDDR1Only_MemMapDDR256_8x10
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  U: 256 MB 32-bit DDR (No SMI) for 8916
+#------------------------------------------------------------------------------
+[RAM Config: U]
+#use NandPartition
+
+use L4DDROnly
+#DDR Memory Map config for testing 8x16 TZ on Rumi
+use EBI0_LPDDR1Only_MemMapDDR256_8x16
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+SEC_POLICY_DEFAULT_SIGN makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  W: 256 MB 32-bit DDR (No SMI) for 8936
+#------------------------------------------------------------------------------
+[RAM Config: W]
+#use NandPartition
+
+use L4DDROnly
+#DDR Memory Map config for testing 8x36 TZ on Rumi
+use EBI0_LPDDR1Only_MemMapDDR256_8x36
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+SEC_POLICY_DEFAULT_SIGN makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  Z: 256 MB 32-bit DDR (No SMI) for 8909
+#------------------------------------------------------------------------------
+[RAM Config: Z]
+#use NandPartition
+
+use L4DDROnly
+#DDR Memory Map config for testing 8x16 TZ on Rumi
+use EBI0_LPDDR1Only_MemMapDDR256_8x09
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+SEC_POLICY_DEFAULT_SIGN makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  Z: 256 MB 32-bit DDR (No SMI) for 8909W -wearable
+#------------------------------------------------------------------------------
+[RAM Config: T]
+#use NandPartition
+
+use L4DDROnly
+#DDR Memory Map config for testing 8x16 TZ on Rumi
+use EBI0_LPDDR1Only_MemMapDDR256_8x09W
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+SEC_POLICY_DEFAULT_SIGN makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  R: 256 MB 32-bit DDR (No SMI) for 9x07
+#------------------------------------------------------------------------------
+[RAM Config: R]
+#use NandPartition
+
+use L4DDROnly
+#DDR Memory Map config for testing 8x16 TZ on Rumi
+use EBI0_LPDDR1Only_MemMapDDR256_9x07
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+SEC_POLICY_DEFAULT_SIGN makeonly
+
+#------------------------------------------------------------------------------
+# RAM Config  Y: 256 MB 32-bit DDR (No SMI) for 9x09
+#------------------------------------------------------------------------------
+[RAM Config: Y]
+#use NandPartition
+
+use L4DDROnly
+#DDR Memory Map config for testing 8x16 TZ on Rumi
+use EBI0_LPDDR1Only_MemMapDDR256_8x16
+DDR_ONLY makeonly
+DDR32_CFG_DATA makeonly
+define CUST_MOB_MODEL_ASSIGNED 4047
+LPDDR2 makeonly
+SEC_POLICY_DEFAULT_SIGN makeonly
+
+#==============================================================================
+#
+# EBI 2 Memory Configurations _,_,_,H3,_,_,_,_,_
+#
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# Flash Config (EBI2) B: (8960) 16-bit / 4K byte page size / NAND
+#------------------------------------------------------------------------------
+[Flash Config: B]
+define FEATURE_EFS_PROBE_NAND
+define FLASH_USES_DM
+define FEATURE_FLASH_ALIGN_DEST_BUFFER
+define FEATURE_FLASH_MPU
+NAND16_4K_CFG_DATA makeonly
+define EFS_PAGE_SIZE     4096
+define NAND_PAGE_SIZE    4096
+define NAND_BLK_SIZE     64
+define NAND_DEVICE_SIZE  1024
+
+
+#------------------------------------------------------------------------------
+# Flash Config (EBI2) T: (9x15) 16-bit / 4K byte page size / NAND
+#------------------------------------------------------------------------------
+[Flash Config: T]
+define FEATURE_EFS_PROBE_NAND
+define FLASH_USES_DM
+define FEATURE_FLASH_ALIGN_DEST_BUFFER
+define FEATURE_FLASH_MPU
+define EFS_PAGE_SIZE     4096
+define NAND_PAGE_SIZE    4096
+define NAND_BLK_SIZE     64
+define NAND_DEVICE_SIZE  1024
+NAND16_4K_CFG_DATA makeonly
+nand_boot makeonly
+elf_load_boot makeonly
+
+#------------------------------------------------------------------------------
+# Flash Config (EBI2) H: (9x15) 16-bit / 4K byte page size / Flashless
+#------------------------------------------------------------------------------
+[Flash Config: H]
+define FEATURE_EFS_PROBE_NAND
+define FLASH_USES_DM
+define FEATURE_FLASH_ALIGN_DEST_BUFFER
+define FEATURE_FLASH_MPU
+define EFS_PAGE_SIZE     4096
+NAND16_4K_CFG_DATA makeonly
+sahara_boot makeonly
+
+#------------------------------------------------------------------------------
+# Flash Config (EBI2) A: (8064) 16-bit / 4K byte page size / NAND
+#------------------------------------------------------------------------------
+[Flash Config: A]
+define FEATURE_EFS_PROBE_NAND
+define FLASH_USES_DM
+define FEATURE_FLASH_ALIGN_DEST_BUFFER
+define FEATURE_FLASH_MPU
+NAND16_4K_CFG_DATA makeonly
+define EFS_PAGE_SIZE     4096
+define NAND_PAGE_SIZE    4096
+define NAND_BLK_SIZE     64
+define NAND_DEVICE_SIZE  1024
+
+#------------------------------------------------------------------------------
+# Flash Config (EBI2) F: (8064) 16-bit / 4K byte page size / NAND
+#------------------------------------------------------------------------------
+[Flash Config: F]
+define FEATURE_EFS_PROBE_NAND
+define FLASH_USES_DM
+define FEATURE_FLASH_ALIGN_DEST_BUFFER
+define FEATURE_FLASH_MPU
+NAND16_4K_CFG_DATA makeonly
+define EFS_PAGE_SIZE     4096
+define NAND_PAGE_SIZE    4096
+define NAND_BLK_SIZE     64
+define NAND_DEVICE_SIZE  1024
+define FEATURE_FLASHLESS
+define FEATURE_XPU2_RG
+
+#------------------------------------------------------------------------------
+# Flash Config (EBI2) S: (8064) 16-bit / 4K byte page size / 15 years NAND
+#------------------------------------------------------------------------------
+[Flash Config: S]
+define FEATURE_EFS_PROBE_NAND
+define FLASH_USES_DM
+define FEATURE_FLASH_ALIGN_DEST_BUFFER
+define FEATURE_FLASH_MPU
+NAND16_4K_CFG_DATA makeonly
+define EFS_PAGE_SIZE     4096
+define NAND_PAGE_SIZE    4096
+define NAND_BLK_SIZE     64
+define NAND_DEVICE_SIZE  1024
+define FEATURE_XPU2_RG
+define FEATURE_15_YEARS_NAND
+
+
+#==============================================================================
+#
+# RF Configurations _,_,_,_,H4,_,_,_,_
+#
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# RF Config Q: QTR8600
+#------------------------------------------------------------------------------
+[RF Config: Q]
+
+#------------------------------------------------------------------------------
+# RF Config R: QTR8600
+#------------------------------------------------------------------------------
+[RF Config: R]
+
+#------------------------------------------------------------------------------
+# RF Config A: QTR8600
+#------------------------------------------------------------------------------
+[RF Config: A]
+
+
+#==============================================================================
+#
+# Air Interface Configurations _,_,_,_,_,S1,_,_,_
+#
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# Air Interface N: Multimode (WCDMA R99(IMT/PCS/800) + GSM/GPRS Quad-band)
+# Non SHARC-1 Build(FTS Build)+Non UOOS+Non H2O
+#------------------------------------------------------------------------------
+[Air Interface: N]
+
+#------------------------------------------------------------------------------
+# Air Interface M: Multimode (WCDMA R99(IMT/PCS/800) + GSM/GPRS Quad-band)
+# Non SHARC-1 Build(FTS Build)+Non UOOS+Non H2O
+#------------------------------------------------------------------------------
+[Air Interface: M]
+
+#==============================================================================
+#
+# Air Interface Configurations _,_,_,_,_,_,S2,S3,_
+#
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration BB: Multi-processor L4 Baseline for CMI
+#------------------------------------------------------------------------------
+[Application Features: BB]
+use MBNToolsConfigure_8960
+#Temp flag for 8660 modem bringup
+use 8660_modem_bringup
+define FEATURE_SDCC_BOOT
+
+use CommonAppFeaturesLB
+no_strip_no_odm makeonly
+define FEATURE_FTM_HWTC
+ftm_hwtc makeonly
+idiag  makeonly
+define FEATURE_APP_TEST_AUTOMATION
+
+define FEATURE_GSTK_ENH_MULTI_CLIENT_SUPPORT
+define FEATURE_ESTK_CM_VOICE_CALL_INTERFACE
+define FEATURE_ESTK_CM_SUPPS_INTERFACE
+define FEATURE_ESTK_WMS_INTERFACE
+define FEATURE_ESTK
+
+define FEATURE_CHIP_CONTROL_SMEM_PCIL
+use BUS_MANAGER
+undef FEATURE_UI
+
+define FEATURE_CTA
+CTA makeonly
+fta make
+playready makeonly
+
+# High-Speed USB Mass Storage Function Driver
+define FEATURE_HS_USB_MS_FD
+hsu_ms_fd   makeonly
+hsu makeonly
+
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration BZ:
+#    Same as BB, but strip/pack
+#------------------------------------------------------------------------------
+[Application Features: BZ]
+
+#Temp flag for 8660 modem bringup
+use 8660_modem_bringup
+define FEATURE_SDCC_BOOT
+use CommonAppFeaturesLB
+strip_no_odm makeonly
+no_debug makeonly
+idiag  makeonly
+define FEATURE_APP_TEST_AUTOMATION
+undef  FEATURE_FTM_HWTC
+use UMTS_DATA_ON_MODEM        if MODEM_PROC
+undef FEATURE_PWRDB
+undef FEATURE_CBSP_TEST
+undef FEATURE_QDSP_TASK
+define FEATURE_GSTK_ENH_MULTI_CLIENT_SUPPORT
+define FEATURE_ESTK_CM_VOICE_CALL_INTERFACE
+define FEATURE_ESTK_CM_SUPPS_INTERFACE
+define FEATURE_ESTK_WMS_INTERFACE
+define FEATURE_ESTK
+define FEATURE_CHIP_CONTROL_SMEM_PCIL
+undef FEATURE_UI
+
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration BG:
+#
+# 8960 On target specific features
+#------------------------------------------------------------------------------
+[Application Features: BG]
+use MBNToolsConfigure_8960
+use CommonAppFeaturesLB
+no_strip_no_odm makeonly
+define FEATURE_FTM_HWTC
+ftm_hwtc makeonly
+playready makeonly
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration BH:
+#
+# 8930 On target specific features
+#------------------------------------------------------------------------------
+[Application Features: BH]
+use MBNToolsConfigure_8930
+use CommonAppFeaturesLB
+no_strip_no_odm makeonly
+define FEATURE_FTM_HWTC
+ftm_hwtc makeonly
+playready makeonly
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration AA:
+#
+# 9x15 On target specific features
+#------------------------------------------------------------------------------
+[Application Features: AA]
+use MBNToolsConfigure_9x15
+use CommonAppFeaturesLB
+no_strip_no_odm makeonly
+define FEATURE_FTM_HWTC
+ftm_hwtc makeonly
+playready makeonly
+
+apq makeonly
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration BA:
+#
+# 9x25 On target specific features
+#
+# This has been derived from 8974 (Application Features: AA) to build and test 9x25 TZ on RUMI
+#------------------------------------------------------------------------------
+[Application Features: BA]
+use MBNToolsConfigure_9x25 #copied from MBNToolsConfigure_9x15 (what 8974 was using) and customized for testing TZ on Rumi
+use CommonAppFeaturesLB
+no_strip_no_odm makeonly
+define FEATURE_FTM_HWTC
+ftm_hwtc makeonly
+
+apq makeonly
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration AP :
+#
+# 8064 On target specific features . This is temp solution
+#------------------------------------------------------------------------------
+[Application Features: AP]
+# MSM within MSM family should be specified by MSM A, H0.
+# But as this is currently common between 9x15 and 8064, we are over-writing
+# those definitions here
+use Avenger
+# Memory configuration should be specified by EBI1 Memory Config H2.
+# But as this is currently common between 9x15 and 8064, we are over-writing
+# those definitions here
+use EBI0_LPDDR1Only_MemMapDDR256_Original8064
+use MBNToolsConfigure_8064
+use CommonAppFeaturesLB
+no_strip_no_odm makeonly
+define FEATURE_FTM_HWTC
+ftm_hwtc makeonly
+sdcc_boot makeonly
+pre_silicon_stub_clk_regime makeonly
+pre_silicon_new_8064_regs makeonly
+
+#apq makeonly
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration AZ:
+#
+# 9x15 On target specific features Pack build
+#------------------------------------------------------------------------------
+
+[Application Features: AZ]
+use MBNToolsConfigure_9x15
+use CommonAppFeaturesLB
+strip_no_odm makeonly
+define FEATURE_FTM_HWTC
+ftm_hwtc makeonly
+apq makeonly
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration BS
+# 8960 Pre-silicon (simulation)  specific features
+#------------------------------------------------------------------------------
+[Application Features: BS]
+use MBNToolsConfigure_8960
+use CommonAppFeaturesLB
+no_strip_no_odm makeonly
+define FEATURE_FTM_HWTC
+ftm_hwtc makeonly
+sdcc_boot makeonly
+define FEATURE_SDCC_BOOT
+define FEATURE_EFS_HOTPLUG
+# This feature works only for Version 4.4 SDCC cards
+define FEATURE_SDCC_BOOT_WRP
+define FEATURE_RUMI_BOOT
+apq makeonly
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration BY:
+# Same as BG, but strip/pack
+# LY bootloaders changed to BY
+#------------------------------------------------------------------------------
+[Application Features: BY]
+use MBNToolsConfigure_8960
+use CommonAppFeaturesLB
+strip_no_odm makeonly
+no_debug makeonly
+undef  FEATURE_FTM_HWTC
+undef FEATURE_QDSP_TASK
+sdcc_boot makeonly
+define FEATURE_SDCC_BOOT
+define FEATURE_EFS_HOTPLUG
+# This feature works only for Version 4.4 SDCC cards
+define FEATURE_SDCC_BOOT_WRP
+
+apq makeonly
+
+#==============================================================================
+#
+# Image Type Configurations _,_,_,_,_,_,_,S4
+#
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# Image Type M: Modem Image
+#------------------------------------------------------------------------------
+[Image Type: M]
+image    modem_proc
+
+define RPC_ROUTER_LOCAL_PROCESSOR_ID                ( 0 )
+define PING_MDM_TASK_START()              ping_mdm_server_task_start()
+define ONCRPC_LOCAL_DEFAULT_PROCESSOR_ID            ( 0 )
+define ONCRPC_REMOTE_DEFAULT_PROCESSOR_ID           ( 1 )
+define ONCRPC_BW_COMP_LOCAL_PROG                ( 0x3000FFFD )
+define ONCRPC_BW_COMP_REMOTE_PROG               ( 0x3000FFFE )
+
+
+#------------------------------------------------------------------------------
+# Image Type A: Apps Image
+#------------------------------------------------------------------------------
+[Image Type: A]
+image    apps_proc
+no_boot_loader          makeonly
+
+define RPC_ROUTER_LOCAL_PROCESSOR_ID                ( 1 )
+define PING_MDM_TASK_START()              ping_mdm_client_task_start()
+define ONCRPC_LOCAL_DEFAULT_PROCESSOR_ID            ( 1 )
+define ONCRPC_REMOTE_DEFAULT_PROCESSOR_ID           ( 0 )
+define ONCRPC_BW_COMP_LOCAL_PROG                ( 0x3000FFFE )
+define ONCRPC_BW_COMP_REMOTE_PROG               ( 0x3000FFFD )
+
+#------------------------------------------------------------------------------
+# Image Type H: HTORPC Build
+#------------------------------------------------------------------------------
+[Image Type: H]
+define FEATURE_HTORPC_METACOMMENTS
+image    modem_proc

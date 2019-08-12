@@ -1,0 +1,63 @@
+#===============================================================================
+#
+# DAL SYS Lib
+#
+# GENERAL DESCRIPTION
+#    build script for the dalsys emulation on RPM
+#
+# Copyright (c) 2009 - 2011 Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/rpm/dev/afrantz.vmpm_timer/core/dal/framework/sys/build/SConscript#1 $
+#  $DateTime: 2011/12/13 08:46:37 $
+#  $Author: coresvc $
+#  $Change: 2094401 $
+#
+#===============================================================================
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${DAL_ROOT}/framework/sys/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DEBUGTOOLS',
+   'SERVICES',
+   'MPROC',
+   'SYSTEMDRIVERS',   
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+   'POWER'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireRestrictedApi('DAL')
+
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+
+env.Append(CPPDEFINES = [
+   "DAL_IMAGE_CONFIG_H=\\\"../../dal/config/${MSM_ID}/rpmconfig.h\\\""
+])
+env.Append(CPPDEFINES = ["DAL_NATIVE_PLATFORM"])
+
+DALSYS_RPM_SOURCES = [
+   '${BUILDPATH}/rpm/DALProps.c',
+   '${BUILDPATH}/rpm/dal_stubs.c',
+]
+
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/DALSys', DALSYS_RPM_SOURCES)
+

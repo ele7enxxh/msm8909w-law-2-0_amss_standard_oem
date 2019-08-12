@@ -1,0 +1,163 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;
+    2 00000000         ;
+    3 00000000                 EXPORT           hal_sdcc_memcpy32
+    4 00000000                 EXPORT           hal_sdcc_memcpy_read
+    5 00000000                 EXPORT           hal_sdcc_memcpy_write
+    6 00000000                 PRESERVE8
+    7 00000000                 AREA             hal_sdcc_main, CODE, READONLY
+    8 00000000                 CODE32
+    9 00000000         ; Going for R0 = DataDesc, R1 = SRC
+   10 00000000         hal_sdcc_memcpy32
+   11 00000000 E92D0FF0        push             {r4-r11}
+   12 00000004 E8B10FF0        ldmia            r1!, {r4-r11}
+   13 00000008 E8A00FF0        stmia            r0!, {r4-r11}
+   14 0000000C E8BD0FF0        pop              {r4-r11}
+   15 00000010 E12FFF1E        bx               r14
+   16 00000014 E4912004        ldr              r2, [r1], #4
+   17 00000018 E4802004        str              r2, [r0], #4
+   18 0000001C         ; Going for R0 = DataDesc, R1 = SRC, R2 = Status_addr, R
+                       3 = Mask
+   19 0000001C         hal_sdcc_memcpy_read
+   20 0000001C E92D0FF0        push             {r4-r11}
+   21 00000020         read_loop
+   22 00000020         ; Actual data moving
+   23 00000020 E8910FF0        ldmia            r1, {r4-r11}
+   24 00000024 E8A00FF0        stmia            r0!, {r4-r11}
+   25 00000028 E5925000        ldr              r5, [r2]
+   26 0000002C E0135005        ands             r5, r3, r5
+   27 00000030 1AFFFFFA        bne              read_loop
+   28 00000034 E8BD0FF0        pop              {r4-r11}
+   29 00000038 E12FFF1E        bx               r14
+   30 0000003C         ; Going for R0 = DataDesc, R1 = SRC, R3 = Mask Var
+   31 0000003C         ; R3 array info: 1 - Status, 2 - MaskBit, 3 - Size, 4 - 
+                       error
+   32 0000003C         ; Feature not working yet - moving 32 bytes at a time fo
+                       r now
+   33 0000003C         hal_sdcc_memcpy_write
+   34 0000003C E92D5FF0        push             {r4-r12, r14}
+   35 00000040 E592C008        ldr              r12, [r2, #8] ; Use R12 as size
+                                                             keeper
+   36 00000044 E5923004        ldr              r3, [r2, #4] ; Read mask regist
+                                                            er value
+   37 00000048 E592E000        ldr              r14, [r2]   ; Get the status re
+                                                            gister addr
+   38 0000004C         write_loop
+   39 0000004C E8B10FF0        ldmia            r1!, {r4-r11}
+   40 00000050 E8800FF0        stmia            r0, {r4-r11}
+   41 00000054         ; Check the size info
+   42 00000054 E24CC020        sub              r12, #0x20
+   43 00000058 E35C0020        cmp              r12, #0x20
+   44 0000005C BA000006        blt              write_done
+   45 00000060         ; Check error flags
+   46 00000060         write_wait
+   47 00000060 E59E5000        ldr              r5, [r14]   ; Read status regis
+                                                            ter
+   48 00000064 E592600C        ldr              r6, [r2, #0xC] 
+                                                            ; Read error flag
+   49 00000068 E0156006        ands             r6, r5, r6
+   50 0000006C 1A000002        bne              write_done
+   51 00000070         ; Check half-full
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   52 00000070 E0155003        ands             r5, r5, r3
+   53 00000074 0AFFFFF9        beq              write_wait
+   54 00000078 EAFFFFF3        b                write_loop
+   55 0000007C         write_done
+   56 0000007C E582C008        str              r12, [r2, #8] ; Write the size 
+                                                            information back
+   57 00000080 E8BD5FF0        pop              {r4-r12, r14}
+   58 00000084 E1A00001        mov              r0, r1
+   59 00000088 E12FFF1E        bx               r14
+   60 0000008C                 END
+Command Line: --cpu=Cortex-A7 --apcs=/noswst/interwork --no_unaligned_access -o
+/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208
+_043404/b/boot_images/core/storage/sdcc/build/validated_emmc_firehose_8909w_ddr
+/Cortex-A7/WAADANAZ/hal/HALsdcc_util.o -I/local/mnt/workspace/CRMBuilds/BOOT.BF
+.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/sdc
+c/build -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-
+1_20161208_043404/b/boot_images/build/cust -I. -I/local/mnt/workspace/CRMBuilds
+/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api
+/dal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2
+0161208_043404/b/boot_images/core/api/boot -I/local/mnt/workspace/CRMBuilds/BOO
+T.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/boo
+t/qfprom -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB
+-1_20161208_043404/b/boot_images/core/api/debugtools -I/local/mnt/workspace/CRM
+Builds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/co
+re/api/hwengines -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909W
+AAAANAZB-1_20161208_043404/b/boot_images/core/api/mproc -I/local/mnt/workspace/
+CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images
+/core/api/power -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WA
+AAANAZB-1_20161208_043404/b/boot_images/core/api/services -I/local/mnt/workspac
+e/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_imag
+es/core/api/storage -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M89
+09WAAAANAZB-1_20161208_043404/b/boot_images/core/api/systemdrivers -I/local/mnt
+/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/
+boot_images/core/api/systemdrivers/pmic -I/local/mnt/workspace/CRMBuilds/BOOT.B
+F.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/system
+drivers/hwio/msm8909 -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8
+909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/kernel/libstd -I/local/mn
+t/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b
+/boot_images/core/dal/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-000
+12-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/dal/config -I/local/mnt/
+workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/b
+oot_images/core/boot/secboot3/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.
+2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/ddr/common 
+-I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_201612
+08_043404/b/boot_images/core/boot/ddr/hw/msm8909w -I/local/mnt/workspace/CRMBui
+lds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/
+boot/ddr/hw/phy -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WA
+AAANAZB-1_20161208_043404/b/boot_images/core/boot/ddr/hw/controller -I/local/mn
+t/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b
+/boot_images/core/boot/secboot3/hw/msm8909 -I/local/mnt/workspace/CRMBuilds/BOO
+T.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/debugto
+ols/version/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WA
+AAANAZB-1_20161208_043404/b/boot_images/core/hwengines/mhi -I/local/mnt/workspa
+ce/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_ima
+ges/core/hwengines/pcie -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012
+-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/mproc/smem/inc -I/local/mn
+t/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b
+/boot_images/core/services/utils/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3
+.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flash
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+/src/dal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB
+-1_20161208_043404/b/boot_images/core/storage/flash/src/hal -I/local/mnt/worksp
+ace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_im
+ages/core/storage/flash/tools/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.
+2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flash/in
+c -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/storage/sdcc/src -I/local/mnt/workspace/CRMBuild
+s/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/st
+orage/sdcc/src/hal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M890
+9WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/sdcc/src/bsp -I/local/m
+nt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/
+b/boot_images/core/storage/efs/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1
+.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/hfat/in
+c -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/storage/hotplug/inc -I/local/mnt/workspace/CRMBu
+ilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core
+/storage/tools/deviceprogrammer_ddr/src/firehose -I/local/mnt/workspace/CRMBuil
+ds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/s
+torage/ufs/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAA
+AANAZB-1_20161208_043404/b/boot_images/core/systemdrivers/tlmm/inc -I/local/mnt
+/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/
+boot_images/core/systemdrivers/tlmm/src --list=/local/mnt/workspace/CRMBuilds/B
+OOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/stora
+ge/sdcc/build/validated_emmc_firehose_8909w_ddr/Cortex-A7/WAADANAZ/hal/HALsdcc_
+util.o.lst --sitelicense /local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-
+M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/sdcc/build/validate
+d_emmc_firehose_8909w_ddr/Cortex-A7/WAADANAZ/hal/HALsdcc_util.o.i

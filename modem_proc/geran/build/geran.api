@@ -1,0 +1,81 @@
+#===============================================================================
+#
+# GERAN API wrapper script
+#
+# GENERAL DESCRIPTION
+#    build script to load APIs for geran
+#
+# Copyright (c) 2010-2015 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/geran/build/geran.api#1 $
+#  $DateTime: 2016/12/13 08:00:21 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/03/12   jgr     Add moved public files
+# 07/10/10   enj     Initial revision
+#
+#===============================================================================
+
+def main(env):
+  # Handle source trees that have modem/ and those that don't
+  if env.PathExists('${BUILD_ROOT}/modem/geran'):
+     env.Replace(GERAN_ROOT = '${INC_ROOT}/modem/geran')
+     env.Replace(MODEM_ROOT = '${INC_ROOT}/modem')
+  else:
+     env.Replace(GERAN_ROOT = '${INC_ROOT}/geran')
+     env.Replace(MODEM_ROOT = '${INC_ROOT}')
+
+
+  env.PublishPublicApi('PUBLIC',     ["${GERAN_ROOT}/api/public"])
+  env.PublishPublicApi('GERAN',      ["${GERAN_ROOT}/api",])
+
+  #next line for with modem folder only
+  env.PublishPublicApi('GERAN',      ["${GERAN_ROOT}/api/public",])
+
+  env.PublishRestrictedApi('VIOLATIONS',[
+          '${MODEM_ROOT}/wcdma/l1/offline/inc', #wcdma/api/macrrcif.h:139:17: fatal error: 'l1sapcommon.h' file not found
+          '${MODEM_ROOT}/wcdma/mac/inc',        #wcdma/api/l1rrcif.h:741:10: fatal error: 'macl1rrcif.h' file not found
+          '${MODEM_ROOT}/wcdma/variation/inc',  #wcdma/api/macrrcif.h:139:17: fatal error: 'l1sapcommon.h' file not found
+          '${MODEM_ROOT}/wcdma/cust/inc',       #wcdma/variation/inc\wcdma_variation.h:22:10: fatal error: 'wcdma_local_defines
+          '${MODEM_ROOT}/wcdma/rlc/inc',        #wcdma/api/rlcrrcif.h:128:10: fatal error: 'rlcdsapif.h' file not found
+          ])
+
+  env.PublishRestrictedApi('DATA_DATAMODEM_VARIATION_VIOLATIONS',[
+          '${MODEM_ROOT}/datamodem/cust/inc',
+          '${MODEM_ROOT}/datamodem/variation/inc', # 1.0: datamodem/api/comptask_api.h: error: datamodem_variation.h
+          ])
+
+  # MCS have fixed these violations on some baselines, prepare if this is not one of them
+  env.PublishRestrictedApi('MCS_HWIO_VIOLATIONS',[
+        '${MODEM_ROOT}/mcs/hwio/inc',         # Various GERAN files include mcs_hwio.h,
+        '${MODEM_ROOT}/mcs/hwio/inc/${CHIPSET}'
+        ])
+
+  env.PublishRestrictedApi('MCS_TCXOMGR_VIOLATIONS',[
+        '${MODEM_ROOT}/mcs/variation/inc',    # used by MCS API tcxomgr.h
+        '${MODEM_ROOT}/mcs/cust/inc'          # used by above 
+        ])
+
+
+  env.LoadAPIUnits()
+
+try:
+  Import('env') # Fails if used from SCons test harness
+  _usingTestHarness = False
+except:
+  _usingTestHarness = True
+
+if not _usingTestHarness:
+  main(env)
+#else: test harness calls main() directly with its own env
+

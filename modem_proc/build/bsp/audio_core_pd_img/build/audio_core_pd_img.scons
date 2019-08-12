@@ -1,0 +1,288 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/24/14   KKO     Created
+#===============================================================================
+
+import os
+Import('env')
+
+#------------------------------------------------------------------------------
+# Init image vars 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Init aliases array.
+# first alias (0th elemten in array) is always unique name, there should 
+# never be two images with the same unique name
+aliases = ['audio_core_pd_img']
+build_tags = ['MULTIMEDIA_USER_PD']
+build_tools = [
+                '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+                '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+                '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+                '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+                '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py']
+
+#------------------------------------------------------------------------------
+
+env.InitImageVars(
+   alias_list=aliases,  # aliases list
+   proc='qdsp6',      # proc (depending on tool chain arm, hexago, etc)
+   config='qdsp6_sw',
+   plat='qurt',           # platform (l4, blast, foo, bar, etc)
+   target='AUDIO_CORE_PD_IMG_${BUILD_ID}',# target (elf, image file name)
+   build_tags = build_tags, #build_tags
+   tools = build_tools
+)
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+if not env.CheckAlias():
+   Return()
+
+#---------------------------------------------------------------------------
+# Now that we know we need to build something, the first thing we need
+# to do is add our image to BuildProducts.txt, so that tools can verify
+# when our build is successful.  Make sure we append, so that we don't
+# overwrite other images that have written to this file.
+#---------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(USES_AUDIO_PD = True)
+env.Replace(USES_USER_PD = True)
+env.Replace(USES_DEVCFG = True)
+env.Replace(USES_MULTI_DEVCFG = True)
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_AUDIO_PD_IMG')
+env.Decider('timestamp-newer')
+env.Append(USES_QDSS_SWE_MULTIPD = True)
+
+#if image wants to own "main": # image calls core_main to init cbsp
+env.Append(CPPDEFINES=["COREMAIN_EXCLUDE_MAIN"])
+env.Append(CPPDEFINES=["DIAG_USERPD_TEMP"])
+
+
+if env['MSM_ID'] in ['8994','9x45','8996','8909','9609','9607']:
+  env.Replace(QURT_BUILD_CONFIG="modemv56")
+elif env['MSM_ID'] in ['8916','8936']:
+  env.Replace(QURT_BUILD_CONFIG="modemv5")
+else:
+  print("-------------------------------------------------------------------------------")
+  print("*** QuRT target could not be determined")
+  print("-------------------------------------------------------------------------------")
+  Exit(1)
+
+#---------------------------------------------------------------------------
+# Audio PD virtual address mapping
+#---------------------------------------------------------------------------
+env.Replace(HEXAGON_IMAGE_ENTRY = '0xB0000000')
+
+#---------------------------------------------------------------------------
+# Set the config XML to the correct cust_config.xml in the config component.
+#---------------------------------------------------------------------------
+env.Replace(CONFIG_XML = env.FindConfigFiles('cust_config.xml')[0])
+
+env.LoadToolScript('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('qdsp6_defs', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('sleep_lpr_builder', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+env.LoadToolScript('build_utils', toolpath = ['${BUILD_ROOT}/build/scripts'])
+
+env.Append(CFLAGS = ARGUMENTS.get('T_CFLAGS', '') + ' ')
+env.Append(LFLAGS = ARGUMENTS.get('T_LFLAGS', '') + ' ')
+
+env.Append(CPPDEFINES=['MODEM_FW_NUM_PRIO=75'])
+#env.Replace(QDSP6_RELEASE_LIB_DIR="${QDSP6_RELEASE_DIR}/dinkumware/lib/${Q6VERSION}/G0")
+env.AddUsesFlags('USES_RCINIT_PLAYBOOK') # MUST OCCUR BEFORE FIRST LoadAreaSoftwareUnits
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+image_libs = []
+image_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load au_name libs/objs build rules.
+
+
+core_qurt_env = env.Clone()
+#core_qurt_env.Replace(QURT_BUILD_CONFIG="modemv5")
+core_qurt_env['IMAGE_BUILD_TAGS'].append('USER_PD')
+core_qurt_items = core_qurt_env.LoadAreaSoftwareUnits('core', ["kernel/qurt"])
+image_libs.extend(core_qurt_items['LIBS'])
+image_objs.extend(core_qurt_items['OBJS'])
+
+image_units = [image_objs, image_libs]
+
+# ---------------------------------------------------------------------------
+# Make SWE master list from individual image list
+# ---------------------------------------------------------------------------
+     
+SWE_LISTS = [    #  SWE LISTS CONTAINING INTERMEDIATS EVENT INFO 
+	  '${BUILD_ROOT}/build/bsp/core_user_libs/build/${SHORT_BUILDPATH}/sweevent_list.txt',
+   ]
+env.SWEMergeBuilder(['${SHORT_BUILDPATH}/sweevent_consolidate_list.txt'],SWE_LISTS)
+
+SWE_OUTPUT_LISTS = [    # SWE LISTS THAT WILL CONTAIN SWE INFO FROM MASTER FILE 
+	  '${BUILD_ROOT}/build/bsp/core_user_libs/build/${SHORT_BUILDPATH}/sweevent_master_list.txt',
+   ]
+env.SWEReplicateBuilder(SWE_OUTPUT_LISTS,['${SHORT_BUILDPATH}/sweevent_consolidate_list.txt'])
+
+# ---------------------------------------------------------------------------
+# Make Sleep LPR master list from individual image list
+# ---------------------------------------------------------------------------
+
+SleepLPR_LISTS = [    #  Sleep LPR LISTS CONTAINING INTERMEDIATS EVENT INFO 
+	  '${BUILD_ROOT}/build/bsp/core_user_libs/build/${SHORT_BUILDPATH}/sleep_LPR_list.txt',
+   ]
+env.SleepLPRMergeBuilder(['${SHORT_BUILDPATH}/SleepLPR_consolidate_list.txt'],SleepLPR_LISTS)
+
+SleepLPR_OUTPUT_LISTS = [    # Sleep LPR LISTS THAT WILL CONTAIN SWE INFO FROM MASTER FILE 
+	  '${BUILD_ROOT}/build/bsp/core_user_libs/build/${SHORT_BUILDPATH}/sleep_LPR_master_list.txt',
+   ]
+env.SleepLPRReplicateBuilder(SleepLPR_OUTPUT_LISTS,['${SHORT_BUILDPATH}/SleepLPR_consolidate_list.txt'])
+
+
+# ---------------------------------------------------------------------------
+# Make RCINIT Playboook from playlists
+# ---------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+
+   RCINIT_PLAYLISTS = [    # PLAYLISTS INTERMEDIATS BUILT WITH LIBRARY
+      '${BUILD_ROOT}/build/bsp/audio_user_libs/build/${SHORT_BUILDPATH}/rcinit.rcpl',
+	  '${BUILD_ROOT}/build/bsp/core_user_libs/build/${SHORT_BUILDPATH}/rcinit.rcpl',
+	  '${BUILD_ROOT}/build/bsp/apr_user_libs/build/${SHORT_BUILDPATH}/rcinit.rcpl',
+   ]
+   env.AddRcinitPlaybookParams(build_tags, image_units, image_objs, RCINIT_PLAYLISTS)
+  
+   
+#------------------------------------------------------------------------------
+# Putting the image toghther
+#------------------------------------------------------------------------------
+
+if 'IMAGE_BUILD_LOCAL_FILES' in env:
+   #-------------------------------------------------------------------------
+   # Local Files
+   #-------------------------------------------------------------------------
+   
+   # this is where local files are created, for example link scripts (lcs)
+   # for qdsp6 like images, or scatter load files (scl) for amr like images.
+   
+   if 'USES_LCS_FILE' in env:
+      # Dynamically load lcs_builder
+      env.LoadToolScript("${BUILD_SCRIPTS_ROOT}/lcs_builder.py")
+         
+      # Location and name of lcs file
+      qurt_lcs = env.FindConfigFiles('${BUILD_ASIC}_QuRT_${TARGET_IMAGE}_AUDIO_PD.lcs')[0]
+      lcs_file = env.LcsBuilder("${BUILD_MS_ROOT}/${ORIG_PREPEND}${TARGET_NAME}.elf.lcs", qurt_lcs)
+ 
+   image_units += lcs_file
+
+if 'IMAGE_BUILD_LINK' in env:
+   #-------------------------------------------------------------------------
+   # List of list-files containing libraries generated else where.
+   #-------------------------------------------------------------------------
+   core_user_libs_lf = env.RealPath('${BUILD_ROOT}/build/bsp/core_user_libs/build/${SHORT_BUILDPATH}/CORE_USER_LIBS_${BUILD_ID}.txt', posix=True)
+   apr_user_libs_lf = env.RealPath('${BUILD_ROOT}/build/bsp/apr_user_libs/build/${SHORT_BUILDPATH}/APR_USER_LIBS_${BUILD_ID}.txt', posix=True)
+   audio_user_libs_lf = env.RealPath('${BUILD_ROOT}/build/bsp/audio_user_libs/build/${SHORT_BUILDPATH}/AUDIO_USER_LIBS_${BUILD_ID}.txt', posix=True)
+   platform_libs_lf = env.RealPath('${BUILD_ROOT}/build/bsp/platform_libs/build/${SHORT_BUILDPATH}/PLATFORM_LIBS_${BUILD_ID}.txt', posix=True)\
+
+   #-------------------------------------------------------------------------
+   # Link image
+   #-------------------------------------------------------------------------
+
+   listfiles = [audio_user_libs_lf,apr_user_libs_lf, platform_libs_lf,core_user_libs_lf]
+
+   image_elf = env.AddProgram(
+      "${BUILD_MS_ROOT}/${ORIG_PREPEND}${TARGET_NAME}",
+      image_objs,                       # sources (objects files must have at least 1)
+      LIBS=image_libs,                  # libraries
+      LISTFILES=listfiles               # other libraries generated externally
+   )
+
+   if 'USES_LCS_FILE' in env:
+      # Add lcs dependency to elf file
+      env.Depends(image_elf, lcs_file)
+
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Run QShrink
+   #-------------------------------------------------------------------------
+
+   env.LoadToolScript("${BUILD_ROOT}/build/myps/qshrink/Qshrink20.py")  
+   
+   qshrink20_elf,qshrink20_qdb = env.Qshrink20(
+              ["${SHORT_BUILDPATH}/${TARGET_NAME}_qsr2.elf","${SHORT_BUILDPATH}/qdsp6a.qdb"],
+              [image_elf, "${BUILD_ROOT}/build/myps/qshrink/msg_hash.txt"]) 
+
+   
+   install_target_qdb = env.InstallAs(
+     "${BUILD_MS_ROOT}/bin/${SHORT_BUILDPATH}/qdsp6a.qdb",qshrink20_qdb)			  
+   #-------------------------------------------------------------------------
+   # Post process image
+   #-------------------------------------------------------------------------
+   env.Replace(BUILD_ELF_EXTN = '_AUDIO_PD')
+   # copy elf and reloc to needed locations for AMSS tools to load on target
+   install_target_elf = env.InstallAs(
+      "${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}${BUILD_ELF_EXTN}.elf", qshrink20_elf)
+
+   # this is where any aditional rules after linking are done.
+
+   # audio PD memory checker {{{
+   myps_paths = [
+     'build/myps/tools',
+   ]
+
+   myps_paths = [
+     os.path.abspath(
+       os.path.join(*([
+         env.subst('${BUILD_ROOT}')] +
+         i.split('/')))) for i in myps_paths]
+
+   for potential_myps_dir in myps_paths:
+     if os.path.exists(potential_myps_dir):
+       myps_dir = potential_myps_dir
+       break
+
+   env.LoadToolScript(os.path.join(myps_dir, 'hook_mc.py'))
+
+   # collect the audio PD heap size from the config file
+   mc_standalone = env.McStandaloneStore(None, image_elf)
+   env.Depends(install_target_elf, mc_standalone)
+   # }}}
+   
+   #=========================================================================
+   # Define targets needed 
+   #
+   image_units += [
+      image_elf,
+      install_target_elf,
+      install_target_qdb
+   ]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)
+

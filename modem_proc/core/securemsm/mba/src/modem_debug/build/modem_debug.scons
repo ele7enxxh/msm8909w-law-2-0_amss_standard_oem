@@ -1,0 +1,94 @@
+#===============================================================================
+#
+# MBA CORE Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011 - 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/securemsm/mba/src/modem_debug/build/modem_debug.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/24/13   vj      Disable prng usage in mba until bringup in 8916
+# 10/23/12   mm      First cut of Scons
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/inc")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/src/mba_ac}")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/src/common")
+#env.Append(CCFLAGS = " --restrict ")
+
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+MSA_SRC = "${COREBSP_ROOT}/securemsm/mba/src/modem_debug"
+
+env.VariantDir('${BUILDPATH}', MSA_SRC, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',
+   'KERNEL',
+   'DEBUGTOOLS'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['SECUREMSM'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+MODEM_DEBUG_SOURCES = [ '${BUILDPATH}/modem_debug.c' ]
+
+
+
+#XPU_Init is always called. However component drivers are initialized only in standalone mode
+if ('USES_RCINIT' in env):
+   RCINIT_IMG = ['CORE_QDSP6_SW','MODEM_IMAGE','WCN_IMAGE'] 
+   env.AddRCInitFunc(       # Code Fragment in TMC: NO
+   RCINIT_IMG,              
+   {
+     'sequence_group'             : 'RCINIT_GROUP_1',       # required
+     'init_name'                  : 'XPUInit',                 # required
+     'init_function'              : 'XPUInit',     # required
+  })
+  
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryObject(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+	       'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], MODEM_DEBUG_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

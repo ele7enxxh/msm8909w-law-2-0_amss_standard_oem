@@ -1,0 +1,37 @@
+<!-- See DDIIPCInt.h for the enum these values come from. -->
+#define DALIPCINT_PROC_MCPU    1
+#define DALIPCINT_PROC_MDSPSW  2
+#define DALIPCINT_PROC_MDSPFW  3
+#define DALIPCINT_PROC_ACPU    4
+#define DALIPCINT_PROC_ACPU1   5
+#define DALIPCINT_PROC_ADSP    6
+#define DALIPCINT_PROC_SPS     7
+#define DALIPCINT_PROC_RPM     8
+#define DALIPCINT_PROC_RIVA    9
+#define DALIPCINT_PROC_WCN     DALIPCINT_PROC_RIVA
+#define DALIPCINT_PROC_GSS     10
+#define DALIPCINT_PROC_LPASS   11
+
+<driver name="IPCInt">
+  <device id=DALDEVICEID_IPCINT>
+     <props name="SourceProc" type=DALPROP_ATTR_TYPE_UINT32>
+       DALIPCINT_PROC_MDSPSW
+    </props> 
+    #if (DAL_CONFIG_TARGET_ID == 0x8926)
+    <props name="IPCINT_PHYSICAL_ADDRESS" type=DALPROP_ATTR_TYPE_UINT32> 
+       0xFC800000
+    </props> 
+    <props name="IPCINT_OFFSET" type=DALPROP_ATTR_TYPE_UINT32> 
+       0x00105000
+    </props> 
+    #else
+    <props name="IPCINT_PHYSICAL_ADDRESS" type=DALPROP_ATTR_TYPE_UINT32> 
+       0x04000000
+    </props> 
+    <props name="IPCINT_OFFSET" type=DALPROP_ATTR_TYPE_UINT32> 
+       0x00105000
+    </props> 
+    #endif
+  </device>
+</driver>
+

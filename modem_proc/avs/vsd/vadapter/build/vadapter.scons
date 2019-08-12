@@ -1,0 +1,45 @@
+#=================================================================
+# MVS SConscript
+#=================================================================
+Import('env')
+
+env = env.Clone()
+
+VADAPTER_SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', VADAPTER_SRCPATH, duplicate=0)
+
+env.Append(CPPDEFINES = [
+    "MSG_BT_SSID_DFLT=MSG_SSID_VS",
+])
+
+env.PublishPrivateApi('VADAPTER', [
+    "${INC_ROOT}/avs/vsd/vadapter/inc/private",
+])
+
+env.RequirePublicApi([  
+   'PUBLIC',
+   'ONEX',   
+], area='ONEX')
+
+env.RequireRestrictedApi(['VADAPTER'])
+
+VADAPTER_SRCPATH = [   
+  '${BUILDPATH}/cva_module.c',
+]
+
+IMAGES = ['MULTIMEDIA_MODEM', 'MULTIMEDIA_QDSP6_SW']
+
+env.AddLibrary(IMAGES, ('${BUILDPATH}/vadapter/vadapter'), VADAPTER_SRCPATH)
+
+#-------------------------------------------------------------------------------
+# RCINIT Init and Task Fields and Initialization
+#-------------------------------------------------------------------------------
+RCINIT_CVAINIT_FN = {
+  'sequence_group'             : 'RCINIT_GROUP_6',             # required
+  'init_name'                  : 'cva_task',             # required
+  'init_function'              : 'cva_task',             # required
+}
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc( IMAGES, RCINIT_CVAINIT_FN )
+

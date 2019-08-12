@@ -1,0 +1,71 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub main( @argv)
+{
+    my $rc;
+    my $i = 0;
+    my $timeout = 1;    // seconds
+
+    $rc = sloption( "script_handles_indications");
+    print( "sloption script_handles_indications rc $rc\n");
+
+    $rc = sloption( "script_handles_errors");
+    print( "sloption script_handles_errors rc $rc\n");
+
+    my $client = slopen();
+    my $all_req  = slnew_req( "smgr", "all_info");
+    my $all_resp = slsend_recv( $client, $all_req, $timeout);
+    my ( $count) = slget( $all_resp, { info});
+    while ( $i < $count) {
+        my ( $sid, $sname) = slget( $all_resp, { info.$i, sensor_id, short_name});
+
+        my $sngl_req = slnew_req( "smgr", "sngl_info", { sensor_id => $sid});
+        my $sngl_resp = slsend_recv( $client, $sngl_req);
+        if ( !defined( $sngl_resp)) {
+            print( "slrecv timeout\n");
+            break;
+        }
+        my ( $entries) = slget( $sngl_resp, { info});
+        my $j = 0;
+        while ( $j < $entries) {
+            my ( $sid, $datatype, $sensor_name) = slget( $sngl_resp, { info.$j, sensor_id, datatype, sensor_name} );
+            print( "\tdatatype $datatype\n");
+            print( "\tsensor_name $sensor_name\n");
+
+            my ( $vendor, $max_rate, $idle_power, $max_power, $max_range, $resolution) =
+                 slget( $sngl_resp, { info.$j, vendor, max_rate,
+                                               idle_power, max_power,
+                                               max_range, resolution} );
+
+            print( "\tvendor $vendor\n");
+            print( "\tmax_rate $max_rate\n");
+            print( "\tidle_power $idle_power\n");
+            print( "\tmax_power $max_power\n");
+            print( "\tmax_range $max_range\n");
+            print( "\tresolution $resolution\n");
+
+            my ( $max_reports, $op_mode, $suid) = slget( $sngl_resp, { info.$j, max_reports, op_mode, suid} );
+            print( "\tmax_reports $max_reports\n");
+            print( "\top_mode $op_mode\n");
+            print( "\tsuid $suid\n");
+
+            my ( $odr_count) = slget( $sngl_resp, { info.$j, odr_list});
+            if ( defined( $odr_count)) {
+                my $k = 0;
+                while ( $k < $odr_count) {
+                    my ( $odr) = slget( $sngl_resp, { odr_list.$k, odr} );
+                    print( "\t\todr[ $k] $odr\n");
+                    $k += 1;
+                }
+            }
+            print( "\n");
+
+            $j += 1;
+        }
+        $i += 1;
+    }
+}
+

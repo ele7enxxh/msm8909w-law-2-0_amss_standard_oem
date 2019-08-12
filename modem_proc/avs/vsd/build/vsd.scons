@@ -1,0 +1,77 @@
+#===============================================================================
+#
+# Audio Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (C) 2009 - 2013, 2015, 2016 QUALCOMM Technologies, Inc.
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/avs/vsd/build/vsd.scons#1 $
+#  $DateTime: 2016/12/13 07:59:59 $
+#  $Author: mplcsds1 $
+#  $Change: 11985186 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/11/13   sre     Added support to make VOICECFG public API.
+#===============================================================================
+Import('env')
+
+env = env.Clone()
+
+if env['PRODUCT_LINE'].startswith("MPSS.TA"):
+  env.Append(CFLAGS = '-DAVS_MPSS_TA ')
+elif env['PRODUCT_LINE'].startswith("MPSS.DPM") or env.get('CHIPSET').startswith('mdm9607') or env.get('CHIPSET').startswith('msm8909'):
+  env.Append(CFLAGS = '-DAVS_BEAR_FAMILY ')
+
+
+#-------------------------------------------------------------------------------
+# CoreBSP dependencies
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BOOT',
+   'BUSES',
+   'DEBUGTOOLS',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'POWER',
+   'SECUREMSM',
+   'SENSORS',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API, area='core')
+
+env.RequirePublicApi([
+    'MMUTILS',
+    'APR',
+    'CVD',
+    'VOICECFG',
+])
+
+env.RequireRestrictedApi([
+    'APR',
+    'CVD',
+    'MVS',
+])
+
+env.LoadSoftwareUnits()

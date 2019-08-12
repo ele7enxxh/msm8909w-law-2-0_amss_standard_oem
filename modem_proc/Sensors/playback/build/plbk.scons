@@ -1,0 +1,140 @@
+#===============================================================================
+#
+# PLBK Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime:  $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 2014-05-29  ps     Add support virtio test cases
+# 04/04/2014  MW     Added SENSORS_DD_DEV_FLAG for HD22
+# 06/25/2013  ps     update require method for Public APIs
+# 12/02/2012  ag     Add multi PD support
+# 10/02/2012  ag     SMR cleanup
+# 08/13/2012  vh     Added PATH for SAM & SMGR test code
+# 12/22/2012  vh     Added QMI file path.
+# 12/22/2010  pg     Update for accessing UCOS header files from DALSYS.
+# 09-21-10   jtl     Moved most Sensors CPPPATHs to proper modules.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/playback/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SENSOR1',
+   'MPROC',
+   'SERVICES',
+]
+
+env.RequirePublicApi(CBSP_API, area='core')
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_SMR',
+   'SNS_QUEUE',
+   'SNS_MEMMGR',
+   'SNS_EVMGR',
+   'SNS_COMMON',
+   'SNS_DEBUG_DSPS'
+]
+
+env.RequireRestrictedApi(SENSORS_API)
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+DAL_UCOS_API = [
+   'DAL',
+]
+env.RequireRestrictedApi(DAL_UCOS_API)
+env.RequirePublicApi(DAL_UCOS_API)
+
+#
+# TODO: Remove manual CPPPATH modification once proper modules are defined
+#
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/core/api/services",
+   "${BUILD_ROOT}/Sensors/playback/src",
+   "${BUILD_ROOT}/Sensors/playback/inc",
+   "${BUILD_ROOT}/Sensors/smgr/inc",
+   "${BUILD_ROOT}/Sensors/ddf/inc",
+   "${BUILD_ROOT}/Sensors/ext_module/reg/inc",
+   "${BUILD_ROOT}/Sensors/ext_dep/qmi/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/src",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/idl/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/util/circbuffer/inc",
+   "${BUILD_ROOT}/core/api/mproc",
+   "${BUILD_ROOT}/core/api/power",
+   "${BUILD_ROOT}/Sensors/common/core/inc",
+   "${BUILD_ROOT}/Sensors/smgr/src",
+   "${BUILD_ROOT}/Sensors/common/sam/framework/inc",
+   "${BUILD_ROOT}/core/mproc/qmi/qcci",
+   "${BUILD_ROOT}/core/mproc/qmi/qcsi",
+   "${BUILD_ROOT}/core/mproc/qmi/common",
+   "${BUILD_ROOT}/Sensors/pm/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+if env.has_key('VIRTIO_BRINGUP'):
+    PLBK_SOURCES = [
+      '${BUILDPATH}/sns_sensors_playback_test.c',
+   ]
+else:
+    PLBK_SOURCES = [
+#      '${BUILDPATH}/sns_sensors_playback_test.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   PLBK_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/playback/src')
+   PLBK_CLEAN_SOURCES += env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/playback/src/qdspsim')
+   PLBK_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/playback/inc')
+
+   # Add binary library
+   plbk_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   "${BUILDPATH}/PLBK", PLBK_SOURCES)
+
+   # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], PLBK_CLEAN_SOURCES)
+
+else:
+   plbk_lib = env.Library('${BUILDPATH}/PLBK', PLBK_SOURCES)
+   env.AddLibsToImage(
+   ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   plbk_lib)

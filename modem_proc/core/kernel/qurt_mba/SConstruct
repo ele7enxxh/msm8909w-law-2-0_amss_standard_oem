@@ -1,0 +1,179 @@
+#===============================================================================
+#                    Copyright 2009 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+import os
+import fnmatch
+import sys
+import utils
+
+# Add command line parameters for target, install directory and build directory
+AddOption('--target',
+          dest='target',
+          default='',
+          type='string',
+          nargs=1,
+          action='store',
+          metavar='TRGT',
+          help='Initialize Target')
+
+AddOption('--install_dir',
+          dest='instdir',
+          default='install',
+          type='string',
+          nargs=1,
+          action='store',
+          metavar='INSTALL_DIR',
+          help='Initialize Install directory')
+
+AddOption('--build_dir',
+          dest='blddir',
+          default='build',
+          type='string',
+          nargs=1,
+          action='store',
+          metavar='BUILD_DIR',
+          help='Initialize Build directory')
+
+AddOption('--q6_tools_root',
+          dest='toolsroot',
+          type='string',
+          nargs=1,
+          action='store',
+          metavar='Q6_TOOLS_ROOT',
+          help='Set tools directory')
+
+
+if GetOption('help')==True:
+   print "\nUsage: \nscons qurt" 
+   print "          --target=<TARGET>"
+   print "          --install_dir=<INSTALL DIRECTORY>"
+   print "          --build_dir=<BUILD_DIRECTORY>"
+   print "          --q6_tools_root=<Q6_TOOLS_ROOT>"
+   sys.exit(0)
+
+env = DefaultEnvironment(TRGT          = GetOption('target'), 
+                         INSTALL_DIR   = os.path.realpath(GetOption('instdir') + "/" + GetOption('target')),
+                         BUILD_DIR     = os.path.realpath(GetOption('blddir')  + "/" + GetOption('target')),
+                         Q6_TOOLS_ROOT = GetOption('toolsroot'),
+                         tools         = ['mingw'])          
+env = env.Clone()
+
+env.Replace(QURT_TOP = os.getcwd())
+
+#Initialize utilities
+utils.Init(env)
+
+# Set Q6 Tools information
+# Set config flags
+env.InitTarget()
+
+#Set Hacks
+#Open for better solutions
+env.SetHacks()
+
+
+
+#Builder: Deriving build_params.txt
+def gen_build_param(target, source, env):
+   target = str(target[0])
+   
+   fileHandle = open (target, 'w')
+   fileHandle.write("Q6VERSION="         +env.subst('$Q6VERSION')+"\n")
+   fileHandle.write("BUILD_CONFIG_FLAGS="+env.subst('$BUILD_CONFIG_FLAGS')+"\n")
+   fileHandle.write("Q6_TOOLS_ROOT="     +os.path.realpath(env.subst('$Q6_TOOLS_ROOT')))
+
+   fileHandle.close()
+
+#Build param builder
+build_param_bld = env.Builder(action = gen_build_param)
+env.Append(BUILDERS = {'build_param_builder' : build_param_bld})
+
+
+#Builder: Prepending cust_config.c
+def ppend_cust_config(target, source, env):
+   target = str(target[0])
+   tmplt  = str(source[0])
+   mcr    = str(source[1])
+   
+   fileTarget = open (target, 'w')
+   fileTmplt  = open (tmplt, 'r')
+   fileMcr    = open (mcr, 'r')
+   
+   for line in fileMcr:
+      if line.find('THREAD_CONTEXT_TOTALSIZE') != -1:
+         fileTarget.write(line)
+      elif line.find('QURT_CONFIG_MAX_HTHREAD') != -1:
+         fileTarget.write(line)
+   
+
+   for line in fileTmplt:
+      fileTarget.write(line)
+
+   fileTarget.close()
+
+#Cust_config.c builder
+cust_config_bld = env.Builder(action = ppend_cust_config)
+env.Append(BUILDERS = {'cust_config_builder' : cust_config_bld})
+
+
+#Creating installation directories
+env['INSTALL_LIB']     = env.subst('$INSTALL_DIR') + '/lib'
+env['INSTALL_DBG']     = env.subst('$INSTALL_DIR') + '/debugger'
+env['INSTALL_SCRIPTS'] = env.subst('$INSTALL_DIR') + '/scripts'
+env['INSTALL_INCLUDE'] = env.subst('$INSTALL_DIR') + '/include'
+   
+#Kernel subsidiary script
+KERNEL_PATH = 'kernel'
+KERNEL_BUILD_PATH = env.subst('$BUILD_DIR')+'/kernel'   
+VariantDir(KERNEL_BUILD_PATH, KERNEL_PATH, duplicate=0)
+SConscript(KERNEL_BUILD_PATH+'/SConscript', exports='env')
+
+#Lib subsidiary script
+LIBS_PATH = 'libs'
+LIBS_BUILD_PATH = env.subst('$BUILD_DIR')+'/libs'
+VariantDir(LIBS_BUILD_PATH, LIBS_PATH, duplicate=0)
+SConscript(LIBS_BUILD_PATH+'/SConscript', exports='env')
+ 
+#Installation process
+
+#Installing Debugger files
+Dbg1 = env.InstallDir(env.subst('$INSTALL_DBG')+"/T32",  
+                      env.subst('$QURT_TOP')+"/osam/bin/T32/"+env.subst('$Q6VERSION')) 
+Dbg2 = env.InstallDir(env.subst('$INSTALL_DBG')+"/Win",
+                      env.subst('$QURT_TOP')+"/osam/bin/Win/"+env.subst('$Q6VERSION')) 
+#chmod +rx $(INSTALL_DIR)/$(patsubst %_install,%,$@)/debugger/Win/*
+Dbg3 = env.InstallDir(env.subst('$INSTALL_DBG')+"/lnx32", 
+                      env.subst('$QURT_TOP')+"/osam/bin/lnx32/"+env.subst('$Q6VERSION'))
+Dbg4 = env.InstallDir(env.subst('$INSTALL_DBG')+"/lnx64", 
+                      env.subst('$QURT_TOP')+"/osam/bin/lnx64/"+env.subst('$Q6VERSION'))
+                   
+Debugger = Dbg1 + Dbg2 + Dbg3 + Dbg4
+
+#Installing Scripts
+scrp = env.InstallDir(env.subst('$INSTALL_SCRIPTS'), env.subst('$QURT_TOP')+"/kernel/scripts")
+
+Scripts = scrp
+
+#Installing include files
+Incs1 = env.InstallDir(env.subst('$INSTALL_INCLUDE'),
+                       env.subst('$QURT_TOP')+"/libs/qurt/include/public", "*.h")
+Incs2 = env.InstallDir(env.subst('$INSTALL_INCLUDE')+"/posix",
+                       env.subst('$QURT_TOP')+"/libs/posix/include/public","*")
+Incs3 = env.InstallDir(env.subst('$INSTALL_INCLUDE')+"/qube",
+                       env.subst('$QURT_TOP')+"/libs/qube/include/public","*.h")
+Incs4 = env.InstallDir(env.subst('$INSTALL_INCLUDE'),
+                       env.subst('$QURT_TOP')+"/libs/timer/include/public","*.h")
+
+Include = Incs1 + Incs2 + Incs3 + Incs4
+
+#Pushing build environment information
+buildparam = env.build_param_builder(env.subst('$INSTALL_SCRIPTS')+"/Input/build_params.txt",
+                                     scrp)
+ppendConfig = env.cust_config_builder(env.subst('$INSTALL_SCRIPTS')+"/Input/cust_config.c", 
+                                     [env.subst('$INSTALL_SCRIPTS')+'/Input/cust_config_template.c',
+                                      env.subst('$BUILD_DIR')+'/kernel/include/context_asm_offsets.h'])
+
+env.Alias('qurt', [Debugger, Scripts, Include, buildparam, ppendConfig])
+

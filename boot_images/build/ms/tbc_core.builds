@@ -1,0 +1,53 @@
+#==============================================================================
+# CoreBSP Build Configuration Definition File.
+#
+# Copyright (c) 2012, 2014 QUALCOMM Inc.  All Rights Reserved
+#==============================================================================
+#==============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/build/ms/tbc_core.builds#1 $
+# $DateTime: 2015/09/01 00:30:35 $
+#
+# when       who    what, where, why
+# -------    ---    -------------------------------------------
+# 02/24/14   jz       Move EFS on RMTS to target specific .builds
+# 06/05/12   kpa    Move sdcc device defines to 8974 target.builds file. 
+# 05/17/12   kpa    Move target specific info to target.builds file. 
+# 03/30/12   sy     Initial version.
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# Boot
+#------------------------------------------------------------------------------
+[SoftComponent: Boot]
+
+#Enables logging of messages to ram
+boot_logger_ram makeonly
+
+#Enables taking of timestamps for logging purposes
+boot_logger_timer makeonly
+
+#Enables outputting of logged messages to JTAG terminal window
+#boot_logger_jtag makeonly
+
+define FEATURE_QFUSE_PROGRAMMING
+
+define FEATURE_DLOAD_MEM_DEBUG
+
+#define FEATURE_FLCB
+
+
+sahara_boot makeonly
+
+
+use MBNToolsConfigure
+
+#------------------------------------------------------------------------------
+# MBN Tools Configuration and Definitions  
+#------------------------------------------------------------------------------
+[SoftComponent: MBNToolsConfigure]
+mbntools makeonly
+define IMAGE_KEY_SBL1_IMG_DEST_ADDR     SCL_SBL1_CODE_BASE
+

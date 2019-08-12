@@ -1,0 +1,201 @@
+#===============================================================================
+#
+# SCONS FILE 8916
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: 
+#  $DateTime: 
+#  $Author: pwbldsvc $
+#  $Change: 
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who       what, where, why
+# --------    ---       ---------------------------------------------------------
+# 2013-10-25  shreyasr  Initial draft created for 8916
+#===============================================================================
+Import('env')
+env = env.Clone()
+#-------------------------------------------------------------------------------
+# Defines
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8916']:
+  env.Append(CPPDEFINES = ['QHSUSB_TARGET_8916'])
+  
+if env.has_key('EMMCBLD_IMAGE'):
+   env.Append(CPPDEFINES = ['FEATURE_SKIP_SERIAL_STR_UPDATE', 'FEATURE_EMMCBLD'])
+
+
+if env.has_key('SBL1_BOOT') or env.has_key('HSUSB_BOOT_DRIVER'):
+  if env.has_key('USES_BOOT_DDR_DEBUG_MODE'):
+		env.Append(CPPDEFINES = ['QHSUSB_ENABLE_LOGGING'])
+  elif env.has_key('HSUSB_SBL_FIREHOSE_BOOT_DRIVER'):
+        env.Append(CPPDEFINES = ['FEATURE_QHSUSB_DEAD_BATTERY_CHARGING',
+                                 'QHSUSB_ENABLE_LOGGING'
+                                ])
+  else:
+    env.Append(CPPDEFINES = ['FEATURE_QHSUSB_DEAD_BATTERY_CHARGING',
+                            'FEATURE_QHSUSB_MS',
+                            'QHSUSB_ENABLE_LOGGING',
+                            'FEATURE_QHSUSB_SAHARA_DOWNLOAD_PIPO',
+                            'QHSUSB_MS_OPTIMIZATION'
+                            ])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/wiredconnectivity/qhsusb/src/"
+
+# Setup object file destination location.
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+  'BOOT',
+  'STORAGE',
+  'SERVICES',
+  'HWIO_API',
+  'HWENGINES',
+  'SYSTEMDRIVERS',
+  'WIREDCONNECTIVITY',
+  'DAL',
+  # needs to be last also contains wrong comdef.h
+  'KERNEL',   
+]
+
+env.RequirePublicApi( CBSP_API )
+env.RequireRestrictedApi( CBSP_API )
+
+env.PublishPrivateApi('QHSUSB_CLASSES', [
+   "${BUILD_ROOT}/core/wiredconnectivity/qhsusb/inc/",
+   "${BUILD_ROOT}/core/wiredconnectivity/qhsusb/src/dci/",
+   "${BUILD_ROOT}/core/wiredconnectivity/qhsusb/src/dcd/",
+   "${BUILD_ROOT}/core/wiredconnectivity/qhsusb/src/al/",
+   "${BUILD_ROOT}/core/wiredconnectivity/qhsusb/src/func/",      
+   "${BUILD_ROOT}/core/wiredconnectivity/qhsusb/src/common/"
+])
+env.PublishPublicApi('WIREDCONNECTIVITY', [
+    "${BUILD_ROOT}/core/api/wiredconnectivity",
+])
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi('RFA', 'pmic')
+#-------------------------------------------------------------------------------
+# Source Code and LIBs
+#-------------------------------------------------------------------------------
+
+QHSUSB_DCI_SOURCES = [
+    '${BUILDPATH}/dci/qhsusb_dci.c',
+    '${BUILDPATH}/dci/qhsusb_dci_${MSM_ID}.c',
+]
+
+if env['MSM_ID'] in ['8916']:
+	if env.has_key('HSUSB_BOOT_DRIVER') or env.has_key('EMMCBLD_IMAGE') or env.has_key('HSUSB_SBL_FIREHOSE_BOOT_DRIVER'):
+		QHSUSB_DCI_SOURCES += [
+		'${BUILDPATH}/dci/qhsusb_dci_${MSM_ID}_hw_apis_sbl1.c',
+	]
+	
+QHSUSB_DCD_SOURCES = [
+   '${BUILDPATH}/dcd/qhsusb_dcd_ch9.c',
+]
+
+QHSUSB_FD_BTLDR_SOURCES = [
+   '${BUILDPATH}/func/qhsusb_fd_hdlc.c',
+   '${BUILDPATH}/func/qhsusb_boot_dload.c',
+]
+
+QHSUSB_FD_CHG_SOURCES = [
+   '${BUILDPATH}/func/qhsusb_fd_chg.c',
+]
+
+QHSUSB_FD_MS_SOURCES = [
+   '${BUILDPATH}/func/qhsusb_scsi.c',
+   '${BUILDPATH}/func/qhsusb_fd_ms.c',
+]
+
+QHSUSB_AL_EMMCBLD_SOURCES = [
+   '${BUILDPATH}/al/qhsusb_al_hostdl.c',
+]
+
+QHSUSB_AL_CHG_SOURCES = [
+   '${BUILDPATH}/al/qhsusb_al_charger.c',
+]
+
+QHSUSB_AL_BULK_SOURCES = [
+   '${BUILDPATH}/al/qhsusb_al_bulk.c',
+]
+
+QHSUSB_LOGGING_SOURCES = [
+	'${BUILDPATH}/common/qhsusb_log.c',
+]
+
+QHSUSB_COMMON_SOURCES = [
+   QHSUSB_DCD_SOURCES,
+   QHSUSB_DCI_SOURCES,
+   QHSUSB_LOGGING_SOURCES,
+]
+
+QHSUSB_EMMCBLD_SOURCES = [
+   QHSUSB_AL_EMMCBLD_SOURCES,
+   QHSUSB_FD_BTLDR_SOURCES,
+   QHSUSB_COMMON_SOURCES,
+]
+
+QHSUSB_BULK_CHG_MS_SOURCES = [
+	QHSUSB_AL_CHG_SOURCES,
+	QHSUSB_AL_BULK_SOURCES,
+	QHSUSB_FD_BTLDR_SOURCES,
+	QHSUSB_FD_MS_SOURCES,
+	QHSUSB_FD_CHG_SOURCES,
+	QHSUSB_COMMON_SOURCES,
+]
+
+QHSUSB_BULK_SOURCES = [
+    QHSUSB_AL_BULK_SOURCES,
+    QHSUSB_FD_BTLDR_SOURCES,
+    QHSUSB_COMMON_SOURCES,
+]
+
+QHSUSB_BULK_CHG_SOURCES = [
+    QHSUSB_AL_BULK_SOURCES,
+    QHSUSB_FD_BTLDR_SOURCES,
+    QHSUSB_COMMON_SOURCES,
+    QHSUSB_AL_CHG_SOURCES,
+    QHSUSB_FD_CHG_SOURCES,
+]
+
+qhsusb_emmcbld_objs = env.Object(QHSUSB_EMMCBLD_SOURCES)
+qhsusb_emmcbld_lib  = env.Library('${BUILDPATH}/qhsusb_emmcbld', qhsusb_emmcbld_objs)
+
+qhsusb_bulk_ch_ms_objs = env.Object(QHSUSB_BULK_CHG_MS_SOURCES)
+qhsusb_bulk_ch_ms_lib = env.Library('${BUILDPATH}/qhsusb_bulk_ch_ms', qhsusb_bulk_ch_ms_objs)
+
+qhsusb_bulk_objs = env.Object(QHSUSB_BULK_SOURCES)
+qhsusb_bulk_lib  = env.Library('${BUILDPATH}/qhsusb_bulk', qhsusb_bulk_objs)
+
+qhsusb_bulk_chg_objs = env.Object(QHSUSB_BULK_CHG_SOURCES)
+qhsusb_bulk_chg_lib  = env.Library('${BUILDPATH}/qhsusb_bulk_chg', qhsusb_bulk_chg_objs)
+
+if env['MSM_ID'] in ['8916']:
+  if env.has_key('USES_BOOT_DDR_DEBUG_MODE'):
+		env.AddLibsToImage(['HSUSB_BOOT_DRIVER'],qhsusb_bulk_lib)
+  else:
+    env.AddLibsToImage(['HSUSB_BOOT_DRIVER'],qhsusb_bulk_ch_ms_lib)
+    env.AddLibsToImage(['EMMCBLD_STREAMING_IMAGE'], qhsusb_emmcbld_lib)
+    env.AddLibsToImage(['FIREHOSE_IMAGE'], qhsusb_bulk_lib)
+    env.AddLibsToImage(['HSUSB_SBL_FIREHOSE_BOOT_DRIVER'],qhsusb_bulk_chg_lib)

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  RPM Sleep Low Power Resource/Mode definitions
+
+  Copyright (c) 2012-2013 QUALCOMM Technologies Incorporated.
+  All Rights Reserved.
+  Qualcomm Confidential and Proprietary
+
+Format of Enter/Exit/Backoff latency fields:
+"<Fixed>,<Scaled>"
+Fixed - Unscaled value that is always added to each frequency table entry
+Scaled - Value that will be scaled at 1:1 ratio according to frequency table entries
+         and the initial base profile frequency given via ProfileFreq
+
+
+Bitwise attribute values (see sleep_mode_attribute enum for full description):
+  0x01 - No reference count
+  0x02 - No function lock
+  0x04 - No latency optimization
+  0x08 - No automatic latency tracking
+-->
+
+<!--
+New Enter Latency = orig rpm_sync enter latency + enter latency of removed vdd dig
+                  = 28000 + 5100
+                  = 33100
+New Exit Latency = orig rpm_sync exit latency + exit latency of removed vdd dig
+                  = 26000 + 5100
+                  = 31100				  
+-->
+
+<LPRDefinition>
+  <LPR Name="rpm" CoreMask="0xFFFFFFFF" InitFn="rpm_sync_init" ProfileFreq="576000">
+    <Mode Name="sync"
+          Dependency="cpu_vdd + cxo"
+          Order="BEFORE cpu_vdd"
+          PowerSavings="100000,50"
+          EnterLat="33200,542"
+          ExitLat="31100,4040"
+          Backoff="1000,5040"
+          EnterFn="rpm_sync_enter"
+          ExitFn="rpm_sync_exit"
+          >
+    </Mode>
+    <Mode Name="sync_only"
+          Dependency="cpu_vdd.pc_l2_tcm_ret"
+          Order="BEFORE cpu_vdd.pc_l2_tcm_ret"
+          PowerSavings="900000,50"
+          EnterLat="33100,542"
+          ExitLat="31100,4040"
+          Backoff="1000,5040"
+          EnterFn="rpm_sync_enter"
+          ExitFn="rpm_sync_exit"
+          >
+    </Mode>
+
+  </LPR>
+</LPRDefinition>

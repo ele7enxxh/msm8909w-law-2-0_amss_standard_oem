@@ -1,0 +1,110 @@
+#-------------------------------------------------------------------------------
+#$Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/nas/mm/src/mm.min#1 $ $DateTime: 2016/12/13 08:00:05 $ $Author: mplcsds1 $
+# MM
+#-------------------------------------------------------------------------------
+
+MM_SOURCES=\
+	mmabort.c	\
+	mmact.c		\
+	mmcm.c		\
+	mmconn.c	\
+	mmcoord.c	\
+	mmdeact.c	\
+	mmforbid.c	\
+	mmglbl.c	\
+	mm_gstk.c	\
+	mmidentity.c	\
+	mminfo.c	\
+	mmlu.c		\
+	mmmain.c	\
+	mmpaging.c	\
+	mmparse.c	\
+	mmplmnsel.c	\
+	mmplmnsrch.c	\
+	mmrat.c       	\
+	mmregister.c	\
+	mmrrcconn.c	\
+	mmsecurity.c	\
+	mmsend.c	\
+	mmsim.c		\
+	mmstate.c	\
+	mmsubstate.c	\
+	mmsysinfo.c	\
+	mmtask.c	\
+	mmtimers.c	\
+	mmtmsi.c	\
+	mmumts.c	\
+	mmutils.c	\
+	gmm_main.c	\
+	gmmconn.c	\
+	gmminfo.c	\
+	gmmllcm.c       \
+	gmmmsg.c	\
+	gmmreg.c	\
+	gmmsecurity.c	\
+	gmmsuspend.c	\
+	gmmutils.c	\
+	mmauth.c 	\
+	nasdiag.c 	\
+ 	mm_lsm.c
+
+ifeq ($(USES_LTE), yes)
+MM_SOURCES+=\
+	emm_connection_handler.c  \
+	emm_database.c \
+	emm_esm_handler.c \
+	emm_mem.c \
+	emm_procedure_reject_handler.c \
+	emm_reg_handler.c  \
+	emm_rrc_handler.c \
+	emm_rrc_if.c  \
+	emm_security.c  \
+	emm_service_request_lib.c \
+	emm_sim_handler.c  \
+	emm_update_lib.c  \
+	emm_utility.c   \
+	lte_nas_msg_parse.c  \
+	msg_lib_declarations.c  \
+	msg_lib_decode_common_emm_ie.c  \
+	msg_lib_decode_common_esm_ie.c  \
+	msg_lib_decode_emm.c  \
+	msg_lib_decode_esm.c  \
+	msg_lib_encode_common_emm_ie.c  \
+        emm_tlb_handler.c \
+	msg_lib_encode_common_esm_ie.c  \
+	msg_lib_encode_emm.c  \
+	msg_lib_encode_esm.c  \
+	mm_multimode_handler.c  \
+	msg_lib_parse_nas_hdr.c
+endif
+
+MM_CINCPATH=\
+	$(HW)	\
+	$(RABM)	\
+	$(CNM)	\
+	$(RRC)	\
+	$(CLK)	\
+	$(UIM)	\
+	$(GSDI)	\
+	$(CUST)	\
+	$(BIO)	\
+	$(DIAG)	\
+	$(REG)	\
+	$(TRAMP)	\
+	$(REX)	\
+	$(MM)	\
+	$(TASK)	\
+	$(NV)	\
+	$(SM)	\
+	$(RF)	\
+	$(CM)	\
+	$(UTILS) \
+        $(RR)
+
+MM_OBJS :=  $(addprefix $(TARGETDIR)/, $(MM_SOURCES:%.c=%.o))
+$(MM_OBJS): INCLUDES = $(addprefix -I, $(MM_CINCPATH))
+$(MM_OBJS): CFLAGS := $(CFLAGS) -DFEATURE_6200_COMPATIBILITY
+MM_DEPS :=  $(addprefix $(TARGETDIR)/, $(MM_SOURCES:%.c=%.dep))
+$(MM_DEPS): INCLUDES = $(addprefix -I, $(MM_CINCPATH))
+vpath %.c $(MM)
+

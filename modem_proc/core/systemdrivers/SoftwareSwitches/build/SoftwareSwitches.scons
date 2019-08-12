@@ -1,0 +1,122 @@
+#=============================================================================
+# CLK LIBRARY
+#
+# Target:    QSC6695
+# Processor: ARM11
+#
+#=============================================================================
+# $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/SoftwareSwitches/build/SoftwareSwitches.scons#1 $
+#=============================================================================
+#                    Copyright 2009 Qualcomm Technologies Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#=============================================================================
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/systemdrivers/SoftwareSwitches/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'ASIC',
+   'DSM',
+   'BREW',
+   'MODEM_PMIC',
+   'MODEM_DATA',
+   'MODEM_1X',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+   'MODEM_NAS',
+   'MODEM_GPS',
+   'MODEM_UIM',
+   'MODEM_WCDMA',
+   'MODEM_FTM',
+   'MODEM_HDR',
+   'MODEM_ADIE',
+   'MODEM_MDSP',
+   'MODEM_GERAN',
+   'MODEM_MCS',
+   'MULTIMEDIA_AUDIO',
+   'MULTIMEDIA_DISPLAY',
+   'MULTIMEDIA_CORE',
+   'MULTIMEDIA',
+   'WCONNECT',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi("SYSTEMDRIVERS_SOFTWARESWITCHES", [
+   "${INC_ROOT}/core/systemdrivers/SoftwareSwitches/inc",
+   "${INC_ROOT}/core/systemdrivers/SoftwareSwitches/src",
+   "${INC_ROOT}/core/systemdrivers/SoftwareSwitches/src/wrapper",
+])
+
+
+#-----------------------------------------------------------------------------
+# Define sources
+#-----------------------------------------------------------------------------
+
+SWITCH_SOURCES = [
+   '${BUILDPATH}/DalSoftwareSwitches.c',
+   '${BUILDPATH}/DalSoftwareSwitchesFwk.c',
+   '${BUILDPATH}/DalSoftwareSwitchesInfo.c',
+   '${BUILDPATH}/wrapper/SoftwareSwitches.c',
+]
+
+SWITCH_OSBL_SOURCES = [
+   '${BUILDPATH}/wrapper/SoftwareSwitchesStub.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE','MODEM_IMAGE', 'CBSP_MODEM_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+                   'APPS_IMAGE', 'CBSP_APPS_IMAGE'], 
+               '${BUILDPATH}/DALsoftwareswitches',
+               SWITCH_SOURCES)
+               
+env.AddLibrary(['OSBL_BOOT_IMAGE'], '${BUILDPATH}/softwareswitches_boot',SWITCH_OSBL_SOURCES)
+
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitFunc(   # Code Fragment in TMC: NO
+   RCINIT_IMG,          # define TMC_RCINIT_INIT_SOFTWARESWITCHES_INIT
+   {
+   'sequence_group'           : 'RCINIT_GROUP_0',          # required
+   'init_name'                : 'SoftwareSwitches',         # required
+   'init_function'            : 'SoftwareSwitches_Init',   # required
+   'dependencies'             : ['dalsys'],                # opt [python list]
+   })
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      'soc_xml'    : ['${BUILD_ROOT}/core/systemdrivers/SoftwareSwitches/config/SoftwareSwitches.xml']
+   })
+

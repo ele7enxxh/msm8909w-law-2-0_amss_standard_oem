@@ -1,0 +1,204 @@
+//============================================================================
+//  Name:                                                                     
+//    DAP_MPSS.cmm
+//
+//  Description:                                                              
+//    Setup script for the Modem Sub-system
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 04/13/2013 AJCheriyan	Support for QDSS Gen 2
+// 04/02/2013 AJCheriyan	Added SWD support
+// 02/11/2013 AJCheriyan	Added 8x26 support
+// 07/10/2012 AJCheriyan    Created for B-family
+//
+
+// The script accepts two input arguments
+// ARG0 - Chipset name
+// ARG1 - Core number
+// Ideal case, the argument 'ARG0' would not have to be used
+// as the parameters for a sub-system should be the same
+// across the entire family of chipsets
+
+ENTRY &ARG0 &ARG1 &ARG2
+
+MAIN:
+
+	IF (("&ARG0"=="MSM8974")||("&ARG0"=="msm8974"))
+	(
+	SYSTEM.CPU HEXAGONV5 
+	SYSTEM.CONFIG SLAVE ON    
+
+	SYSTEM.JTAGCLOCK 15.0MHZ
+
+	SYSTEM.CONFIG.DAPIRPOST 16.
+	SYSTEM.CONFIG.DAPDRPOST 2.
+	SYSTEM.CONFIG.DAPIRPRE 0.
+	SYSTEM.CONFIG.DAPDRPRE 0.
+	SYSTEM.CONFIG.MEMORYACCESSPORT 0
+	SYSTEM.CONFIG.DEBUGACCESSPORT 1
+	SYSTEM.CONFIG.JTAGACCESSPORT 2
+	SYSTEM.CONFIG.COREJTAGPORT 0
+	
+	MMU.TABLEWALK ON
+	)
+
+	IF (("&ARG0"=="MSM8X26")||("&ARG0"=="msm8x26"))
+	(
+		SYSTEM.CPU HEXAGONV5 
+		SYSTEM.CONFIG SLAVE ON    
+
+		SYSTEM.JTAGCLOCK 15.0MHZ
+		SYSTEM.CONFIG.DAPIRPOST 16.
+		SYSTEM.CONFIG.DAPDRPOST 2.
+		SYSTEM.CONFIG.DAPIRPRE 0.
+		SYSTEM.CONFIG.DAPDRPRE 0.
+		SYSTEM.CONFIG.MEMORYACCESSPORT 0
+		SYSTEM.CONFIG.DEBUGACCESSPORT 1
+		SYSTEM.CONFIG.JTAGACCESSPORT 2
+		SYSTEM.CONFIG.COREJTAGPORT 0
+		
+		MMU.TABLEWALK ON		
+	)
+
+	IF (("&ARG0"=="MSM8X10")||("&ARG0"=="msm8x10")||("&ARG0"=="MSM8962")||("&ARG0"=="msm8962"))
+	(
+		SYSTEM.CPU HEXAGONV5 
+		SYSTEM.CONFIG SLAVE ON    
+
+		SYSTEM.JTAGCLOCK 15.0MHZ
+		SYSTEM.CONFIG.DAPIRPOST 16.
+		SYSTEM.CONFIG.DAPDRPOST 2.
+		SYSTEM.CONFIG.DAPIRPRE 0.
+		SYSTEM.CONFIG.DAPDRPRE 0.
+		SYSTEM.CONFIG.MEMORYACCESSPORT 0
+		SYSTEM.CONFIG.AXIACCESSPORT 0
+		SYSTEM.CONFIG.DEBUGACCESSPORT 1
+		SYSTEM.CONFIG.JTAGACCESSPORT 2
+		SYSTEM.CONFIG.COREJTAGPORT 0
+		
+		MMU.TABLEWALK ON
+	)
+	
+	IF (("&ARG0"=="MSM8916")||("&ARG0"=="msm8916"))
+	(
+	  
+	  SYStem.Reset
+	  SYStem.CPU HexagonV5
+	  SYStem.JTAGCLOCK ctck  20MHz 
+	  SYStem.CONFIG SLAVE ON
+	  SYStem.CONFIG MEMORYACCESSPORT 0.
+	  SYStem.CONFIG DEBUGACCESSPORT  1.
+	  SYStem.CONFIG JTAGACCESSPORT   2.
+	  SYStem.CONFIG COREJTAGPORT     0.    
+          SYStem.CONFIG MULTITAP NONE
+          SYStem.CONFIG DAPIRPOST 0.
+          SYStem.CONFIG DAPDRPOST 0.
+          SYStem.CONFIG DAPIRPOST 16.
+          SYStem.CONFIG DAPDRPOST 2.
+
+
+      RADIX HEX
+      SETUP.VAR %HEX.ON
+      MODE.HLL
+
+      SYStem.STATE
+      autostore , history
+      ETM.OFF
+		MMU.TABLEWALK ON
+	)
+	
+	IF (("&ARG0"=="MSM8939")||("&ARG0"=="msm8939"))
+	(
+	  
+	  SYStem.Reset
+	  SYStem.CPU HexagonV5
+	  SYStem.JTAGCLOCK ctck  20MHz 
+	  SYStem.CONFIG SLAVE ON
+	  SYStem.CONFIG MEMORYACCESSPORT 0.
+	  SYStem.CONFIG DEBUGACCESSPORT  1.
+	  SYStem.CONFIG JTAGACCESSPORT   2.
+	  SYStem.CONFIG COREJTAGPORT     0.    
+	  SYStem.CONFIG MULTITAP NONE
+	  SYStem.CONFIG DAPIRPOST 0.
+	  SYStem.CONFIG DAPDRPOST 0.
+	  SYStem.CONFIG DAPIRPOST 16.
+	  SYStem.CONFIG DAPDRPOST 2.
+
+      	  RADIX HEX
+	  SETUP.VAR %HEX.ON
+          MODE.HLL
+
+      	  SYStem.STATE
+          autostore , history
+          ETM.OFF
+	  MMU.TABLEWALK ON
+	)
+	IF (("&ARG0"=="MSM8952")||("&ARG0"=="msm8952"))
+	(
+	  
+		SYStem.Reset
+		SYStem.CPU HexagonV56
+		SYStem.JTAGCLOCK ctck 20.0MHz 
+		SYStem.CONFIG SLAVE OFF
+		SYStem.CONFIG MEMORYACCESSPORT 0.
+		SYStem.CONFIG DEBUGACCESSPORT  1.
+		SYStem.CONFIG JTAGACCESSPORT   2.
+		SYStem.CONFIG COREJTAGPORT     4.
+		SYStem.CONFIG AXIACCESSPORT  0.
+		SYStem.CONFIG DAPIRPOST 16.
+		SYStem.CONFIG DAPDRPOST 2.
+		RADIX HEX
+		SETUP.VAR %HEX.ON
+		MODE.HLL
+		SYStem.STATE
+		autostore , history
+		ETM.OFF
+		MMU.TABLEWALK ON
+	)
+	IF (("&ARG0"=="MSM8976")||("&ARG0"=="msm8976"))
+	(
+		SYStem.Reset
+		SYStem.CPU HexagonV56
+		SYStem.JTAGCLOCK ctck 20.0MHz 
+		SYStem.CONFIG SLAVE OFF
+		SYStem.CONFIG MEMORYACCESSPORT 0.
+		SYStem.CONFIG DEBUGACCESSPORT  1.
+		SYStem.CONFIG JTAGACCESSPORT   2.
+		SYStem.CONFIG COREJTAGPORT     4.
+		SYStem.CONFIG AXIACCESSPORT  0.
+		SYStem.CONFIG DAPIRPOST 16.
+		SYStem.CONFIG DAPDRPOST 2.
+		RADIX HEX
+		SETUP.VAR %HEX.ON
+		MODE.HLL
+		SYStem.STATE
+		autostore , history
+		ETM.OFF
+		MMU.TABLEWALK ON
+	)
+	// Common settings for all chipsets
+	IF (("&ARG2"=="SWD")||("&ARG2"=="swd"))
+	(
+		SYSTEM.CONFIG SWDP ON 
+		SYSTEM.CONFIG DEBUGPORTTYPE SWD
+	)
+
+	// Launch startup scripts
+	IF (OS.ENV(STARTUPCMM)!="")
+	(
+            &STARTUPSCRIPT=OS.ENV(STARTUPCMM)
+	    do &STARTUPSCRIPT
+	)
+	
+EXIT:
+	ENDDO

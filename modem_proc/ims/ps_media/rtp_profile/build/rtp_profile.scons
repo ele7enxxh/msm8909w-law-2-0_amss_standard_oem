@@ -1,0 +1,81 @@
+#===============================================================================
+#
+# TMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/ps_media/rtp_profile/build/rtp_profile.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('IMS_rtp_profile_INC', [ 
+"${INC_ROOT}/modem/ims/ps_media/common/inc",
+])
+
+
+IMS_API_PUB = [
+	'IMS_DPL',
+	'IMS_PS_MEDIA_COMMON_INC',
+	'IMS_PS_MEDIA_QDJ',
+	'IMS_PS_MEDIA_RTP_CORE',
+	'IMS_PS_MEDIA_RTP_JITTER_BUFFER',
+	'IMS_PS_MEDIA_RTP_PROFILE',
+]
+
+env.RequireProtectedApi(IMS_API_PUB)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+QVP_RTP_PROFILE_LIB_C_SOURCES=[
+	'${BUILDPATH}/qvp_rtp_profile.c',
+	'${BUILDPATH}/qvp_rtp_raw_profile.c',
+#	'${BUILDPATH}/qvp_rtp_evrc_profile.c',
+	'${BUILDPATH}/qvp_rtp_amr_profile.c',
+	'${BUILDPATH}/qvp_rtp_evs_profile.c',
+#	'${BUILDPATH}/qvp_rtp_h263_profile.c',
+#	'${BUILDPATH}/qvp_rtp_g723_profile.c',
+#	'${BUILDPATH}/qvp_rtp_mp4_profile.c',
+	'${BUILDPATH}/qvp_rtp_dtmf_profile.c',
+#	'${BUILDPATH}/qvp_rtp_evrc1_profile.c',
+#	'${BUILDPATH}/qvp_rtp_reassembly.c',
+	'${BUILDPATH}/qvp_rtp_g711_profile.c',
+#	'${BUILDPATH}/qvp_rtp_g722_profile.c',
+#  '${BUILDPATH}/qvp_rtp_g729_profile.c',
+#	'${BUILDPATH}/qvp_rtp_h264_profile.c',
+  '${BUILDPATH}/qvp_rtp_text_profile.c',
+]
+
+
+#-------------------------------------------------------------------------------
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+#-------------------------------------------------------------------------------
+
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/qvp_rtpprofile', [QVP_RTP_PROFILE_LIB_C_SOURCES])

@@ -1,0 +1,104 @@
+#===============================================================================
+#
+# compressed_heap Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2015-2016 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/perf/compressed_heap/build/compressed_heap.scons#1 $
+#  $DateTime: 2016/12/13 07:59:26 $
+#  $Author: mplcsds1 $
+#  $Change: 11985160 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/perf/compressed_heap/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'BREW',
+   'CS',
+   'MODEM_PMIC',
+   'MULTIMEDIA_DISPLAY',
+])
+
+
+COMPRESSED_HEAP_API = ['COMPRESSED_HEAP',]
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'SECUREMSM',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API,area='CORE')
+env.RequirePublicApi(CBSP_API)
+
+
+env.RequirePublicApi([
+        'COMPRESSED_HEAP',
+        ],
+        area='PERF')
+env.RequirePublicApi(COMPRESSED_HEAP_API)
+
+#env.RequirePublicApi(['DHMS',], area='QMIMSGS')
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+COMPRESSED_HEAP_SOURCES = [
+   '${BUILDPATH}/compressed_modem_mem.c', 
+]
+
+#compressed_heap_obj = env.Object([COMPRESSED_HEAP_SOURCES])
+
+#compressed_heap_lib = env.Library('${BUILDPATH}/compressed_heap', [compressed_heap_obj])
+
+#['MODEM_MODEM']
+env.AddLibrary( ['CORE_QDSP6_SW'], '${BUILDPATH}/compressed_heap', [COMPRESSED_HEAP_SOURCES] )
+
+#env.AddObject(['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], 
+#   [COMPRESSED_HEAP_SOURCES])
+
+
+

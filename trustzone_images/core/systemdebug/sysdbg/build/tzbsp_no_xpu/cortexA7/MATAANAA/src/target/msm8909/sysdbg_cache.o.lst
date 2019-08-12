@@ -1,0 +1,245 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;=======================================================
+                       =================
+    2 00000000         ;
+    3 00000000         ; Macros and Functions used to do cache related work 
+    4 00000000         ;
+    5 00000000         ;=======================================================
+                       =================
+    6 00000000         ;=======================================================
+                       =================
+    7 00000000         ;       MODULE CONSTANTS
+    8 00000000         ;=======================================================
+                       =================
+    9 00000000 00000010 
+                       DMINLINE_SHFT
+                               EQU              0x10
+   10 00000000 0000000F 
+                       DMINLINE_MASK
+                               EQU              0xF
+   11 00000000 07000000 
+                       CLIDR_LOC_MASK
+                               EQU              0x7000000
+   12 00000000 00000017 
+                       CLIDR_LOC_SHFT
+                               EQU              0x17
+   13 00000000 00000007 
+                       CCSIDR_LINESZ_MASK
+                               EQU              0x7
+   14 00000000 000003FF 
+                       CCSIDR_ASSOC_MASK
+                               EQU              0x3FF
+   15 00000000 00000003 
+                       CCSIDR_ASSOC_SHFT
+                               EQU              0x3
+   16 00000000 00007FFF 
+                       CCSIDR_NUMSETS_MASK
+                               EQU              0x7FFF
+   17 00000000 0000000D 
+                       CCSIDR_NUMSETS_SHFT
+                               EQU              0xD
+   18 00000000 00000001 
+                       DCCISW_LEVEL_SHFT
+                               EQU              0x1
+   19 00000000 00000004 
+                       DCCISW_SBZ_SHFT
+                               EQU              0x4
+   20 00000000         ;=======================================================
+                       =================
+   21 00000000         ;       MODULE EXPORTS
+   22 00000000         ;=======================================================
+                       =================
+   23 00000000                 IMPORT           tzbsp_dcache_iterate_set_way
+   24 00000000                 EXPORT           sysdbg_dcache_flush
+   25 00000000         ;=======================================================
+                       =================
+   26 00000000         ;       MODULE DATA / CODE
+   27 00000000         ;=======================================================
+                       =================
+   28 00000000                 PRESERVE8
+   29 00000000                 AREA             ARM_CACHE, CODE, READONLY
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   30 00000000                 CODE32
+   31 00000000         ;=======================================================
+                       =====================
+   32 00000000         ; sysdbg_dcache_flush
+   33 00000000         ;
+   34 00000000         ; DESCRIPTION -
+   35 00000000         ;   Flushes caches based on its validity, only called if
+                        at least one level of cache is valid
+   36 00000000         ;   Uses existing TZ functions that iterates through all
+                        levels of cache
+   37 00000000         ;   TZ API goes through all levels of cache, but we repl
+                       ace the standard flush cache line func with a check for 
+                       validity, inefficient but leverages existing code
+   38 00000000         ;   
+   39 00000000         ;=======================================================
+                       =====================
+   40 00000000         sysdbg_dcache_flush
+                               FUNCTION
+   41 00000000 E92D5FFF        stmfd            sp!, {r0-r12, lr}
+   42 00000004 F57FF04F        DSB
+   43 00000008 E1A01081        lsl              r1, r1, #1
+   44 0000000C E1800001        orr              r0, r0, r1
+   45 00000010 E59F1034        ldr              r1,=sysdbg_cache_validity ; sav
+                                                            ing valid flags int
+                                                            o buffer area
+   46 00000014 E5810000        str              r0, [r1]
+   47 00000018 E59F0030        ldr              r0, =sysdbg_dcache_flush_line_i
+f_valid 
+                                                            ;flush l1 cache
+   48 0000001C EBFFFFFE        bl               tzbsp_dcache_iterate_set_way
+   49 00000020 E8BD9FFF        ldmfd            sp!, {r0-r12, pc}
+   50 00000024                 ENDFUNC
+   51 00000024         ;=======================================================
+                       =====================
+   52 00000024         ; sysdbg_dcache_flush_line_if_valid
+   53 00000024         ;
+   54 00000024         ; DESCRIPTION -
+   55 00000024         ;   Flush a single cache line by set/way only if current
+                        cache level is valid
+   56 00000024         ;=======================================================
+                       =====================
+   57 00000024         sysdbg_dcache_flush_line_if_valid
+                               FUNCTION
+   58 00000024 E92D401F        stmfd            sp!, {r0-r4, lr}
+   59 00000028 E59F101C        ldr              r1, =sysdbg_cache_validity
+   60 0000002C E5912000        ldr              r2, [r1]
+   61 00000030 EE503F10        mrc              p15, 2, r3, c0, c0, 0 ; 0'b00 r
+                                                            epresents lvl1, 0'b
+                                                            01 represents lvl2
+   62 00000034 E2833001        add              r3, r3, #1  ; 0'b01 represents 
+                                                            lvl1, 0'b10 represe
+                                                            nts lvl2
+   63 00000038 E0033002        and              r3, r3, r2  ; AND current cache
+                                                             level with cache v
+                                                            alid bits
+   64 0000003C E3530000        cmp              r3, #0      ; Any value other t
+                                                            han 0 indicates cur
+                                                            rent cache is valid
+                                                            
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   65 00000040 0A000000        beq              flush_line_end
+   66 00000044         flush_line
+   67 00000044 EE070F5E        mcr              p15, 0, r0, c7, c14, 2 ; clean 
+                                                            & invalidate by set
+                                                            /way only if curren
+                                                            t cache is valid
+   68 00000048         flush_line_end
+   69 00000048 E8BD801F        ldmfd            sp!, {r0-r4, pc}
+   70 0000004C                 ENDFUNC
+   71 0000004C         ;=======================================================
+                       ================
+   72 0000004C         ;
+   73 0000004C         ;  Data for the module 
+   74 0000004C         ;
+   75 0000004C         ;=======================================================
+                       ================ 
+   76 0000004C 00000000 
+              00000000 
+              00000000         AREA             SYSDBG_CACHE_DATA , DATA, READW
+RITE
+   77 00000000         ; IMPORT dbi_cpu_regs
+   78 00000000 00 00 00 
+              00       sysdbg_cache_validity
+                               SPACE            0x4         ; bit 0 represents 
+                                                            l1 cache validity a
+                                                            nd bit0 represents 
+                                                            l2
+   79 00000004                 END
+Command Line: --debug --dwarf2 --cpu=Cortex-A7 --apcs=/noswst/interwork -o/loca
+l/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/
+b/trustzone_images/core/systemdebug/sysdbg/build/tzbsp_no_xpu/cortexA7/MATAANAA
+/src/target/msm8909/sysdbg_cache.o -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c
+10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/systemdebug/s
+ysdbg/build -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT
+-2_20161130_222454/b/trustzone_images/build/cust -I. -I/local/mnt/workspace/CRM
+Builds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/
+core/securemsm/trustzone/qsee/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.
+5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/systemdebu
+g/spmi/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-
+2_20161130_222454/b/trustzone_images/core/systemdebug/pmic/inc -I/local/mnt/wor
+kspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzo
+ne_images/core/systemdebug/pmic/src/target/msm8909w -I/local/mnt/workspace/CRMB
+uilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/c
+ore/systemdebug/sysdbg/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004
+-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/boot -I/local/mnt
+/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/tru
+stzone_images/core/api/boot/qfprom -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c
+10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/kernel -I
+/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_22
+2454/b/trustzone_images/core/api/kernel/libstd -I/local/mnt/workspace/CRMBuilds
+/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/a
+pi/services -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT
+-2_20161130_222454/b/trustzone_images/core/api/rapi/services/inc -I/local/mnt/w
+orkspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trust
+zone_images/core/api/systemdebug -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10
+-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/systemdrive
+rs -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_201611
+30_222454/b/trustzone_images/core/api/systemdrivers/pmic -I/local/mnt/workspace
+/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_ima
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+ges/core/api/systemdrivers/hwio/msm8909w -I/local/mnt/workspace/CRMBuilds/TZ.BF
+.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/sys
+temdrivers/hwio/msm8909w/phys -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00
+004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/dal -I/local/m
+nt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/t
+rustzone_images/core/securemsm/trustzone/qsee/arch/msm8909/cfg/mmu -I/local/mnt
+/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/tru
+stzone_images/core/securemsm/trustzone/qsee/arch/msm8909/src -I/local/mnt/works
+pace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone
+_images/core/securemsm/trustzone/qsee/arch/common/inc -I/local/mnt/workspace/CR
+MBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images
+/core/securemsm/trustzone/qsee/arch/armv7/include -I/local/mnt/workspace/CRMBui
+lds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/cor
+e/systemdrivers/busywait/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-000
+04-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/systemdrivers/clk/i
+nc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_201611
+30_222454/b/trustzone_images/core/systemdrivers/hal/qgic/inc -I/local/mnt/works
+pace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone
+_images/core/securemsm/unifiedcrypto/shared/sha/src -I/local/mnt/workspace/CRMB
+uilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/c
+ore/securemsm/unifiedcrypto/shared/sha/inc -I/local/mnt/workspace/CRMBuilds/TZ.
+BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/secur
+emsm/unifiedcrypto/environment/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c
+10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/uni
+fiedcrypto/core/sha/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8
+909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/cryptodrivers/
+ce/shared/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANA
+ZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/include -
+I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_2
+22454/b/trustzone_images/core/securemsm/secmath/shared/inc -I/local/mnt/workspa
+ce/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_i
+mages/core/securemsm/secrsa/shared/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2
+.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm
+/secrsa/shared/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AA
+AAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/secboot/api -I/loca
+l/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/
+b/trustzone_images/core/systemdebug/sysdbg/inc/msm8909 -I/local/mnt/workspace/C
+RMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_image
+s/core/systemdebug/sysdbg/src/target/msm8909 --list=/local/mnt/workspace/CRMBui
+lds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/cor
+e/systemdebug/sysdbg/build/tzbsp_no_xpu/cortexA7/MATAANAA/src/target/msm8909/sy
+sdbg_cache.o.lst --sitelicense /local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-000
+04-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/systemdebug/sysdbg/
+build/tzbsp_no_xpu/cortexA7/MATAANAA/src/target/msm8909/sysdbg_cache.o.i

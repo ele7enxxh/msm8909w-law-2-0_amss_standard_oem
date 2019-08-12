@@ -1,0 +1,66 @@
+#===============================================================================
+#
+# SSE TL Wrapper
+#
+# GENERAL DESCRIPTION
+#    SSE Wrapper TrustLet
+#
+# Copyright (c) 2012 Qualcomm Technologies, Inc. 
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/sse/mc_v2/P11/WrapperApp/Tl/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/mc_v2/P11/WrapperApp/Tl/src/public/include")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/mc_v2/P11/WrapperApp/Tl/src/private")
+
+env.RequireProtectedApi(['MCTL_API'])
+env.RequireProtectedApi(['MCTL_SDK'])
+
+#-------------------------------------------------------------------------------
+# Include PATH
+#-------------------------------------------------------------------------------
+INC_PATH_API = ["${INC_ROOT}/core/api/kernel/libstd/stringl"]
+env.Append(CPPPATH = INC_PATH_API)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+TL_SRC = "${COREBSP_ROOT}/securemsm/sse/mc_v2/P11/WrapperApp/Tl/src"
+
+env.VariantDir('${BUILDPATH}', TL_SRC, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SOURCES = [ '${BUILDPATH}/tlLog.c',
+            '${BUILDPATH}/tlWrapper.c',
+            '${BUILDPATH}/01_tlWrap.c',
+            '${BUILDPATH}/02_tlUnwrap.c',]
+
+
+HEADERS = env.FindFiles(['*.h'], TL_SRC + '/private')
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary('TLWRAPPER_IMAGE', '${BUILDPATH}/tlwrapper', SOURCES)
+env.CleanPack('TLWRAPPER_IMAGE', HEADERS)

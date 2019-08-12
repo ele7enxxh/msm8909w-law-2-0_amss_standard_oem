@@ -1,0 +1,134 @@
+#===============================================================================
+#
+# DAL CONFIG Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/dal/config/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/12/14   aa      creating env text file for adding path for included header files. 
+# 05/02/13   sc      Updated for Gandalf
+# 12/05/12   sc      Updated for Dino
+# 11/12/12   sc      Updated for Luxor
+# 11/09/12   sc      Updated for 8x26
+# 05/24/12   sc      Ported DevCfg
+# 05/16/12   sc      Updated for 9x25
+# 02/24/12   sc      Removed non TZOS_IMAGE and updated using AddLibrary
+# 01/25/11   sho     Restore TZ for 8660 and 8960
+# 01/11/11   sho     Removed TZOS_IMAGE
+# 12/07/10   sc      Added APPS_PROC in check for 8960
+# 12/02/10   sc      Added check for 8960 to use the correct modem/dsp dir
+# 10/25/10   sc      Added KERNEL_MEMORYMANAGER
+# 09/23/10   sc      Added SBL1_BOOT_IMAGE
+# 09/20/10   vk      Added support for NOR_TOOLS_IMAGE
+# 07/13/10   sc      Added support for RPM_IMAGE
+# 07/08/10   sc      Updated with CORE_SPS and CORE_RPM
+# 04/20/10   sho     Added TZOS_IMAGE
+# 03/24/10   wd      Added dependencies to have SCons rebuild when needed.
+# 05/06/09   wd      Create
+#
+#===============================================================================
+Import('env')
+import os
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Load dal config builders
+#-------------------------------------------------------------------------------
+env.Tool('dalconfig_builder', toolpath = ['.'])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${DAL_ROOT}/config"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External paths, NOTE: DALConfig is a special case as it may require any
+# ".h" file which may not be a public API
+#-------------------------------------------------------------------------------
+
+EXTERNAL_API = [
+   'MODEM_PMIC',                  #pm.h
+   'MODEM_API',
+]
+env.RequireExternalApi(EXTERNAL_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BUSES',
+   'HWENGINES',
+   'SYSTEMDRIVERS',
+   'SYSTEMDRIVERS_DALCONFIG',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'APTTESTS',
+   'KERNEL_MEMORYMANAGER',
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+if env.has_key('TZOS_IMAGE'):
+   dal_gen_src = ['${BUILDPATH}/DALConfig_tz', '${BUILDPATH}/DALModDir_tz']
+   
+   if env.GetUsesFlag('USES_DEVCFG') is True:
+      DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+      env.AddDevCfgInfo(DEVCFG_IMG,
+      {
+         'devcfg_xml' : '${BUILD_ROOT}/core/dal/config/tz/dalsystem_tz.xml'
+      })
+      devcfg_gen_xml = '${BUILDPATH}/DevCfg_master.xml'
+      devcfg_gen_env = '${BUILDPATH}/DevCfg_env.txt'
+      DALConfig_xml = env.DevcfgBuilder([devcfg_gen_xml,devcfg_gen_env], None)
+      DALConfig_src = env.DALConfigSrcBuilder(dal_gen_src, DALConfig_xml[0])
+      if (os.path.exists(env.RealPath(devcfg_gen_env))) :
+         lines = [line.strip() for line in open(env.RealPath(devcfg_gen_env), 'r')]
+         env.get('CPPPATH').extend(lines) 
+   else:
+      dal_sys_xml = "${BUILDPATH}/tz/dalsystem_tz.xml"
+      dal_gen_xml = "${BUILDPATH}/dal_mod_tz.xml"
+      DALConfig_xml = env.DALConfigXmlBuilder(dal_gen_xml, dal_sys_xml)
+      DALConfig_src = env.DALConfigSrcBuilder(dal_gen_src, DALConfig_xml)
+
+else:
+   DALConfig_xml = []
+   DALConfig_src = []
+
+dalconfig_obj = env.Object(DALConfig_src)
+
+# add explicit dependency so SCons know that when ever XML changes so does the
+# objs have to get re-compiled
+env.Depends (dalconfig_obj, DALConfig_xml)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibrary('TZOS_IMAGE', '${BUILDPATH}/DALConfig', DALConfig_src)
+
+

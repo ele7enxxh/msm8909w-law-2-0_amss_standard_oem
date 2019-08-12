@@ -1,0 +1,163 @@
+#===============================================================================
+#
+# Basic core_libs image scrip
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/build/bsp/core_libs/build/core_libs.scons#1 $
+#  $DateTime: 2016/12/13 07:59:25 $
+#  $Change: 11985153 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+
+Import('env')
+
+#------------------------------------------------------------------------------
+# Init image vars 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Init aliases array.
+# first alias (0th element in array) is always unique name, there should 
+# never be two images with the same unique name
+aliases = ['core_libs', 'group_a']
+
+build_tags = ['CORE_QDSP6_SW', 'MODEM_MODEM', 'CORE_MODEM', 'MULTIMEDIA_QDSP6_SW', 'QDSS_EN_IMG', 'QMIMSGS_MPSS', 'CTA_APPS']
+
+#------------------------------------------------------------------------------
+# init environment variables
+env.InitImageVars(
+   alias_list=aliases,           # aliases
+   proc='qdsp6',              # proc
+   config='qdsp6_sw',                # config type, proc_name
+   plat='qurt',
+   target='CORE_LIBS_${BUILD_ID}',# target (elf, image file name)
+   build_tags = build_tags,
+   deprecated_build_tags = ['CBSP_QDSP6_SW_IMAGE'],
+   tools = ['buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py']
+   )
+
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+if not env.CheckAlias():
+   Return()
+
+#---------------------------------------------------------------------------
+# Include PWRDB to the build via USES_PWRDB flag
+#---------------------------------------------------------------------------
+env.AddUsesFlags('USES_PWRDB')
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+
+env.Replace(MBN_FILE="${BUILD_MS_ROOT}/bin/${SHORT_BUILDPATH}/dsp2")
+env.Replace(USES_DEVCFG = 'yes')
+env.Replace(USES_MULTI_DEVCFG = 'yes')
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_IMG')
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+qdsp6_libdir = "${COREBSP_ROOT}/kernel/qurt/install/modem${Q6VERSION}/lib"
+if not env.PathExists(qdsp6_libdir):
+    qdsp6_libdir = "${COREBSP_ROOT}/kernel/qurt/build/${BINARY_BUILDPATH}/install/modem${Q6VERSION}/lib"
+env.Replace(QDSP6_LIBDIR = qdsp6_libdir)
+
+env.LoadToolScript('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('qdsp6_defs', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('sleep_lpr_builder', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+
+#---------------------------------------------------------------------------
+# Proof of concept, need to find a correct location
+#---------------------------------------------------------------------------
+env.Append(CPPDEFINES=['MODEM_FW_NUM_PRIO=75'])
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+image_libs = []
+image_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load au_name libs/objs build rules.
+#au_name_items = env.LoadAreaSoftwareUnits('au_name')
+#image_libs.extend(au_name_items['LIBS'])
+#image_objs.extend(au_name_items['OBJS'])
+
+au_items = env.LoadAreaSoftwareUnits('core')
+image_libs.extend(au_items['LIBS'])
+image_objs.extend(au_items['OBJS'])
+
+image_units = [image_objs, image_libs]
+#------------------------------------------------------------------------------
+# Putting the image toghther
+#------------------------------------------------------------------------------
+
+if 'IMAGE_BUILD_LOCAL_FILES' in env:
+   #-------------------------------------------------------------------------
+   # Local Files
+   #-------------------------------------------------------------------------
+   
+   # this is where local files are created, for example link scripts (lcs)
+   # for qdsp6 like images, or scatter load files (scl) for amr like images.
+   local_itmes= []
+   
+   image_units += local_itmes
+      
+if 'IMAGE_BUILD_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Link image
+   #-------------------------------------------------------------------------
+   image_units = []
+   
+   # this is where the rule to "link" is done.
+   #image_tgt = env.AddProgram("${SHORT_BUILDPATH}/${TARGET_NAME}", image_objs, LIBS=image_libs)
+   
+   # this is just to create something for testing
+   image_tgt = env.ListFileBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}.lf", [image_objs, image_libs], 
+         add_header=True)
+         
+   
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Post process image
+   #-------------------------------------------------------------------------
+   
+   # this is where any aditional rules after linking are done.
+
+   #=========================================================================
+   # Define targets needed 
+   #
+   image_units += [
+      image_tgt,
+   ]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)

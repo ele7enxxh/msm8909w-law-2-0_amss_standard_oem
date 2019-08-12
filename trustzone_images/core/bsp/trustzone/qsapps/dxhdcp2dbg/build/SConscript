@@ -1,0 +1,218 @@
+#===============================================================================
+#
+# dxhdcp2dbg  build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias - First alias is always the target then the other possible aliases
+aliases = [
+   'dxhdcp2dbg', 'all'
+]
+
+env.InitImageVars(
+   alias_list = aliases,       # list of aliases, unique name index [0]
+   proc = 'scorpion',          # proc settings
+   config = 'apps',            # config settings
+   build_tags = ['APPS_PROC',
+      'DXHDCP2DBG_IMAGE'],  # list of build tags for sub lib scripts
+   tools = [
+      "${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py",
+      "${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py",
+      "buildspec_builder.py",
+     "${BUILD_ROOT}/tools/build/scons/sectools/sectools_builder.py",
+   ],
+
+)
+
+if not env.CheckAlias():
+   Return()
+
+#------------------------------------------------------------------------------
+# Init default values for this PROC/Image
+#------------------------------------------------------------------------------
+
+#===============================================================================
+# dxhdcp2dbg build rules
+#===============================================================================
+
+#------------------------------------------------------------------------------
+# Configure and load in USES and path variables
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('arm', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+env.LoadToolScript('apps_defs', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+
+#------------------------------------------------------------------------------
+# Add extension flags for dxhdcp2dbg
+#------------------------------------------------------------------------------
+if env['BUILD_VER'] == "":
+   env.Replace(BUILD_VER = '0')
+
+# TODO Not sure why this is needed. dxhdcp2dbg must be added somewhere,
+# otherwise a CPU without TZ instructions is being used.
+# env.Replace(ARM_CPU_SCORPION = '7')
+env.Append(CFLAGS = ' --apcs=/ropi/rwpi --lower_ropi --lower_rwpi')
+env.Append(ASFLAGS = ' --apcs=/ropi/rwpi ')
+
+env.Append(CPPDEFINES = [
+   "DXHDCP2DBG",
+   "BUILD_BOOT_CHAIN",
+   "BUILD_BOOT_CHAIN_SPBL",
+   "BOOT_LOADER",
+   "BOOT_WATCHDOG_DISABLED",
+   "FLASH_NAND_SINGLE_THREADED",
+   "FLASH_CLIENT_BOOT",
+   "FLASH_USE_DM_PAGES",
+   "FEATURE_HS_USB_BASIC",
+   "BOOT_SBL_H=\\\"boot_comdef.h\\\"",
+   "BOOT_CUSTSBL_H=\\\"custsbl.h\\\"",
+   "BOOT_MODULE_BUILD_VERSION=" + env['BUILD_VER'],
+   "FEATURE_USES_TURBO",
+   "RUMIBUILD",
+])
+
+#------------------------------------------------------------------------------
+# Decide which build steps to perform
+#------------------------------------------------------------------------------
+# Regular build steps (no filter) is build everything, once a user starts
+# using filters we have to make decisions depending on user input.
+#
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units,
+# etc.  This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quartz, stubs, etc.
+
+do_local_files = True
+do_link = True
+do_post_link = True
+
+# Get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# Limit build processing based on filter option
+if filter_opt is not None:
+   do_link = False
+   do_post_link = False
+
+   if not env.FilterMatch(os.getcwd()):
+      do_local_files = False
+
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+dxhdcp2dbg_units = [core_objs, core_libs]
+
+if do_local_files:
+   #============================================================================
+   # dxhdcp2dbg Environment
+   #============================================================================
+
+   #----------------------------------------------------------------------------
+   # Begin building dxhdcp2dbg
+   #----------------------------------------------------------------------------
+   env.Replace(TARGET_NAME = 'dxhdcp2dbg')
+   env.Replace(DXHDCP2DBG_ROOT = '${COREBSP_ROOT}/securemsm/trustzone/qsapps/dxhdcp2dbg')
+
+   #----------------------------------------------------------------------------
+   # Generate Scatter Load File (SCL)
+   #----------------------------------------------------------------------------
+   target_scl = env.SclBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}',
+      '${DXHDCP2DBG_ROOT}/build/dxhdcp2dbg.scl')
+
+   dxhdcp2dbg_units.extend(target_scl)
+
+if do_link:
+   #----------------------------------------------------------------------------
+   # Generate dxhdcp2dbg ELF
+   #----------------------------------------------------------------------------
+   libs_path = env['INSTALL_LIBPATH']
+
+   dxhdcp2dbg_elf = env.Program('${SHORT_BUILDPATH}/${TARGET_NAME}',
+      source=[core_objs], LIBS=[core_libs], LIBPATH=libs_path)
+
+   env.Depends(dxhdcp2dbg_elf, target_scl)
+
+   env.Clean(dxhdcp2dbg_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.map'))
+   env.Clean(dxhdcp2dbg_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.sym'))
+
+if do_post_link:
+   #----------------------------------------------------------------------------
+   # Generate dxhdcp2dbg MBN
+   #----------------------------------------------------------------------------
+   dxhdcp2dbg_pbn = env.InstallAs('${SHORT_BUILDPATH}/${TARGET_NAME}.pbn',
+      dxhdcp2dbg_elf)
+   
+   install_root = env.subst('${MBN_ROOT}')
+   image_name = "dxhdcp2dbg"
+   install_unsigned_root = env.SectoolGetUnsignedInstallPath(install_base_dir = install_root)
+   env.Replace(MBN_FILE = os.path.join(install_unsigned_root, image_name)) 
+   dxhdcp2dbg_mbn = env.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}',
+      dxhdcp2dbg_pbn, IMAGE_TYPE="dxhdcp2dbg", MBN_TYPE="elf",
+      IMAGE_ID=4, FLASH_TYPE="sdcc")
+
+   #----------------------------------------------------------------------------
+   # Sectools signing
+   #----------------------------------------------------------------------------
+   sectools_signed_mbn = env.SectoolBuilder(
+            target_base_dir = '${SHORT_BUILDPATH}', 
+                    source=dxhdcp2dbg_mbn,                  
+            sign_id=image_name,
+            msmid = env.subst('${MSM_ID}'),
+            sectools_install_base_dir = install_root,  
+            install_file_name = image_name + ".mbn",
+            config='${BUILD_ROOT}/core/bsp/trustzone/qsapps/build/secimage.xml')    
+                       
+   featureflags = ['USES_SEC_POLICY_INSTALL_DEFAULT_SIGN', 'USES_SEC_POLICY_INSTALL_DEFAULT_SIGN_ENCRYPT']
+   if env.SectoolIsEnabled(featureflags=featureflags) is False:
+     default_dxhdcp2dbg_mbn = dxhdcp2dbg_mbn
+   else:
+     default_dxhdcp2dbg_mbn = sectools_signed_mbn
+
+   #-------------------------------------------------------------------------
+   # Build files for PIL driver
+   #-------------------------------------------------------------------------
+   env.LoadToolScript('pil_splitter_builder', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+   dxhdcp2dbg_pil = env.PilSplitterBuilder('${BUILD_ROOT}/build/ms/bin/PIL_IMAGES/SPLITBINS_${QC_SHORT_BUILDPATH}/dxhdcp2dbg.mdt', default_dxhdcp2dbg_mbn)
+
+   #============================================================================
+   # Define units that will be built
+   #============================================================================
+   dxhdcp2dbg_units = env.Alias ('arm11_dxhdcp2dbg_units', [
+      dxhdcp2dbg_elf,
+      dxhdcp2dbg_mbn,
+      dxhdcp2dbg_pil,
+      sectools_signed_mbn
+   ])
+
+# Add aliases
+for alias in aliases:
+   env.Alias(alias, dxhdcp2dbg_units)

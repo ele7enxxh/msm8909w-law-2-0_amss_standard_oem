@@ -1,0 +1,346 @@
+;============================================================================
+;  Name:
+;    NAND_ADDR_INIT.CMM
+;
+;  Variable initialization script used by both nand.cmm and nandtest.cmm
+;
+;
+;    Copyright (c) 2008-2010,2011 Qualcomm Technologies Incorporated.
+;    All Rights Reserved.
+;    Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/nand_init.cmm#1 $ 
+; $DateTime: 2015/09/01 00:30:35 $ 
+; $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 08/02/11   sv     Added DSP3 support for 9x15
+; 06/22/11   eo     Added SBLx/RPM support for 9x15
+; 07/20/10   jz     Added 2X support
+; 06/10/10   sv     Fix AMSS and DSP update image download issue
+; 03/01/10   op     Added support Read/Write WM7 Boot config 
+; 02/03/10   op     Add OSBL, DSP, AMSS Image update for 8650A
+; 11/23/09   wt     Added support ROFS Partition DUMP
+; 11/21/09   op     Change FotauiImg to FotaImg to fix Fota download
+; 11/03/09   wt     Added support XSR USER DATA DUMP
+; 10/02/09   mm     Added support for Rofs Images
+; 02/02/09   jz     Added support for SB2.0
+; 18/08/08   mm     Created
+;
+;============================================================================;
+
+
+;-------------------------------------------------------------------------------
+; This structure is used to communcate between TRACE32 Debugger and
+; our FLASH plug-in.
+;-------------------------------------------------------------------------------
+;
+; struct type_jtag_flash_param {
+;    uint32 flashaddr;   // offset 0x00
+;    uint32 flashwidth;  // offset 0x04
+;    uint32 width;       // offset 0x08
+;    uint32 offset;      // offset 0x0C
+;    uint32 addr;        // offset 0x10 in: address of the flash to write/erase
+;    uint32 size;        // offset 0x14 in: size of data to write/erase
+;    uint32 reserved;    // offset 0x18
+;    uint32 status;      // offset 0x1C in: 1=program, 2=erase, 5=erase, out: 0=o.k., 0x100=fail
+;    byte   data[0x20000]; //offset 0x20
+;                            // give 128K worth of buffer
+;                            // this is where TRACE32 will store data that
+;                            // we'll be writing to the FLASH
+; };
+
+
+
+;-------------------------------------------------------------------------------
+; These variables implement the structure above in PRACTICE variables
+;
+;  &NandCodeAddr and &NandParamAddr come from a generated file and are
+;  the only varibles which contain any MSM specific information
+;-------------------------------------------------------------------------------
+;
+GLOBAL &StartAddr &ParmBlk
+GLOBAL &ParmFlashaddr &ParmFlashwidth &ParmWidth
+GLOBAL &ParmOffset &ParmAddr &ParmSize
+GLOBAL &ParmReserved &ParmStatus &ParmCmd &ParmData &ParmID
+GLOBAL &ReportBytesGap &ReportBlocksGap &ReportImageSize
+GLOBAL &EraseCmd &ProgramCmd &InitCmd &InitBootCmd &FinishCmd
+GLOBAL &TestCmd &ReportCmd &VerifyCmd &EraseChipCmd
+GLOBAL &ReportInt &Result &CmdName &RetrieveID &ValidateBoot
+GLOBAL &BadBlockCmd &StressTestCmd &DumpInit &DumpBlock
+GLOBAL &PartiDumpInit &DumpParti
+GLOBAL &PartiXSRDumpInit &DumpXSRParti
+GLOBAL &PartiXSRROFSInit &DumpXSRROFSParti
+GLOBAL &DisplayROFSPartitions
+
+GLOBAL &ListBadBlocksCmd      
+GLOBAL &MarkBlockBadCmd       
+GLOBAL &MarkBlockGoodCmd      
+GLOBAL &BadPageCmd
+GLOBAL &ReadPageCmd
+
+;Add for Boot config utilities
+GLOBAL &ReadBConfigCmd
+GLOBAL &WriteBConfigCmd
+
+;Added for HAL API testing
+GLOBAL &ReadSpareBytes
+GLOBAL &ReadSpareUdata
+GLOBAL &ReadMainNSpare
+GLOBAL &IsPageErased
+GLOBAL &EraseBlockCmd
+GLOBAL &IsBlockErased
+GLOBAL &IsBadBlock
+GLOBAL &ReadMPages
+GLOBAL &CopyPage
+GLOBAL &FillPageWithSpareCmd
+
+GLOBAL &NandHalTest          
+GLOBAL &NandHalInitDev          
+GLOBAL &NandHalCfgDev           
+GLOBAL &NandHalEnableECCOnMain  
+GLOBAL &NandHalEnableECCOnSpare 
+GLOBAL &NandHalSetECC       
+GLOBAL &NandHalDisplayDevCfg    
+GLOBAL &NandHalSeqInit          
+GLOBAL &NandHalSeqEnd           
+GLOBAL &NandHalSeqExec          
+GLOBAL &NandHalSeqIssueCmd      
+GLOBAL &NandHalSeqIssueSubcmd   
+GLOBAL &NandHalSeqIssueAddr     
+GLOBAL &NandHalSeqIssueWait     
+GLOBAL &NandHalSeqIssueRead     
+GLOBAL &NandHalSeqIssueWrite    
+GLOBAL &NandHalSeqDisplay       
+
+GLOBAL &PartiTblCmd   
+GLOBAL &InitImgCmd    
+GLOBAL &PrintMibibCmd  &PrintLayoutCmd
+GLOBAL &PartiNoOverride &PartiOverride 
+GLOBAL &SecModeCmd &SecModeTrusted &SecModeNonTrusted
+GLOBAL &EccDisabled &EccEnabledMain &EccEnabledMainSpare &EccStateCmd
+GLOBAL &FillPageCmd &ReadUUIDCmd
+GLOBAL &DumpMibibPartiBlock
+
+GLOBAL &Mode2XEnabled &Mode2XDisabled
+
+&StartAddr=        &NandCodeAddr
+&ParmBlk=          &NandParamAddr
+
+;print "parm block at " &ParmBlk
+
+; addresses of contents of parameter block
+;
+&ParmFlashaddr=    &ParmBlk+0x00
+&ParmFlashwidth=   &ParmBlk+0x04
+&ParmWidth=        &ParmBlk+0x08
+&ParmOffset=       &ParmBlk+0x0C
+&ParmAddr=         &ParmBlk+0x10
+&ParmSize=         &ParmBlk+0x14
+&ParmReserved=     &ParmBlk+0x18
+&ParmID=           &ParmBlk+0x18
+&ParmStatus=       &ParmBlk+0x1C
+&ParmCmd=          &ParmBlk+0x1C
+&ParmData=         &ParmBlk+0x20
+
+&ReportBytesGap=   &ParmBlk+0x00
+&ReportBlocksGap=  &ParmBlk+0x04
+&ReportImageSize=  &ParmBlk+0x08
+
+
+; command values for parameter block
+;
+&ProgramCmd=      0x01 ;; Lauterbach cmd to program flash
+&EraseCmd=        0x02 ;; Lauterbach cmd to erase flash
+
+; Commands for Multi-Image Boot
+&PartiTblCmd=     0x20 ;; our cmd to send partition table
+&SecModeCmd=      0x21 ;; our cmd to send security mode
+&InitImgCmd=      0x22 ;; our cmd to init for PBL programming
+&FinishCmd=       0x23 ;; our cmd to cause RAM copy of block map to be written
+
+
+; Command used in blockutil
+&ValidateBoot=    0x30 ;; our cmd to validate boot block
+&BadBlockCmd=     0x31 ;; our cmd to list bad blocks
+&MarkBlockBadCmd= 0x32 ;; our cmd to mark a block as bad
+&MarkBlockGoodCmd=0x33 ;; our cmd to mark a block as good
+&EraseBlockCmd=   0x34 ;; our cmd to do a raw block erase 
+
+; Command used in pageutil
+&FillPageCmd=     0x35 ;; our cmd to fill a page with 32-bit value
+&ReadPageCmd=     0x36 ;; our cmd to read a page
+&ReadUUIDCmd=     0x38 ;; our cmd to read UUID from OTP area
+&EccStateCmd=     0x39 ;; our cmd to set ECC state
+
+&TestCmd=         0x40 ;; our cmd to cause self test
+&ReportCmd=       0x41 ;; our cmd to cause a report
+&VerifyCmd=       0x42 ;; our cmd to cause verify of spans
+&EraseChipCmd=    0x43 ;; our cmd to erase entire NAND flash
+&RetrieveID=      0x44 ;; our cmd to retrieve raw NAND ID
+&StressTestCmd=   0x46 ;; our cmd to run stress test
+&DumpInit=        0x47 ;; our cmd to init for dump of file system
+&DumpBlock=       0x48 ;; our cmd to dump a block
+
+; command to dump partition
+&PartiDumpInit=          0x50 ;; our cmd to init for patition dump
+&DumpParti=              0x51 ;; our cmd to dump a partition
+&DumpPartitionInit=      0x53 ;; our command to init partition reads
+&DumpMibibPartiBlock=    0x54 ;; our cmd to dump a file system block
+&PrintMibibCmd=          0x55 ;; our cmd to print MIBIB contents
+&PrintLayoutCmd=         0x56 ;; our cmd to print flash layout
+&PartiXSRDumpInit=       0x57 ;; our cmd to init for XSR USER DATA partition dump
+&DumpXSRParti=           0x58 ;; our cmd to dump a XSR USER DATA partition
+&PartiXSRROFSInit=       0x59 ;; our cmd to init for XSR ROFS patition init
+&DumpXSRROFSParti=       0x60 ;; our cmd to dump a XSR ROFS partition
+&DisplayROFSPartitions=  0x61 ;; our cmd to display the ROFS partitions 
+&ReadBConfigCmd=         0x62 ;; our cmd to read WM7 boot config
+&WriteBConfigCmd=        0x63 ;; our cmd to write WM7 boot config
+
+; Commands to support HAL API testing
+
+&ReadSpareBytes=  0xA0 ;; command to read x spare bytes from y offset
+&ReadMainNSpare=  0xA1 ;; command to reads main and spare udata
+&ReadDevID=       0xA2 ;; command to read device id
+&ReadCustomID=    0xA3 ;; command to read custom id from device
+&ReadSpareUdata=  0xA4 ;; command to reads spare udata bytes
+&IsPageErased=    0xA5 ;; command to check if a page is erased
+&IsBlockErased=   0xA6 ;; command to check if a block is erased 
+&IsBadBlock=      0xA7 ;; command to check if a block is bad 
+&ReadMPages=      0xA8 ;; command to read multiple pages 
+&CopyPage=        0xA9 ;; command to copy pages 
+&FillPageWithSpareCmd=0xAA ;; comamnd to fill page with spare
+
+
+; Images codes for for Multi-Image Boot Architecture
+;
+;  /* Types of images that can be programmed */
+;  typedef enum {
+;    FLASH_PROG_NO_IMG = 0,
+;    FLASH_PROG_QCSBLHD_CONFIGDAT_IMG,
+;    FLASH_PROG_QCSBL_IMG,
+;    FLASH_PROG_OEMSBL_IMG,
+;    FLASH_PROG_AMSS_IMG,
+;    FLASH_PROG_APPS_BOOT_IMG,
+;    FLASH_PROG_APPS_IMG,
+;    FLASH_PROG_FOTAUI_IMG,
+;    FLASH_PROG_MODEM_CEFS_IMG,
+;    FLASH_PROG_APPS_CEFS_IMG,
+;    FLASH_PROG_WM_IMG,
+;    FLASH_PROG_DSP1_IMG,
+;    FLASH_PROG_DSP2_IMG,
+;    FLASH_PROG_CUSTOM_IMG,
+;    FLASH_PROG_RAW_IMG,
+;    FLASH_PROG_FACTORY_IMG,
+;    FLASH_PROG_DBL_IMG,
+;    FLASH_PROG_FSBL_IMG,
+;    FLASH_PROG_OSBL_IMG,
+;    FLASH_PROG_ROFS1_IMG,
+;    FLASH_PROG_ROFS2_IMG,
+;    FLASH_PROG_ROFS3_IMG,
+;    FLASH_PROG_OSBL_UPDATE_IMG,			
+;    FLASH_PROG_AMSS_UPDATE_IMG,			
+;    FLASH_PROG_DSP_UPDATE_IMG, 			
+;    FLASH_PROG_ADSP_IMG,
+;    FLASH_PROG_SINGLE_IMG,
+;    FLASH_PROG_SBL1_IMG,
+;    FLASH_PROG_SBL2_IMG,
+;    FLASH_PROG_RPM_IMG,
+;    FLASH_PROG_DSP3_IMG,
+;    FLASH_PROG_UNKNOWN_IMG
+;  } flash_prog_img_type_t;
+  
+  GLOBAL &NoImg &QcsblCfgDataImg &QcsblImg &OemsblImg
+  GLOBAL &AmssImg &AppsImg &OblImg &FotaImg &ModemCefsImg
+  GLOBAL &AppsBootImg &AppsCefsImg &AppsWm60SysImg &Dsp1Img
+  GLOBAL &CustomImg &DblImg &FsblImg &OsblImg &Dsp2Img
+  GLOBAL &AppsRawImg &FactoryImg &Rofs1Img &Rofs2Img &Rofs3Img
+  GLOBAL &OsblUpdatedImg &AmssUpdatedImg &DspUpdatedImg &LastImg
+  GLOBAL &Sbl1Img &Sbl2Img &RpmImg &Dsp3Img
+  
+  &NoImg=           0x00
+  &QcsblCfgDataImg= 0x01
+  &QcsblImg=        0x02
+  &OemsblImg=       0x03
+  &AmssImg=         0x04
+  &AppsBootImg=     0x05
+  &AppsImg=         0x06
+  &FotaImg=         0x07
+  &ModemCefsImg=    0x08
+  &AppsCefsImg=     0x09
+  &AppsWm60SysImg=  0x0A
+  &Dsp1Img=         0x0B
+  &Dsp2Img=         0x0C
+  &CustomImg=       0x0D
+  &AppsRawImg=      0x0E
+  &FactoryImg=      0x0F
+  &DblImg=          0x10
+  &FsblImg=         0x11
+  &OsblImg=         0x12
+  &Rofs1Img=        0x13
+  &Rofs2Img=        0x14
+  &Rofs3Img=        0x15
+  &OsblUpdatedImg=  0x16
+  &AmssUpdatedImg=  0x17
+  &DspUpdatedImg=   0x18
+  &AdspImg=         0x19
+  &ProgImg=         0x1A
+  &Sbl1Img=         0x1B
+  &Sbl2Img=         0x1C
+  &RpmImg=          0x1D
+  &Dsp3Img=        0x1E
+  &LastImg=         0x1F
+
+
+  &NandHalTest=                0x10000000
+  &NandHalInitDev=             0x10000001
+  &NandHalCfgDev=              0x10000002
+  &NandHalEnableECCOnMain=     0x10000003
+  &NandHalEnableECCOnSpare=    0x10000004
+  &NandHalSetECC=              0x10000005
+  &NandHalDisplayDevCfg=       0x10000006
+  &NandHalSeqInit=             0x10000007
+  &NandHalSeqEnd=              0x10000008
+  &NandHalSeqExec=             0x10000009
+  &NandHalSeqIssueCmd=         0x1000000A
+  &NandHalSeqIssueSubcmd=      0x1000000B
+  &NandHalSeqIssueAddr=        0x1000000C
+  &NandHalSeqIssueWait=        0x1000000D
+  &NandHalSeqIssueRead=        0x1000000E
+  &NandHalSeqIssueWrite=       0x1000000F
+  &NandHalSeqDisplay=          0x10000010
+
+; These additional codes along with image IDs defined above
+; are used to encode menu choices. These codes form a set of
+; IDs with image IDs and cannot be used to define an image ID.
+  
+  GLOBAL &AllImgOpt &PartiTblOpt
+
+; Partition table override flag values
+  &PartiNoOverride=0
+  &PartiOverride=1
+
+; Security mode flag values
+  &SecModeNonTrusted=0x00
+  &SecModeTrusted=0x01
+
+; ECC state
+  &EccDisabled=0x1
+  &EccEnabledMain=0x2
+  &EccEnabledMainSpare=0x3
+
+; misc
+;
+  &ReportInt=    0
+  &Result=       0x0
+  &CmdName=      "No command yet"
+
+; 2X mode
+  &Mode2XDisabled=0x0
+  &Mode2XEnabled=0x1
+enddo

@@ -1,0 +1,79 @@
+import os
+
+Import('env')
+env = env.Clone()
+
+RBCPRROOT = "${BUILD_ROOT}/core/power/cpr"
+INCPATH = RBCPRROOT + '/inc'
+TARGET_INCPATH = RBCPRROOT + '/src/target/8909'
+HALINCPATH = RBCPRROOT + '/hal/inc'
+TARGET_SPECIFIC_INC_PATH = RBCPRROOT + '/src/target/8909'
+HAL_TARGET_SPECIFIC_INC_PATH = RBCPRROOT + '/hal/src/target/8909'
+
+env.VariantDir('${BUILDPATH}', RBCPRROOT, duplicate=0)
+
+env.Append(CFLAGS = '--c99')
+env.Append(CPPPATH = '../src')
+
+CBSP_API = [
+   'POWER',
+   'DAL',
+   'SYSTEMDRIVERS',
+   'SERVICES',
+   'BOOT',
+   'POWER_UTILS',
+   'MPROC',
+
+   # needs to be last as it may contain wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['POWER_UTILS'])
+
+env.PublishPrivateApi('RBCPR',[INCPATH, HALINCPATH, TARGET_SPECIFIC_INC_PATH, HAL_TARGET_SPECIFIC_INC_PATH, TARGET_INCPATH ])
+
+if env.has_key('HWIO_IMAGE'):
+    if env['MSM_ID'] in ['9x45']:
+        env.AddHWIOFile('HWIO', [
+            {
+                'filename': '${INC_ROOT}/core/power/rbcpr/src/target/${MSM_ID}/rbcpr_tcsr_hwio.h',
+                'modules': ['TCSR_TCSR_REGS'],
+                'output-offsets': False,
+                'header':
+                '#include "msmhwiobase.h"\n\n'
+            }
+    ])
+
+CPR_SOURCES = [
+	'${BUILDPATH}/src/rbcpr.c',
+    '${BUILDPATH}/src/rbcpr_fuses.c',
+    '${BUILDPATH}/src/rbcpr_smem.c',
+    '${BUILDPATH}/src/rbcpr_checksum.c',
+	'${BUILDPATH}/src/target/8909/rbcpr_bsp.c',
+    '${BUILDPATH}/src/target/8909/rbcpr_fuses_bsp.c',
+	'${BUILDPATH}/hal/src/HAL_rbcpr.c',
+	'${BUILDPATH}/hal/src/target/8909/HAL_rbcpr_bsp.c'
+]
+
+CPR_LITE_SOURCES = [
+    '${BUILDPATH}/src/rbcpr_lite.c',
+    '${BUILDPATH}/src/rbcpr_stubs.c',
+    '${BUILDPATH}/src/rbcpr_fuses.c',
+    '${BUILDPATH}/src/target/8909/rbcpr_fuses_bsp.c'
+]
+
+CPR_STUB_SOURCES = [
+	'${BUILDPATH}/src/rbcpr_stubs.c',
+]
+
+env.AddLibrary(['CPR_BOOT_DRIVER'], '${BUILDPATH}/cpr.lib', CPR_SOURCES)
+env.AddLibrary(['CPR_BOOT_DRIVER_STUB'], '${BUILDPATH}/cpr_stub.lib', CPR_STUB_SOURCES)
+env.AddLibrary(['CPR_LITE_BOOT_DRIVER'], '${BUILDPATH}/rbcpr_lite.lib', CPR_LITE_SOURCES)
+
+cpr_stub = env.Library('${BUILDPATH}/cpr_stub', CPR_STUB_SOURCES)
+env.AddLibsToImage(['JSDCC_TOOL_IMAGE', 'EMMCBLD_IMAGE'], cpr_stub)
+
+
+

@@ -1,0 +1,129 @@
+#===============================================================================
+#
+# TMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/settings/build/ims_settings.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 14-Mar-2014     Prashanth M E   577990     FR 17768  - AT command Setting Changes
+#
+#===============================================================================
+Import('env')
+
+# Execute the sconsript in which the variables needs to be imported for the Current Script
+# and export the current environment to that script into which the variables will be exported to the it's export list
+
+# Import the required Variables from the export list of the Environment to which the other script file has added
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src/amss'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+# ------------------------------------------------------------------------------
+# Sepcify the list of required include Paths
+#---------------------------------------------------------------------------------
+env.PublishPrivateApi('IMS_SETTINGS_PROCESS_INC', [ 
+"${INC_ROOT}/modem/ims/imsprocess/inc",
+])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within IMS
+#-------------------------------------------------------------------------------
+IMS_API = ['IMS_DPL',
+		   'IMS_FRAMEWORK',
+		   'IMS_REGMGR',
+		   'IMS_RCS_COMMON']
+
+env.RequireProtectedApi(IMS_API)
+
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(['BREW',
+						'MODEM_API',
+						'MODEM_DATA',
+						'MODEM_HDR',
+						'MODEM_SERVICES',
+						'MODEM_UIM'])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = ['DEBUGTOOLS',
+			'SERVICES',
+			'STORAGE',
+			'SYSTEMDRIVERS',
+			'MMODE',
+			'MCS',
+			'UIM',
+			'DATA',
+			'DATACOMMON',
+			'DATAMODEM',
+			'HDR',
+			# needs to be last also contains wrong comdef.h
+			'KERNEL']
+
+env.RequirePublicApi(CBSP_API)
+env.RequirePublicApi('DAL', area='CORE')
+env.RequirePublicApi('KERNEL', area='CORE')
+env.RequirePublicApi('SERVICES', area='CORE')
+env.RequirePublicApi('DEBUGTOOLS', area='CORE')
+env.RequirePublicApi('STORAGE', area='CORE')
+env.RequirePublicApi('SYSTEMDRIVERS', area='CORE')
+env.RequirePublicApi('SECUREMSM', area='CORE')
+
+# needs to be last also contains wrong comdef.h
+env.RequirePublicApi('MMUTILS', area='MULTIMEDIA')
+env.RequirePublicApi('AUDIO', area='MULTIMEDIA')
+env.RequirePublicApi('APR', area='MULTIMEDIA')
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+IMS_SETTINGS_FLAGS = ['MAF_NO_GLOBALS',
+					  'QMAF',
+					  'FORCE_STATIC',
+					  'USE_SIMPLE_LOGGING',
+					  'FEATURE_AMSS_DPL',
+					  'QP_ENABLE_SIGNALS']
+
+IMS_SETTINGS_SOURCES = ['${BUILDPATH}/ims_settings_common.c',
+                        '${BUILDPATH}/ims_settings_qmi.c',
+                        '${BUILDPATH}/ims_settings_atcop.c',
+                        '${BUILDPATH}/ims_reg_service_status.cpp',
+                        '${BUILDPATH}/ims_oma_dm_service.cpp',
+                        '${BUILDPATH}/InitializeConfigModules.c']
+
+# Append the list of Macro Definitions as flags to the Compiler so that it will do a conditional compilation
+env.Append( CPPDEFINES = IMS_SETTINGS_FLAGS )
+
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/ims_settings', [IMS_SETTINGS_SOURCES])

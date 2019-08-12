@@ -1,0 +1,31 @@
+import os
+
+Import('env')
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPPATH = '..')
+env.Append(CFLAGS = '--c99')
+
+GPIO_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+]
+
+env.RequirePublicApi(GPIO_API)
+env.RequireRestrictedApi(GPIO_API)
+
+
+gpio_flag = 0
+
+if gpio_flag == 0:
+  GPIO_SOURCES = ['${BUILDPATH}/gpio_debug_stub.c']
+else:
+  GPIO_SOURCES = ['${BUILDPATH}/gpio_debug.c']
+
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/gpio_debug.lib', GPIO_SOURCES)

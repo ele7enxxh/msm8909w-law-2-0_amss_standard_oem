@@ -1,0 +1,71 @@
+;*******************************************************************************
+;**  ddr_load_symbol.cmm
+;**
+;**  This script loads the bootloader ddr symbol and relocates it to rpm view
+;**
+;**  Copyright 2014 by Qualcomm Technologies, Incorporated. All Rights Reserved.
+;**
+;*******************************************************************************
+;**
+;**                        EDIT HISTORY FOR MODULE
+;**
+;**  $Header: //components/rel/rpm.bf/2.1.1/core/boot/ddr/scripts/8916/ddr_load_symbol.cmm#1 $
+;**  $DateTime: 2015/02/25 02:53:43 $
+;**  $Author: pwbldsvc $
+;**
+;**  when       who     what, where, why
+;**  --------   ---     ------------------------------------------------------
+;**  04/22/14   tw      Initial version.
+;*******************************************************************************
+
+;*******************************************************************************
+; Setup display window
+;*******************************************************************************
+winclear
+area.reset
+GOSUB SetupMainWindow
+
+;*******************************************************************************
+; Load symbols
+;*******************************************************************************
+PRINT "Please select SBL1 elf file in browser:"
+GOSUB LoadSymbols
+
+;*******************************************************************************
+; Adjust symbol memory map
+; move from 0x2200000-0x224000 to 0x20000-0x24000
+;*******************************************************************************
+symbol.relocate.shift -0x200000 0x220000++0x4000
+GOTO EndOfScript
+
+
+;*******************************************************************************
+; Function to setup display window
+;*******************************************************************************
+SetupMainWindow:
+  winpos 0% 0% 100% 100%
+  area.create MAIN 80. 1000.
+  area.view MAIN
+  area.select MAIN
+RETURN ; SetupMainWindow
+
+;*******************************************************************************
+; Function to load symbols
+;*******************************************************************************
+LoadSymbols:
+  ENTRY &dir
+  LOCAL &cwd
+
+  &cwd=os.pwd()
+  cd &dir
+  dialog.file *.elf
+  ENTRY &file_name
+  d.load.elf &file_name /nocode /noclear
+  cd &cwd
+RETURN ; LoadSymbols
+
+;*******************************************************************************
+; End of Script
+;*******************************************************************************
+EndOfScript:
+  ENDDO

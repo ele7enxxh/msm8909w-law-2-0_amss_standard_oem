@@ -1,0 +1,72 @@
+#===============================================================================
+#
+# MPOWER MCPM scon script.
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/15/13   vs      Ported from Dime release branch.
+#
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# Convert warnings to errors in all MCPM components
+#-------------------------------------------------------------------------------
+# Enable warnings -> errors for all, except LLVM toolchain (6.x.x) during migration
+#import os
+#if not os.environ.get('HEXAGON_RTOS_RELEASE').startswith('6'):
+#
+env.Append(HEXAGON_WARN = " -Werror-high -Werror-medium ")
+
+CHIPSET = env.get('CHIPSET')
+if (CHIPSET == "msm8937"):
+  env.Append(CFLAGS = "-DMCPM_FEERO")
+  
+if (CHIPSET == "msm8909"):
+  env.Append(CFLAGS = "-DMCPM_CHEEL")
+  if 'USES_SENSORS_COMPONENT' in env:
+    env.Append(CFLAGS = "-DMCPM_WEARABLES_BUILD")
+
+if (CHIPSET == "mdm9607"):
+  env.Append(CFLAGS = "-DMCPM_LYKAN")
+  
+  
+if 'USES_INTERNAL_BUILD' not in env:
+  env.Append(CFLAGS = " -DFEATURE_MCPM_NO_L1EM ")
+
+#-------------------------------------------------------------------------------
+# Invoke sub build files
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+
+

@@ -1,0 +1,170 @@
+#===============================================================================
+#
+# MEMMGR Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2015 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/Sensors/common/util/memmgr/build/memmgr.scons#1 $
+#  $DateTime: 2016/12/13 08:00:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985213 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/08/2015  DK     Fixed mechanism for storing malloc caller's addresses
+# 01/22/2015  DK     Added mechanism to enable uHeap debugging
+# 12/10/2014  MW     Fixed HDD section, removed SNS_BLAST
+# 09/17/2014  ps     Added sns_memheap.c for build
+# 05/29/2014  pn     Restructured to fix libraries with overlapping objects
+# 04/04/2014  MW     Added SENSORS_DD_DEV_FLAG for HD22
+# 06/25/2013  ps     update require method for Public APIs
+# 12/02/2012  ag     Add multi PD support
+# 01/12/2012  br     Inserted mem_cfg_frag1.c for build
+# 11/14/2011 jhh     Included debug api for heap memory analysis
+# 04/14/2011  dc     Updates for Blast OS.
+# 12/22/2010  pg     Update for accessing UCOS header files from DALSYS.
+# 2010-08-30 JTL     Adding sns_memmgr.c
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/util/memmgr/src"
+
+#if not env.SubstPathExists(SRCPATH):
+#   # Legay Path
+#   SRCPATH = "${BUILD_ROOT}/sensors/dsps"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+env.Append(CPPDEFINES = ["DAL_NATIVE_PLATFORM"])
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+  ])
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'SYSTEMDRIVERS',
+   'HWIO',
+   'HWIO_API',
+   'SERVICES',
+    # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+#env.RequireExternalApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CBSP_API, area='core')
+
+env.UsesInc([
+   "${HWIO}",
+   "${HWIO_API}",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_DEBUG_DSPS',
+   'SNS_EVMGR',
+]
+env.RequireRestrictedApi(SENSORS_API)
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+DAL_UCOS_API = [
+   'DAL',
+]
+env.RequireRestrictedApi(DAL_UCOS_API)
+env.RequirePublicApi(DAL_UCOS_API)
+
+env.Append(CPPPATH = [
+	   "${BUILD_ROOT}/Sensors/api",
+	   "${BUILD_ROOT}/Sensors/common/inc",
+	   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+	   "${BUILD_ROOT}/Sensors/pm/inc",
+	])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+MEMMGR_SOURCES = [
+      '${BUILDPATH}/memprof.c',
+      '${BUILDPATH}/oi_debug.c',
+      '${BUILDPATH}/oi_memmgr.c',
+      '${BUILDPATH}/oi_utils.c',
+      '${BUILDPATH}/mem_cfg.c',
+      '${BUILDPATH}/mem_cfg_frag1.c',
+      '${BUILDPATH}/sns_memmgr.c',
+      '${BUILDPATH}/sns_uimg_utils.c',
+      '${BUILDPATH}/sns_memheap.c',
+   ]
+
+MEMMGR_UIMG_SOURCES = [
+      '${BUILDPATH}/sns_memheap_lite.c',
+      '${BUILDPATH}/sns_u_memmgr.c',
+      '${BUILDPATH}/sns_u_uimg_utils.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   MEMMGR_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/common/util/memmgr/src')
+   MEMMGR_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/util/memmgr/inc')
+   MEMMGR_CLEAN_SOURCES += ['${BUILD_ROOT}/Sensors/common/util/memmgr/inc/mem_cfg.h']
+
+   # Add binary library
+   memmgr_lib = env.AddBinaryLibrary(
+   ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+    "${BUILDPATH}/memmgr", MEMMGR_SOURCES)
+
+   sns_u_memmgr_uimg_lib = env.AddBinaryLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+    '${BUILDPATH}/memmgr_uimg', MEMMGR_UIMG_SOURCES)
+
+      # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], MEMMGR_CLEAN_SOURCES)
+else:
+   memmgr_lib = env.AddLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+    '${BUILDPATH}/memmgr', MEMMGR_SOURCES)
+
+   sns_u_memmgr_uimg_lib = env.AddLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+    '${BUILDPATH}/memmgr_uimg', MEMMGR_UIMG_SOURCES)
+
+# Clause common to regular build and HD22
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary(['CORE_QDSP6_SENSOR_SW'], sns_u_memmgr_uimg_lib)
+

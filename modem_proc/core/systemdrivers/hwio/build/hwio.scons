@@ -1,0 +1,199 @@
+#===============================================================================
+#
+# HWIO LIBRARY
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010-2015 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/hwio/build/hwio.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Add API folders
+#-------------------------------------------------------------------------------
+
+HWIO_BUILD_ROOT = os.getcwd();
+
+env.PublishPrivateApi('SYSTEMDRIVERS_HWIO', [
+   HWIO_BUILD_ROOT + "/../src"
+])
+
+#-------------------------------------------------------------------------------
+# Define paths
+#-------------------------------------------------------------------------------
+
+SRCPATH = "../"
+SRCPATHSCRIPTS = env['BUILD_ROOT'] + '/core/systemdrivers/hwio/scripts/' + env['CHIPSET']
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL',
+]
+ 	 
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Define sources
+#-------------------------------------------------------------------------------
+
+HWIO_SHARED_SOURCES = [
+   '${BUILDPATH}/src/DalHWIO.c',
+   '${BUILDPATH}/src/DalHWIOMap.c',
+   '${BUILDPATH}/src/DalHWIOFwk.c'
+]
+
+#-------------------------------------------------------------------------------
+# Add libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(
+   ['CORE_MODEM'],
+   '${BUILDPATH}/DalHWIO',
+   HWIO_SHARED_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+
+# Remove documentation source files
+DOCSRC_FILES = env.FindFiles(
+  ['*'],
+  '${BUILD_ROOT}/core/api/systemdrivers/docsrc/hwio/')
+env.CleanPack(['CORE_MODEM'], DOCSRC_FILES)
+
+# Remove address files
+ARM_ADDRESS_FILES = env.FindFiles(
+  ['ARM_ADDRESS_FILE.FLAT'],
+  '${BUILD_ROOT}/core/api/systemdrivers/hwio/')
+env.CleanPack(['CORE_MODEM'], ARM_ADDRESS_FILES)
+
+# Remove target API files
+ALL_API_FILES = env.FindFiles(
+  ['*'],
+  '${BUILD_ROOT}/core/api/systemdrivers/hwio/')
+MY_API_FILES = env.FindFiles(
+  ['*'],
+  '${BUILD_ROOT}/core/api/systemdrivers/hwio/${CHIPSET}')
+PACK_API_FILES = list(set(ALL_API_FILES) - set(MY_API_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_API_FILES)
+
+# Remove target build files
+ALL_BUILD_FILES = env.FindFiles(
+  ['*.py'],
+  '../build/')
+MY_BUILD_FILES = env.FindFiles(
+  ['hwio_' + env['CHIPSET'] + '.py'],
+  '../build/')
+PACK_BUILD_FILES = list(set(ALL_BUILD_FILES) - set(MY_BUILD_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_BUILD_FILES)
+
+# Remove target config files
+ALL_CONFIG_FILES = env.FindFiles(
+  ['*'],
+  '../config/')
+SHARED_CONFIG_FILES = env.FindFiles(
+  ['DalHWIO.xml'],
+  '../config/')
+MY_CONFIG_FILES = env.FindFiles(
+  ['*'],
+  '../config/${CHIPSET}')
+PACK_CONFIG_FILES = list(set(ALL_CONFIG_FILES) - set(SHARED_CONFIG_FILES) - set(MY_CONFIG_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_CONFIG_FILES)
+
+# Remove target hw files
+ALL_HW_FILES = env.FindFiles(
+  ['*'],
+  '../hw/')
+MY_HW_FILES = env.FindFiles(
+  ['*'],
+  '../hw/${CHIPSET}')
+PACK_HW_FILES = list(set(ALL_HW_FILES) - set(MY_HW_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_HW_FILES)
+
+# Remove target scripts files
+ALL_SCRIPTS_FILES = env.FindFiles(
+  ['*'],
+  '../scripts/')
+SHARED_SCRIPTS_FILES = env.FindFiles(
+  ['setuphwio.cmm'],
+  '../scripts/')
+MY_SCRIPTS_FILES = env.FindFiles(
+  ['*'],
+  '../scripts/${CHIPSET}')
+PACK_SCRIPTS_FILES = list(set(ALL_SCRIPTS_FILES) - set(SHARED_SCRIPTS_FILES) - set(MY_SCRIPTS_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_SCRIPTS_FILES)
+
+#-------------------------------------------------------------------------------
+# Invoke document generation SConscript
+#-------------------------------------------------------------------------------
+
+if os.path.exists(env['BUILD_ROOT'] + '/core/api/systemdrivers/docsrc/hwio/SConscript') :
+  env.SConscript(
+    '${BUILD_ROOT}/core/api/systemdrivers/docsrc/hwio/SConscript',
+    exports='env')
+    
+#-------------------------------------------------------------------------------
+# DEVCFG 
+#-------------------------------------------------------------------------------
+
+if 'USES_DEVCFG' in env:
+  DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+  env.AddDevCfgInfo(DEVCFG_IMG, 
+  {
+      '8926_xml' : ['${BUILD_ROOT}/core/systemdrivers/hwio/config/DalHWIO.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/hwio/config/msm8926/HWIOBaseMap.c'],
+      '8916_xml' : ['${BUILD_ROOT}/core/systemdrivers/hwio/config/DalHWIO.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/hwio/config/msm8916/HWIOBaseMap.c'],
+      '8936_xml' : ['${BUILD_ROOT}/core/systemdrivers/hwio/config/DalHWIO.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/hwio/config/msm8936/HWIOBaseMap.c'],
+      '8909_xml' : ['${BUILD_ROOT}/core/systemdrivers/hwio/config/DalHWIO.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/hwio/config/msm8909/HWIOBaseMap.c'],
+      '8937_xml' : ['${BUILD_ROOT}/core/systemdrivers/hwio/config/DalHWIO.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/hwio/config/msm8937/HWIOBaseMap.c'],
+      '9607_xml' : ['${BUILD_ROOT}/core/systemdrivers/hwio/config/DalHWIO.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/hwio/config/mdm9607/HWIOBaseMap.c'],
+      '8952_xml' : ['${BUILD_ROOT}/core/systemdrivers/hwio/config/DalHWIO.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/hwio/config/msm8952/HWIOBaseMap.c'],
+      '8976_xml' : ['${BUILD_ROOT}/core/systemdrivers/hwio/config/DalHWIO.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/hwio/config/msm8976/HWIOBaseMap.c']
+
+  })
+  env.PublishPrivateApi('SYSTEMDRIVERS_HWIO_DEVCFG', [
+     "${BUILD_ROOT}/core/systemdrivers/hwio/config/${CHIPSET}"
+  ])
+
+#-------------------------------------------------------------------------------
+# Add CMM scripts to T32 menu
+#-------------------------------------------------------------------------------
+
+CMM_ARGUMENT = ''
+
+try:
+    env.AddCMMScripts ('MPSS', [SRCPATHSCRIPTS], { 'hwioreg.per' : ['HWIO', CMM_ARGUMENT] }, 'SystemDrivers')
+except:
+  pass
+

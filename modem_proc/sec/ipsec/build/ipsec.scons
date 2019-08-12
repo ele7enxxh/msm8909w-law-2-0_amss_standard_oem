@@ -1,0 +1,216 @@
+#===============================================================================
+#
+# ipsec Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+#   Copyright (c) 2013 Qualcomm Technologies, Inc.  All Rights Reserved.
+#   Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/24/13   jk      Sec - Modified file(s) to be compatible with new SRC-Debug reference builds
+# 02/19/10   nk      IPSec CoreImage support
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+   'MODEM_API',
+   'MULTIMEDIA',
+   'MULTIMEDIA_CORE',
+   'MULTIMEDIA_AUDIO',
+])
+
+MODEM_API = [
+   'DATA',
+   'HDR',
+   'DATACOMMON',
+   'DSM',
+   'MCS',
+   'GPS',
+   'IPSEC',
+]
+
+env.RequirePublicApi(MODEM_API, 'modem')
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'HWENGINES',
+   'POWER',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API, 'core')
+env.RequireRestrictedApi(CBSP_API)
+
+env.RequireRestrictedApi('IPSEC')
+env.RequireProtectedApi('SEC')
+#SME_PROTECTED_API = [
+#    'SME_DRMCOM', 'SME_DRMOMA', 'SME_SMECOM', 'SME_CHDLRCOM', 'SME_SMESQL', 'X509',
+#]
+#env.RequireProtectedApi(SME_PROTECTED_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------
+# IP Security (IPSec)
+#----------------------------------------------------------------------------
+SEC_IPSEC_LIB_SOURCES = [
+	'${BUILDPATH}/secips.c', 
+	'${BUILDPATH}/secipsbmode.c', 
+	'${BUILDPATH}/secipsamode.c', 
+	'${BUILDPATH}/secipsimode.c', 
+	'${BUILDPATH}/secipsmmode.c', 
+	'${BUILDPATH}/secipsqmode.c', 
+	'${BUILDPATH}/secipspktdefs.c', 
+	'${BUILDPATH}/secipspkt.c', 
+	'${BUILDPATH}/secipssadb.c', 
+	'${BUILDPATH}/secipssp.c', 
+	'${BUILDPATH}/secipsspi.c', 
+	'${BUILDPATH}/secipsspdb.c', 
+	'${BUILDPATH}/secipssa.c', 
+	'${BUILDPATH}/secipsesp.c', 
+	'${BUILDPATH}/secipsah.c', 
+	'${BUILDPATH}/secipscrypto.c', 
+	'${BUILDPATH}/secipsdss.c', 
+	'${BUILDPATH}/secipsiface.c', 
+	'${BUILDPATH}/secipsiface_svc.c', 
+	'${BUILDPATH}/secipsutil.c', 
+	'${BUILDPATH}/secipstask.c', 
+	'${BUILDPATH}/secips_ikesainit.c', 
+	'${BUILDPATH}/secips_ikeauth.c', 
+	'${BUILDPATH}/secips_informational.c', 
+	'${BUILDPATH}/secips_childsa.c', 
+	'${BUILDPATH}/secips_svc.c',
+ 	'${BUILDPATH}/secips_sp.c',
+]
+
+build_image_tags = [
+    'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+    'APPS_IMAGE', 'CBSP_APPS_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'
+    ]
+
+#--------------------------------------------------------------------------------
+# Ship code as binary library. Build using source code if pack_exception is 
+# True or if this in an internal build.
+#--------------------------------------------------------------------------------
+if env.has_key('USES_SEC'):
+    if env.has_key('USES_IPSEC'):
+        env.AddBinaryLibrary(build_image_tags, '${BUILDPATH}/sme_ipsec', 
+        SEC_IPSEC_LIB_SOURCES)
+
+#----------------------------------------------------------------------------
+# IxIPSec Interface
+#----------------------------------------------------------------------------
+IXIPSEC_CPP_SOURCES = [
+	'${BUILDPATH}/IxIPSecSP.cpp',
+	'${BUILDPATH}/IxIPSecSA.cpp',
+	'${BUILDPATH}/IxIPSecSPDB.cpp',
+	'${BUILDPATH}/IxIPSecSADB.cpp',
+]
+#--------------------------------------------------------------------------------
+# Ship code as binary library. Build using source code if pack_exception is 
+# True or if this in an internal build.
+#--------------------------------------------------------------------------------
+if env.has_key('USES_SEC'):
+    if env.has_key('USES_IPSEC'):
+        env.AddBinaryLibrary(build_image_tags, '${BUILDPATH}/sme_ixipsec', 
+            IXIPSEC_CPP_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Setup RCINIT so we start ips tasks
+#------------------------------------------------------------------------------- 
+
+if ('USES_MODEM_RCINIT' in env) and ('USES_SEC_IPSEC_DISABLE' not in env) :
+   RCINIT_IMG = ['MODEM_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_6',                  # required
+      'thread_name'                : 'secips',                          # required
+      'stack_size_bytes'           : '16384',
+      'priority_amss_order'        : 'SECIPS_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_CPU_AFFINITY_MASK',
+      'tcb_name'                   : 'secips_tcb',
+      'policy_optin'        : ['default', 'ftm', ],
+    })
+
+#---------------------------------------------------------------------------
+# Setup the constants for document title and the DCN number for Agile
+#---------------------------------------------------------------------------
+
+env['DOCTITLE']="IP Security (IPsec) API"
+env['DOCREVISION']="80-xxxx-TBD Rev A"
+
+DOCSRCPATH = "${BUILD_ROOT}/core/api/securemsm/ipsec/"
+env.Replace(DOCSRCPATH = DOCSRCPATH)
+DOCIMGPATH = "${BUILD_ROOT}/core/securemsm/ipsec/docs/images/"
+env.Replace(DOCIMGPATH = DOCIMGPATH)
+
+#---------------------------------------------------------------------------
+# List of Header files that contain doxygen tags + List of TeX files that
+# contain documentation to be merged with doxygen generated TeX files
+#---------------------------------------------------------------------------
+ipsecdocsrcfiles = [
+    '${DOCSRCPATH}/IxIPSec.h',
+    '${DOCSRCPATH}/secips.h',
+    '${DOCSRCPATH}/secipssp.h',
+    '${DOCSRCPATH}/introduction.tex',
+    '${DOCSRCPATH}/overview.tex',
+    '${DOCSRCPATH}/IPsec_MainPage.h',
+    '${DOCIMGPATH}/tunnelmode.jpg',
+    '${DOCIMGPATH}/transport.jpg',
+    '${DOCIMGPATH}/ESProtect.jpg'
+
+     ]
+#---------------------------------------------------------------------------
+# Finally call the builder with the name of the document. The document can
+# be found under \core\api\doc once the build completes.
+#---------------------------------------------------------------------------
+if env['MSM_ID'] in ['7x30']:
+  target_doc = env.PdfDocument('IPSEC_ISOD',ipsecdocsrcfiles)
+  env.AddDocs('CORE_DOCS',target_doc)

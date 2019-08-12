@@ -1,0 +1,354 @@
+; ============================================================================
+;
+;  PMICPeek.cmm
+;
+;  Script to peek/poke PMIC register values.
+;
+;  Execution:
+;    PMICPeek.cmm [ address ] [ deviceid ] [ data ]
+;
+;  The deviceid is 0 for the first PMIC and 1 for the second. If address
+;  and deviceid are provided the script will peek the given
+;  address and print the result.  If "data" is also provided the data
+;  will be poked to the given address.
+;
+;  ====================================================================
+;
+;  Copyright (c) 2012 Qualcomm Technologies Incorporated.  All Rights Reserved.
+;  QUALCOMM Proprietary and Confidential.
+;
+;  ====================================================================
+;
+;  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/pmic/scripts/PMICPeek.cmm#1 $
+;  $DateTime: 2016/12/13 07:59:23 $
+;  $Author: mplcsds1 $
+;
+; ============================================================================
+;
+
+ENTRY &addr &devid &data
+
+;-----------------------------------------------------------------------------
+; SPMI variables
+;-----------------------------------------------------------------------------
+
+&PMIC_ARB_CHNLn_CMD=0xFC4CF800
+&PMIC_ARB_CHNLn_STATUS=0xFC4CF808
+&PMIC_ARB_CHNLn_WDATA0=0xFC4CF810
+&PMIC_ARB_CHNLn_RDATA0=0xFC4CF818
+&CHNLn_OFFSET=0x80
+
+&SPMIOwnerChannel=4  ; RPM Channel by default
+
+;-----------------------------------------------------------------------------
+; Check for non-interactive mode.
+;-----------------------------------------------------------------------------
+
+IF "&addr"!=""
+(
+  IF "&devid"==""
+  (
+    &devid=0
+  )
+
+  IF "&data"==""
+  (
+    GOSUB PMICRead &addr &devid
+    ENTRY &status &data
+
+    IF (&status==1)
+    (
+      PRINT "Address='0x" &addr "' Value='0x" &data
+    )
+    ELSE
+    (
+      PRINT "SPMI error"
+    )
+  )
+  ELSE
+  (
+    GOSUB PMICWrite &addr &devid &data
+    ENTRY &status
+
+    IF (&status==1)
+    (
+      PRINT "Write successful."
+    )
+    ELSE
+    (
+      PRINT "Write failed."
+    )
+  )
+
+  ENDDO
+)
+
+;-----------------------------------------------------------------------------
+; Create the dialog
+;-----------------------------------------------------------------------------
+
+DIALOG
+(
+  HEADER "PMIC Register Peek/Poke Tool"
+   
+  POS 0. 0. 25. 8.
+  BOX "Configuration"
+  
+  POS 1. 1.5 10. 1.
+  TEXT "Address:"
+  POS 12. 1.5 12. 1.
+  ADDR: EDIT "" ""
+  
+  POS 1. 3. 10. 1.
+  TEXT10: TEXT "PMIC:"
+  POS 12. 3. 12. 1.
+  DEVID: PULLDOWN "Primary,Secondary"
+  (
+  )
+
+  POS 1. 4.5 10. 1.
+  TEXT20: TEXT "Data:"
+  POS 12. 4.5 12. 1.
+  DATA: EDIT "" ""
+
+  POS 1. 6. 10. 1.
+  TEXT20: TEXT "Owner:"
+  POS 12. 6. 12. 1.
+  OWNER: PULLDOWN "RPM,APCS,TZ,MPSS,WCNSS,LPASS"
+  (
+  )
+
+  ; Instructions Box
+  POS 26. 0. 35. 8.
+  BOX "Instructions"
+  POS 27. 1. 30. 1.
+  TEXT "1. Fill in the address to peek/poke. For"
+  POS 27. 2. 30. 1.
+  TEXT "   the second PMIC slave use 0x1xxxx."
+  POS 27. 3. 30. 1.
+  TEXT "2. Set the PMIC device and optionally the"
+  POS 27. 4. 30. 1.
+  TEXT "   owner channel."
+  POS 27. 5. 30. 1.
+  TEXT "3. Click 'Peek' to read from PMIC, or fill"
+  POS 27. 6. 30. 1.
+  TEXT "   in Data and click 'Poke' to write to PMIC"
+  
+  POS 12. 8. 10. 1.5
+  DEFBUTTON "Peek" 
+  (
+    GOSUB SetOwnerChannel DIALOG.STRING(OWNER)
+
+    IF DIALOG.STRING(DEVID)=="Secondary"
+    (
+      &devid=1
+    )
+    ELSE
+    (
+      &devid=0
+    )
+    &addr=DIALOG.STRING(ADDR)
+    IF "&addr"!=""
+    (
+      GOSUB PMICRead &addr &devid
+      ENTRY &status &data
+      IF (&status==1)
+      (
+        DIALOG.SET DATA "&data"
+      )
+      ELSE
+      (
+        DIALOG.SET DATA "SPMI Error!"
+      )
+    )
+  )
+  POS 24.5 8. 10. 1.5
+  DEFBUTTON "Poke" 
+  (
+    GOSUB SetOwnerChannel DIALOG.STRING(OWNER)
+
+    IF DIALOG.STRING(DEVID)=="Secondary"
+    (
+      &devid=1
+    )
+    ELSE
+    (
+      &devid=0
+    )
+    &addr=DIALOG.STRING(ADDR)
+    &data=DIALOG.STRING(DATA)
+    IF ("&addr"!="")&&("&data"!="")
+    (
+      GOSUB PMICWrite &addr &devid &data
+      ENTRY &status
+      IF (&status==0)
+      (
+        DIALOG.SET DATA "SPMI Error!"
+      )
+    )
+  )
+  POS 37. 8. 10. 1.5
+  BUTTON "Close" "JUMPTO winclose"
+  CLOSE "JUMPTO winclose"
+)
+STOP
+
+winclose:
+DIALOG.END
+ENDDO
+
+
+;=============================================================================
+;=============================================================================
+; SUBROUTINES
+;=============================================================================
+;=============================================================================
+
+
+;=============================================================================
+; SUB: SetOwnerChannel
+;=============================================================================
+
+SetOwnerChannel:
+
+  ENTRY &OwnerName
+
+  IF &OwnerName=="APCS"
+  (
+    &SPMIOwnerChannel=0
+  )
+  ELSE IF &OwnerName=="TZ"
+  (
+    &SPMIOwnerChannel=1
+  )
+  ELSE IF &OwnerName=="MPSS"
+  (
+    &SPMIOwnerChannel=2
+  )
+  ELSE IF &OwnerName=="LPASS"
+  (
+    &SPMIOwnerChannel=3
+  )
+  ELSE IF &OwnerName=="RPM"
+  (
+    &SPMIOwnerChannel=4
+  )
+  ELSE IF &OwnerName=="WCNSS"
+  (
+    &SPMIOwnerChannel=5
+  )
+
+  RETURN
+
+
+;=============================================================================
+; SUB: SPMIRead
+;=============================================================================
+
+SPMIRead:
+
+  ENTRY &RegisterAddress &SlaveId
+
+  &cmd=(0x1<<0x1B)|(&SlaveId<<0x14)|(&RegisterAddress<<0x4)
+
+  DATA.SET A:&PMIC_ARB_CHNLn_CMD+&CHNLn_OFFSET*&SPMIOwnerChannel %LONG &cmd
+
+  &status=0
+  WHILE (&status==0)
+  (
+    WAIT 1.ms
+    &status=DATA.LONG(A:&PMIC_ARB_CHNLn_STATUS+&CHNLn_OFFSET*&SPMIOwnerChannel)
+  )
+
+  &data=DATA.LONG(A:&PMIC_ARB_CHNLn_RDATA0+&CHNLn_OFFSET*&SPMIOwnerChannel)
+
+  RETURN &status &data
+
+
+;=============================================================================
+; SUB: SPMIWrite
+;=============================================================================
+
+SPMIWrite:
+
+  ENTRY &RegisterAddress &SlaveId &Data
+
+  DATA.SET A:&PMIC_ARB_CHNLn_WDATA0+&CHNLn_OFFSET*&SPMIOwnerChannel %LONG (&Data&0xFF)
+
+  &cmd=(0x0<<0x1B)|(&SlaveId<<0x14)|(&RegisterAddress<<0x4)
+
+  DATA.SET A:&PMIC_ARB_CHNLn_CMD+&CHNLn_OFFSET*&SPMIOwnerChannel %LONG &cmd
+
+  &status=0
+  WHILE (&status==0)
+  (
+    WAIT 1.ms
+    &status=DATA.LONG(A:&PMIC_ARB_CHNLn_STATUS+&CHNLn_OFFSET*&SPMIOwnerChannel)
+  )
+
+  RETURN &status
+
+
+;=============================================================================
+; SUB: PMICToSPMI
+;=============================================================================
+
+PMICToSPMI:
+
+  ENTRY &addr &devid
+  LOCAL &spmi_sid &spmi_addr
+
+  IF &devid==1
+  (
+    &spmi_sid=4
+  )
+  ELSE
+  (
+    &spmi_sid=0
+  )
+
+  &pmic_sid=&addr>>16.
+  IF &pmic_sid==1
+  (
+    &spmi_sid=&spmi_sid+1
+  )
+
+  &spmi_addr=&addr&0xFFFF
+
+  RETURN &spmi_sid &spmi_addr
+
+
+;=============================================================================
+; SUB: PMICRead
+;=============================================================================
+
+PMICRead:
+
+  ENTRY &addr &devid
+
+  GOSUB PMICToSPMI &addr &devid
+  ENTRY &spmi_sid &spmi_addr
+
+  GOSUB SPMIRead &spmi_addr &spmi_sid
+  ENTRY &status &data
+
+  RETURN &status &data
+
+
+;=============================================================================
+; SUB: PMICWrite
+;=============================================================================
+
+PMICWrite:
+
+  ENTRY &addr &devid &data
+
+  GOSUB PMICToSPMI &addr &devid
+  ENTRY &spmi_sid &spmi_addr
+
+  GOSUB SPMIWrite &spmi_addr &spmi_sid &data
+  ENTRY &status
+
+  RETURN &status
+
+

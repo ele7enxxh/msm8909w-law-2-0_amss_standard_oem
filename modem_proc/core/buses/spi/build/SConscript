@@ -1,0 +1,136 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Public build script for SPMI BUS driver.
+#
+# Copyright (c) 2009-2015 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/buses/spi/build/SConscript#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/15/15   ddk     Corrected the MSM_ID for 8909.
+# 09/03/15   ddk     Added for 8909 SPI for sensors.
+# 09/24/14   ms      Disabled 8909/9x09 SPI compilation.
+# 01/20/14   ms      Disabled 8916/8926 SPI compilation.
+# 06/12/12   ddk     Added requirements to compile for specific images.
+# 06/03/12   ddk     Added 9625 support.
+# 04/16/12   ddk     Added updates for dev config settings.
+# 03/27/12   ddk     Added path for hwengines.
+# 02/09/12   ag      Fixed the location where the object files are built.
+# 01/21/12   ag      Initial release
+#
+#===============================================================================
+Import('env')
+
+#Disable SPI compilation for 8916 and 8926
+if env['MSM_ID'] == '8916' or env['MSM_ID'] == '8926' or env['MSM_ID'] == '8x26'or env['MSM_ID'] == '8x16' or env['MSM_ID'] == '8936':
+   Return();  
+   
+#Disable SPI compilation for 9x07,8937,8952
+if  env['MSM_ID'] == '9x09' or env['MSM_ID'] == '8952' or env['MSM_ID'] == '9607' or env['MSM_ID'] == '8937':
+   Return();    
+   
+if  env['MSM_ID'] == '8909':
+   if 'USES_SENSORS_COMPONENT' not in env:
+      Return();           
+
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+env = env.Clone()
+#print env
+# Additional defines
+env.Append(CPPDEFINES = ["FEATURE_LIBRARY_ONLY"])   
+
+SRCPATH = "../src"
+IMAGES = []
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+CBSP_APIS = []
+SPI_CONFIG_XML = []
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('BUSES_SPI_DEVICE', [
+   '${INC_ROOT}/core/buses/spi/hw',
+   '${INC_ROOT}/core/buses/spi/inc',
+   '${INC_ROOT}/core/buses/spi/src/hal/inc',
+   '${INC_ROOT}/core/buses/spi/src/logs/inc/',
+   '${INC_ROOT}/core/buses/spi/src/device/inc',
+   '${INC_ROOT}/core/buses/qup/hw',
+   '${INC_ROOT}/core/buses/qup/inc',
+   '${INC_ROOT}/core/buses/qup/src/hal/inc',   
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS += [
+   'BUSES',
+   'DAL',
+   'HAL',
+   'SYSTEMDRIVERS',
+   'KERNEL',   
+   'SERVICES',   
+   'HWENGINES',   
+   'POWER',
+   'DEBUGTOOLS'
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+if env.has_key('ADSP_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+elif env.has_key('ADSP_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+elif env.has_key('MODEM_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+elif env.has_key('APPS_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE']
+else:
+   Return();      
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SPI_DEVICE_GLOB_FILES = env.GlobFiles('../src/*/*.c', posix=True)
+
+#GLOB returns the relative path name, it needs to replaced with correct build location
+SPI_DEVICE_SOURCES = [path.replace(SRCPATH, '${BUILDPATH}') for path in SPI_DEVICE_GLOB_FILES]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+# env.AddLibrary is a new API, only if the IMAGES is valid in the build env
+# the objects will built and added to the image.
+#-------------------------------------------------------------------------------
+env.AddLibrary(IMAGES, '${BUILDPATH}/SpiDevice', SPI_DEVICE_SOURCES)
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   if env.has_key('MODEM_PROC'):
+      env.AddDevCfgInfo(DEVCFG_IMG, 
+      {
+         '8909_xml' : ['${BUILD_ROOT}/core/buses/spi/config/spi_props_mpss_8909.xml']
+      })

@@ -1,0 +1,51 @@
+//============================================================================
+//  Name:                                                                     
+//    std_loadsyms_mpss.cmm 
+//
+//  Description:                                                              
+//    Script to load MPSS symbols
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 09/10/2012 AJCheriyan	Added call to setup breakpoints while loading symbols
+// 08/21/2012 AJCheriyan	Refactored things a bit to override meta build options for simulator
+// 07/10/2012 AJCheriyan    Created for B-family 
+//
+
+// ARG0 - Build from which symbols have to loaded
+//
+ENTRY &ARG0
+
+LOCAL &MPSSBUILD
+&MPSSBUILD="&ARG0"
+
+MAIN:
+	// If a build is not provided, we assume the meta build has provided everything and use that
+	// information. 
+	// Load the elf file first. 
+	IF ("&MPSSBUILD"=="")
+	(
+		D.LOAD.ELF "&MPSS_BUILDROOT/modem_proc/core/bsp/mba_img/build/EAAAANVA/*.elf"  /nocode /noclear /noreg 
+	)
+	ELSE
+	(
+		D.LOAD.ELF "&MPSSBUILD/modem_proc/core/bsp/mba_img/build/EAAAANVA/*.elf"  /nocode /noclear /noreg 
+	)
+	
+	// Done
+	GOTO EXIT
+
+EXIT:
+    ENDDO
+
+
+

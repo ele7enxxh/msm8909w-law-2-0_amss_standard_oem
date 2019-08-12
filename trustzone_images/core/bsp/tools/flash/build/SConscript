@@ -1,0 +1,44 @@
+#===============================================================================
+#
+# CBSP Buils system
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/bsp/tools/flash/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/12/09   mh       Branched 
+#===============================================================================
+import os
+import glob
+Import('env')
+
+if env.has_key('PRINT_BUILD_BANNER'):
+   print "\n"
+   print "------------------------------------------------------------------------------"
+   print "   Loading Flash Tools build system"
+   print "------------------------------------------------------------------------------"
+
+#------------------------------------------------------------------------------
+# Load TARGET scripts
+#------------------------------------------------------------------------------
+# glob target files
+image_scripts = glob.glob('../*/build/SConscript')
+
+# now load scripts
+env.SConscript(image_scripts, exports='env')

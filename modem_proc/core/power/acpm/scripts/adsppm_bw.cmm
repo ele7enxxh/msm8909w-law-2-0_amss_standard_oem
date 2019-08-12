@@ -1,0 +1,69 @@
+
+AREA.SELECT A000
+AREA.VIEW
+
+LOCAL &reqNode &clientId &reqData &validFlag &validFlagE
+LOCAL &numClients &numClientsPrint &index &indexPrint
+LOCAL &numBwReq &numBwReqPrint &reqArray &bwReq &bwIndex &bwIndexPrint
+LOCAL &masterPort &masterPortName &slavePort &slavePortName
+LOCAL &bytesPerSec &usagePercentage &usageType &operation
+
+PRINT ""
+PRINT "ADSPPM BW request list"
+PRINT "----------------------"
+&reqNode=V.VALUE(gAdsppmCoreCtx.AdsppmReqQArray[4].link.pNext)
+&numClients=V.VALUE(gAdsppmCoreCtx.AdsppmReqQArray[4].nCnt)
+&numClientsPrint=FORMAT.DECIMAL(0,&numClients)
+PRINT "Number of clients = &numClientsPrint"
+&index=1
+&indexPrint=FORMAT.DECIMAL(0,&index)
+WHILE &index<=&numClients
+(
+    &reqData=V.VALUE(((RMCtxType *)&reqNode).pRequestData)
+    &clientId=FORMAT.DECIMAL(0,V.VALUE(((RMCtxType *)&reqNode).clientId))
+    &validFlag=FORMAT.DECIMAL(0,V.VALUE(((RMCtxType *)&reqNode).validFlag))
+    &validFlagE=FORMAT.DECIMAL(0,V.VALUE(((RMCtxType *)&reqNode).validFlag_Ext))
+    IF &validFlag==1
+    (
+        PRINT "Client &indexPrint"
+        PRINT "  reqNode               = (RMCtxType *)&reqNode"
+        PRINT "  clientId              = &clientId"
+        PRINT "  validFlag             = &validFlag"
+        PRINT "  validFlag_Ext         = &validFlagE"
+        PRINT "  reqData               = (AdsppmBwReqType)&reqData"
+        &numBwReq=FORMAT.DECIMAL(0,V.VALUE(((AdsppmBwReqType *)&reqData).numOfBw))
+        PRINT "  Number of BW requests = &numBwReq"
+        &bwIndex=0
+        &bwIndexPrint=FORMAT.DECIMAL(0,&bwIndex)
+        &reqArray=V.VALUE(((AdsppmBwReqType *)&reqData).pBwArray)
+        WHILE &bwIndex<&numBwReq
+        (
+            ;&bwReq = start_of(reqArray)+(size_of(AdsppmBusBWRequestValueType)*number_of_bytes_per_address*bwIndex)
+            &bwReq=V.VALUE((AdsppmBusBWRequestValueType *)&reqArray)+8*4*&bwIndex
+            &masterPortName=FORMAT.DECIMAL(0,V.VALUE(((AdsppmBusBWRequestValueType *)&bwReq).busRoute.masterPort))
+            &slavePortName=FORMAT.DECIMAL(0,V.VALUE(((AdsppmBusBWRequestValueType *)&bwReq).busRoute.slavePort))
+            ;&masterPortName=DATA.STRING(D:V.VALUE(AdsppmBusPortName[&masterPort]))
+            ;&slavePortName=DATA.STRING(D:V.VALUE(AdsppmBusPortName[&slavePort]))
+            &bytesPerSec=FORMAT.DECIMAL(0,V.VALUE(((AdsppmBusBWRequestValueType *)&bwReq).bwValue.busBwValue.bwBytePerSec))
+            &usagePercentage=FORMAT.DECIMAL(0,V.VALUE(((AdsppmBusBWRequestValueType *)&bwReq).bwValue.busBwValue.usagePercentage))
+            &usageType=FORMAT.DECIMAL(0,V.VALUE(((AdsppmBusBWRequestValueType *)&bwReq).bwValue.busBwValue.usageType))
+            &operation=FORMAT.DECIMAL(0,V.VALUE(((AdsppmBusBWRequestValueType *)&bwReq).bwOperation))
+            PRINT "    BW request &bwIndexPrint"
+            PRINT "      Master Port      = &masterPortName "
+            PRINT "      Slave Port       = &slavePortName "
+            PRINT "      Bytes per second = &bytesPerSec"
+            PRINT "      Usage percentage = &usagePercentage"
+            PRINT "      Usage type       = &usageType"
+            PRINT "      BW operation     = &operation"
+            &bwIndex=&bwIndex+1
+            &bwIndexPrint=FORMAT.DECIMAL(0,&bwIndex)
+        )
+    )
+    ELSE
+    (
+        PRINT "Client &indexPrint [no request]"
+    )
+    &reqNode=V.VALUE(((coreUtils_Q_LinkType *)&reqNode).pNext)
+    &index=&index+1
+    &indexPrint=FORMAT.DECIMAL(0,&index)
+)

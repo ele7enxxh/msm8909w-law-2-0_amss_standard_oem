@@ -1,0 +1,109 @@
+;===============================================================================================
+; FILE:        libstd_test_log_display.cmm
+;
+; DESCRIPTION: Helper script to view libstd test case results
+;
+;              Copyright (c) 1999 - 2010 Qualcomm Technologies Incorporated.
+;              All Rights Reserved. QUALCOMM Proprietary and Confidential.
+;===============================================================================================*/
+ 
+;===============================================================================================
+;
+;                            Edit History
+; $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/kernel/libstd/test/libstd_test_log_display.cmm#1 $ 
+; $DateTime: 2016/06/17 14:31:11 $
+;
+;===============================================================================================*/
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+; USAGE: do libstd_test_log_display.cmm
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+ENTRY &print_loc
+
+GLOBAL &p_next_log;
+GLOBAL &result_str;
+
+gosub init_print_location;
+gosub display_test_results;
+
+goodbye:
+   enddo;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;All the subroutines start here;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+display_test_results:
+&success_ctr=0;
+&fail_ctr=0;
+&total_ctr=0;
+&log_list_head=v.value((libstd_test_buffer*)p_libstd_log_list_head)
+&log_list_tail=v.value((libstd_test_buffer*)p_libstd_log_list_tail)
+
+if &log_list_head==0
+(
+    gosub print_summary;
+    return;
+)
+if &log_list_tail==0
+(
+    gosub print_summary;
+    return;
+)
+
+&p_next_log=v.value(((libstd_test_buffer*)&log_list_tail)->prev)
+while &p_next_log!=&log_list_head
+(
+   &result=v.value(((libstd_test_buffer*)&p_next_log)->result)
+   if &result==1
+   (
+      &result_str="PASS";
+      &success_ctr=&success_ctr+1;
+   )
+   else
+   (
+      &result_str="FAIL";
+      &fail_ctr=&fail_ctr+1;
+   )
+   &total_ctr=&total_ctr+1;
+   gosub  print_log_item
+   &p_next_log=v.value(((libstd_test_buffer*)&p_next_log)->prev)
+)
+gosub print_summary;
+return;
+
+init_print_location:
+   if "&print_loc"==""
+   (
+     &print_loc="screen";
+   )
+   else
+   (
+     &print_loc="file";
+   )
+
+   if "&print_loc"=="screen"
+   (
+      area.create TST_LOG 40 1000;
+      area.select TST_LOG;
+      area.view   TST_LOG;
+      area.clear  TST_LOG;
+   )
+return;
+
+print_log_item:
+   &log=&p_next_log;
+   &test_name=v.string(((libstd_test_buffer*)&log)->function_name);
+   &test_major_num=v.value(((libstd_test_buffer*)&log)->test_number);
+   &test_minor_num=v.value(((libstd_test_buffer*)&log)->line_number);
+   &result="&result_str";
+   print "Name: &test_name Test#:(" %d &test_major_num ":" %d &test_minor_num ") Result: &result"
+return;
+
+print_summary:
+   print " "
+   print "Test Case Summary"
+   print  "Total Tests: " %d &total_ctr " Passed: " %d &success_ctr " Failed: " %d &fail_ctr
+return;
+

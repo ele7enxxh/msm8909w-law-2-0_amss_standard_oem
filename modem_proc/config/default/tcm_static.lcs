@@ -1,0 +1,165 @@
+  /*------------------------------------------------------------------------*/
+  /* TCM static region, loaded at boot-time. This is always located at the  */
+  /* base address of TCM.                                                   */
+  /* vim: set ft=ld ts=2 sw=2 et ai nosi:                                   */
+  /*------------------------------------------------------------------------*/
+  . = ALIGN(__tcm_align_boundary__) ;
+  __tcm_static_pa_load__  = . ;                /* Load (external) physical address of section */
+  __tcm_static_pa_run__   = __tcm_pa_base__ ;  /* Run (internal TCM) physical address of section */
+  __load_location__  = . ;
+
+  __MMU_region_start_name_tcm.static.kernel.data_R_1_W_0_X_0_CCCC_1_PA_0x04400000_lock_1 = .;
+
+  __tcm_static_section_start__ = . ;
+
+  /* RTOS kernel data section, excluded from userspace. */
+  __tcm_static_kernel_start__ = . ;
+  .data_tcm_static_kernel :
+  {
+    *(.data.QURTK.INTERRUPT) 
+    *(.data.QURTK.SCHEDULER)
+    *(.data.relaQURTK.SCHEDULER)
+    *(.data.QURTK.CONTEXTS.TCM)
+    *(.data.QURTK.PCYCLES)
+    *(.data.QURTK.STACK)
+    *(.data.QURTK.LIFO)
+
+    .  = ALIGN(__cache_line_size__);
+  } :tcm_static =0
+
+  /* We want to allocate only a single 16K page for RTOS data, shared with 
+     following kernel code. */
+  __assert_sink__ = ASSERT( (. - __tcm_static_kernel_start__) <= 16K , "data_tcm_static_kernel region overflow");  
+
+  __MMU_region_start_name_tcm.static.kernel.code_R_1_W_0_X_1_CCCC_1_continueOffsetMappingAtNext_16k_lock_1 = .;
+
+  /* RTOS kernel code.
+     This crosses the page boundary between kernel-mode data and user code. */
+  .text_tcm_static_kernel :
+  {
+    *(.text.relaQURTK.SCHEDULER)
+    *(.text.QURTK.SCHEDULER)
+    *(.text.QURTK.LIFO)
+
+  } :tcm_static =0x00c0007f
+
+  __tcm_static_kernel_end__ = . ;
+
+  /* RTOS kernel data+code should cross the 16K page boundary, so that the 
+     following user code is covered by a user page. */ 
+  __tcm_static_kernel_size__ = __tcm_static_kernel_end__ - __tcm_static_kernel_start__ ;
+  . += ( __tcm_static_kernel_size__ >= 16K ? 0 : 16K - __tcm_static_kernel_size__);
+  __assert_sink__ = ASSERT( (. - __tcm_static_kernel_start__) >= 16K , "tcm_static_kernel region underflow");  
+
+
+  /* Firmware TCM code */
+  __tcm_static_fw_text_start__ = . ;
+  .text_tcm_static_fw :
+  { 
+    *modem_proc/fw*(.tcm_static_code .tcm_static_code.*)
+    *modem_proc/fw*:(.tcm_static_code .tcm_static_code.*)
+    *modem_proc/fw*(.tcm_static_text .tcm_static_text.*)
+    *modem_proc/fw*:(.tcm_static_text .tcm_static_text.*)
+    *modem_proc/fw*(.wfw_tcm_static_text *.wfw_tcm_static_text.*)
+    *modem_proc/fw*:(.wfw_tcm_static_text *.wfw_tcm_static_text.*)
+    *modem_proc/fw*:(.tcm_crm_static_text .tcm_crm_static_text.*)
+  } :tcm_static =0x00c0007f
+
+  __tcm_static_fw_text_end__ = . ;
+
+  /* Pad up FW usage to its reserved size, if smaller. */
+  __tcm_static_fw_text_size__ = __tcm_static_fw_text_end__ - __tcm_static_fw_text_start__ ;
+  __tcm_static_fw_text_diff__ = __tcm_static_fw_text_reserved__ - __tcm_static_fw_text_size__;
+  __assert_sink__ = ASSERT( __tcm_static_fw_text_size__ <= __tcm_static_fw_text_reserved__ , "tcm_static_fw_text region overflow");  
+  . += (__tcm_static_fw_text_size__ >= __tcm_static_fw_text_reserved__ ? 0 : __tcm_static_fw_text_diff__);
+
+  __tcm_static_sw_text_start__ = .;
+  /* RTOS, libc, and SW TCM code */
+  .text_tcm_static_sw : 
+  {
+    /* Functions from libc/RTOS */
+    common_entry_exit*(.text .text.* .gnu.linkonce.t.*) 
+    memcpy_likely_aligned*(.text .text.* .gnu.linkonce.t.*)  
+    memcpy*(.text .text.* .gnu.linkonce.t.*)
+    *common_entry_exit_abi2.o(.text .text.* .gnu.linkonce.t.*)
+    *memcpy_likely_aligned.o(.text .text.* .gnu.linkonce.t.*)
+    *dinkumware*:memcpy.o(.text .text.* .gnu.linkonce.t.*)
+    memset*(.text)
+    *(.text.QURTK.USER_LIB)
+    *(.text.relaQURTK.USER_LIB)
+
+    *(.tcm_static_code .tcm_static_code.*)
+    *(.tcm_static_text .tcm_static_text.*)
+
+    INCLUDE tcm_static_sw_text.lst
+
+    .  = ALIGN(__cache_line_size__);   
+  } :tcm_static =0x00c0007f
+  __tcm_static_sw_text_size__ = . - __tcm_static_sw_text_start__;
+  /* Align to 4K for DEP data mapping. */
+  . = ALIGN(4K);
+  __tcm_static_sw_text_aligned_size__ = . - __tcm_static_sw_text_start__;
+
+  __MMU_region_start_name_tcm.static.user.data_R_1_W_1_X_0_CCCC_1_continueOffsetMapping_lock_1 = .;
+
+  /* Firmware static TCM data */
+  __tcm_static_fw_data_start__ = . ;
+  .data_tcm_static_fw :
+  {
+    *modem_proc/fw*(.tcm_static_data .tcm_static_data.*)
+    *modem_proc/fw*:(.tcm_static_data .tcm_static_data.*)
+    *modem_proc/fw*(.wfw_tcm_static_data .wfw_tcm_static_data.*)
+    *modem_proc/fw*:(.wfw_tcm_static_data .wfw_tcm_static_data.*)
+    *modem_proc/fw*:(.tcm_crm_static_data .tcm_crm_static_data.*)
+  } :tcm_static =0
+
+  __tcm_static_fw_data_end__ = . ;
+
+
+  /* Pad up FW usage to its reserved size, if smaller. */
+  __tcm_static_fw_data_size__ = __tcm_static_fw_data_end__ - __tcm_static_fw_data_start__ ;
+  __tcm_static_fw_data_diff__ = __tcm_static_fw_data_reserved__ - __tcm_static_fw_data_size__;
+  __assert_sink__ = ASSERT( __tcm_static_fw_data_size__ <= __tcm_static_fw_data_reserved__ , "tcm_static_fw_data region overflow");  
+  . += (__tcm_static_fw_data_size__ >= __tcm_static_fw_data_reserved__ ? 0 : __tcm_static_fw_data_diff__);
+
+
+  /* RTOS user-mode and SW data */
+  __tcm_static_sw_data_start__ = .;
+  .data_tcm_static_sw : 
+  {
+    /* RTOS data */ 
+    *(.data.QURT.FASTINT)
+
+    *(.tcm_static_data .tcm_static_data.*)
+
+    INCLUDE tcm_static_sw_data.lst
+
+  } :tcm_static =0
+
+  .  = ALIGN(__cache_line_size__);
+  __tcm_static_sw_data_size__ = . - __tcm_static_sw_data_start__;
+
+  __tcm_static_section_end__ = . ; 
+
+
+  /* Calculate end of TCM static section and ensure it fits within max size */
+  __tcm_static_section_len__ = __tcm_static_section_end__ - __tcm_static_section_start__;
+  __assert_sink__ = ASSERT( __tcm_static_section_len__ <= __tcm_static_max_size__ , "TCM static region overflow");
+  __tcm_static_pa_end__ = __tcm_pa_base__ + __tcm_static_max_size__ ;
+  . = __tcm_static_section_start__ + __tcm_static_max_size__ ;
+
+  /* RTOS needs these specific symbols defined for boot-time loading */
+  __tcm_qurt_pa_load_start__ = __tcm_static_pa_load__ ;
+  __tcm_qurt_pa_load_end__   = __tcm_static_pa_load__ + __tcm_static_section_len__ ;
+  __tcm_qurt_pa_run_start__  = __tcm_pa_base__ ;
+
+  /* Advance PA for overlay section use */
+  __load_location__ += __tcm_static_max_size__ ;
+
+/*
+ * alexh 2015-01-12, CR 780568: use old reserved TCM sizes while we're
+ * discussing all the use cases for static TCM
+ *
+ *   __tcm_static_size_available__ = __tcm_static_max_size__ - __tcm_static_blocked_size__ ;
+ *   __assert_sink__ = ASSERT( __tcm_static_section_len__ <= __tcm_static_size_available__ , "Failed blocked TCM Static size check");
+ */

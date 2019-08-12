@@ -1,0 +1,361 @@
+#====include path optimized=====================================================
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2012-2014 Qualcomm Technologies, Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies, Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies, Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: $
+# $DateTime: $ 
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/20/14   chenh   Enabled compiler warings to errors
+# 10/16/14   dej     Clean-up SCons and add support for TABASCO
+# 10/06/13   ra      Support RFLM CCS 
+# 05/23/13   dyc     Update for rebuild for HY11 protected lib
+# 02/21/13   aca     Scons update for RFC dep
+# 02/07/13   dyc     Define TP Card feature for DIME_1.1
+# 02/04/13   dyc     Updated qualifiers for pack.
+# 01/31/13   sr      Fixed Triton/DSDA compilation error
+# 01/31/13   vrb     Compile in protected dir for MPSS.DI.1.1 only
+# 01/30/13   sar     Added Pack script changes.
+# 07/09/12   tks     Created for PA device
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+import os
+#-------------------------------------------------------------------------------
+# Enable warnings -> errors
+if 'USES_INTERNAL_BUILD' in env:
+   env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror", 
+                   HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")	
+				   
+if ('USES_FEATURE_RFA_TP_CARDS' in env or 'USES_DIME_1_1' in env):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_TP_CARDS'])
+
+#usage:  ENV_UPDATE_RFA=CHIPSET,=mdm9x15,USES_NO_DEBUG,delete,USES_HI_SPEED,add
+if ARGUMENTS.get('ENV_UPDATE_RFA'):
+   
+   env_update_string    = ARGUMENTS.get('ENV_UPDATE_RFA')
+   env_update_list      = env_update_string.split(',')
+   item_total           = len(env_update_list)
+   list_index           = 0
+   
+   #note if list is not even number of items, last odd item is ignored
+   while list_index < item_total-1:
+                 
+      item            = env_update_list[list_index]  
+      value           = env_update_list[list_index+1]
+      list_index      += 2
+                                              
+      if(value == 'add'):
+         env[str(item)] = 'yes'
+         print "adding",item,"to env"                                          
+                
+      elif(value == 'delete'):
+         del env[str(item)]
+         print "deleting",item,"from env"
+      
+      else:
+         if(value[0] != '='):
+            print "missing leading = in",value
+            print "not updating ",item
+                 
+         else:
+            value2 = value[1:len(value)]
+            env[str(item)] = value2
+            print "now setting",item,value
+
+
+
+LIB_NAME        = 'modem_rfdevice_pa'
+IMAGE_SOURCES   = ['MODEM_MODEM','MOB_RFA']
+
+LIB_SRC         = 'src'
+LIB_PROTECTED   = 'protected'
+
+
+from glob import glob
+
+env = env.Clone()
+
+# Method to abort processing of this file, if not required for current air interface mode, etc
+#if ( (USES_TEST_FLAG1 in env and USES_TEST_FLAG2 not in env) or USES_TEST_FLAG3 not in env)):
+#   Return( )
+
+#-------------------------------------------------------------------------------
+# Source PATH:  
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+#BUILDPATH =  image_name / processor_name, eg modem_libs / arm11 = directory where built objects stored
+env.VariantDir('${BUILDPATH}', SRCPATH , duplicate=0)
+
+env.Append(CPPDEFINES = ['MSG_BT_SSID_DFLT=MSG_SSID_RF',]) 
+
+#The order of APIs in the rfa_public_api_list determines the order the paths are listed on the build command line.
+#To optimize build times the API list is sorted in descending order of use.
+
+rfa_public_api_list =[
+    ('CORE', 'SYSTEMDRIVERS'),
+    ('CORE', 'KERNEL'),
+    ('CORE', 'DAL'),
+    ('CORE', 'DEBUGTOOLS'),
+    ('CORE', 'MPROC'),
+    ('CORE', 'MEMORY'),
+    ('CORE', 'SERVICES'),
+#     ('CORE', 'POWER'),
+#     ('CORE', 'BUSES'),
+#     ('CORE', 'STORAGE'),
+#     ('CORE', 'HWENGINES'),
+    ('FW', 'RF'),
+    ('FW', 'WCDMA'),
+#    ('FW', 'TARGET'),
+    ('FW', 'GERAN'),
+    ('FW_CCS', 'FW_CCS'),
+    ('FW_COMMON', 'FW_COMMON'),
+    ('FW_WCDMA', 'FW_WCDMA'),
+    ('FW_GERAN', 'FW_GERAN'),
+#     ('FW', 'C2K'),
+#     ('FW', 'LTE'),
+#     ('FW', 'TDSCDMA'),
+#     ('MPOWER', 'MPOWER'),
+    ('MCS', 'MCS'),
+#    ('MCS', 'PUBLIC'),
+    ('MMCP', 'MMCP'),
+#    ('MMCP', 'PUBLIC'),
+#    ('AVS', 'MVS'),
+#    ('LTE', 'LTE'),
+#    ('UTILS', 'OSYS'),
+#    ('UTILS', 'A2'),
+#    ('UIM', 'PUBLIC'),
+#    ('UIM', 'UIM'),
+    ('GERAN', 'GERAN'),
+#    ('GERAN_RFA', 'DEPRECATED'),
+#    ('ONEX', 'PUBLIC'),
+#    ('WCDMA', 'WCDMA'),
+#    ('WCDMA', 'PUBLIC'),
+#    ('HDR', 'HDR'),
+#    ('HDR', 'PUBLIC'),
+#    ('ONEX', 'ONEX'),
+#    ('TDSCDMA', 'TDSCDMA'),
+#    ('TDSCDMA', 'PUBLIC'),
+#    ('GPS', 'GPS'),
+#    ('QMIMSGS', 'RFRPE'),
+    ('RFA', 'COMMON'),
+    ('RFA', 'CDMA'),
+#     ('RFA', 'MEAS'),
+#     ('RFA', 'GSM'),
+     ('RFA', 'LM'),
+#     ('RFA', 'LTE'),
+#     ('RFA', 'WCDMA'),
+#     ('RFNV', 'RFNV'),
+#     ('RFA', 'GNSS'),
+#     ('RFA', 'TDSCDMA'),
+#     ('RFA_RF', 'TUNER'),
+#     ('RFDEVICE_QFE1320', 'RFDEVICE_QFE1320'),
+#     ('RFDEVICE_WTR2605', 'RFDEVICE_WTR2605'),
+#     ('RFDEVICE_WFR2600', 'RFDEVICE_WFR2600'),
+#     ('RFDEVICE_WTR1605', 'RFDEVICE_WTR1605'),
+     ('RFDEVICE_INTERFACE', 'RFDEVICE_INTERFACE'),
+     ('RFDEVICE_PA', 'RFDEVICE_PA'),
+     ('UTILS', 'COMMON'),
+     (env.get('RF_GLOBALS')['RFMODEM_AREA'], 'CCS'),] 
+
+for api_area,api_name in rfa_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+env.RequirePublicApi([
+        'SERVICES',
+		'KERNEL',
+		'DAL',
+		'SYSTEMDRIVERS',
+		'DEBUGTOOLS',
+		'MPROC',
+		'STORAGE',
+        ],
+        area='CORE')	
+
+env.RequirePublicApi([
+    'MMODE',
+    ])
+
+
+env.RequireRestrictedApi([
+     'RFDEVICE_INTERFACE',
+#    'ONEX',
+#    'DATA', 
+#    'MODEM_DATA', 
+#    'MODEM_DATACOMMON', 
+#    'DATACOMMON',
+    'FW', 
+    'GERAN',
+#    'GPS', 
+#    'HDR', 
+#    'LTE', 
+    'MCS', 
+#    'XSD', 
+    'MMODE',
+#    'NAS', 
+#    'PBM', 
+    'RFA',
+#    'UIM', 
+#    'UTILS', 
+#    'WCDMA', 
+#    'WMS', 
+    'RFDEVICE_PA', 
+    ])
+
+
+env.RequireProtectedApi([
+#    'LM_COMMON_INC',
+#    'LM_NIKEL_INC',
+#    'RFC_COMMON_INC',
+#    'RFC_RF_CARD_INC',
+     'RFC_TARGET_INC',
+#    'RF_CDMA_INC',
+#    'RF_COMMON_INC',
+#    'RF_DEVICE_INC',
+#    'RF_GNSS_INC',
+#    'RF_GSM_INC',
+#    'RF_HAL_INC',
+#    'RF_LTE_INC',
+#    'RF_MDSP_INC',
+#    'RF_MEAS_INC',
+#    'RF_RFD_INC',
+#    'RF_RFNV_INC',
+#    'RF_TASK_INC',
+#    'RF_WCDMA_INC',
+    ])
+
+env.RequireProtectedApi([
+#    'LM_COMMON_SRC',
+#    'RFC_COMMON_SRC',
+#    'RFC_RF_CARD_SRC',
+#    'RFC_TARGET_SRC',
+#    'RF_CDMA_SRC',
+#    'RF_COMMON_SRC',
+#    'RF_GNSS_SRC',
+#    'RF_GSM_SRC',
+#    'RF_HAL_SRC',
+#    'RF_LTE_SRC',
+#    'RF_MEAS_SRC',
+#    'RF_RFD_SRC',
+#    'RF_TASK_SRC',
+#    'RF_WCDMA_SRC',
+    ])
+
+env.RequireProtectedApi([
+#    'LM_NIKEL_PROTECTED',
+#    'RF_CDMA_PROTECTED',
+#    'RF_COMMON_PROTECTED',
+#    'RF_DEVICE_PROTECTED',
+#    'RF_GNSS_PROTECTED',
+#    'RF_GSM_PROTECTED',
+#    'RF_HAL_PROTECTED',
+#    'RF_LTE_PROTECTED',
+#    'RF_MDSP_PROTECTED',
+#    'RF_MEAS_PROTECTED',
+#    'RF_RFD_PROTECTED',
+#    'RF_WCDMA_PROTECTED',
+    ])
+
+
+env.RequirePublicApi(['RFLM'],area='RFLM')
+
+env.RequireRestrictedApi (['RFDEVICE_PA_VIOLATIONS'])
+
+LIB_SOURCES = [ ]  #empy list
+
+SOURCE_FILES = [ ] 
+
+#find all .c
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.c'))
+
+#find all .cpp files 
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.cpp'))
+
+#find all .s files
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.s'))
+
+
+for filename in SOURCE_FILES:
+        LIB_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+
+if LIB_SOURCES:
+
+        env.AddLibrary(IMAGE_SOURCES, '${BUILDPATH}/'+LIB_NAME,[
+        LIB_SOURCES,
+        ])
+
+
+env2 = env.Clone()
+
+#env2.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+#this statement must appear outside of 'USES_NO_STRIP_NO_ODM' test so that AddBinaryLibrary can be launched
+LIB_SOURCES = []  #empy list
+
+#force HY11 protected library to be rebuilt
+if 'USES_FEATURE_RF_PACKBUILD_GENERATE_PROTECTED_LIBS' in env2:
+	env2.Replace(USES_NO_STRIP_NO_ODM = 'yes')
+	
+if 'USES_NO_STRIP_NO_ODM' in env2:
+        
+                SOURCE_FILES = [ ] 
+        
+               #find all .c
+                SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.c'))
+        
+               #find all .cpp files 
+                SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.cpp'))
+        
+               #find all .s files
+                SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.s'))
+        
+        
+                for filename in SOURCE_FILES:
+                        LIB_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+
+#this statement must appear outside of 'USES_NO_STRIP_NO_ODM' test so that the pre-built library will be added to the list file
+env2.AddBinaryLibrary(IMAGE_SOURCES, '${BUILDPATH}/'+LIB_NAME+'_protected',[
+    LIB_SOURCES,
+    ], pack_exception=['USES_FEATURE_RF_PACKBUILD_GENERATE_PROTECTED_LIBS'])
+
+
+#----------------------------------------------------------------------------#
+# Export inc and protected directories within rfdevice_pa
+#----------------------------------------------------------------------------#
+env.PublishProtectedApi ('RFDEVICE_PA_INC',[
+     '${RFDEVICE_PA_ROOT}/inc',
+     '${RFDEVICE_PA_ROOT}/protected',
+     ])
+
+env.RequireProtectedApi (['RFDEVICE_PA_INC'])
+
+env.LoadSoftwareUnits( )

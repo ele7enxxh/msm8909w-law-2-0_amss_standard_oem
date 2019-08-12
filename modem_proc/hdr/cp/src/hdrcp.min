@@ -1,0 +1,152 @@
+#-------------------------------------------------------------------------------
+# HDR Call Processing source file(s)
+#-------------------------------------------------------------------------------
+
+HDRCP_SOURCES=\
+	hdr1xmc.c	\
+	hdraddr.c       \
+	hdralmp.c	\
+	hdralmps.c	\
+	hdramp.c	\
+	hdramps.c	\
+	hdrampati.c	\
+	hdrcallid.c	\
+	hdrcon.c	\
+	hdrcons.c	\
+        hdrcsna.c       \
+	hdrhmp.c	\
+	hdrhmpsa.c	\
+	hdridle.c	\
+	hdridles.c	\
+	hdridlec.c	\
+	hdrind.c	\
+	hdrinit.c	\
+	hdrinits.c	\
+	hdris890a.c     \
+	hdrfetap.c      \
+	hdrretap.c      \
+	hdrovhd.c	\
+	hdrovhds.c	\
+	hdrpcp.c	\
+	hdrplog.c	\
+	hdrrup.c	\
+	hdrrups.c	\
+	hdrrupc.c	\
+	hdrscp.c	\
+	hdrscps.c	\
+	hdrauth.c	\
+	hdrkep.c	\
+	hdrsec.c	\
+	hdrslp.c	\
+	hdrslpi.c	\
+	hdrslprx.c	\
+	hdrslptx.c	\
+	hdrsmp.c	\
+	hdrsmps.c	\
+	hdrsmpka.c	\
+	hdrstream.c	\
+	hdrbctask.c     \
+	hdrscm.c        \
+	hdrscmdb.c	\
+	hdrscmfmac.c	\
+	hdrscmrmac.c	\
+	hdrscmrmac0.c	\
+	hdrscmrmac3.c	\
+	hdrscmbccp.c	\
+	hdrscmalmp.c	\
+	hdrscmcmac.c	\
+	hdrscmgmmcdp.c	\
+	hdrscmamac.c	\
+	hdrscmrup.c     \
+	hdrscmamp.c	\
+	hdrscmidle.c    \
+	hdrscmovhd.c    \
+        hdrscmcsna.c    \
+        hdrscmscp.c     \
+	hdrmc.c		\
+	hdrmrlpc.c     	\
+	hdrdos.c	\
+	hdrfcp.c	\
+	hdrlup.c	\
+	hdrlupc.c	\
+	hdrpacc.c	\
+        hdrpcp_queue.c  \
+        hdrpcp_slp_pkt_app.c \
+        hdrscmphy.c \
+        hdrscmrmac4.c \
+        hdrscmrmaccmn.c \
+
+#-------------------------------------------------------------------------------
+# HDR Call Processing include file(s) path
+#-------------------------------------------------------------------------------
+
+HDR_CINCPATH=\
+        $(COMMON)       \
+        $(ADC)          \
+        $(ADSP)         \
+        $(AVS)          \
+        $(CM)           \
+        $(BIO)          \
+        $(BOOT)         \
+        $(CLK)          \
+        $(CP)           \
+        $(DATA)         \
+        $(DEC)          \
+        $(DFM)          \
+        $(DIAG)         \
+        $(ENC)          \
+        $(FTM)          \
+        $(GPS)          \
+        $(HS)           \
+        $(HW)           \
+        $(MUX)          \
+        $(MDSP)         \
+        $(QDSP)         \
+        $(NV)           \
+        $(PM)           \
+        $(PLT)          \
+        $(RF)           \
+        $(SBI)          \
+        $(SIO)          \
+        $(SRCH)         \
+        $(TLMM)         \
+        $(TRAMP)        \
+        $(TRERM)        \
+        $(UASMS)        \
+        $(UI)           \
+        $(VBATT)        \
+        $(USB)
+
+#-----------------------------------------------------------------------------
+# HDR Call Processing object file(s)
+#-----------------------------------------------------------------------------
+
+HDRCP_OBJS :=  $(addprefix $(TARGETDIR)/, $(HDRCP_SOURCES:%.c=%.o))
+$(HDRCP_OBJS): INCLUDES = $(addprefix -I, $(HDR_CINCPATH))
+
+HDRCP_DEPS :=  $(addprefix $(TARGETDIR)/, $(HDRCP_SOURCES:%.c=%.dep) )
+$(HDRCP_DEPS): INCLUDES = $(addprefix -I, $(HDR_CINCPATH))
+
+#-----------------------------------------------------------------------------
+# HDR Call Processing source files search path
+#-----------------------------------------------------------------------------
+
+vpath %.c $(HDRCP)/src
+
+#-----------------------------------------------------------------------------
+# HDR Call Processing Lint
+#-----------------------------------------------------------------------------
+### Start Lint block ###
+ifdef DO_LINT
+
+  # Linting HDRCP Unit
+  HDRCP_LINT_OBJS := $(addprefix $(LINTDIR)/, $(HDRCP_SOURCES:%.c=%.lint))
+  
+  # Add the HDR specific lint rules
+  $(HDRCP_LINT_OBJS) : LINT_FLAGS := $(LINT_FLAGS) hdr.lnt
+
+  # Specify group target for linting HDR subsystem
+  $(LINTDIR)/hdrcp_lint : $(HDRCP_LINT_OBJS)
+
+endif
+### End Lint block ###

@@ -1,0 +1,763 @@
+#==============================================================================
+# MSM8952 Boot Build Configuration Definition File.
+#
+# Copyright (c) 2014,2015 QUALCOMM Inc.  All Rights Reserved
+#==============================================================================
+#==============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: $
+# $DateTime: $
+# $Author:  $
+#
+# when       who    what, where, why
+# -------    ---    -------------------------------------------
+# 02/10/15   sk 	Added IPA Memory regions
+# 01/22/15   sk     Code changes for merging firehose DeviceProgrammer into SBL
+# 12/19/14   sc     Added whitelist regions
+# 12/23/14   sk     Enable BUS driver.
+# 12/17/14   shrey  Disabled the forced EDL mode with FEATURE_FORCED_EDL_MODE_DISABLE
+# 11/21/14   sk     Changes for creating two elfs for RUMI and ASIC
+# 11/06/14   sk     Enable DDR Driver and Disabled FEATURE_BOOT_RAMDUMPS_TO_SD_CARD Macro.
+# 10/29/14   lm     Disabled external Bus driver
+# 10/29/14   lm     Enabled crypto,secboot & UART driver
+# 10/29/14   lm     Enabled external TLMM,clock & platform driver
+# 10/29/14   lm     Enabled external EFS,Hotplug & device programmer driver
+# 09/29/14   lm     Initial revision
+#==============================================================================
+#
+# Global Definitions.
+#
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+
+TAG_MAP {
+H0:     MSM Identifier
+H1:     Platform Identifier
+H2:     RAM Config
+H3:     Flash Config
+H4:     RF Config
+S1:     Air Interface
+S2,3:   Application Features 
+S4:     Image Type } 
+
+
+#------------------------------------------------------------------------------
+# General Aliases.
+#------------------------------------------------------------------------------
+define 1KB        0x0000400
+define 4KB        0x0001000
+define 8KB        0x0002000
+define 12KB       0x0003000
+define 16KB       0x0004000
+define 20KB       0x0005000
+define 24KB       0x0006000
+define 32KB       0x0008000
+define 64KB       0x0010000
+define 120KB      0x001E000
+define 128KB      0x0020000
+define 144KB      0x0024000
+define 176KB      0x002C000
+define 192KB      0x0030000
+define 200KB      0x0032000
+define 216KB      0x0036000
+define 232KB      0x003A000 
+define 256KB      0x0040000
+define 272KB      0x0044000
+define 320KB      0x0050000
+define 384KB      0x0060000
+define 416KB      0x0068000
+define 446KB      0x006F800
+define 448KB      0x0070000
+define 512KB      0x0080000
+define 544KB      0x0088000
+define 576KB      0x0090000
+define 768KB      0x00C0000
+define 896KB      0x00E0000
+define 0MB        0x0000000
+define 1MB        0x0100000
+define 2MB        0x0200000
+define 3MB        0x0300000
+define 4MB        0x0400000
+define 6MB        0x0600000
+define 7MB        0x0700000
+define 8MB        0x0800000
+define 9MB        0x0900000
+define 10MB       0x0A00000
+define 15MB       0x0F00000
+
+
+###############################################################################
+#
+# COREBSP CONFIGURATION SECTIONS
+#
+###############################################################################
+
+include "tbc_core.builds"
+
+
+#------------------------------------------------------------------------------
+# Boot Memory map
+#------------------------------------------------------------------------------
+[HardComponent: BOOT_MEM_MAP ]
+
+###############################################################################
+#
+# APSS L2/TCM Section
+# 512KB, 0x0800_0000 -- 0x0807_FFFF
+#
+# Contains:
+#   SBL1 Code Section
+#   SBL1 Stacks Section
+#      SBL1 Supervisor Stack
+#      SBL1 Undefined Stack
+#      SBL1 Abort Mode Stack
+#   SBL1 Data Section
+#
+###############################################################################
+# Total allowable size for SBL1 Seg #1 (Code, DATA, ZI)
+define SCL_SBL1_TOTAL_SIZE                   0x0050000
+
+# SBL1 Code base
+define SCL_SBL1_IMAGE_BASE                   0x08005000
+define SCL_DEVICEPROGRAMMER_IMAGE_BASE       0x08006000
+define SCL_SBL1_CODE_SIZE                    320KB
+
+# SBL1 Vector Table base
+define SCL_SBL1_VECTOR_BASE                  SCL_SBL1_CODE_BASE
+define SCL_SBL1_VECTOR_SIZE                  0x00000020
+ 
+# SBL1 Stack base, Stacks size needs to be sum of all mode stacks.
+define SCL_SBL1_STACKS_BASE                  (SCL_SBL1_CODE_BASE + SCL_SBL1_CODE_SIZE)
+define SCL_SBL1_STACKS_SIZE                  (SCL_SBL1_SVC_STACK_SIZE + SCL_SBL1_UND_STACK_SIZE + SCL_SBL1_ABT_STACK_SIZE)
+
+# SBL1 Supervisor Stack
+define SCL_SBL1_SVC_STACK_SIZE               8KB
+
+# SBL1 Undefined Stack
+define SCL_SBL1_UND_STACK_SIZE               8KB
+
+# SBL1 Abort Mode Stack
+define SCL_SBL1_ABT_STACK_SIZE               8KB
+
+# SBL1 Data base (Remainder of total space)
+define SCL_SBL1_DATA_BASE                    (SCL_SBL1_STACKS_BASE + SCL_SBL1_STACKS_SIZE)
+define SCL_SBL1_DATA_SIZE                    (SCL_SBL1_TOTAL_SIZE - SCL_SBL1_CODE_SIZE - SCL_SBL1_STACKS_SIZE)
+
+# DDR training data base (above SBL1 region in L2)
+define SCL_DDR_TRAINING_DATA_BUF_BASE (SCL_SBL1_CODE_BASE + SCL_SBL1_TOTAL_SIZE)
+define SCL_DDR_TRAINING_DATA_BUF_SIZE 4KB
+
+
+# L2 lock down region
+define SCL_BOOT_L2_LOCK_BASE 0x08000000
+define SCL_BOOT_L2_LOCK_SIZE 512KB
+
+# SBL1's DDR region for SBL crash dump analysis 
+# Currently we use HLOS address for SBL crash dumps
+# 1KB contains the boot_crash_dump_type meta info (found in boot_error_handler.h)
+# SBL1 DDR and SBL1 L2 regions are dumped following this 1KB region
+define SCL_SBL1_CRASH_DUMP_DATA_BASE 0x8F600000
+define SCL_SBL1_CRASH_DUMP_DATA_SIZE 1KB
+
+###############################################################################
+#
+# RPM RAM Sections
+# CODE RAM
+# 144KB, 0x0020_0000 -- 0x0022_3FFF
+# Contains:
+#  RPM Code
+#  SBL1-RPM-Segment #2
+#
+# DATA RAM
+#   64KB, 0x0029_0000 -- 0x0029_FFFF
+#
+# MSG RAM
+#   20KB, 0x0006_0000 -- 0x0006_4FFF
+#
+###############################################################################
+# RPM Code RAM
+define SCL_RPM_CODE_RAM_BASE                 0x00200000
+define SCL_RPM_CODE_RAM_SIZE                 128KB
+
+# RPM Data RAM
+define SCL_RPM_DATA_RAM_BASE                 0x00290000
+define SCL_RPM_DATA_RAM_SIZE                 64KB
+
+#RPM MSG RAM
+define SCL_RPM_MSG_RAM_BASE                  0x00060000
+define SCL_RPM_MSG_RAM_SIZE                  20KB
+
+# Segment #2 (System Debug Image) Base address & Size
+define SCL_SYSTEM_DEBUG_BASE            (SCL_RPM_CODE_RAM_BASE + SCL_RPM_CODE_RAM_SIZE)
+define SCL_SYSTEM_DEBUG_SIZE            16KB
+
+define SCL_SYSTEM_DEBUG_CO_RO_BASE           (SCL_SYSTEM_DEBUG_BASE)
+define SCL_SYSTEM_DEBUG_CO_RO_SIZE           12KB
+define SCL_SYSTEM_DEBUG_DATA_BASE            (SCL_SYSTEM_DEBUG_BASE + SCL_SYSTEM_DEBUG_CO_RO_SIZE)
+define SCL_SYSTEM_DEBUG_DATA_SIZE            (SCL_SYSTEM_DEBUG_SIZE - SCL_SYSTEM_DEBUG_CO_RO_SIZE)
+
+# Remainder of 1mb mmu L1 entry chunk to be mapped readonly
+define MMU_POST_RPM_MEM_REGION_BASE   (SCL_SYSTEM_DEBUG_BASE + SCL_SYSTEM_DEBUG_SIZE)
+define MMU_POST_RPM_MEM_REGION_SIZE   (1MB - SCL_RPM_CODE_RAM_SIZE - SCL_SYSTEM_DEBUG_SIZE)
+
+# DDR params region in RPM Data RAM
+define RPM_DATA_RAM_DDR_PARAM_BASE           0x00290400
+
+###############################################################################
+#
+# OCIMEM (IMEM)
+# 128KB, 0x0860_0000 -- 0x0860_3FFF
+#
+# Contains:
+#   Shared IMEM
+#   4KB, 0x0860_0000 -- 0x0860_0FFF
+#   Contains:
+#     Boot                     (200 Bytes)
+#     USB                      (200 Bytes)
+#     DDR (CDT)                (1024 Bytes)
+#     DDR                      (200 Bytes)
+#     HLOS                     (200 Bytes)
+#     RPM                      (8 Bytes)
+#     QDSS                     (12 Bytes)
+#     Securemsm                (512 bytes)
+#     Peripheral Debug         (24 Bytes)
+#     PIL                      (200 Bytes)
+#     TZ: APPS CPU Magic Num   (128 Bytes)
+#     OEM Region               (100 Bytes)
+#     System Debug Image       (32 Bytes)
+#     Modem                    (4 Bytes)
+#     Unused Space             (1152 Bytes)
+#     BootROM                  (100 Bytes)
+#
+###############################################################################
+# IMEM Base address & Size
+define SCL_IMEM_BASE                         0x08600000
+define SCL_IMEM_SIZE                         16KB
+
+# Shared IMEM Base & Size  
+define SHARED_IMEM_BASE                      SCL_IMEM_BASE
+define SHARED_IMEM_SIZE                      4KB
+
+# Shared IMEM Boot 
+define SHARED_IMEM_BOOT_BASE                 SHARED_IMEM_BASE
+define SHARED_IMEM_BOOT_SIZE                 200
+
+# Shared IMEM USB  
+define SHARED_IMEM_USB_BASE                  (SHARED_IMEM_BOOT_BASE + SHARED_IMEM_BOOT_SIZE)
+define SHARED_IMEM_USB_SIZE                  200
+
+# Shared IMEM Boot CDT 
+define SHARED_IMEM_BOOT_CDT_BASE             (SHARED_IMEM_USB_BASE + SHARED_IMEM_USB_SIZE)
+define SHARED_IMEM_BOOT_CDT_SIZE             1KB
+
+# Shared IMEM DDR
+define SHARED_IMEM_DDR_BASE                  (SHARED_IMEM_BOOT_CDT_BASE + SHARED_IMEM_BOOT_CDT_SIZE)
+define SHARED_IMEM_DDR_SIZE                  200
+
+# Shared IMEM HLOS 
+define SHARED_IMEM_HLOS_BASE                 (SHARED_IMEM_DDR_BASE + SHARED_IMEM_DDR_SIZE)
+define SHARED_IMEM_HLOS_SIZE                 200
+
+# Shared IMEM RPM
+define SHARED_IMEM_RPM_BASE                  (SHARED_IMEM_HLOS_BASE + SHARED_IMEM_HLOS_SIZE)
+define SHARED_IMEM_RPM_SIZE                  8
+
+# Shared IMEM QDSS
+define SHARED_IMEM_QDSS_BASE                 (SHARED_IMEM_RPM_BASE + SHARED_IMEM_RPM_SIZE)
+define SHARED_IMEM_QDSS_SIZE                 12
+
+# Shared IMEM SecureMSM
+define SHARED_IMEM_SECUREMSM_BASE            (SHARED_IMEM_QDSS_BASE + SHARED_IMEM_QDSS_SIZE)
+define SHARED_IMEM_SECUREMSM_SIZE            512
+
+# Shared IMEM Peripheral Debug
+define SHARED_IMEM_PERIPHERAL_DEBUG_BASE     (SHARED_IMEM_SECUREMSM_BASE + SHARED_IMEM_SECUREMSM_SIZE)
+define SHARED_IMEM_PERIPHERAL_DEBUG_SIZE     24
+
+# Shared IMEM PIL
+define SHARED_IMEM_PIL_BASE                  (SHARED_IMEM_PERIPHERAL_DEBUG_BASE + SHARED_IMEM_PERIPHERAL_DEBUG_SIZE)
+define SHARED_IMEM_PIL_SIZE                  200
+
+# Shared IMEM TZ
+define SHARED_IMEM_TZ_BASE                   (SHARED_IMEM_PIL_BASE + SHARED_IMEM_PIL_SIZE)
+define SHARED_IMEM_TZ_SIZE                   128
+
+# Shared IMEM OEM Region
+define SHARED_IMEM_OEM_BASE                  (SHARED_IMEM_TZ_BASE + SHARED_IMEM_TZ_SIZE)
+define SHARED_IMEM_OEM_SIZE                  100
+
+# Shared IMEM System Debug Image
+define SHARED_IMEM_SDI_BASE                  (SHARED_IMEM_OEM_BASE + SHARED_IMEM_OEM_SIZE)
+define SHARED_IMEM_SDI_SIZE                  32
+
+# Shared IMEM Modem
+define SHARED_IMEM_MODEM_BASE                (SHARED_IMEM_SDI_BASE + SHARED_IMEM_SDI_SIZE)
+define SHARED_IMEM_MODEM_SIZE                4
+
+# Shared IMEM UNUSED SPACE
+define SHARED_IMEM_UNUSED_SPACE_BASE         (SHARED_IMEM_MODEM_BASE + SHARED_IMEM_MODEM_SIZE)
+define SHARED_IMEM_UNUSED_SPACE_SIZE         1152
+
+# Shared IMEM BootROM
+define SHARED_IMEM_BOOTROM_BASE              (SHARED_IMEM_UNUSED_SPACE_BASE + SHARED_IMEM_UNUSED_SPACE_SIZE)
+define SHARED_IMEM_BOOTROM_SIZE              100
+
+
+###############################################################################
+#
+# DDR @ Boot
+# 0x8000_0000 -- 0x9FFF_FFFF
+#
+# Contains:
+#   SMEM Region
+#   1MB, 0x8630_0000 -- 0x863F_FFFF
+#
+#   TZ QHEE
+#   1MB, 0x8640_0000 -- 0x864F_FFFF
+#
+#   TZ QSEE
+#   1.5MB, 0x8650_0000 -- 0x8667_FFFF
+#
+#   SBL1 DDR Region
+#   896KB, 0x8670_0000 -- 0x867D_FFFF
+#   Contains:
+#     SBL1 DDR ZI Region
+#     416KB, 0x8670_0000 -- 0x8676_7FFF
+#
+#     SBL1 DDR Page Tables
+#     32KB, 0x8676_8000 -- 0x8676_FFFF
+#
+#     SBL1 DLOAD Buffers
+#     446KB, 0x8677_0000 -- 0x867D_F7FF
+#
+#     SBL1 DDR Boot Logger Buffers
+#     2KB, 0x867D_F800 -- 0x867D_FFFF
+#
+#   APPSBL
+#   10MB, 0x8F60_0000 -- 0x8FFF_FFFF
+#
+###############################################################################
+# Entire DDR Region
+define DDR_MEM_BASE                          0x80000000
+define DDR_MEM_SIZE                          0x80000000
+
+# SBL1's DDR region
+define SCL_SBL1_DDR_DATA_BASE                0x86700000
+define SCL_SBL1_DDR_DATA_SIZE                896KB
+
+# SBL1 DDR ZI region
+define SCL_SBL1_DDR_ZI_BASE                  SCL_SBL1_DDR_DATA_BASE
+define SCL_SBL1_DDR_ZI_SIZE                  416KB
+
+# SBL1 DDR PAGE TABLE region
+# Must be 16K aligned
+define SCL_SBL1_DDR_PAGE_TABLE_BASE          (SCL_SBL1_DDR_ZI_BASE + SCL_SBL1_DDR_ZI_SIZE)
+define SCL_SBL1_DDR_PAGE_TABLE_SIZE          32KB
+
+# DLOAD buffer base, 446KB
+define SCL_DLOAD_BUFFERS_BASE                (SCL_SBL1_DDR_PAGE_TABLE_BASE + SCL_SBL1_DDR_PAGE_TABLE_SIZE)
+
+
+# SBL1 DDR boot logger buffer base
+define SCL_SBL1_DDR_BOOT_LOG_META_INFO_BASE  (SCL_SBL1_DDR_BOOT_LOG_BUF_BASE - SCL_SBL1_BOOT_LOG_META_INFO_SIZE)
+define SCL_SBL1_DDR_BOOT_LOG_META_INFO_SIZE  SCL_SBL1_BOOT_LOG_META_INFO_SIZE
+
+# Boot Logger DDR buffer region, with meta info region together is 2.5KB
+define SCL_SBL1_DDR_BOOT_LOG_BUF_BASE        (SCL_SBL1_DDR_DATA_BASE + SCL_SBL1_DDR_DATA_SIZE - SCL_SBL1_DDR_BOOT_LOG_BUF_SIZE)
+define SCL_SBL1_DDR_BOOT_LOG_BUF_SIZE        2496
+
+# SMEM base 
+define SCL_SHARED_RAM_BASE                   0x86300000
+define SCL_SHARED_RAM_SIZE                   1MB
+
+# TZ QSEE
+define SCL_QSEE_CODE_BASE                    0x86500000
+define SCL_QSEE_TOTAL_SIZE                   0x00180000
+
+# TZ QHEE
+define SCL_QHEE_CODE_BASE                    0x86400000
+define SCL_QHEE_TOTAL_SIZE                   1MB
+
+# APPSBL
+define SCL_APPSBL_CODE_BASE                  0x8F600000
+define SCL_APPSBL_TOTAL_SIZE                 10MB
+
+
+###############################################################################
+#
+# SBL1 Boot Logger (Internal & DDR)
+# 
+# Info: When SBL1 starts DDR is not initialized.  Logging happens in SBL1
+#       DATA area until DDR is initialized.  When it has been initialized
+#       the internal log is copied into the DDR logging area and all future
+#       logging is recorded to DDR.  The following items are either shared
+#       sizes between DDR and internal or internal only.
+###############################################################################
+#Boot Logger buffer region (inside image, total size is 1.5KB)
+define SCL_SBL1_BOOT_LOG_META_INFO_SIZE      64
+define SCL_SBL1_BOOT_LOG_BUF_SIZE            1984
+
+
+###############################################################################
+#
+# ROMs Section
+# 144KB, 0x0010_0000 -- 0x0012_3FFF
+#
+# Contains
+#   Apps PBL
+#   Modem PBL
+#
+###############################################################################
+# Apps PBL
+define PBL_APPS_ROM_BASE                     0x00100000
+define PBL_APPS_ROM_SIZE                     96KB
+
+
+###############################################################################
+#
+# SBL1 Debug Cookie
+# 4 Bytes, SHARED_IMEM_PERIPHERAL_DEBUG_BASE + 0x10
+#
+# This cookie is used by the Peripheral Debug team to hold SBL in a loop
+# near the beginning of sbl_main_ctl until a JTAG is attached.  Then
+# SBL1_DEBUG_COOKIE_VAL is written via JTAG to release execution of SBL1
+#
+###############################################################################
+define SBL1_DEBUG_COOKIE_ADDR   (SHARED_IMEM_PERIPHERAL_DEBUG_BASE + 0x10)
+define SBL1_DEBUG_COOKIE_VAL	0x53444247
+
+
+###############################################################################
+#
+# DDR Info
+#
+# SCL_DDR_TRAINING_DATA_BUF_SIZE is the size of the DDR training buffer
+# DDR_XO_SPEED_IN_KHZ is the XO clock speed of DDR which is needed so SDI can bring
+#   DDR out of self refresh
+#
+###############################################################################
+#define SCL_DDR_TRAINING_DATA_BUF_SIZE        2048
+define DDR_XO_SPEED_IN_KHZ                   19200
+
+
+# Number of boot images (Including SBL)
+# SBL, QSEE, QHEE, RPM, APPSBL
+define BOOT_IMAGES_NUM_ENTRIES 5
+
+
+# IRAM BASE, same as RPM code ram
+define SCL_IRAM_BASE SCL_RPM_CODE_RAM_BASE
+define SCL_IRAM_SIZE SCL_RPM_CODE_RAM_SIZE
+
+
+#Define modem EFS size
+define SCL_MODEM_EFS_RAM_SIZE      3MB
+
+#hash segment size 40k
+define HASH_SEGMENT_SIZE 0xA000
+
+
+#--------Other Mem Address --------------
+#Define Emmcbld location
+define IMAGE_KEY_EMMCBLD_IMG_DEST_ADDR  SCL_SBL1_CODE_BASE+80
+define IMAGE_KEY_DEVICEPROGRAMMER_IMG_DEST_ADDR  SCL_SBL1_CODE_BASE+80
+
+
+#------------------------------------------------------------------------------
+# Ram dump memory regions 
+#------------------------------------------------------------------------------
+[HardComponent: ram_dump_memory_regions]
+
+#define FEATURE_BOOT_RAMDUMPS_TO_SD_CARD
+define CONVERT_TO_MB_SHIFT 20
+
+# Use auto-concatenate here
+define SD_PATH                               "/mmc1/"
+define SD_RAM_DUMP_PATH SD_PATH              "ram_dump/"
+
+# IPA memory
+define IPA_SRAM_BASE	0x07945000
+define IPA_SRAM_SIZE	0x00001FFF
+
+define IPA_HRAM_BASE	0x07949000
+define IPA_HRAM_SIZE	0x00002EFF
+
+define IPA_DICT_BASE	0x0794F000
+define IPA_DICT_SIZE	0x00000FFF
+
+define IPA_IRAM_BASE	0x07950000
+define IPA_IRAM_SIZE	0x00004000
+
+define IPA_DRAM_BASE	0x07954000
+define IPA_DRAM_SIZE	0x00003EFF
+
+define IPA_MBOX_BASE	0x07962000
+define IPA_MBOX_SIZE	0x000000FF
+
+
+# Array of Memory regions to be dumped by RAM Dump Feature
+# ** This array is used by RAM dump via mem-debug utility, **
+# ** as well as SD-dump on boot using cookie               **
+# New regions should be added here to this array, before the
+# NULL last entry.
+# Regions that span multiple chips, in which you wish to dump
+# CS0 and CS1 separately will need logic added to 
+# 'boot_dload_debug_target.c', (i.e. DDR CS0/CS1),  
+# all other regions may be added to this array.
+
+# Element format: {"Region Base Address","Region Size in Bytes","Friendly Region Name String","Output Filename"}
+define MEMORY_REGION1 {SCL_IMEM_BASE, SCL_IMEM_SIZE, "OCIMEM", "OCIMEM.BIN"}
+define MEMORY_REGION2 {SCL_RPM_CODE_RAM_BASE, SCL_RPM_CODE_RAM_SIZE, "RPM Code RAM region", "CODERAM.BIN"}
+define MEMORY_REGION3 {SCL_RPM_DATA_RAM_BASE, SCL_RPM_DATA_RAM_SIZE, "RPM Data RAM region", "DATARAM.BIN"}
+define MEMORY_REGION4 {SCL_RPM_MSG_RAM_BASE, SCL_RPM_MSG_RAM_SIZE, "RPM MSG RAM region", "MSGRAM.BIN"}
+define MEMORY_REGION5 {IPA_SRAM_BASE, IPA_SRAM_SIZE, "IPA SRAM region", "IPA_SRAM.bin"}
+define MEMORY_REGION6 {IPA_HRAM_BASE, IPA_HRAM_SIZE, "IPA HRAM region", "IPA_HRAM.bin"}
+define MEMORY_REGION7 {IPA_DICT_BASE, IPA_DICT_SIZE, "IPA DICT region", "IPA_DICT.bin"}
+define MEMORY_REGION8 {IPA_IRAM_BASE, IPA_IRAM_SIZE, "IPA IRAM region", "IPA_IRAM.bin"}
+define MEMORY_REGION9 {IPA_DRAM_BASE, IPA_DRAM_SIZE, "IPA DRAM region", "IPA_DRAM.bin"}
+define MEMORY_REGION10 {IPA_MBOX_BASE, IPA_MBOX_SIZE, "IPA MBOX region", "IPA_MBOX.bin"}
+define MEMORY_REGION_LAST {NULL, NULL, NULL, NULL}
+
+# Memory Region Table note: Must be on one line as '\' operator not defined in .builds environment
+define MEMORY_REGION_TABLE MEMORY_REGION1,MEMORY_REGION2,MEMORY_REGION3,MEMORY_REGION4,MEMORY_REGION5,MEMORY_REGION6,MEMORY_REGION7,MEMORY_REGION8,MEMORY_REGION9,MEMORY_REGION10,MEMORY_REGION_LAST
+
+# Element format: {"Region Base Address","Region Size in Bytes"}
+define WHITELIST_REGION1   {DDR_MEM_BASE, (SCL_SHARED_RAM_BASE - DDR_MEM_BASE)}
+define WHITELIST_REGION2   {SCL_SHARED_RAM_BASE + SCL_SHARED_RAM_SIZE, SCL_SBL1_DDR_DATA_BASE - (SCL_SHARED_RAM_BASE + SCL_SHARED_RAM_SIZE)}
+define WHITELIST_REGION3   {SCL_SBL1_DDR_DATA_BASE + SCL_SBL1_DDR_DATA_SIZE, (DDR_MEM_SIZE - SCL_SBL1_DDR_DATA_SIZE)-(SCL_SBL1_DDR_DATA_BASE - DDR_MEM_BASE)-1}
+define WHITELIST_REGION4   {SCL_RPM_CODE_RAM_BASE, SCL_RPM_CODE_RAM_SIZE} 
+define WHITELIST_REGION5   {SCL_RPM_DATA_RAM_BASE, SCL_RPM_DATA_RAM_SIZE}
+define WHITELIST_REGION_LAST {NULL, NULL}
+
+# Whitelist Table note: Must be on one line as '\' operator not defined in .builds environment
+define SBL1_WHITELIST_REGION_TABLE WHITELIST_REGION1,WHITELIST_REGION2,WHITELIST_REGION3,WHITELIST_REGION4,WHITELIST_REGION5,WHITELIST_REGION_LAST
+
+#------------------------------------------------------------------------------
+# Module enabler
+#------------------------------------------------------------------------------
+[SoftComponent: ext_driver_enabler]
+
+#Enables external EFS driver
+BOOT_EXTERN_EFS_COMPLETED makeonly
+
+#Enables external DAL driver
+BOOT_EXTERN_DAL_COMPLETED makeonly
+
+#Enables external TLMM driver
+BOOT_EXTERN_TLMM_COMPLETED makeonly
+
+#Enables external APT verification driver
+BOOT_EXTERN_APT_COMPLETED makeonly
+
+#Enables external HOTPLUG driver
+BOOT_EXTERN_HOTPLUG_COMPLETED makeonly
+
+#Enables external SMEM driver
+BOOT_EXTERN_SMEM_COMPLETED makeonly
+
+#Enables platform info driver
+BOOT_EXTERN_PLATFORMINFO_COMPLETED makeonly
+
+#Enables external BUSYWAIT driver
+BOOT_EXTERN_BUSYWAIT_COMPLETED makeonly
+
+#Enables external TSENSOR driver
+#BOOT_EXTERN_TSENSOR_COMPLETED makeonly
+
+#Enables external BUS driver
+BOOT_EXTERN_BUS_COMPLETED makeonly
+
+#Enables external DDR driver
+BOOT_EXTERN_DDR_COMPLETED makeonly
+
+#Enable external Power driver
+#BOOT_EXTERN_POWER_COMPLETED makeonly
+
+#Enables external FLASH driver
+BOOT_EXTERN_FLASH_COMPLETED makeonly
+
+#Enables external CRYPTO driver
+BOOT_EXTERN_CRYPTO_COMPLETED makeonly
+
+#Enables external SECBOOT driver
+BOOT_EXTERN_SECBOOT_COMPLETED makeonly
+
+#Enables external SECCFG driver
+BOOT_EXTERN_SECCFG_COMPLETED makeonly
+
+#Enables roll back protection feature
+BOOT_VERSION_ROLL_BACK makeonly
+
+#Enables external DEVICEPROGRAMMER driver
+BOOT_EXTERN_DEVICEPROGRAMMER_COMPLETED makeonly
+
+
+#Enables UART driver
+
+
+define BOOT_TEMP_CHECK_THRESHOLD_DEGC
+
+define FEATURE_TPM_HASH_POPULATE
+
+#Disable the forced EDL feature by default
+#This needs to be enabled post SOD
+define FEATURE_FORCED_EDL_MODE_DISABLE
+
+#Enable sectools policy to install signed image
+#SEC_POLICY_DEFAULT_SIGN makeonly
+
+#Enabled external UART driver
+BOOT_EXTERN_UART_COMPLETED makeonly
+
+BOOT_LOGGER_UART makeonly
+
+#==============================================================================
+#
+# MSM Configurations H0,_,_,_,_,_,_,_,_
+#
+#==============================================================================
+#------------------------------------------------------------------------------
+# MSM A: Bear (8952)
+#------------------------------------------------------------------------------
+[MSM Identifier: S]
+
+
+#==============================================================================
+#
+# Platform Configurations _,H1,_,_,_,_,_,_,_
+#
+#==============================================================================
+#------------------------------------------------------------------------------
+# Platform A: 8952
+#------------------------------------------------------------------------------
+[Platform Identifier: A]
+use Boot
+use ram_dump_memory_regions
+sdcc_boot makeonly
+boot_from_gpt makeonly
+FS_HOTPLUG_SD makeonly
+define FEATURE_EFS_EFS2_ON_RMTS
+elf_load_boot makeonly
+define SBL1_DISABLE_D_CACHE
+
+#==============================================================================
+#
+# EBI 1 Memory Configurations _,H2,_,_,_,_,_,_
+#
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# RAM Config  A:
+#------------------------------------------------------------------------------
+[RAM Config: A]
+use BOOT_MEM_MAP
+
+#==============================================================================
+#
+# EBI 2 Memory Configurations _,_,_,H3,_,_,_,_,_
+#
+#==============================================================================
+#------------------------------------------------------------------------------
+# Flash Config A:
+#------------------------------------------------------------------------------
+[Flash Config: A]
+define FEATURE_RUMI_BOOT
+define SCL_SBL1_CODE_BASE  SCL_SBL1_IMAGE_BASE
+
+#------------------------------------------------------------------------------
+# Flash Config D:
+#------------------------------------------------------------------------------
+[Flash Config: D]
+define SCL_SBL1_CODE_BASE  SCL_DEVICEPROGRAMMER_IMAGE_BASE
+sdcc_boot makeonly
+boot_from_gpt makeonly
+FS_HOTPLUG_SD makeonly
+
+#Enables external EFS driver
+BOOT_EXTERN_EFS_COMPLETED makeonly
+
+#Enables external DEVICEPROGRAMMER driver
+BOOT_EXTERN_DEVICEPROGRAMMER_COMPLETED makeonly
+
+define FEATURE_BOOT_RAMDUMPS_TO_SD_CARD
+
+#------------------------------------------------------------------------------
+# Flash Config (EBI2) S: (8909) eMMC
+#------------------------------------------------------------------------------
+[Flash Config: S]
+define SCL_SBL1_CODE_BASE  SCL_SBL1_IMAGE_BASE
+#Enables external PMIC driver
+BOOT_EXTERN_PMIC_COMPLETED makeonly
+
+#Enables external Clock driver
+BOOT_EXTERN_CLK_COMPLETED makeonly
+
+#Enables external HSUSB driver
+BOOT_EXTERN_HSUSB_COMPLETED makeonly
+
+#==============================================================================
+#
+# RF Configurations _,_,_,_,H4,_,_,_,_
+#
+#==============================================================================
+#------------------------------------------------------------------------------
+# RF Config A: 
+#------------------------------------------------------------------------------
+[RF Config: A]
+
+
+
+#==============================================================================
+#
+# Air Interface Configurations _,_,_,_,_,S1,_,_,_
+#
+#==============================================================================
+#------------------------------------------------------------------------------
+# Air Interface N:
+#------------------------------------------------------------------------------
+[Air Interface: N]
+
+
+#==============================================================================
+#
+# Application Feature Configurations _,_,_,_,_,_,S2,S3,_
+#
+#==============================================================================
+#------------------------------------------------------------------------------
+# Application Feature Configuration LF: 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration AA: 
+# 8952 On target specific features
+#------------------------------------------------------------------------------
+[Application Features: AA]
+use ext_driver_enabler
+no_strip_no_odm makeonly
+
+
+#------------------------------------------------------------------------------
+# Application Feature Configuration AZ: 
+# 8952 Pack ID
+#------------------------------------------------------------------------------
+[Application Features: AZ]
+use ext_driver_enabler
+strip_no_odm makeonly
+
+#==============================================================================
+#
+# Image Type Configurations _,_,_,_,_,_,_,_,S4
+#
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# Image Type A: Apps Image
+#------------------------------------------------------------------------------
+[Image Type: A]
+image    apps_proc
+
+

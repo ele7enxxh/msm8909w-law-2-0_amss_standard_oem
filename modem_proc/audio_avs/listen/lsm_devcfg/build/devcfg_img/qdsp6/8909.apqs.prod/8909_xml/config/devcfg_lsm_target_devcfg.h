@@ -1,0 +1,1 @@
+#define lsm_mmpm_prop lsm_mmpm_prop_8909_xml

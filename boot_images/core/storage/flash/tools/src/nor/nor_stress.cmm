@@ -1,0 +1,149 @@
+;============================================================================
+;  Name:
+;    NOR_STRESS.CMM
+;
+;  Test script for NOR that does not use T32 FLASH.* commands
+;  For use with terminal printf for debugging purposes
+;
+;
+;  Description:
+;    FLASH Stress Testing Script file for Lauterbach JTAG/ICD TRACE32.
+;
+;  Execution:
+;    Inside the debugger, type at the command line: "do nor_stress".
+;
+;  Copyright (c) 2010-2011, 2014 Qualcomm Technologies Incorporated.
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nor/nor_stress.cmm#1 $ 
+; $DateTime: 2015/09/01 00:30:35 $ 
+; $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 03/31/14   whc     Updated to load correct param and elf
+; 03/21/11   jz      Updated to support new T32 versions
+; 09/05/10   sv      Initial revision
+;
+;============================================================================;
+
+
+LOCAL &TempDir
+LOCAL &FileSpec
+
+;============================================================================
+; Set some MSM specific variables used later in flash.target command
+;    &NorCodeAddr=
+;    &NorParamAddr=
+;    &NorCpuType=
+;============================================================================
+do nor_param_spi
+
+;============================================================================
+; 1) Set up the JTAG debugger for this MSM
+; 2) Init important MSM/ASB registers
+;    use existing external script that is MSM specific
+;============================================================================
+do &NorConfigDir/nor_msm_init
+
+;============================================================================
+; Put up terminal window
+;============================================================================
+term.close
+winclear MYTERM
+term.size 60 1000
+term.scroll on
+WinPOS 50% 0% 50% 100% ,, MYTERM
+if "&TermBlipBreak"=="yes"
+(
+  print "Using buffered terminal IO"
+  term.protocol bs
+  term output_port input_port
+  print "Setting TermBlip breakpoint"
+  b.s term_blip /s /onchip /program
+)
+else
+(
+  &TempDir=OS.ENV(TEMP)
+  &FileSpec="&TempDir/term.out"
+  print "Log location : &FileSpec"
+  term.view
+  term.write &FileSpec
+)
+
+on error gosub
+(
+  term.close
+  print "terminal output closed"
+  enddo
+  return
+)
+
+;============================================================================
+; Initialze PATH with Current directory only. Other directory paths will be 
+; appended later in respective modules
+;============================================================================
+PATH .
+
+;-------------------------------------------------------------------------------
+; Initialize some variables used later on in this script
+;-------------------------------------------------------------------------------
+do nor_init.cmm
+
+;===============================================================================
+; Create the ROM mapping to be used with all commands
+;===============================================================================
+&RomBegin=&NorCodeRomBegin
+&RomEnd=&NorCodeRomEnd
+
+;===============================================================================
+; Map flash readonly - must encompass the address of the 
+; image being loaded
+;===============================================================================
+map.readonly &RomBegin--&RomEnd
+
+;-------------------------------------------------------------------------------
+; reset our flash command
+;-------------------------------------------------------------------------------
+flash.res
+
+;-------------------------------------------------------------------------------
+; Let flash command know where our routine and buffer is located
+; code at &NorCodeAddr, data at &NorParamAddr, buffer size = 16K
+; Earlier versions of JTAG s/w would allow larger buffer of 64k
+; but now we seem to be limited to 16k
+;-------------------------------------------------------------------------------
+flash.target &NorCodeAddr &NorParamAddr 4000
+
+;-------------------------------------------------------------------------------
+; Define our flash range and tell flash command we're using
+; our own flash programming routine via keyword "target"
+; right now
+;-------------------------------------------------------------------------------
+flash.create &RomBegin--&RomEnd target byte
+
+;===============================================================================
+; Load our flash programming routine and prepare flash
+;===============================================================================
+d.load.elf "nor_tools_spi.elf"
+data.load.elf "nor_tools_spi.elf" /VERIFY
+
+; need this breakpoint as per Lauterbach Spec so that we
+; can hand back control to the Debugger
+break.delete /ALL
+break.set swbp /onchip /program
+
+;-------------------------------------------------------------------------------
+; Call Stress Test function, will loop 5 times
+;-------------------------------------------------------------------------------
+print "Running stress test, will loop 5 times"
+data.set &ParmCmd %LONG &StressTestCmd
+r.s pc &StartAddr
+b.s swbp /onchip /program
+go
+enddo

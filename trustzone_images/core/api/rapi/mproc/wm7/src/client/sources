@@ -1,0 +1,34 @@
+!if 0
+/*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+
+  Makefile SOURCES
+
+    This file is used by the build system to determine how this directory is
+    to be compiled.
+
+  Copyright (c) 2009 by QUALCOMM Incorporated.  All Rights Reserved.
+
+===========================================================================*/
+!ENDIF
+
+# Get the definitions for common code
+!include $(_QCCOMMON_SOURCES_INC)
+
+TARGETNAME=qcomv1_core_rapi_mproc_client
+TARGETTYPE=LIBRARY
+
+CDEFINES = $(CDEFINES) \
+	-DFEATURE_EXPORT_OEM_RAPI \
+
+INCLUDES=$(INCLUDES);    \
+         ..\..\inc; \
+         $(_HWIOUSERINC); \
+         $(_QCCOMMONDSM); \
+         $(_QCCOMMONOEMRAPI); \
+
+OEM_RAPI_CLIENT_SOURCES = \
+    ../oem_rapi_clnt.c \
+    ../ping_mdm_rpc_clnt.c \
+
+SOURCES = \
+	$(OEM_RAPI_CLIENT_SOURCES) \

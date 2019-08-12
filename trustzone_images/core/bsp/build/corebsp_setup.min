@@ -1,0 +1,80 @@
+#============================================================================
+#
+#  Description:
+#    This file specifies the make file rules that are common across all
+#    targets and makefiles
+#
+# Copyright (c) 2009 - 2010, by QUALCOMM, Incorporated. All Rights Reserved.
+#----------------------------------------------------------------------------
+#============================================================================
+#
+#			EDIT HISTORY FOR MODULE
+#
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/bsp/build/corebsp_setup.min#1 $
+#
+# when       who     what, where, why
+# --------   ---     --------------------------------------------------------
+#
+#============================================================================
+#-------------------------------------------------------------------------------
+# COREBSP include list files for compiling
+#-------------------------------------------------------------------------------
+.PHONY: corebsp_create_files
+
+#pragma RUNLOCAL
+corebsp_create_files : $(COREBSP_BUILD)/data/exist
+	$(COREBSP_CREATE_DATA_FILE)
+#	$(COREBSP_CREATE_DATA_USESFLAGS_FILE)
+#	$(COREBSP_CREATE_DATA_INCPATHS_FILE)
+
+$(COREBSP_BUILD)/data/exist:
+	@echo ---------------------------------------------------------------
+	@echo Creating data paths for ${@D}
+	@echo
+	@if test ! -f $@ && test ! -d ${@D}; then mkdir -p ${@D}; mkdir -p ${@D}; fi
+	@echo Building ${@D} > $@
+	@echo ---------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# OLD method not including  dmss_7x30A_flags.min or  dmss_7x30_flags.min!!??!!??
+#-------------------------------------------------------------------------------
+define COREBSP_CREATE_DATA_USESFLAGS_FILE
+	@echo -------------------------------------------------------------------------
+	@echo Generating USES FLAGS based on AMSS
+	-$(shell perl $(COREBSP_BUILD)/scripts/genusesflags.pl -buildid $(BUILD) -makeflags "$(MAKEFLAGS)" > $(COREBSP_BUILD)/data/uses$(BUILD_LC).py)
+	@echo -------------------------------------------------------------------------
+endef
+
+
+define COREBSP_CREATE_DATA_INCPATHS_FILE
+	@echo -------------------------------------------------------------------------
+	@echo Generating incpaths based on AMSS
+	-$(shell perl $(COREBSP_BUILD)/scripts/genpaths.pl -min incpaths.min -buildid $(BUILD) -makeflags "$(MAKEFLAGS)" > $(COREBSP_BUILD)/data/incpaths$(BUILD_LC).py)
+	@echo -------------------------------------------------------------------------
+endef
+
+#-------------------------------------------------------------------------------
+# The RIGHT WAY including  dmss_7x30A_flags.min or  dmss_7x30_flags.min!!??!!??
+#-------------------------------------------------------------------------------
+
+ifeq ("$(ECLOUD_BUILD_ID)","")
+# Not an EMAKE build, assuming gnumake
+define MAKE_COMMAND_GEN
+	@$(MAKE)
+endef
+else
+# Running EMAKE 
+define MAKE_COMMAND_GEN
+	@$(COREBSP_BUILD)/../tools/incgen/make.exe
+endef
+endif
+
+define COREBSP_CREATE_DATA_FILE
+	@echo -------------------------------------------------------------------------
+	@echo CORE BSP Create Data File -----------------------------------------------
+	@echo "# "Make command: $(MAKE_COMMAND_GEN) -f $(COREBSP_BUILD)/corebsp_config.min $(filter-out --unix wr rk -- r,$(MAKEFLAGS)) . -p > $(COREBSP_BUILD)/data/$(BUILD_LC).dat
+	$(MAKE_COMMAND_GEN) -f $(COREBSP_BUILD)/corebsp_config.min $(filter-out --unix wr rk -- r,$(MAKEFLAGS)) . -p >> $(COREBSP_BUILD)/data/$(BUILD_LC).dat
+	@echo COREBSP_CREATE_DATA_INCPATHS_FILE Done.
+	@echo COREBSP_CREATE_DATA_INCPATHS_FILE Done. >> $(COREBSP_BUILD)/data/$(BUILD_LC).dat   
+	@echo -------------------------------------------------------------------------
+endef

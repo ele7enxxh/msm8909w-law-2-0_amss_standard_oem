@@ -1,0 +1,66 @@
+#-------------------------------------------------------------------------------
+# MN
+#-------------------------------------------------------------------------------
+
+MN_SOURCES=\
+	mn_cc_msg_util.c	\
+	mn_cc_processing.c	\
+	mn_get_cnm_cc_msgs.c	\
+	mn_get_cnm_ss_msgs.c	\
+	mn_handle_test.c	\
+	mn_initialise_mn_data.c	\
+	mn_process_cm_cc_msgs.c	\
+	mn_process_cm_ss_cc_msgs.c	\
+	mn_process_cm_ss_msgs.c	\
+	mn_process_cnm_cc_msgs.c	\
+	mn_process_cnm_sms_msgs.c	\
+	mn_process_smrl_msgs.c	\
+	mn_put_cm_cc_msgs.c	\
+	mn_put_cm_ss_msgs.c	\
+	mn_put_cnm_cc_msgs.c	\
+	mn_put_cnm_sms_msgs.c	\
+	mn_put_cnm_ss_msgs.c	\
+	mn_put_uasms_msgs.c	\
+	mn_route_cc_msgs.c	\
+	mn_route_mn_msgs.c	\
+	mn_route_sms_msgs.c	\
+	mn_route_ss_msgs.c	\
+	mn_send_message.c	\
+	mn_sms_msg_util.c	\
+	mn_sms_processing.c	\
+	mn_ss_processing.c	\
+	mn_ss_cc_processing.c	\
+	mn_tch_connection.c	\
+	mn_timers.c	\
+	mnglobal.c	\
+	mnutils.c
+             
+MN_CINCPATH=\
+             $(HW)            \
+             $(RABM)          \
+             $(CNM)           \
+             $(RRC)           \
+             $(CLK)           \
+             $(UIM)           \
+             $(GSDI)          \
+             $(CUST)          \
+             $(BIO)           \
+	     $(DIAG)          \
+             $(REG)           \
+             $(TRAMP)         \
+             $(REX)           \
+             $(MN)            \
+             $(TASK)          \
+             $(NV)            \
+             $(SM)            \
+             $(CM)            \
+             $(SD)            \
+             $(UTILS)
+
+MN_OBJS :=  $(addprefix $(TARGETDIR)/, $(MN_SOURCES:%.c=%.o))
+$(MN_OBJS): INCLUDES = $(addprefix -I, $(MN_CINCPATH))
+$(MN_OBJS): CFLAGS := $(CFLAGS) -DFEATURE_6200_COMPATIBILITY
+MN_DEPS :=  $(addprefix $(TARGETDIR)/, $(MN_SOURCES:%.c=%.dep))
+$(MN_DEPS): INCLUDES = $(addprefix -I, $(MN_CINCPATH))
+vpath %.c $(MN)
+

@@ -1,0 +1,125 @@
+#===============================================================================
+#
+# secmath
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 20011,2016 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/06/16   tnk    Removing generic  inclusion of header files for qsee apps image
+# 01/19/15   wt      Removed AOSTLM_IMAGE
+# 07/24/14   wt     Added AOSTLM image
+# 12/22/11   vg     Removed publish restricted API as this is getting done in 
+#                   paths under core/securemsm.
+# 06/16/11   vg     Added AUTH_BOOT_DRIVER to link to boot loaders for future 
+#                   targets
+# 06/16/11   vg     Fixed for pack and strip build.
+# 05/12/11   vg     initial version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+
+#-------------------------------------------------------------------------------
+# Set search path for securemsm subsystem files
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secmath/shared/inc")
+env.Append(CCFLAGS = " --restrict  -O3 -OTime ")
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   'SERVICES',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${COREBSP_ROOT}/securemsm/secmath"
+
+#-------------------------------------------------------------------------------
+# Let Scons build the object files in $(BUILDPATH} and don't copy over files
+#-------------------------------------------------------------------------------
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SECMATH_SRC_SHARED = [
+  '${BUILDPATH}/shared/src/secmath_mod_exp.c',
+  '${BUILDPATH}/shared/src/secmath_montmul_ref.c',
+  '${BUILDPATH}/shared/src/secmath_montmul_utils.c',
+  '${BUILDPATH}/shared/src/secmath_barrett_reduce.c',
+  '${BUILDPATH}/shared/src/secmath_BIGINT_read_radix.c',
+  '${BUILDPATH}/shared/src/secmath_BIGINT_read_unsigned_bin.c',
+  '${BUILDPATH}/shared/src/secmath_BIGINT_to_radix.c',
+  '${BUILDPATH}/shared/src/secmath_BIGINT_to_unsigned_bin.c',
+  '${BUILDPATH}/shared/src/secmath_bin_to_hex_str.c',
+  '${BUILDPATH}/shared/src/secmath_hex_str_to_bin.c',
+]
+
+# This depends on the random number generator provided by TZ
+if env.has_key('TZOS_IMAGE'):
+   SECMATH_SRC_SHARED += [ '${BUILDPATH}/shared/src/secmath_BIGINT_is_prime.c',]
+   SECMATH_SRC_SHARED += [ '${BUILDPATH}/shared/src/secmath_BIGINT_prime_test.c',]
+   SECMATH_SRC_SHARED += [ '${BUILDPATH}/shared/src/secmath_is_prime_div_chk.c',]
+   env.Append(CPPPATH = "${COREBSP_ROOT}/api/securemsm/trustzone/qsee")
+   env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secmath/env/tz/inc")
+if env.has_key('CTZL_IMAGE'):
+   SECMATH_SRC_SHARED += [ '${BUILDPATH}/shared/src/secmath_BIGINT_is_prime.c',]
+   SECMATH_SRC_SHARED += [ '${BUILDPATH}/shared/src/secmath_BIGINT_prime_test.c',]
+   SECMATH_SRC_SHARED += [ '${BUILDPATH}/shared/src/secmath_is_prime_div_chk.c',]
+   env.Append(CPPPATH = "${COREBSP_ROOT}/api/securemsm/trustzone/qsee")
+   env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secmath/env/sampleapp/inc")
+if env.has_key('WIDEVINE_IMAGE'):
+   SECMATH_SRC_SHARED += [ '${BUILDPATH}/shared/src/secmath_BIGINT_is_prime.c',]
+   SECMATH_SRC_SHARED += [ '${BUILDPATH}/shared/src/secmath_BIGINT_prime_test.c',]
+   SECMATH_SRC_SHARED += [ '${BUILDPATH}/shared/src/secmath_is_prime_div_chk.c',]
+   env.Append(CPPPATH = "${COREBSP_ROOT}/api/securemsm/trustzone/qsee")
+   env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secmath/env/sampleapp/inc")
+
+
+SECMATH_PRIV_HEADERS = env.GlobFiles('${BUILDPATH}/shared/src/*.h')
+SECMATH_PRIV_HEADERS += [ 
+   '${BUILDPATH}/shared/src/secmath_BIGINT_isprime.c',
+]
+#-------------------------------------------------------------------------------
+# Add Libraries to images in the secboot3 boot architecture. Note we don't
+# add the library into SBL1 image as SBL1 uses PBL secboot library instead
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+env.AddBinaryLibrary(['SBL2_BOOT_IMAGE', 'TZOS_IMAGE', 'TZEXEC_IMAGE', 'SBL3_BOOT_IMAGE', 'AUTH_BOOT_DRIVER', 'MODEM_IMAGE', 'CTZL_IMAGE', 'WIDEVINE_IMAGE'],
+	 '${BUILDPATH}/secmath',
+	 SECMATH_SRC_SHARED)
+env.CleanPack(['SBL2_BOOT_IMAGE', 'TZOS_IMAGE', 'TZEXEC_IMAGE', 'SBL3_BOOT_IMAGE', 'AUTH_BOOT_DRIVER', 'MODEM_IMAGE', 'CTZL_IMAGE', 'WIDEVINE_IMAGE'], SECMATH_PRIV_HEADERS)

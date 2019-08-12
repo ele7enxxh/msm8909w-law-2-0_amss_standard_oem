@@ -1,0 +1,254 @@
+#===============================================================================
+#
+# MCS Subsystem build script
+#
+# Copyright (c) 2014 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcs/build/mcs.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverlse chronological order.
+#
+#===============================================================================
+
+# --------------------------------------------------------------------------- #
+# Import SCons Environment and set MCS_ROOT                                   #
+# --------------------------------------------------------------------------- #
+Import('env')
+
+if env.PathExists('${BUILD_ROOT}/mcs'):
+    env.Replace(MCS_ROOT = '${INC_ROOT}/mcs')
+else:    
+    env.Replace(MCS_ROOT = '${INC_ROOT}/modem/mcs')
+
+# --------------------------------------------------------------------------- #
+# Determine applicability of sub-components                                   #
+# --------------------------------------------------------------------------- #
+if 'PRODUCT_LINE' in env:
+    pl = env['PRODUCT_LINE']
+    if (pl.startswith('MPSS.BO')):
+        env.Append(CCFLAGS = " -DFEATURE_MCS_BOLT")
+        env.Replace(USES_MCS_VSTMR = True)
+    elif (pl.startswith('MPSS.JO')):
+        env.Append(CCFLAGS = " -DFEATURE_MCS_JOLOKIA")
+        env.Replace(USES_MCS_VSTMR = True)
+    elif (pl.startswith('MPSS.TH')):
+        env.Append(CCFLAGS = " -DFEATURE_MCS_THOR")
+        env.Replace(USES_MCS_VSTMR = True)
+    elif (pl.startswith('MPSS.TA')):
+        env.Append(CCFLAGS = " -DFEATURE_MCS_TABASCO")
+        env.Replace(USES_MCS_VSTMR = True)
+    elif (pl.startswith('MPSS.AT')):
+        env.Append(CCFLAGS = " -DFEATURE_MCS_ATLAS")
+        env.Replace(USES_MCS_VSTMR = True)
+
+#-------------------------------------------------------------------------------
+# In builds with TTL, use TTL to implement MCS markers
+#-------------------------------------------------------------------------------
+if 'USES_TTL' in env:
+    env.Append(CPPDEFINES = ["MCS_MARKER_USES_TTL"])
+
+# --------------------------------------------------------------------------- #
+# Load cleanpack script                                                       #
+# --------------------------------------------------------------------------- #
+import os
+if os.path.exists('mcs_cleanpack.py'):
+    env.LoadToolScript('mcs_cleanpack.py')
+
+# ------------------------------------------------------------------------------
+# Publish Protected Include Paths to the rest of MCS
+#-------------------------------------------------------------------------------
+env.PublishProtectedApi('MCS', [ '${MCS_ROOT}/cust/inc',
+                                 '${MCS_ROOT}/iratman/inc',
+                                 '${MCS_ROOT}/mtf/inc',
+                                 '${MCS_ROOT}/stm/inc',
+                                 '${MCS_ROOT}/stm2/inc',
+                                 '${MCS_ROOT}/tcxomgr/inc',
+                                 '${MCS_ROOT}/trm/inc',
+                                 '${MCS_ROOT}/variation/inc',
+                                 '${MCS_ROOT}/subs_prio/inc',
+                                 '${MCS_ROOT}/mqcsi/inc',
+                                 '${MCS_ROOT}/cxm/inc',
+                                 '${MCS_ROOT}/wci2/inc',
+                                 '${MCS_ROOT}/limitsmgr/utils/inc',
+                                 '${MCS_ROOT}/cfcm/inc',
+                                 '${MCS_ROOT}/mcsprofile/inc',
+                               ])
+
+# --------------------------------------------------------------------------- #
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+# --------------------------------------------------------------------------- #
+env.RequirePublicApi(['COEX','SAR'],area='API')
+env.RequirePublicApi([
+        'BUSES',
+        'DAL',
+        'DEBUGTOOLS',
+        'DEBUGTRACE',
+        'EFS_QMI_PUT_GET_PRIVATE',
+        'HWENGINES',
+        'KERNEL',
+        'MEMORY',
+        'MPROC',
+        'POWER',
+        'SECUREMSM',
+        'SERVICES',
+        'STORAGE',
+        'SYSTEMDRIVERS',
+        'WIREDCONNECTIVITY',		
+        ],
+        area='CORE')
+env.RequirePublicApi(['DATAMODEM'],area='DATAMODEM')
+env.RequirePublicApi(['C2K','COMMON','GERAN','LTE','RF','TDSCDMA'],area='FW')
+env.RequirePublicApi(['FW_C2K'],area='FW_C2K')
+env.RequirePublicApi(['FW_CCS'],area='FW_CCS')
+env.RequirePublicApi(['FW_COMMON'],area='FW_COMMON')
+env.RequirePublicApi(['FW_GERAN'],area='FW_GERAN')
+env.RequirePublicApi(['FW_LTE'],area='FW_LTE')
+env.RequirePublicApi(['FW_TDSCDMA'],area='FW_TDSCDMA')
+env.RequirePublicApi(['GERAN'],area='GERAN')
+env.RequirePublicApi(['GPS'],area='GPS')
+env.RequirePublicApi(['HDR'],area='HDR')
+env.RequirePublicApi(['LTE'],area='LTE')
+env.RequireProtectedApi(['MCS'])
+env.RequirePublicApi(['MCS'],area='MCS')
+env.RequirePublicApi(['MMCP','PUBLIC'],area='MMCP')
+env.RequirePublicApi(['MPOWER'],area='MPOWER')
+env.RequirePublicApi(['MYPS'],area='MYPS')
+env.RequirePublicApi(['ONEX','PUBLIC'],area='ONEX')
+env.RequirePublicApi(['COEX','STX','SAR','CFCM'],area='QMIMSGS')
+env.RequirePublicApi(['CDMA','COMMON','GNSS','GSM','HDR','LM','LTE','MEAS','TDSCDMA','WCDMA',],area='RFA')
+env.RequirePublicApi([ 'RFTECH_CDMA'], area='RFTECH_CDMA')
+env.RequirePublicApi(['TDSCDMA'],area='TDSCDMA')
+env.RequirePublicApi(['PUBLIC'],area='UIM')
+env.RequirePublicApi(['CFM','COMMON','PUBLIC','QSH'],area='UTILS')
+env.RequirePublicApi(['WCDMA'],area='WCDMA')
+env.RequirePublicApi(['MCFG'],area='MCFG')
+env.RequirePublicApi(['RFLM',],area='RFLM')
+
+# To be removed when all PLs remove modem folder.
+env.RequireRestrictedApi([ 'LTE', 
+                           'RFA',
+                           'MCS'])
+
+# --------------------------------------------------------------------------- #
+# Require these until the inclusions are cleaned up
+# --------------------------------------------------------------------------- #
+if env.PathExists('${BUILD_ROOT}/geran'):
+    env.PublishPrivateApi('VIOLATIONS', [ '${INC_ROOT}/geran/variation/inc',
+                                          '${INC_ROOT}/geran/cust/inc',
+                                        ])
+else:    
+    env.PublishPrivateApi('VIOLATIONS', [ '${INC_ROOT}/modem/geran/variation/inc',
+                                          '${INC_ROOT}/modem/geran/cust/inc',
+                                        ])
+
+# --------------------------------------------------------------------------- #
+# Set Optimization Level to -O2 and treat warnings as errors                  #
+# --------------------------------------------------------------------------- #
+env.Replace(HEXAGONCC_OPT = "${HEXAGON_OPT_2}")
+
+# --------------------------------------------------------------------------- #
+# Copy the CFLAGS list to a new environment for us                            #
+# (the list is a reference when cloned, so use deepcopy)                      #
+# --------------------------------------------------------------------------- #
+import copy
+orig_env = env
+env = env.Clone()
+env['CFLAGS'] = copy.deepcopy(orig_env['CFLAGS'])
+
+# --------------------------------------------------------------------------- #
+# Remove any "disables" from top-level                                        #
+# --------------------------------------------------------------------------- #
+if env['CFLAGS'].count('-Wno-low') > 0:
+    env['CFLAGS'].remove('-Wno-low')
+if env['CFLAGS'].count('-Wno-medium') > 0:
+    env['CFLAGS'].remove('-Wno-medium')
+if env['CFLAGS'].count('-Wno-high') > 0:
+    env['CFLAGS'].remove('-Wno-high')
+if env['CFLAGS'].count('-Wno-error') > 0:
+    env['CFLAGS'].remove('-Wno-error')
+
+# --------------------------------------------------------------------------- #
+# Set to disallow C99 style variable declarations                             #
+# Required for QTF development                                                #
+# --------------------------------------------------------------------------- #
+major_ver = int(os.getenv('HEXAGON_RTOS_RELEASE',0).split('.')[0])
+if major_ver >= 6:
+    env.Append(HEXAGONCC_WARN = " -Wc99-declaration-after-statement")
+else:
+    env.Append(HEXAGONCC_WARN = ' -Wdeclaration-after-statement ')
+
+# --------------------------------------------------------------------------- #
+# Enable warnings -> errors for all                                           #
+# --------------------------------------------------------------------------- #
+env.Append(HEXAGONCC_WARN = ' -Werror')
+env.Append(HEXAGONCXX_WARN = ' -Werror')
+
+#-------------------------------------------------------------------------------
+# Require MSGR messages to be pre-compiled and available across the build
+#-------------------------------------------------------------------------------
+if 'USES_STANDALONE_FW' in env:
+  MCS_MSGR_UMID_FILES = [
+  '../api/cxm_fw_msg.h'
+  ]
+else:
+  MCS_MSGR_UMID_FILES = [
+  '../api/cxm_fw_msg.h',
+  '../api/cxm.h',
+  '../api/wcn_coex_mgr.h',
+  '../api/wwan_coex_mgr.h',
+  '../api/cfcm_msg.h',
+  '../cfcm/inc/cfcm_msg_internal.h'
+  ]
+  
+if 'USES_MSGR' in env:
+    env.AddUMID('${BUILDPATH}/mcs.umid', MCS_MSGR_UMID_FILES )
+	
+#-------------------------------------------------------------------------------
+# MCS Policy extension function
+#-------------------------------------------------------------------------------
+# The policy decision impacts 'system' operation, and is not a control that
+# is provided to a specific tech area. This implies that only the
+# image owner defines the policy for the use case.
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM']
+   env.AddRCInitPolicy(
+	RCINIT_IMG,
+	{
+	 'sequence_group'      : 'RCINIT_GROUP_3',
+	 'policy_name'         : 'FTM_POLICY',
+	 'policy_function'     : 'mcs_rcinit_ftm_policy',
+	 'policy_optin'        : ['default', 'ftm'],         # controls tables created
+	})
+
+#==============================================================================
+# MCS - Feature for Internal Builds ONLY (Top Level Features)
+#==============================================================================
+if 'USES_INTERNAL_BUILD' in env:
+        env.Append(CPPDEFINES = ['FEATURE_MODEM_CFCM_DIAG_TEST'])
+
+# --------------------------------------------------------------------------- #
+# Search for additional Units                                                 #
+# --------------------------------------------------------------------------- #
+env.LoadSoftwareUnits()

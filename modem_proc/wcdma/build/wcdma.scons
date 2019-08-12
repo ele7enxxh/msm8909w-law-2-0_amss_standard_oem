@@ -1,0 +1,363 @@
+# -------------------------------------------------------------------------------- #
+#                       W C D M A . S C O N S                                      
+#
+# DESCRIPTION                                                                      
+#       Scons file for the whole W subsystem. Defines the existence of W subsystem 
+#                                                                                  
+#                                                                                  
+# INITIALIZATION AND SEQUENCING REQUIREMENTS                                       
+#       None.                                                                      
+#                                                                                  
+#
+# Copyright (c) 2010 Qualcomm Technologies Incorporated.                                        
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary                       
+# Export of this technology or software is regulated by the U.S. Government.       
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/wcdma/build/wcdma.scons#1 $
+# $DateTime: 2016/12/13 08:00:12 $
+# 
+#  when        who     what, where, why
+# ---------    ---     ------------------------------------------------------------
+#  05/25/16    sp      WCDMA scons change for  Debug snapshot framework
+#  02/23/15    om      Made changed to convert medium warning as errors.
+#  02/13/15    mk      Made changed to keep medium warning as warning
+#  02/13/15    sa      Made changes to add the stubs for QTF with JO CRM
+#  01/21/15    sa      Made changes for QTF with CRM
+#  1/7/15      as      Removing sconscop violations /core/debugtrace and /core/api 
+#  11/27/14    sa      Added MODEM_WCDMA for QTF-CRM framework
+#  11/13/14    AS      Removing sconscop violations - INC_ROOT/modem
+#  05/08/14    AS      Removing condition to convert warnings to errors
+#  11/26/13    geg     Segment loading FSL: add dummy task 
+#  09/30/13    rkmk    Modified scon file to be compatible with the new LLVM compiler 
+#  07/29/13    sks      Inclusion of QDSS profile points for timelining.
+#  07/31/13    rkmk    SCONS Update for RFA:LM
+#  05/24/13    geg     FR 3383: Segment Loading
+#  12/06/12    geg     Developed for turning on Werror flag
+#  12/22/10    stk     Removed including WCDMA as Protected API and moving to restricted in wcdma.api.
+#  12/22/10    stk     Publish all WCDMA SU level inc folders as protected. 
+#  10/06/10    rmsd    Initial Cut
+#
+#===================================================================================#
+
+
+# ==========================================================================#
+# WCDMA Subsystem build script#
+#---------------------------------------------------------------------------#
+import os
+
+Import('env')
+
+if env.PathExists('${BUILD_ROOT}/wcdma'):
+    env.Replace(WCDMA_ROOT = '${INC_ROOT}/wcdma')
+else:    
+    env.Replace(WCDMA_ROOT = '${INC_ROOT}/modem/wcdma')
+
+
+
+env.RequirePublicApi([
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'QSH',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'MCS',
+        ],
+        area='MCS')
+
+env.RequirePublicApi([
+        'MEMORY',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='LTE')
+
+env.RequirePublicApi([
+        'DAL',
+        'DEBUGTOOLS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'WCDMA',
+        'COMMON',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'OSYS',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'MVS',
+        ],
+        area='AVS')
+
+env.RequirePublicApi([
+        'MEAS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'A2',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'SYSTEMDRIVERS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'CDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'UIM',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'STORAGE',
+        'SERVICES',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'RF',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'GSM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'MPROC',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'LM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'GNSS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'DATAMODEM',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'GPS',
+        ],
+        area='GPS')
+
+env.RequirePublicApi([
+        'POWER',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'MPOWER',
+        ],
+        area='MPOWER')
+
+env.RequirePublicApi([
+        'WIREDCONNECTIVITY',
+        'HWENGINES',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'COMMON',
+        'FC',
+        ],
+        area='UTILS')
+        
+#manual add
+env.RequirePublicApi([
+        'MYPS',
+        ],
+        area='MYPS')
+        
+env.RequirePublicApi([ 
+        'QCHAT', 
+        ], 
+        area='QCHAT') 
+
+env.RequirePublicApi([
+        'DTR',
+        ],
+        area='RFLM')
+
+env.RequirePublicApi([
+        'MCFG',
+        ],
+        area='MCFG')
+
+if 'USES_MOB' in env:
+   env.RequirePublicApi(['QTF',],area='MOB')
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+
+WCDMA_PROTECTED_API = [
+        '${WCDMA_ROOT}/l1/offline/inc',
+        '${WCDMA_ROOT}/rrc/inc',
+        '${WCDMA_ROOT}/mac/inc',
+        '${WCDMA_ROOT}/rlc/inc',
+        '${WCDMA_ROOT}/l1/offline/src',
+        '${WCDMA_ROOT}/rrc/src',
+        '${WCDMA_ROOT}/l2/inc',
+        '${WCDMA_ROOT}/cust/inc',
+        '${WCDMA_ROOT}/variation/inc',
+        '${WCDMA_ROOT}/common/inc',
+        '${WCDMA_ROOT}/diag/inc',
+        '${WCDMA_ROOT}/test/wplt/tgt',
+        '${WCDMA_ROOT}/mac/src',
+        '${WCDMA_ROOT}/rlc/src',
+		                                 ]
+
+
+# Only supported for MOB builds
+if 'USES_MOB' in env:
+   WCDMA_PROTECTED_API += [ '${WCDMA_ROOT}/offtarget/generated_test/test',]
+
+
+# cust file relocation
+# Protected is "private within the SU" vs. Restricted with is visible to other SUs
+env.PublishProtectedApi('WCDMA', WCDMA_PROTECTED_API)
+
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+env.RequireProtectedApi(['WCDMA'])
+
+env.PublishPrivateApi('VIOLATIONS',[
+        '${INC_ROOT}/modem/datamodem/cust/inc',
+        '${INC_ROOT}/modem/datamodem/variation/inc',
+        '${INC_ROOT}/modem/geran/cust/inc',
+        '${INC_ROOT}/modem/geran/variation/inc',
+        '${INC_ROOT}/modem/mcs/cust/inc',
+        '${INC_ROOT}/modem/mcs/variation/inc',
+        '${INC_ROOT}/modem/mmcp/cust/inc',
+        '${INC_ROOT}/modem/mmcp/variation/inc',
+        '${INC_ROOT}/core/debugtrace/tracer/inc',
+        '${INC_ROOT}/core/api/debugtrace',
+        ])
+
+# QTF requirement is todisallow C99 style variable declarations
+env.Append(HEXAGONCC_WARN = ' -Wdeclaration-after-statement ')
+#-------------------------------------------------------------------------------
+# Make WCDMA software Compiler-Warnings free by converting Warnings to Errors
+#Override CCFLAGS for this Module.
+#-------------------------------------------------------------------------------
+
+env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror") 
+env = env.Clone(HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")
+
+    
+# Load cleanpack script to remove private files etc. from customer builds:
+if os.path.exists('wcdma_cleanpack.py'):
+    env.LoadToolScript('wcdma_cleanpack.py')
+    
+env.LoadSoftwareUnits()

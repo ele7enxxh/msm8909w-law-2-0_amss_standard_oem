@@ -1,0 +1,51 @@
+; PowerDebugDump.cmm
+; ------------------------------------------------------------------
+;
+; Copyright (c) 2013 Qualcomm Technologies Incorporated.
+; All Rights Reserved.
+; QUALCOMM Proprietary/GTDR
+;
+; When to use this script 
+; -----------------------
+; This script calls all the available debug dump scripts and dumps the results
+; to the provided logpath.
+;
+; 
+; How to use this script
+; ----------------------
+; After breaking, retrieve all logs by running
+;
+; do PowerDebugDump.cmm <logPath>
+;
+;
+ENTRY &logPath
+LOCAL &basedir &ulogdump &ulogdebugstatusdump &npadump &sleepdump
+
+
+; This is effectively cwd()\..\.
+&basedir=os.ppd()
+&basedir=os.file.path(&basedir)
+
+&ulogdump="&(basedir)\ulog\scripts\ULogDump"
+&ulogdebugstatusdump="&(basedir)\ulog\scripts\ULogDebugStatus"
+&npadump="&(basedir)\npa\scripts\NPADump"
+&sleepdump="&(basedir)\sleep\scripts\SleepDump"
+
+
+PRINT "Power Debug Dump: Starting ULog Dump"
+DO &ulogdump &logPath 
+
+PRINT "Power Debug Dump: Starting ULog Debug Status Dump"
+DO &ulogdebugstatusdump &logPath 
+
+
+PRINT "Power Debug Dump: Starting NPA Dump"
+DO &npadump &logPath state
+
+
+PRINT "Power Debug Dump: Starting Sleep Dump"
+DO &sleepdump &logPath nolog
+
+
+PRINT "Power Debug Dump: Done."
+

@@ -1,0 +1,277 @@
+#===============================================================================
+#
+# adsppm build script
+#
+# GENERAL DESCRIPTION
+#    Builds the adsppm libraries for all target.
+#
+# Copyright (c) 2009-2015 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/power/acpm/build/adsppm.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#
+#===============================================================================
+import glob, os
+import fnmatch
+import itertools
+import subprocess
+
+Import('env')
+env = env.Clone()
+#env.Append(CCFLAGS = " -O0")
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = os.path.join("..","src")
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+TST_SRCPATH = os.path.join("..","test_src")
+
+#-------------------------------------------------------------------------------
+# CleanPack (Remove) all remaining files for adsppm unit test case
+#-------------------------------------------------------------------------------
+PACK_OUT = env.FindFiles(['*.h', '*.c', '*.s'], TST_SRCPATH)
+env.CleanPack(['CORE_QDSP6_SW'], PACK_OUT)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'BUSES',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL', #needs to be last also contains wrong comdef.h
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['POWER_UTILS'])
+
+env.PublishPrivateApi('ADSPPM', [
+   '${BUILD_ROOT}/core/power/acpm/inc',   
+   '${BUILD_ROOT}/core/power/acpm/src',
+   '${BUILD_ROOT}/core/power/acpm/src/api/inc',
+   '${BUILD_ROOT}/core/power/acpm/src/api/src',
+   '${BUILD_ROOT}/core/power/acpm/src/asic/inc',
+   '${BUILD_ROOT}/core/power/acpm/src/asic/src',
+   '${BUILD_ROOT}/core/power/acpm/src/core/inc',
+   '${BUILD_ROOT}/core/power/acpm/src/core/src',
+   '${BUILD_ROOT}/core/power/acpm/src/hal/inc',
+   '${BUILD_ROOT}/core/power/acpm/src/hal/src',
+   '${BUILD_ROOT}/core/power/acpm/mpd_src',
+   '${BUILD_ROOT}/core/power/acpm/src/test_src',
+   ]
+)
+
+#-------------------------------------------------------------------------------
+# QDSS Tracer definitions
+#-------------------------------------------------------------------------------
+if 'USES_QDSS_SWE' in env:
+   QDSS_IMG = ['QDSS_EN_IMG']
+   EVENTS = [['ADSPPM_CLK_SET','clk set,clkId=%d reqfreq=%d grantedfreq=%d'], 
+           ['ADSPPM_CLK_ENABLE', 'clk enable, clkid=%d'],
+           ['ADSPPM_CLK_DISABLE', 'clk disable, clkid=%d'],
+           ['ADSPPM_PWR_REQ', 'PWR Req, pwrDomain=%d'],
+           ['ADSPPM_PWR_REL', 'PWR Rel, pwrDomain=%d'],
+           ['ADSPPM_BW_REQ', 'BW req, master=%d, slave=%d, ib=%d, ab=%d'],
+           ['ADSPPM_BW_REL', 'BW rel, mater=%d, slave=%d'],
+           ['ADSPPM_DCG_ENABLE', 'DCG enable, clkId=%d'],
+           ['ADSPPM_DCG_DISABLE', 'DCG disable, clkId=%d'],
+           ['ADSPPM_LPASS_CORE_PWR', 'LPASS CORE POWER=%d'],
+           ['ADSPPM_XPU_PROG', 'XPU prog=%d'],
+           ['ADSPPM_MEM_PWR', 'MEMpower,memId=%d,power=%d'], 
+           ['ADSPPM_API_PWR_REQ', 'APIPower Req, clientId=%d'],
+           ['ADSPPM_API_PWR_REL', 'APIPower Rel, clientId=%d'],
+           ['ADSPPM_API_MIPS_REQ', 'APIMIPS req, clientId=%d, mipstotal=%d, mipsfloor=%d, codelocation=%d, reqoperation=%d'],
+           ['ADSPPM_API_MIPS_REL', 'APIMIPS Rel clientId=%d'],
+           ['ADSPPM_API_REG_REQ', 'APIReg Request, clientId=%d, master=%d, slave=%d'],
+           ['ADSPPM_API_REG_REL', 'APIReg Release, clientId=%d'],
+           ['ADSPPM_API_BW_REQ', 'APIBW Request, clientId =%d master=%d, slave=%d, BW=%d, percentage=%d'],
+           ['ADSPPM_API_BW_REL', 'APIBW Release, clientId=%d'],
+           ['ADSPPM_API_LATENCY_REQ', 'APILatency Request, clientId=%d, latency=%dus'],
+           ['ADSPPM_API_LATENCY_REL', 'APILatency Release, clientId=%d'],
+           ['ADSPPM_API_MEM_PWR_REQ', 'APIMEMPower Request, clientId=%d memId=%d, power=%d'],
+           ['ADSPPM_API_MEM_PWR_REL', 'APIMEMPower Release, clientId=%d'],
+           ]
+
+   env.AddSWEInfo(QDSS_IMG, EVENTS)
+
+if 'QDSS_TRACER_SWE' in env:
+   env.SWEBuilder(['${BUILDPATH}/acpm_tracer_event_ids.h'],None)
+   env.Append(CPPPATH = ['${BUILD_ROOT}/core/power/acpm/build/$BUILDPATH'])
+
+# Map adsppm's diag message to the sleep category.
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+MPD_ADSPPM_SNS_USER_SRC = [
+    '${BUILD_ROOT}/core/power/acpm/mpd_src/qdi_client.c'
+]
+
+MPD_ADSPPM_AUD_USER_SRC = [
+    '${BUILD_ROOT}/core/power/acpm/mpd_src/qdi_client.c'
+]
+
+MPD_ADSPPM_GUESTOS_SRC = [
+    '${BUILD_ROOT}/core/power/acpm/mpd_src/qdi_srv.c',
+    '${BUILD_ROOT}/core/power/acpm/mpd_src/adsppmcb.c'
+]
+
+source_patterns = ['*.c', '*.cpp']
+sources = []
+
+for root, dirnames, filenames in os.walk(SRCPATH):
+    matches = itertools.chain(*[fnmatch.filter(filenames, pattern) for pattern in source_patterns])
+    matches = [os.path.join(root, filename) for filename in matches]
+    matches = [matched_path.replace(SRCPATH,'${BUILDPATH}',1) for matched_path in matches]
+    sources.extend(matches) 
+
+test_sources = []
+
+for root, dirnames, filenames in os.walk(TST_SRCPATH):
+    matches = itertools.chain(*[fnmatch.filter(filenames, pattern) for pattern in source_patterns])
+    matches = [os.path.join(root, filename) for filename in matches]
+    test_sources.extend(matches) 
+	
+#sources.extend(test_sources)
+
+#-------------------------------------------------------------------------------    
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'USES_CORESLEEP_TOOL' in env:
+
+    xml_dir = env['BUILD_ROOT'] + '/core/power/acpm/src/hal/src/'
+
+    #env.AddCoreSleepLPR('CORE_QDSP6_SW', {'sleep_lpr_xml' : xml_dir})
+
+
+if 'USES_SENSOR_IMG' in env:
+    # Library for the sensors user process
+    RCINIT_IMG = ['CORE_QDSP6_SENSOR_SW']
+    env.AddObject(RCINIT_IMG,[MPD_ADSPPM_SNS_USER_SRC])
+    env.AddRCInitFunc(              
+        RCINIT_IMG,                       
+        {
+              'sequence_group' : 'RCINIT_GROUP_2',                       # required
+              'init_name'      : 'adsppm_client',                        # required
+              'init_function'  : 'MMPM_Init_Ext',                        # required
+              'dependencies'   : ['clk_regime','dalsys','npa','icbarb','sleep','smem_log']
+         })
+elif 'USES_AUDIO_IMG' in env:
+    # Library in audio process
+    RCINIT_IMG = ['CORE_QDSP6_AUDIO_SW']
+    #env.AddObject(RCINIT_IMG,[MPD_ADSPPM_AUD_USER_SRC])
+    #env.AddLibrary(RCINIT_IMG,'${BUILDPATH}/acpm',[MPD_ADSPPM_AUD_USER_SRC])
+    env.AddRCInitFunc(              
+        RCINIT_IMG,                       
+        {
+              'sequence_group' : 'RCINIT_GROUP_2',                       # required
+              'init_name'      : 'adsppm_client',                        # required
+              'init_function'  : 'MMPM_Init_Ext',                        # required
+              'dependencies'   : ['clk_regime','dalsys','npa','icbarb','sleep','smem_log']
+         })
+else:
+    #if 'USES_QURTOS_IMG' in env:
+    # Image built for Guest OS
+    RCINIT_IMG = ['CORE_QDSP6_SW']
+    if 'USES_MPD' in env:
+        #mpd_adsppm_guestos_obj = env.Object(MPD_ADSPPM_GUESTOS_SRC)
+        env.AddObject(RCINIT_IMG,[MPD_ADSPPM_GUESTOS_SRC])
+        sources.extend([MPD_ADSPPM_GUESTOS_SRC])
+    env.AddLibrary(RCINIT_IMG,'${BUILDPATH}/acpm',sources)
+    env.AddRCInitFunc(              
+         RCINIT_IMG,                       
+         {
+              'sequence_group' : 'RCINIT_GROUP_2',                       # required
+              'init_name'      : 'adsppm',                               # required
+              'init_function'  : 'MMPM_Init_Ext',                        # required
+              'dependencies'   : ['clk_regime','dalsys','npa','icbarb','sleep','smem_log', 'rpm']
+         })
+    if env['MSM_ID'] in ['8916','8936','8909','9607']:
+       env.AddRCInitFunc( 
+            RCINIT_IMG, 
+            {
+                  'sequence_group' : 'RCINIT_GROUP_0', # required
+                  'init_name' : 'adsppm_ultaudioreset_grp0', # required
+                  'init_function' : 'adsppm_ultaudio_reset', # required
+                  'dependencies' : ['clk_regime','dalsys','icbarb']
+            })
+    if 'USES_MPD' in env:
+        env.AddRCInitFunc(              
+            RCINIT_IMG,                       
+            {
+                  'sequence_group' : 'RCINIT_GROUP_2',                       # required
+                  'init_name'      : 'adsppm_qdi',                               # required
+                  'init_function'  : 'QDI_adsppm_init',                        # required
+                  'dependencies'   : ['clk_regime','dalsys','npa','icbarb','sleep','smem_log', 'adsppm']
+             })
+    if env['MSM_ID'] in ['8926','8916','8936','8909','9607']:
+		env.AddRCInitTask(
+		   RCINIT_IMG,
+			{
+				'sequence_group'             : 'RCINIT_GROUP_2',    # required
+				'thread_name'                : 'adsppm_asyncmgr',    # required
+				'thread_entry'               : 'AM_WorkLoopThread',
+				'thread_type'                : 'RCINIT_TASK_QURTTASK',
+				'stack_size_bytes'           : '4096',
+				'priority_amss_order'        : 'SHARED_DRIVER_SERVICE_PRI_ORDER',
+				'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+				'dependencies'               : ['clk_regime','dalsys','npa','icbarb','sleep','smem_log', 'adsppm']
+				})
+		env.AddRCInitTask(
+		   RCINIT_IMG,
+			{
+					'sequence_group'             : 'RCINIT_GROUP_2',    # required
+					'thread_name'                : 'adsppm_cb',    # required
+					'thread_entry'               : 'AM_callBackThread',
+					'thread_type'                : 'RCINIT_TASK_QURTTASK',
+					'stack_size_bytes'           : '4096',
+					'priority_amss_order'        : 'SHARED_DRIVER_SERVICE_PRI_ORDER',
+					'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+					'dependencies'               : ['clk_regime','dalsys','npa','icbarb','sleep','smem_log', 'adsppm']
+					})
+    #env.AddRCInitTask(
+    #   RCINIT_IMG,
+    #    {
+    #            'sequence_group'             : 'RCINIT_GROUP_2',    # required
+    #            'thread_name'                : 'adsppm_test',    # required
+    #            'thread_entry'               : 'adsppmtest_main',
+    #            'thread_type'                : 'RCINIT_TASK_QURTTASK',
+    #            'stack_size_bytes'           : '4096',
+    #            'priority_amss_order'        : 'SHARED_DRIVER_SERVICE_PRI_ORDER',
+    #            'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    #            'dependencies'               : ['clk_regime','dalsys','npa','icbarb','sleep','smem_log', 'adsppm']
+    #            })        
+
+  
+#-------------------------------------------------------------------------------
+# Device Configuration Sources
+#-------------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      '8916_xml' : ['${BUILD_ROOT}/core/power/acpm/config/8916/adsppm_8916.xml',
+                    '${BUILD_ROOT}/core/power/acpm/config/8916/adsppm_configdata_8916.c'],	
+      '8926_xml' : ['${BUILD_ROOT}/core/power/acpm/config/8x26/adsppm_8x26.xml',
+                    '${BUILD_ROOT}/core/power/acpm/config/8x26/adsppm_configdata_8x26.c'],
+      '8936_xml' : ['${BUILD_ROOT}/core/power/acpm/config/8936/adsppm_8936.xml',
+                    '${BUILD_ROOT}/core/power/acpm/config/8936/adsppm_configdata_8936.c'],
+      '8909_xml' : ['${BUILD_ROOT}/core/power/acpm/config/8909/adsppm_8909.xml',
+                    '${BUILD_ROOT}/core/power/acpm/config/8909/adsppm_configdata_8909.c'],
+      '9607_xml' : ['${BUILD_ROOT}/core/power/acpm/config/9607/adsppm_9607.xml',
+                    '${BUILD_ROOT}/core/power/acpm/config/9607/adsppm_configdata_9607.c']		    
+   })

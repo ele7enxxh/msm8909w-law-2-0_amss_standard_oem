@@ -1,0 +1,82 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/securemsm/secboot/build/SConscript#2 $
+#  $DateTime: 2016/02/02 06:46:43 $
+#  $Author: pwbldsvc $
+#  $Change: 9828780 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/14/2014  hw     add secboot_util.c
+# 01/17/2013  hw     Initial Version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/secboot"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+INC_PATH = [
+      "${BUILD_ROOT}/core/securemsm/unifiedcrypto/shared/sha/inc",
+      "${BUILD_ROOT}/core/securemsm/unifiedcrypto/core/sha/inc",
+      "${BUILD_ROOT}/core/securemsm/unifiedcrypto/environment/inc",
+      "${BUILD_ROOT}/core/securemsm/unifiedcrypto/environment/adsp/inc",
+      "${BUILDPATH}/src",
+]
+env.Append(CPPPATH = INC_PATH)
+#-------------------------------------------------------------------------------
+# Internal depends within SecBoot
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(['SECUREMSM'])
+
+if env['CHIPSET'] in ['msm8909w']:
+	env.Append(CPPDEFINES = ['FLAVOR_8909W'])
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SECBOOT_LIB_SOURCES = [
+        '${BUILDPATH}/src/secboot.c',
+        '${BUILDPATH}/src/secboot_asn1.c',
+        '${BUILDPATH}/src/secboot_x509.c',         
+        '${BUILDPATH}/hw/secctrl/src/secboot_hw.c',
+        '${BUILDPATH}/hw/secctrl/src/secboot_hw_apps.c',
+        '${BUILDPATH}/oem/secboot_util.c',
+]
+
+env.Append(CPPDEFINES = ["FEATURE_BOOT_ALLOW_UNSIGNED_IMAGE"])
+
+#-------------------------------------------------------------------------------
+# Add Libraries to MBA Image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary(['SBL1_BOOT'], '${BUILDPATH}/secboot_auth',  SECBOOT_LIB_SOURCES)
+

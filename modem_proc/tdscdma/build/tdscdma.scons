@@ -1,0 +1,466 @@
+# -------------------------------------------------------------------------------- #
+#                       T D S C D M A . S C O N S                                      
+#
+# DESCRIPTION                                                                      
+#       Scons file for the whole W subsystem. Defines the existence of W subsystem 
+#                                                                                  
+#                                                                                  
+# INITIALIZATION AND SEQUENCING REQUIREMENTS                                       
+#       None.                                                                      
+#                                                                                  
+#
+# Copyright (c) 2010 Qualcomm Technologies Incorporated.                                        
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary                       
+# Export of this technology or software is regulated by the U.S. Government.       
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //source/qcom/qct/modem/wcdma/build/qscons/main/latest/wcdma.scons#3 $
+# $DateTime: 2010/12/23 22:27:16 $
+# 
+#  when        who     what, where, why
+# ---------    ---     ------------------------------------------------------------
+# 02/24/12    mkh     Support for LTE to define TDS messages in MSGR UMID tables    
+# 10/06/10    rmsd    Initial Cut
+#
+#===================================================================================#
+
+
+Import('env')
+
+# Copy the CFLAGS list to a new environment for us
+# (somehow the list is a reference when cloned, so use deepcopy)
+import copy
+orig_env = env
+env = env.Clone()
+env['CFLAGS'] = copy.deepcopy(orig_env['CFLAGS'])
+
+# Set -Werror compiler flag to treat warnings as errors
+#if env['CFLAGS'].count('-Wno-low') > 0:
+#  env['CFLAGS'].remove('-Wno-low')
+
+#if env['CFLAGS'].count('-Wno-medium') > 0:
+#   env['CFLAGS'].remove('-Wno-medium')
+
+#if env['CFLAGS'].count('-Wno-high') > 0:
+#   env['CFLAGS'].remove('-Wno-high')
+
+#if env['CFLAGS'].count('-Wno-error') > 0:
+#  env['CFLAGS'].remove('-Wno-error')
+
+#remove -Werror for now to fix warnings
+#env.Append(HEXAGONCC_WARN = ' -Werror ')
+#env.Append(HEXAGONCXX_WARN = ' -Werror ')
+
+if not('USES_TDSCDMA_THOR' in env):
+	env.Append(HEXAGONCC_WARN = ' -Wdeclaration-after-statement ')
+	env.Append(HEXAGONCC_WARN = ' -Wc99-declaration-after-statement ')
+
+
+# Load cleanpack script:
+import os
+if os.path.exists('tdscdma_cleanpack.py'):
+   env.LoadToolScript('tdscdma_cleanpack.py')
+
+
+# CR 642134
+# Create our own tracer_event IDs file
+# The output of SWEBuilder must go into BUILDPATH along with the generated .o and .lib files.
+env.SWEBuilder(['${BUILDPATH}/tdscdma_tracer_event_ids.h'],None)
+env.PrintInfo("SWE Builder for tdscdma_tracer_event_ids.h was called")
+env.Append(CPPPATH = ['${BUILD_ROOT}/tdscdma/build/$BUILDPATH'])
+
+
+if env.PathExists('${BUILD_ROOT}/tdscdma'):
+    env.Replace(TDSCDMA_ROOT = '${INC_ROOT}/tdscdma')
+else:    
+    env.Replace(TDSCDMA_ROOT = '${INC_ROOT}/modem/tdscdma')
+
+
+env.RequirePublicApi([
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'QSH',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'TDSCDMA',
+        ],
+        area='TDSCDMA')
+
+env.RequirePublicApi([
+        'MCS',
+        ],
+        area='MCS')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='LTE')
+
+env.RequirePublicApi([
+        'MEMORY',
+        'DAL',
+        'DEBUGTOOLS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'TDSCDMA',
+        'COMMON',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'OSYS',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'MVS',
+        ],
+        area='AVS')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'CDMA',
+        'MEAS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'SYSTEMDRIVERS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'RF',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'SERVICES',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'GSM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'UIM',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='TDSCDMA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'MPROC',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'A2',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'GNSS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'DATAMODEM',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'LM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GPS',
+        ],
+        area='GPS')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'POWER',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'TDSCDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'STORAGE',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'MPOWER',
+        ],
+        area='MPOWER')
+
+env.RequirePublicApi([
+        'FC',
+        ],
+        area='UTILS')
+
+
+
+#added manually
+
+env.RequirePublicApi([
+        'MYPS',
+        ],
+        area='MYPS')
+
+env.RequirePublicApi([
+        'MCFG',
+        ],
+        area='MCFG')
+
+
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+
+# cust file relocation
+# Protected is "private within the SU" vs. Restricted with is visible to other SUs
+if 'USES_MOB' in env:
+  TDSCDMA_PROTECTED_APIS = [
+          '${TDSCDMA_ROOT}/l1/src',
+          '${TDSCDMA_ROOT}/l1/inc',
+          '${TDSCDMA_ROOT}/mac/inc',
+          '${TDSCDMA_ROOT}/rrc/inc',
+          '${TDSCDMA_ROOT}/rrc/src',
+          '${TDSCDMA_ROOT}/rlc/inc',
+          '${TDSCDMA_ROOT}/rrc/inc/ASN1/off_target',
+          '${TDSCDMA_ROOT}/cust/inc',
+          '${TDSCDMA_ROOT}/l2/inc',
+          '${TDSCDMA_ROOT}/variation/inc',
+          '${TDSCDMA_ROOT}/test/tplt/tgt/inc',
+          '${TDSCDMA_ROOT}/mac/src',
+          '${TDSCDMA_ROOT}/rlc/src',
+          '${TDSCDMA_ROOT}/diag/inc',
+         ]
+else:
+  TDSCDMA_PROTECTED_APIS = [
+          '${TDSCDMA_ROOT}/l1/src',
+          '${TDSCDMA_ROOT}/l1/inc',
+          '${TDSCDMA_ROOT}/mac/inc',
+          '${TDSCDMA_ROOT}/rrc/inc',
+          '${TDSCDMA_ROOT}/rrc/src',
+          '${TDSCDMA_ROOT}/rlc/inc',
+          '${TDSCDMA_ROOT}/rrc/inc/ASN1/on_target',
+          '${TDSCDMA_ROOT}/cust/inc',
+          '${TDSCDMA_ROOT}/l2/inc',
+          '${TDSCDMA_ROOT}/variation/inc',
+          '${TDSCDMA_ROOT}/test/tplt/tgt/inc',
+          '${TDSCDMA_ROOT}/mac/src',
+          '${TDSCDMA_ROOT}/rlc/src',
+          '${TDSCDMA_ROOT}/diag/inc',
+         ]
+
+if ('USES_TDSCDMA_THOR' in env):
+  TDSCDMA_PROTECTED_APIS.append('${TDSCDMA_ROOT}/l1/src/hal/mkBasedEnc')
+  TDSCDMA_PROTECTED_APIS.append('${TDSCDMA_ROOT}/l1/src/hal/mkBasedEnc/thor')
+elif ('USES_TDSCDMA_BOLT' in env):
+  TDSCDMA_PROTECTED_APIS.append('${TDSCDMA_ROOT}/l1/src/hal/mkBasedEnc')
+  TDSCDMA_PROTECTED_APIS.append('${TDSCDMA_ROOT}/l1/src/hal/mkBasedEnc/bolt')
+elif 'USES_TDSCDMA_JOLOKIA' in env:
+  TDSCDMA_PROTECTED_APIS.append('${TDSCDMA_ROOT}/l1/src/hal/jolokia')
+else:
+  TDSCDMA_PROTECTED_APIS.append('${TDSCDMA_ROOT}/l1/src/hal/dime')
+
+env.PublishProtectedApi('TDSCDMA', TDSCDMA_PROTECTED_APIS)
+  
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+env.RequireProtectedApi(['TDSCDMA'])
+
+
+if 'USES_MSGR' in env:
+        env.AddUMID('${BUILDPATH}/tds.umid', ['../api/tds_rrc_umid.h'])
+
+
+
+#remove all blocks to end of file when modem folder is removed
+
+env.RequireProtectedApi(['TDSCDMA'])
+env.RequirePublicApi(['TDSCDMA'], area='TDSCDMA')
+env.RequireRestrictedApi(['TDSCDMA'])
+
+#-------------------------------------------------------------------------------
+# OffTarget/QTF
+#-------------------------------------------------------------------------------
+if 'USES_MOB' in env:
+  env.PublishPrivateApi('TDSCDMA_QTF',[
+     '${TDSCDMA_ROOT}/rrc/test/api',
+	 '${TDSCDMA_ROOT}/rrc/test',
+	 '${TDSCDMA_ROOT}/rrc/test/common',
+	 '${TDSCDMA_ROOT}/l2/test',
+	 '${TDSCDMA_ROOT}/l2/test/common',
+	 '${TDSCDMA_ROOT}/l1/test',
+	 '${TDSCDMA_ROOT}/l1/test/common',
+	 '${TDSCDMA_ROOT}/rrc/inc/ASN1/off_target',
+	 '${TDSCDMA_ROOT}/rrc/inc',
+	 '${TDSCDMA_ROOT}/rrc/src',
+	 '${BUILD_ROOT}/utils/api/osys/rtpersrc',
+	 '${BUILD_ROOT}/utils/api/osys/rtxsrc',
+	 '${BUILD_ROOT}/utils/osys/rtsrc',
+	 '${BUILD_ROOT}/mcs/tcxomgr/inc',
+     ])
+
+  env.RequirePrivateApi('TDSCDMA_QTF')
+
+# Only supported for MOB builds
+# QTF_VIOLATION should be removed after qurt_mutex is used
+if 'USES_MOB' in env:
+  env.RequirePublicApi(['QTF'], area ='MOB')
+  env.RequireRestrictedApi(['MOB'])
+  TDSCMDA_INC_MOB = [
+     '${BUILD_ROOT}/mob/qtf/src',
+	 '${BUILD_ROOT}/mob/rex/inc',
+     ]
+  env.PublishPrivateApi('QTF_VIOLATION', TDSCMDA_INC_MOB)  
+  env.RequirePrivateApi('QTF_VIOLATION')
+
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+env.RequireProtectedApi(['TDSCDMA'])
+
+env.RequirePublicApi([
+               'DAL',
+               'DEBUGTOOLS',
+               'MPROC',
+               'SERVICES',
+               'SYSTEMDRIVERS',
+               'KERNEL',          # needs to be last
+               ], area='core')
+
+
+# Need to get access to Modem Public headers
+env.RequirePublicApi([
+               'ONEX',
+               'MCS',
+               'MPROC',
+               'UTILS',
+               'MMODE',
+               'NAS',
+               'TDSCDMA',
+               ])
+
+# Need to get access to Modem Restricted headers
+env.RequireRestrictedApi([
+               'ONEX',
+               'MCS',
+               'MMODE',
+               'NAS',
+               'LTE',
+               'UTILS',
+               'TDSCDMA',
+               ])
+
+												  
+
+env.LoadSoftwareUnits()

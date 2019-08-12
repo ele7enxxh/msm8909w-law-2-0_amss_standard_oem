@@ -1,0 +1,31 @@
+//============================================================================
+// Pack file for the QC-SCons Build System
+//
+// EDIT HISTORY FOR MODULE
+//
+// $Header: //source/qcom/qct/tools/build/scons/stripnpack/main/latest/su_tools_build_scons.pack#3 $
+// $DateTime: 2012/04/27 13:54:46 $
+//
+//============================================================================
+
+//Ship only the following from ./[PRODUCT_ROOT]/tools/build/scons:
+startCopy
+   ./[PRODUCT_ROOT]/tools/build/scons
+endCopy
+
+//But don't ship:
+startDelete
+   ./[PRODUCT_ROOT]/tools/build/scons/build/setenv.cmd
+   ./[PRODUCT_ROOT]/tools/build/scons/build/setenv.sh
+   ./[PRODUCT_ROOT]/tools/build/scons/tcfg/tools
+endDelete
+
+// Copy setenv files to recompile directory
+startDump
+beginAdd []/modem_proc/tools/build/scons/build
+   ./[PRODUCT_ROOT]/tools/build/scons/build/setenv.cmd
+   ./[PRODUCT_ROOT]/tools/build/scons/build/setenv.sh
+endAdd
+endDump
+
+

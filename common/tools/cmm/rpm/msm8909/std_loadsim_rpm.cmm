@@ -1,0 +1,187 @@
+//============================================================================
+//  Name:                                                                     
+//    std_loadsim_rpm.cmm 
+//
+//  Description:                                                              
+//    Script to load RPM logs
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 09/06/2012 AJCheriyan	Added USB RAM dump support
+// 07/10/2012 AJCheriyan    Created for B-family 
+//
+
+// We support the following arguments
+// ARG0 - Chipset Name. Can be used to setup sub-system according to target if needed 
+// Using this argument should be avoided unless absolutely necessary
+// ARG1 - LOGTYPE 
+// ARG2 - BUILD
+// ARG3 - LOGLOCATION
+
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3
+
+LOCAL &LOGTYPE &BUILD &LOGLOCATION
+MAIN:
+	&LOGTYPE="&ARG1"
+	&BUILD="&ARG2"
+	&LOGLOCATION="&ARG3"
+
+	// Load the memory map
+	do std_memorymap
+
+	// Setup the environment
+	do std_setupenv
+
+	// First, all the sanity checks
+	GOSUB CHECKBINARIES
+
+	// Binaries look good. Else, we wouldn't be here	
+	GOSUB SETUPSIM
+	
+	// Load the binaries
+	GOSUB LOADBIN
+
+	// Load the symbols
+	do std_loadsyms_rpm &BUILD
+
+	// Load the "state" at the time of the crash
+	GOSUB RESTORESTATE
+
+	// Done. Adios. You are on your own now ! 
+	GOTO EXIT
+
+
+// Set the simulator for the processor we want
+SETUPSIM:
+	SYS.CPU CORTEXM3
+	SYS.UP
+
+	RETURN
+
+
+// Checks if the binaries for the system are present in the location
+// Loglocation should not be empty and assumes memory map is loaded
+CHECKBINARIES:
+LOCAL &FILE1 &FILE2 &LOGCLASS
+
+
+	// This is the best place to determine the type of the log too
+	IF ("&LOGTYPE"=="AUTODETECT")
+	(
+	    &LOGCLASS="&LOGTYPE"
+		
+		// Check for both JTAG binaries.	
+		do std_utils FILEXIST EXIT &LOGLOCATION &CODERAM_log
+		ENTRY &FILE1
+	  
+		do std_utils FILEXIST EXIT &LOGLOCATION &DATARAM_log
+	    ENTRY &FILE2
+	    IF (("&FILE1"=="TRUE")&&("&FILE2"=="TRUE"))
+		(
+		     &LOGCLASS="JTAG"
+	    )
+		
+		// Check for both USB binaries.	
+		do std_utils FILEXIST EXIT &LOGLOCATION &CODERAM_USB_log
+		ENTRY &FILE1
+	  
+		do std_utils FILEXIST EXIT &LOGLOCATION &DATARAM_USB_log
+	    ENTRY &FILE2
+	    IF (("&FILE1"=="TRUE")&&("&FILE2"=="TRUE"))
+		(
+		     &LOGCLASS="USB"
+	    )
+
+		// Repeat the same check for USB files
+		// If we even after that, we are stuck with "AUTODETECT" we have a problem
+		IF ("&LOGCLASS"=="AUTODETECT")
+		(
+		    PRINT %ERROR "Neither USB nor JTAG logs present in folder: &LOGLOCATION"
+		    GOTO FATALEXIT
+		)
+		ELSE
+		(
+		    // Safe to change the logtype
+			&LOGTYPE="&LOGCLASS"
+			PRINT "Detected &LOGTYPE logs in folder: &LOGLOCATION"
+		)
+	)
+
+	IF ("&LOGTYPE"=="JTAG")
+	(
+	
+		// Check for both JTAG binaries.	
+		do std_utils FILEXIST EXIT &LOGLOCATION &CODERAM_log
+		ENTRY &FILE1
+	  
+		do std_utils FILEXIST EXIT &LOGLOCATION &DATARAM_log
+	    ENTRY &FILE2
+	    IF (("&FILE1"=="FALSE")||("&FILE2"=="FALSE"))
+		(
+		     PRINT %ERROR "JTAG logs not present in folder: &LOGLOCATION"
+			 GOTO FATALEXIT
+	    )
+	)
+
+	IF ("&LOGTYPE"=="USB")
+	(
+	
+		// Check for both JTAG binaries.	
+		do std_utils FILEXIST EXIT &LOGLOCATION &CODERAM_USB_log
+		ENTRY &FILE1
+	  
+		do std_utils FILEXIST EXIT &LOGLOCATION &DATARAM_USB_log
+	    ENTRY &FILE2
+	    IF (("&FILE1"=="FALSE")||("&FILE2"=="FALSE"))
+		(
+		     PRINT %ERROR "USB logs not present in folder: &LOGLOCATION"
+			 GOTO FATALEXIT
+	    )
+	)
+
+	RETURN
+
+
+// Function that actually loads the binaries
+LOADBIN:
+	IF ("&LOGTYPE"=="JTAG")
+	(
+		do std_utils LOADBIN &LOGLOCATION &CODERAM_log &CODERAM_RPM_start
+		do std_utils LOADBIN &LOGLOCATION &DATARAM_log &DATARAM_RPM_start
+	)
+	IF ("&LOGTYPE"=="USB")
+	(
+		do std_utils LOADBIN &LOGLOCATION &CODERAM_USB_log &CODERAM_RPM_start
+		do std_utils LOADBIN &LOGLOCATION &DATARAM_USB_log &DATARAM_RPM_start
+	)	
+
+	RETURN
+
+
+// Function: RESTORESTATE
+// To load the error information from the saved logs
+RESTORESTATE:
+	// Restore the registers from file if JTAG logs
+	IF ("&LOGTYPE"=="JTAG")
+	(
+	    do std_utils EXECUTESCRIPT FATALEXIT &LOGLOCATION/&RPM_regs
+	)
+
+	RETURN
+
+FATALEXIT:
+	END
+
+EXIT:
+	ENDDO
+
+	

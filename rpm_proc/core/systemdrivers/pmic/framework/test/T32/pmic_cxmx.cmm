@@ -1,0 +1,84 @@
+;============================================================================
+;  Name:
+;    pmic_cxmx.cmm
+;
+;  Description:
+;    JTAG script to Turn ON QFPROM Rails
+;
+;  Copyright (c) 2012 Qualcomm Technologies Incorporated. 
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/rpm.bf/2.1.1/core/systemdrivers/pmic/framework/test/T32/pmic_cxmx.cmm#1 $
+; $DateTime: 2015/02/25 02:53:43 $ $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; --------   ---     --------------------------------------------------------
+; 08/05/12   umr     Initial revision
+;============================================================================;
+
+
+ENTRY &OwnerChannel &Corner
+
+if "&OwnerChannel"=="" 
+(
+  print "Info: Defaulting Owner to RPM!"
+  &OwnerChannel=4
+)
+
+if "&Corner"=="" 
+(
+  print "Info: Defaulting Corner to S Turbo 1.05 V!"
+)
+
+  print "Info: Defaulting to Super Turbo 1.05 V!"
+
+;S1B HF Buck Config to 1.05 V
+
+  ;Range select
+  do spmi_bus.cmm Write &OwnerChannel 5 0x1440 0x0
+  ;Check for error
+
+  ;Config VSET
+  do spmi_bus.cmm Write &OwnerChannel 5 0x1441 0x36
+  ;Check for error
+
+  ;Force PWM
+  do spmi_bus.cmm Write &OwnerChannel 5 0x1445 0x80
+  ;Check for error
+
+  ;Enable Rail
+  do spmi_bus.cmm Write &OwnerChannel 5 0x1446 0x80
+  ;Check for error
+              
+
+;S2B FTS Config to 1.05 V
+
+  ;Range select
+  do spmi_bus.cmm Write &OwnerChannel 5 0x1740 0x0
+  ;Check for error
+
+  ;Config VSET
+  do spmi_bus.cmm Write &OwnerChannel 5 0x1741 0xC2
+  ;Check for error
+
+  ;Force PWM
+  do spmi_bus.cmm Write &OwnerChannel 5 0x1745 0x80
+  ;Check for error
+
+  ;Enable Rail
+  do spmi_bus.cmm Write &OwnerChannel 5 0x1746 0x80
+  ;Check for error
+             
+            
+EXIT:
+  ENDDO
+
+FATALEXIT:
+  END
+              
+

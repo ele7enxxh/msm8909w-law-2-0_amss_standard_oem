@@ -1,0 +1,64 @@
+#===============================================================================
+#
+# Boot Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/rpm/dev/tomwang.rpm_ddr_126_fix/core/boot/build/SConscript#1 $
+#  $DateTime: 2012/04/04 12:41:53 $
+#  $Author: coresvc $
+#  $Change: 2321954 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/19/12   tw      Added support for QDSS SWEVENT logging
+# 04/05/12   tw      Initial implementation for 8974
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Publish Protected APIs
+#-------------------------------------------------------------------------------
+env.PublishProtectedApi('BOOT', [     
+   "${INC_ROOT}/core/boot/ddr/common",
+])
+
+#-------------------------------------------------------------------------------
+# SWEvent processing
+#-------------------------------------------------------------------------------
+if 'USES_QDSS_SWE' in env:
+   QDSS_IMG = ['QDSS_EN_IMG']
+   events = [
+             ['DDR_EVENT_FIRST=1','ddr first event placeholder'],
+             ['DDR_EVENT_BIMC_SR_ENTRY_IDLE','ddr enter self refresh idle: %x,%x,%x,%x'],
+             ['DDR_EVENT_BIMC_SR_ENTRY_ASAP','ddr enter self refresh asap: %x,%x,%x,%x'],
+             ['DDR_EVENT_BIMC_SR_EXIT','ddr exit self refresh: %x,%x,%x,%x'],
+             ['DDR_EVENT_BIMC_DPD_ENTRY','ddr deep power down entry: %x,%x,%x,%x'],
+             ['DDR_EVENT_BIMC_DPD_EXIT','ddr deep power down exit: %x,%x,%x,%x'],
+             ['DDR_EVENT_BIMC_PASR_UPDATE','ddr partial array self refresh update: %x,%x,%x,%x'],
+             ['DDR_EVENT_BIMC_PWR_COLLAPSE_ENTRY','ddr bimc power collapse entry: %x,%x,%x,%x'],
+             ['DDR_EVENT_BIMC_PWR_COLLAPSE_EXIT','ddr bimc power collapse exit: %x,%x,%x,%x'],
+             ['DDR_EVENT_BIMC_PRE_CLK_SWITCH','ddr bimc pre clock switch: %x,%x,%x,%x'],
+             ['DDR_EVENT_BIMC_POST_CLK_SWITCH','ddr bimc post clock switch: %x,%x,%x,%x'],
+             ['DDR_EVENT_DDR_DRIVER_ERROR_FATAL','ddr error fatal: %x,%x,%x,%x'],
+             ['DDR_EVENT_LAST=63','ddr last event placeholder']
+            ]
+   env.AddSWEInfo(QDSS_IMG, events)
+
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

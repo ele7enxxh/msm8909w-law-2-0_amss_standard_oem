@@ -1,0 +1,178 @@
+#===============================================================================
+#
+# MODEM_CFG Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2013 by QUALCOMM Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcfg/mcfg_gen/build/mcfg_gen.scons#1 $
+#  $DateTime: 2016/12/13 07:58:21 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/14/12   sbt     Initial creation
+#===============================================================================
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+import os
+import re
+
+#--------------------------------------------------------------------------------
+# Required Public, Restricted & Protected APIs
+#--------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../'
+perl_found = False
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# paths are default files if no carrier or hardware is specified, otherwise
+# carrier/hardware names are used to locate files
+
+sw_product  = ARGUMENTS.get('MCFG_SW_PRODUCT', 'generic/common/Default')
+hw_product  = ARGUMENTS.get('MCFG_HW_PRODUCT', 'generic/common/Default')
+
+mcfgSwType        = ARGUMENTS.get('MCFG_SW_TYPE', 'Default')
+mcfgSwFilename    = 'mcfg_sw_gen_Default.c'
+mcfgXMLSwFilename = 'mcfg_sw_gen_Default.xml'
+
+mcfgHwType        = ARGUMENTS.get('MCFG_HW_TYPE', 'Default')
+mcfgHwFilename    = 'mcfg_hw_gen_Default.c'
+mcfgXMLHwFilename = 'mcfg_sw_gen_Default.xml'
+
+
+(inp, outp) = os.popen4('perl -v')
+output = outp.read()
+if output.find("This is perl") == -1:
+  print "-------------------------------------------------------------------------"
+  print "Warning: Perl not found in path, use pre-generated mcfg files"
+  print "-------------------------------------------------------------------------"
+
+  MCFG_SW_GEN_SOURCES = ['${BUILDPATH}/src/'+mcfgSwFilename]
+  MCFG_HW_GEN_SOURCES = ['${BUILDPATH}/src/'+mcfgHwFilename]
+  MCFG_SW_GEN_DEVCFG_C = '${BUILD_ROOT}/mcfg/mcfg_gen/src/mcfg_sw_gen_devcfg.c'
+  MCFG_HW_GEN_DEVCFG_C = '${BUILD_ROOT}/mcfg/mcfg_gen/src/mcfg_hw_gen_devcfg.c'
+else:
+  (inp, outp) = os.popen4('perl -MXML::Parser -e 1')
+  output2 = outp.read()
+  if output2.find("Can't locate") > -1:  
+    print "-------------------------------------------------------------------------------------"
+    print "  Warning: Perl module XML::Parser not found in path, use pre-generated mcfg files"
+    print "-------------------------------------------------------------------------------------"
+  
+    MCFG_SW_GEN_SOURCES = ['${BUILDPATH}/src/'+mcfgSwFilename]
+    MCFG_HW_GEN_SOURCES = ['${BUILDPATH}/src/'+mcfgHwFilename]
+    MCFG_SW_GEN_DEVCFG_C = '${BUILD_ROOT}/mcfg/mcfg_gen/src/mcfg_sw_gen_devcfg.c'
+    MCFG_HW_GEN_DEVCFG_C = '${BUILD_ROOT}/mcfg/mcfg_gen/src/mcfg_hw_gen_devcfg.c'
+  else:
+    perl_ver = re.search(r"v\d+\.\d+\.\d+", output)
+    print "--------------------------------------------------------------------------------"
+    print "  Perl " + perl_ver.group(0) + " found in path, use xml to generate mcfg files"
+    print "--------------------------------------------------------------------------------"
+    perl_found = True
+	
+    #-------------------------------------------------------------------------------
+    # Set up string for mcfg generate command. This will be used to convert XML
+    # configs to c files before they are converted to mbns
+    #-------------------------------------------------------------------------------
+    MCFG_GENERATE  = 'perl ${BUILD_ROOT}/mcfg/mcfg_gen/scripts/mcfg_generate.pl -i $SOURCE -o $TARGET -b ${BUILD_ROOT}/../ -xml'
+    MCFG_GENERATE_DEVCFG = 'perl ${BUILD_ROOT}/mcfg/mcfg_gen/scripts/mcfg_def_generate.pl -i $SOURCE -o $TARGET -b ${BUILD_ROOT}/../ -xml'
+   
+    if mcfgSwType != 0:
+    	mcfgSwFilename = 'mcfg_sw_gen_' + mcfgSwType + '.c'
+    	mcfgXMLSwFilename = 'mcfg_sw_gen_' + mcfgSwType + '.xml'
+    
+    if mcfgHwType != 0:
+    	mcfgHwFilename = 'mcfg_hw_gen_' + mcfgHwType + '.c'
+    	mcfgXMLHwFilename = 'mcfg_hw_gen_' + mcfgHwType + '.xml'
+    
+    # Create commands which produces c file from XML file
+    mcfgSwXMLTarget = env.Command("${BUILDPATH}/" + sw_product + "/" + mcfgSwFilename, "${BUILDPATH}/" + sw_product + "/" + mcfgXMLSwFilename, MCFG_GENERATE)
+    mcfgHwXMLTarget = env.Command("${BUILDPATH}/" + hw_product + "/" + mcfgHwFilename, "${BUILDPATH}/" + hw_product + "/" + mcfgXMLHwFilename, MCFG_GENERATE)
+    
+    # If no config type is specified, we want to remove all generated
+    # object and .c files when a clean is performed
+    #if mcfgSwType == 0:
+    env.Clean(mcfgSwXMLTarget, env.Glob("${BUILDPATH}/" + sw_product + "/*.[oc]"))
+    #if mcfgHwType == 0:
+    env.Clean(mcfgHwXMLTarget, env.Glob("${BUILDPATH}/" + hw_product + "/*.[oc]"))
+    
+    mcfgSwDevCfg = env.Command("${BUILDPATH}/src/mcfg_sw_gen_devcfg.c",
+                               "${BUILDPATH}/" + sw_product + "/" + mcfgXMLSwFilename,
+                               MCFG_GENERATE_DEVCFG)
+    mcfgHwDevCfg = env.Command("${BUILDPATH}/src/mcfg_hw_gen_devcfg.c",
+                               "${BUILDPATH}/" + hw_product + "/" + mcfgXMLHwFilename,
+                               MCFG_GENERATE_DEVCFG)
+    
+    MCFG_SW_GEN_SOURCES = [
+    	mcfgSwXMLTarget, 
+    ]
+    
+    MCFG_HW_GEN_SOURCES = [
+    	mcfgHwXMLTarget, 
+    ]
+    
+    MCFG_SW_GEN_DEVCFG_C = str(mcfgSwDevCfg[0])
+    MCFG_HW_GEN_DEVCFG_C = str(mcfgHwDevCfg[0])
+   
+
+# Add our library to the MODEM_CFG_SW image
+env.AddLibrary(['MCFG_SW'], '${BUILDPATH}/mcfg_gen', MCFG_SW_GEN_SOURCES)
+
+# Add our library to the MODEM_CFG_HW image
+env.AddLibrary(['MCFG_HW'], '${BUILDPATH}/mcfg_gen', MCFG_HW_GEN_SOURCES)
+
+if 'USES_GNSS_SA' not in env:
+  if 'USES_DEVCFG' in env:
+    DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+    env.AddDevCfgInfo(DEVCFG_IMG, 
+    {
+      'soc_xml' : ['${BUILD_ROOT}/mcfg/mcfg_gen/src/mcfg_sw_gen_devcfg.xml',
+                 MCFG_SW_GEN_DEVCFG_C]
+    })
+
+    env.AddDevCfgInfo(DEVCFG_IMG, 
+    {
+      'soc_xml' : ['${BUILD_ROOT}/mcfg/mcfg_gen/src/mcfg_hw_gen_devcfg.xml',
+                 MCFG_HW_GEN_DEVCFG_C]
+    })
+
+  # Add our MultiMBN library to the MPSS image
+  if 'USES_MCFG_MULTI_MBN' in env:
+    if perl_found:
+      MCFG_GENERATE_MULTI = 'perl ${BUILD_ROOT}/mcfg/mcfg_gen/scripts/mcfg_multi_generate.pl -i $SOURCE -o $TARGET -b ${BUILD_ROOT}/../ -xml'
+      mcfgMultiMBNXMLTarget = env.Command("${BUILDPATH}/mcfg_mutil_mbn_generated.c", "${BUILDPATH}/generic/common/MultiMbn/mcfg_sw_gen_multi_mbn.xml", MCFG_GENERATE_MULTI)
+  
+      env.Clean(mcfgMultiMBNXMLTarget, env.Glob("${BUILDPATH}/" + "/*.[oc]"))
+  
+      MCFG_MULTIMBN_SOURCES = [mcfgMultiMBNXMLTarget, ]
+    else:
+      print "-------------------------------------------------------------------------------------"
+      print "  Warning: Perl module XML::Parser not found in path, use pre-generated multiMBN files"
+      print "-------------------------------------------------------------------------------------"
+      MCFG_MULTIMBN_SOURCES = ["${BUILD_ROOT}/mcfg/mcfg_gen/src/mcfg_mutil_mbn_generated.c"]
+
+    env.AddLibrary(['MODEM_MODEM'], '${BUILDPATH}/mcfg_gen', MCFG_MULTIMBN_SOURCES)

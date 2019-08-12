@@ -1,0 +1,63 @@
+#===============================================================================
+#
+# Boot Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2009-2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/boot/build/boot.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/05/12   kpa     Initial.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+#---------------------------------------------------------------------------
+# Set up the rules for document building for Boot API
+#---------------------------------------------------------------------------
+env['DOCREVISION']="80-0000 Rev A"
+env['DOCTITLE']="BOOT API (QFPROM)"
+
+DOCSRCPATH = "${BUILD_ROOT}/core/api/boot"
+env.Replace(DOCSRCPATH = DOCSRCPATH)
+
+#---------------------------------------------------------------------------
+# List of Header files relevant to the Boot API 
+#---------------------------------------------------------------------------
+qfprom_api_docs = [
+    '${DOCSRCPATH}/qfprom/qfprom.h', 
+    '${DOCSRCPATH}/docsrc/qfprom/qfprom_mainpage.h',
+    '${DOCSRCPATH}/docsrc/introduction.tex',
+    '${DOCSRCPATH}/docsrc/overview.tex',
+     ]
+
+#---------------------------------------------------------------------------
+# Finally call the builder with the name of the document. The Boot API documents
+# can be found under \core\api\doc if the coredocs are built.
+#---------------------------------------------------------------------------
+try:
+   target_doc = env.AddDocument('CORE_DOCS','QFPROM_API', qfprom_api_docs)
+
+except:
+   pass
+

@@ -1,0 +1,95 @@
+#===============================================================================
+#
+# DAL Framework Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009 - 2012 Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/dev/jjayanna.8064_dirChanges/boot_images/core/dal/framework/build/SConscript#1 $
+#  $DateTime: 2011/09/12 12:03:52 $
+#  $Author: coresvc $
+#  $Change: 1925291 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/04/12   aa      Initial DalFwk Support for BOOTLOADERS2.0
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+
+if env.has_key('BUILD_BOOT_CHAIN'):
+   # do not define DAL_CONFIG_MMU_SCHEME if PROC is ARM7
+   if not env['PROC'] == 'arm7':
+      env.Append(CPPDEFINES = ["DAL_CONFIG_MMU_SCHEME=DAL_CONFIG_MMU_SCHEME_QCOM_BOOT"])
+if env.has_key('BUILD_TOOL_CHAIN'):
+   env.Append(CPPDEFINES = ["DAL_CONFIG_MMU_SCHEME=DAL_CONFIG_MMU_SCHEME_NONE"])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${DAL_ROOT}/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DEBUGTOOLS',
+   'DAL',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   # needs to be last also contains wrong comdef.h      
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireRestrictedApi('DAL')
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+
+# define flag to determine which busy wait to be invoked
+env.Append(CPPDEFINES = ["DAL_SYSDRV_BUSYWAIT"])
+if env.PathExists("${BUILD_ROOT}/core/api/debugtools/err.h"):
+   env.Append(CPPDEFINES = ["DAL_ERR_LOG"])
+
+
+DALFW_SOURCES =  [
+      '${BUILDPATH}/DALQueue.c',
+      '${BUILDPATH}/DALGlbCtxt.c',
+      '${BUILDPATH}/dalfwkbase.c',
+      '${BUILDPATH}/DALMemDesc.c',
+      '${BUILDPATH}/dal_asm_wrap.c',
+      '${BUILDPATH}/DALModEnv.c',
+      '${BUILDPATH}/DALHeap.c',
+      '${BUILDPATH}/DALProps.c',
+      '${BUILDPATH}/dal_asm_rvct.s',
+   ]
+   
+dalfw_obj = env.Object(DALFW_SOURCES)
+dalfw_lib = env.Library('${BUILDPATH}/DALFwk', dalfw_obj)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage(['DAL_BOOT_DRIVER','NAND_TOOLS_IMAGE', 'NOR_TOOLS_IMAGE', 'HOSTDL_IMAGE', 
+  'EHOSTDL_IMAGE', 'DEVICEPROGRAMMER_NAND_IMAGE'], [dalfw_lib])
+#-------------------------------------------------------------------------------
+# Load Subunits (sys)
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

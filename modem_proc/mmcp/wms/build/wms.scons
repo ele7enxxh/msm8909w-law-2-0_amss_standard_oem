@@ -1,0 +1,283 @@
+# --------------------------------------------------------------------------- #
+#
+# WMS Component Build Configuration
+#
+# GENERAL DESCRIPTION
+#   SCons Build Script
+#
+# Copyright (c) 2010-2013 QUALCOMM Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+# $Header$
+# $DateTime$
+# $Author$
+# --------------------------------------------------------------------------- #
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+# --------------------------------------------------------------------------- #
+# Verify the USES flag...
+# This step is not needed because WMS does not use this flag 				      
+# --------------------------------------------------------------------------- #
+#if 'USES_WMS' not in env:
+#    Return()
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-----------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-----------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_WMS",
+])
+
+# ------------------------------------------------------------------------------
+# Publish private API's (local search path)  
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('WMS_INC', [ 
+    "${MMCP_ROOT}/wms/src/WMSE",
+    "${MMCP_ROOT}/wms/src/CMCNas/inc",
+    "${MMCP_ROOT}/wms/src/qmi_wms/inc",
+    "${MMCP_ROOT}/wms/inc_deprecated",
+    "${MMCP_ROOT}/api",
+    "${MMCP_ROOT}/wms/test/inc",
+])
+
+#-----------------------------------------
+# Core Public API's
+#-----------------------------------------
+CORE_APIS = [
+   'DAL',
+   'MPROC',
+   'POWER',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+]
+env.RequirePublicApi(CORE_APIS, area="core")
+
+env.RequirePublicApi(['AUDIO'], area="multimedia")
+env.RequirePublicApi(['MVS'], area="multimedia")
+
+env.RequirePublicApi(['WMS'], area='API')
+
+#-----------------------------------------
+# MODEM Public API's
+#-----------------------------------------
+WMS_PUBLIC_API_LIST = [
+   ('CORE',    'BUSES'),
+   ('CORE',    'POWER'),
+   ('UTILS',   'OSYS'),
+   ('UTILS',   'A2'),
+   ('AVS',     'MVS'),
+   ('UIM',     'UIM'),
+   ('MPOWER',  'MPOWER'),
+   ('WCDMA',   'WCDMA'),
+   ('FW',      'WCDMA'),
+   ('TDSCDMA', 'TDSCDMA'),
+   ('MCFG',    'MCFG'),
+]
+
+for api_area,api_name in WMS_PUBLIC_API_LIST:
+     env.RequirePublicApi([api_name], area=api_area)
+
+env.RequirePublicApi(['MCFG'], area='API')
+
+MODEM_APIS = [
+   'WMS',
+   'ONEX',
+   'GERAN',
+   'LTE',
+   'MCS',
+   'MMODE',
+   'NAS',
+   'PBM',
+   'UIM',
+   'WCDMA',
+   'DATA',
+   'GPS',
+   'CNE',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+env.RequirePublicApi(MODEM_APIS)
+
+#-----------------------------------------
+# MODEM Restrict API's
+#-----------------------------------------
+MODEM_RESTRICTED_APIS = [
+   'WMS',
+   'ONEX',
+   'MCS',
+   'DSM',
+   'MMODE',
+   'CM',
+   'NAS',
+   'PBM',
+   'UIM',
+   'UTILS',
+   'WCDMA',
+   'DATA',
+   'GPS',
+   'CNE',
+   'LTE', 
+]
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# QTF Test headers
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('WMS_QTF', ['$(MMCP_ROOT)/wms/test/inc'])
+env.RequirePrivateApi('WMS_QTF')
+env.RequirePublicApi('QTF', area='MOB')
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+WMS_SOURCES = [
+    '${BUILDPATH}/qmi_wms/src/qmi_wms.c',
+    '${BUILDPATH}/CMCNas/src/CMCNas_MN.c',
+    '${BUILDPATH}/WMSE/wms.c',
+    '${BUILDPATH}/WMSE/wmsbc.c',
+    '${BUILDPATH}/WMSE/wmscfg.c',
+    '${BUILDPATH}/WMSE/wmscl.c',
+    '${BUILDPATH}/WMSE/wmscm.c',
+    '${BUILDPATH}/WMSE/wmscm_gw.c',
+    '${BUILDPATH}/WMSE/wmsdbg.c',
+    '${BUILDPATH}/WMSE/wmsdc.c',
+    '${BUILDPATH}/WMSE/wmsdiag.c',
+    '${BUILDPATH}/WMSE/wmsmsg.c',
+    '${BUILDPATH}/WMSE/wmsnv.c',
+    '${BUILDPATH}/WMSE/wmssim.c',
+    '${BUILDPATH}/WMSE/wmsts.c',
+    '${BUILDPATH}/WMSE/wmstscdma.c',
+    '${BUILDPATH}/WMSE/wmstsi.c',
+    '${BUILDPATH}/WMSE/wmsutils.c',
+    '${BUILDPATH}/qmi_wms/src/wireless_messaging_service_impl_v01.c',
+    '${BUILDPATH}/qmi_wms/src/qmi_wms_crit_sect_rex.c',
+    '${BUILDPATH}/qmi_wms/src/qmi_wms_task.c',
+    '${BUILDPATH}/qmi_wms/src/qmi_wms_task_svc.c',
+    '${BUILDPATH}/qmi_wms/src/qmi_wms_taski.c'
+]
+
+# Ship code as source and add the binary library to MODEM image
+env.AddLibrary(['MODEM_MODEM', 'MOB_WMS'], '${BUILDPATH}/wms', WMS_SOURCES)
+
+if 'USES_MSGR' in env:
+    env.AddUMID('${BUILDPATH}/wms_msgr.umid', ['../inc_deprecated/wms_msgr_msg.h'])
+
+
+# --------------------------------------------------------------------------- #
+#                           RCInit framework                                  #
+# --------------------------------------------------------------------------- #
+
+# Build products for RCINIT
+RCINIT_WMS_BUILD_TAG = ['MODEM_MODEM', 'MOB_WMS'] # modem
+
+# RCInit: Initialization function descriptor for WMS
+# This entry defines the function to be called to initialize WMS data
+# structures before the task is started.  The function associated with
+# 'init_function' is called during the initialization phase of RCInit.
+RCINIT_WMS_INIT_FUNC = {
+   'sequence_group' : env.subst('$MODEM_UPPERLAYER'),       # 'RCINIT_GROUP_5'
+   'init_name'      : 'wms_init',
+   'init_function'  : 'wms_init_before_task_start',
+   #'dependencies'  : ['one,two,three'],                    # optional [python list]
+   'policy_optin'        : ['default', 'ftm', ],
+}
+
+# RCInit: Task descriptor for WMS (compile-time provisioning information)
+# This entry defines the task parameters that will be used by RCInit to
+# start the WMS task.  The task will be started once ALL of the initialization
+# functions within the sequence group have been completed.
+RCINIT_WMS_TASK_FUNC = {
+   'thread_name'         : 'wms',
+   'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),  # 'RCINIT_GROUP_5'
+   'stack_size_bytes'    : env.subst('$WMS_STKSZ'),
+   'priority_amss_order' : 'WMS_PRI_ORDER',
+   'stack_name'          : 'wms_stack',                     # opt, defaults to '<thread_name>_stack'
+   'thread_entry'        : 'wms_task',                      # opt, defaults to '<thread_name>_task'
+   'tcb_name'            : 'wms_tcb',                       # opt, defaults to '<thread_name>_tcb'
+   'cpu_affinity'        : env.subst('$MODEM_CPU_AFFINITY'), # opt, REX_ANY_CPU_AFFINITY_MASK or
+   'policy_optin'        : ['default', 'ftm', ],
+                                                            #      REX_SINGLE_CPU_AFFINITY_MASK
+}
+
+if 'USES_MODEM_RCINIT' in env:
+   # Add the init and task definitions to the RCInit framework.
+   # These entries will be used to generate sections in rcinit_autogen.c
+   env.PrintDebugInfo('wms', "RCINIT has been enabled in WMS")
+   env.AddRCInitFunc(RCINIT_WMS_BUILD_TAG, RCINIT_WMS_INIT_FUNC)
+   env.AddRCInitTask(RCINIT_WMS_BUILD_TAG, RCINIT_WMS_TASK_FUNC)
+else:
+   env.PrintDebugInfo('wms', "RCINIT has NOT been enabled in WMS")
+
+   
+# Build products for RCINIT
+RCINIT_QMI_WMS_BUILD_TAG = ['MODEM_MODEM', 'MOB_WMS'] # modem
+
+# RCInit: Initialization function descriptor for QMI_WMS
+# This entry defines the function to be called to initialize QMI_WMS data
+# structures before the task is started.  The function associated with
+# 'init_function' is called during the initialization phase of RCInit.
+RCINIT_QMI_WMS_INIT_FUNC = {
+   'sequence_group' : env.subst('$MODEM_UPPERLAYER'),       # 'RCINIT_GROUP_5'
+   'init_name'      : 'qmi_wms_init',
+   'init_function'  : 'qmi_wms_init_before_task_start',
+   #'dependencies'  : ['one,two,three'],                    # optional [python list]
+   'policy_optin'        : ['default', 'ftm', ],
+}
+
+# RCInit: Task descriptor for QMI_WMS (compile-time provisioning information)
+# This entry defines the task parameters that will be used by RCInit to
+# start the QMI_WMS task.  The task will be started once ALL of the initialization
+# functions within the sequence group have been completed.
+RCINIT_QMI_WMS_TASK_FUNC = {
+   'thread_name'         : 'qmi_wms',
+   'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),  # 'RCINIT_GROUP_5'
+   'stack_size_bytes'    : env.subst('$WMS_STKSZ'),
+   'priority_amss_order' : 'WMS_PRI_ORDER',
+   'stack_name'          : 'qmi_wms_stack',                     # opt, defaults to '<thread_name>_stack'
+   'thread_entry'        : 'qmi_wms_task',                      # opt, defaults to '<thread_name>_task'
+   'tcb_name'            : 'qmi_wms_tcb',                       # opt, defaults to '<thread_name>_tcb'
+   'cpu_affinity'        : env.subst('$MODEM_CPU_AFFINITY'), # opt, REX_ANY_CPU_AFFINITY_MASK or
+   'policy_optin'        : ['default', 'ftm', ],
+                                                            #      REX_SINGLE_CPU_AFFINITY_MASK
+}
+
+if 'USES_MODEM_RCINIT' in env:
+   # Add the init and task definitions to the RCInit framework.
+   # These entries will be used to generate sections in rcinit_autogen.c
+   env.PrintDebugInfo('wms', "RCINIT has been enabled in QMI_WMS")
+   env.AddRCInitFunc(RCINIT_QMI_WMS_BUILD_TAG, RCINIT_QMI_WMS_INIT_FUNC)
+   env.AddRCInitTask(RCINIT_QMI_WMS_BUILD_TAG, RCINIT_QMI_WMS_TASK_FUNC)
+else:
+   env.PrintDebugInfo('wms', "RCINIT has NOT been enabled in QMI_WMS")
+
+# Load the test module
+env.LoadSoftwareUnits()

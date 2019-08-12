@@ -1,0 +1,93 @@
+#===============================================================================
+#
+# HAL CLK LIBRARY
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2014 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/hal/clk/build/halclk.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+HAL_CLK_BUILD_ROOT = os.getcwd();
+
+env.PublishPrivateApi("SYSTEMDRIVERS_HAL_CLK_COMMON", [
+  HAL_CLK_BUILD_ROOT + "/../inc",
+  HAL_CLK_BUILD_ROOT + "/../src",
+  HAL_CLK_BUILD_ROOT + "/../hw/v1",
+])
+
+#-------------------------------------------------------------------------------
+# Sources: HALClock Library Creation
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(
+   ['CORE_MODEM'],
+   '${BUILDPATH}/HALclk', 
+   [ '${BUILDPATH}/src/HALclk.c' ])
+
+env.AddLibrary(
+   ['CORE_MODEM'],
+   '${BUILDPATH}/HALclk_hw_v1', 
+   [ '${BUILDPATH}/hw/v1/HALclkGeneric.c',
+     '${BUILDPATH}/hw/v1/HALclkGenericPLL.c',
+     '${BUILDPATH}/hw/v1/HALclkSRPLL.c',
+     '${BUILDPATH}/hw/v1/HALclkStromerPLL.c' ])
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+
+# Remove target hw files
+ALL_HW_FILES = env.FindFiles(
+  ['*'],
+  '../hw/')
+SHARED_HW_FILES = env.FindFiles(
+  ['*'],
+  '../hw/v1/')
+MY_HW_FILES = env.FindFiles(
+  ['*'],
+  '../hw/${CHIPSET}')
+PACK_HW_FILES = list(set(ALL_HW_FILES) - set(SHARED_HW_FILES) - set(MY_HW_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_HW_FILES)
+
+#-------------------------------------------------------------------------------
+# Invoke chipset build file
+#-------------------------------------------------------------------------------
+
+env.SConscript('../hw/${CHIPSET}/build/halclk_chipset.scons', exports='env')
+

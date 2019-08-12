@@ -1,0 +1,213 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/datacommon/dss/rel/10.02.02/build/datacommon_dss.scons#3 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env or 'USES_DATAMODEM_DSS' not in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+
+#-------------------------------------------------------------------------------
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#-------------------------------------------------------------------------------
+REQUIRED_NON_SCONS_APIS = [
+    'WCONNECT', 
+    'BREW',    
+    ]
+
+if REQUIRED_NON_SCONS_APIS != []:
+  env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+DATAMODEM_DSS_COMMON_SOURCES = [
+    '${BUILDPATH}/src/dss_init.c',
+    '${BUILDPATH}/src/dss_net_mgr.c',
+    '${BUILDPATH}/src/ps_sock_mem_pool.cpp',
+    '${BUILDPATH}/src/DSS_ApnParamChangedHandler.cpp',
+    '${BUILDPATH}/src/DSS_BearerTechHandler.cpp',
+    '${BUILDPATH}/src/DSS_BearerTechExHandler.cpp',    
+    '${BUILDPATH}/src/DSS_Conversion.cpp',
+    '${BUILDPATH}/src/DSS_EventHandler.cpp',
+    '${BUILDPATH}/src/DSS_EventHandlerNetApp.cpp',
+    '${BUILDPATH}/src/DSS_EventHandlerQoS.cpp',
+    '${BUILDPATH}/src/DSS_ExtendedIPConfigHandler.cpp',
+    '${BUILDPATH}/src/DSS_ExtendedIPConfigExHandler.cpp',
+    '${BUILDPATH}/src/DSS_FastDormStatusHandler.cpp',
+    '${BUILDPATH}/src/DSS_Globals.cpp',
+    '${BUILDPATH}/src/DSS_MCast.cpp',
+    '${BUILDPATH}/src/DSS_NetApp.cpp',
+    '${BUILDPATH}/src/DSS_NetActive.cpp',
+    '${BUILDPATH}/src/DSS_NetMonitored.cpp',
+    '${BUILDPATH}/src/DSS_NetDSAPI.cpp',
+    '${BUILDPATH}/src/DSS_NetIOCTLDSAPI.cpp',
+    '${BUILDPATH}/src/DSS_NetQoSDefault.cpp',
+    '${BUILDPATH}/src/DSS_NetQoSSecondary.cpp',
+    '${BUILDPATH}/src/DSS_NetworkIPHandler.cpp',
+    '${BUILDPATH}/src/DSS_NetworkStateHandler.cpp',
+    '${BUILDPATH}/src/DSS_OutageHandler.cpp',
+    '${BUILDPATH}/src/DSS_PhysLinkStateHandler.cpp',
+    '${BUILDPATH}/src/DSS_QoSHandler.cpp',
+    '${BUILDPATH}/src/DSS_RFConditionsHandler.cpp',
+    '${BUILDPATH}/src/DSS_Socket.cpp',
+    '${BUILDPATH}/src/DSS_dsapi.cpp',
+    '${BUILDPATH}/src/DSS_EventHandlerMCast.cpp',
+    '${BUILDPATH}/src/DSS_EventHandlerMCastMBMSCtrl.cpp',
+    '${BUILDPATH}/src/DSS_MCastMBMSCtrlHandler.cpp',
+    '${BUILDPATH}/src/DSS_MTPDRequestHandler.cpp',
+    '${BUILDPATH}/src/DSS_NetMCastMBMSCtrl.cpp',
+    '${BUILDPATH}/src/DSS_PrimaryQoSModifyHandler.cpp',
+    '${BUILDPATH}/src/DSS_PrimaryQoSModifyStatusHandler.cpp',
+    '${BUILDPATH}/src/DSS_QoSAwareUnAwareHandler.cpp',
+    '${BUILDPATH}/src/DSS_QoSInfoCodeUpdatedHandler.cpp',
+    '${BUILDPATH}/src/DSS_QoSModifyHandler.cpp',
+    '${BUILDPATH}/src/DSS_HDRRev0RateInteriaHandler.cpp',
+    '${BUILDPATH}/src/DSS_MCastRegisterHandler_1_0.cpp',
+    '${BUILDPATH}/src/DSS_MCastRegisterHandler_2_0.cpp',
+    '${BUILDPATH}/src/DSS_MCastStatusHandler.cpp',
+    '${BUILDPATH}/src/DSS_QoSProfileChangedHandler.cpp',
+    '${BUILDPATH}/src/DSS_SlottedResultHandler.cpp',
+    '${BUILDPATH}/src/DSS_SlottedSessionChangedHandler.cpp',
+    '${BUILDPATH}/src/DSS_MemoryManagement.cpp',
+    '${BUILDPATH}/src/DSS_GenScope.cpp',
+    '${BUILDPATH}/src/DSS_PrivIpv6Addr.cpp',
+    '${BUILDPATH}/src/DSS_EventHandlerPrivIPV6Addr.cpp',
+    '${BUILDPATH}/src/DSS_PrivIpv6AddrHandler.cpp',
+    '${BUILDPATH}/src/DSS_IPv6PrefixChangedStateHandler.cpp',
+    '${BUILDPATH}/src/DSS_QoSRequestExScope.cpp',
+    '${BUILDPATH}/src/DSS_EventHandlerQoSNetInitiatedReq.cpp',
+    '${BUILDPATH}/src/DSS_QoSNetInitiated.cpp',
+    '${BUILDPATH}/src/DSS_QoSNetInitiatedReq.cpp',
+    '${BUILDPATH}/src/DSS_QoSNetInitiatedReqHandler.cpp',
+    '${BUILDPATH}/src/DSS_EventHandlerNetActive.cpp',
+    '${BUILDPATH}/src/DSS_IfaceId.cpp',
+    '${BUILDPATH}/src/DSS_NetworkExtIPv6DelAddrHandler.cpp',
+    '${BUILDPATH}/src/DSS_HandoffInitHandler.cpp',
+    '${BUILDPATH}/src/DSS_HandoffFailureHandler.cpp',
+    '${BUILDPATH}/src/DSS_HandoffSuccessHandler.cpp',
+    ]
+
+DATAMODEM_DSS_AMSS_C_SOURCES = [
+    '${BUILDPATH}/src/dss_stubs.c',
+    '${BUILDPATH}/src/ps_stat_sock.c',
+    ]
+
+## PING shipped as source
+if 'USES_DATAMODEM_DSS_PING' in env:
+    DATAMODEM_DSS_PING_SOURCES = [
+      '${BUILDPATH}/src/dss_ping.c',
+      '${BUILDPATH}/src/dss_ping_comm_mgr.c',
+    ]
+	    
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/dss', [DATAMODEM_DSS_COMMON_SOURCES, DATAMODEM_DSS_AMSS_C_SOURCES, DATAMODEM_DSS_PING_SOURCES])
+     

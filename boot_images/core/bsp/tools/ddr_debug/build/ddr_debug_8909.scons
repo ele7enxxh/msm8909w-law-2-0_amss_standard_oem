@@ -1,0 +1,414 @@
+#===============================================================================
+#
+# DDR DEBUG build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/21/15   yps      Add support pm8916 for DDI
+# 09/09/13   yps      Initial reversion
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# Alias - first alias is always the target then the other possibles aliases
+aliases = ['ddr_debug']
+
+env.InitImageVars(
+   alias_list = aliases,               # list of aliases, unique name index [0]
+   proc = 'Cortex-A7',                       # proc settings
+   config = 'apps',                    # config settings
+   build_tags = [                      # list of build tags for sub lib scripts
+   
+   # driver aliases
+   'SDCC_BOOT_DRIVER',
+   'HOTPLUG_BOOT_DRIVER',
+   'FS_BOOT_DRIVER',
+   'EFS_COOKIE_BOOT_DRIVER',
+   'KERNEL_BOOT_DRIVER',
+   'ERR_STUBS_BOOT_DRIVER',
+   'ERR_RESET_DETECT_BOOT_DRIVER',
+   'CHIPINFO_BOOT_DRIVER',
+   'PLATFORMINFO_BOOT_DRIVER',
+   'SMEM_BOOT_DRIVER',
+   'DAL_BOOT_DRIVER',
+   'UTILS_BOOT_DRIVER',
+   'BUSYWAIT_BOOT_DRIVER',
+   'HSUSB_BOOT_DRIVER',
+   'SPMI_BOOT_DRIVER',
+   'BUSES_AHB_BOOT_DRIVER',
+   'TLMM_BOOT_DRIVER',
+   'HWIO_BOOT_DRIVER',
+   'CLOCK_BOOT_DRIVER',
+   'PMIC_BOOT_DRIVER',
+   'DDR_BOOT_DRIVER',
+   'I2C_BOOT_DRIVER',
+   'XPU_HAL_BOOT_DRIVER',
+   'M2VMT_HAL_BOOT_DRIVER',
+   'DAL_DEVCFG_IMG', 
+   'TSENS_BOOT_DRIVER',
+   'ADC_BOOT_DRIVER',
+   'APT_BOOT_DRIVER',
+   'IMAGE_TREE_VERSION_AUTO_GENERATE',
+   'UART_BOOT_DRIVER',
+   'IMAGE_TREE_UUID_AUTO_GENERATE',
+   #boot internal aliase, should not be used by drivers
+   'SBL1_BOOT'],
+   
+   tools = [
+   '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/hex_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+   '${BUILD_ROOT}/tools/build/scons/sectools/sectools_builder.py',
+   'buildspec_builder.py']
+   )
+
+if not env.CheckAlias():
+   Return()
+
+#------------------------------------------------------------------------------
+# Init defualt values for this PROC/Image
+#------------------------------------------------------------------------------
+
+# add environment variables
+env.Replace(BUILD_BOOT_CHAIN = 'yes')
+env.Replace(USES_DEVCFG = 'yes')
+
+#===============================================================================
+# BOOT/DDR_DEBUG build rules
+#===============================================================================
+
+#------------------------------------------------------------------------------
+# Configure and load in USES and path variables,
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('arm',
+                   toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+
+env.LoadToolScript('apps_defs',
+                   toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+
+#Replace MBN_ROOT
+env.Replace(MBN_ROOT = "${BUILD_ROOT}/build/ms/bin/${TARGET_FAMILY}/emmc")
+
+# After loading default rules, make some optimization changes
+env.Replace(ARMLD_NOREMOVE_CMD = "")
+
+# Compile thumb code
+env.Replace(CC = env['TCC'])
+
+#disable unaligned access for c/c++ compiler and assembler
+env.Replace(ARMCC_CODE = "${ARM_END} ${ARM_NO_UNALIGNED_ACCESS}")
+env.Append(ARMCXX_CODE = " ${ARM_NO_UNALIGNED_ACCESS}")
+env.Append(ASFLAGS = " ${ARM_NO_UNALIGNED_ACCESS}")
+
+# Space optimization
+env.Append(ARMCC_CODE = " ${ARM_SPLIT_SECTIONS} ")
+
+# Define processor instruction set
+env.Replace(ARM_CPU = "${ARM_CPU_CMD} Cortex-A7")
+
+# enable stack protection
+env.Append(CFLAGS = " --protect_stack ")
+env.Append(CFLAGS = " --diag_error=warning ")
+#------------------------------------------------------------------------------
+# Check compiler version. If the version is not higher than armct5.01B43, exit 
+#------------------------------------------------------------------------------
+
+rvct_command = env.subst("$ARMCC")+ " --version_number"
+rvct_stdout_handle = os.popen(rvct_command, "r")
+rvct_compiler_version = rvct_stdout_handle.read()
+rvct_stdout_handle.close()
+
+# rvct compiler versions 3.1 up support version_number option. rvct2.x and below will return
+# error upon running version number check, resulting in empty rvct_compiler_version.
+if ((rvct_compiler_version == "") or (int(rvct_compiler_version) < 5010094)):
+      env.PrintError("-------------------------------------------------------------------------------")
+      env.PrintError("8909 Bootloader must use ARMCT5.01 Build 94 or higher revision.")
+      env.PrintError("-------------------------------------------------------------------------------")
+      raise RuntimeError, "ARM compiler is not expected version."
+
+#------------------------------------------------------------------------------
+# Add extension flags for DDR_DEBUG
+#------------------------------------------------------------------------------
+if env['BUILD_VER'] == "":
+   env.Replace(BUILD_VER = '0')
+
+env.Append(CPPDEFINES = [
+   "BOOT_LOADER",
+   "BOOT_WATCHDOG_DISABLED",
+   "BOOT_PBL_H=\\\"boot_pbl_v1.h\\\"",
+   "BUILD_BOOT_CHAIN",
+   "DAL_BOOT_IMAGE_SBL1",
+   "STACK_PTR_ADDR=\\\"SCL_SBL1_STACK_BASE-SCL_SBL1_STACK_SIZE\\\"",
+   "BOOT_MMU_ASM_H=\\\"boot_a53_mmu.h\\\"",
+   "RAM_PARTITION_TABLE_H=\\\"ram_partition_v1.h\\\"",
+   "BOOT_INTERNAL_HEAP_SIZE=0x01800",
+   "BOOT_EXTERNAL_HEAP_SIZE=0x10000",
+   "DAL_CONFIG_IMAGE_BOOT",
+   "DAL_CONFIG_TARGET_ID=0x8909",
+   "__FILE__=__MODULE__",
+])
+
+#------------------------------------------------------------------------------
+# Add boot logger feature flags
+#------------------------------------------------------------------------------
+if 'USES_BOOT_LOGGER_RAM' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_LOGGER_RAM"])
+
+if 'USES_BOOT_LOGGER_TIMER' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_LOGGER_TIMER"])  
+
+if 'USES_BOOT_LOGGER_JTAG' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_LOGGER_JTAG"])
+
+if 'USES_BOOT_LOGGER_UART' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_LOGGER_UART"])
+
+#------------------------------------------------------------------------------
+# Add external driver feature flags
+#------------------------------------------------------------------------------
+if 'USES_BOOT_EXTERN_EFS_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_EFS_COMPLETED"])
+   
+if 'USES_BOOT_EXTERN_DAL_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_DAL_COMPLETED"])
+   
+if 'USES_BOOT_EXTERN_FLASH_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_FLASH_COMPLETED"])
+   
+if 'USES_BOOT_EXTERN_HOTPLUG_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_HOTPLUG_COMPLETED"])
+   
+if 'USES_BOOT_EXTERN_PMIC_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_PMIC_COMPLETED"])   
+   
+if 'USES_BOOT_EXTERN_SMEM_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_SMEM_COMPLETED"])
+
+if 'USES_BOOT_EXTERN_CLK_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_CLK_COMPLETED"])
+
+if 'USES_BOOT_EXTERN_HSUSB_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_HSUSB_COMPLETED"])
+   
+if 'USES_BOOT_EXTERN_DDR_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_DDR_COMPLETED"])
+   
+if 'USES_BOOT_EXTERN_TLMM_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_TLMM_COMPLETED"])
+   
+if 'USES_BOOT_EXTERN_APT_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_APT_COMPLETED"])
+
+if 'USES_BOOT_EXTERN_PLATFORMINFO_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_PLATFORMINFO_COMPLETED"])   
+
+if 'USES_BOOT_EXTERN_BUSYWAIT_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_BUSYWAIT_COMPLETED"])
+
+if 'USES_BOOT_EXTERN_TSENSOR_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_TSENSOR_COMPLETED"])    
+
+if 'USES_BOOT_EXTERN_BUS_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_BUS_COMPLETED"])
+   
+if 'USES_BOOT_EXTERN_CRYPTO_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_CRYPTO_COMPLETED"])
+   
+if 'USES_BOOT_EXTERN_SECBOOT_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_SECBOOT_COMPLETED"])
+
+if 'USES_BOOT_EXTERN_SECCFG_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_SECCFG_COMPLETED"])
+
+if 'USES_BOOT_EXTERN_UART_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_UART_COMPLETED"])
+   
+if 'USES_NAND_BOOT' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_NAND_BOOT"])
+
+if 'USES_SDCC_BOOT' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_SDCC_BOOT"])
+   
+if 'USES_SAHARA_BOOT' in env:
+   env.Append(CPPDEFINES = ["FEATURE_SAHARA_BOOT",
+                            "SAHARA_MAX_PACKET_SIZE_IN_BYTES=0x400",
+                            "SAHARA_PACKET_LOG_LENGTH=0x64",
+                            "SAHARA_MAX_MEMORY_DATA_SIZE_IN_BYTES=0x1000",
+                            "SAHARA_RAM_ZI_SIZE=0x20000"])
+   
+if 'USES_ELF_LOAD_BOOT' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_LOAD_ELF",
+                            "FEATURE_BOOT_SKIP_ELF_HASH_VERIFICATION"])
+   
+if 'USES_SECBOOT_QDST' in env:
+   env.Append(CPPDEFINES = ["FEATURE_QDST_SECBOOT"])
+   
+if 'USES_BOOT_VERSION_ROLL_BACK' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_VERSION_ROLL_BACK"])
+   
+if 'USES_BOOT_EXTERN_BAM_COMPLETED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_BOOT_EXTERN_BAM_COMPLETED",])  
+
+if 'USES_BOOT_DDR_DEBUG_MODE' in env:
+   env.Append(CPPDEFINES = [
+       "FEATURE_BOOT_DDR_DEBUG_MODE",
+   ])      
+if 'USES_BOOT_DDR_DEBUG_USE_PM8916' in env:
+   env.Append(CPPDEFINES = [
+       "FEATURE_BOOT_DDR_DEBUG_WITH_PM8916",
+   ])
+#------------------------------------------------------------------------------
+# Decide which build steps to perform
+#------------------------------------------------------------------------------
+# Regular build steps (no filter) is build everything, once a user start 
+# using filters we have to make decisions depending on user input.
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units, 
+# etc. This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quartz, stubs, etc.
+do_local_files = True
+do_link = True
+do_post_link = True
+
+# Get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# Limit build processing base on filter option
+if filter_opt is not None:
+   do_link = False
+   do_post_link = False
+
+   if not env.FilterMatch(os.getcwd()):
+      do_local_files = False
+
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+ddr_debug_units = [core_objs,
+              core_libs]
+
+build_libs, build_objs = env.LoadAUSoftwareUnits('build')
+ddr_debug_units += [build_objs,
+               build_libs]
+
+
+if do_local_files:
+
+   #----------------------------------------------------------------------------
+   # DDR DEBUG Environment
+   #----------------------------------------------------------------------------
+
+   #----------------------------------------------------------------------------
+   # Begin building DDR DEBUG
+   #----------------------------------------------------------------------------   
+   env.Replace(DDR_DEBUG_ROOT = "${COREBSP_ROOT}/boot/ddr/common")
+   
+   # Add boot API for scl builder
+   env.RequireRestrictedApi(['BOOT'])
+   
+   #----------------------------------------------------------------------------
+   # Generate Scatter Load File (SCL)
+   #----------------------------------------------------------------------------
+   ddr_debug_scl = env.SclBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', 
+                                '${BUILD_ROOT}/core/boot/ddr/common/ddr_debug_msm8909.scl')
+
+   ddr_debug_units.extend(ddr_debug_scl)
+
+if do_link:
+   #----------------------------------------------------------------------------
+   # Generate ddr_debug elf
+   #----------------------------------------------------------------------------
+   # Create UUID  file
+   img_uuid_tag = 'IMAGE_TREE_UUID_AUTO_GENERATE'
+   if env.IsKeyEnable(img_uuid_tag):
+	env.LoadToolScript('version_builder', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+      	oem_uuid_c = env.OEM_UUID_Builder(img_uuid_tag,    
+     	'${SHORT_BUILDPATH}/oem_uuid.c', [core_objs, core_libs])
+      	oem_uuid_o = env.AddObject(img_uuid_tag, oem_uuid_c)
+      	ddr_debug_units += oem_uuid_o
+      	build_objs.append(oem_uuid_o)
+   libs_path = env['INSTALL_LIBPATH']
+   
+   DDR_DEBUG_program = env.Program('${SHORT_BUILDPATH}/${TARGET_NAME}',
+                              source=[core_objs,
+                                      build_objs],
+                              LIBS=[core_libs,
+                                    build_libs],
+                              LIBPATH=libs_path)
+   env.Depends(DDR_DEBUG_program,
+               ddr_debug_scl)
+
+   DDR_DEBUG_map = env.SideEffect(env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.map'),
+                             DDR_DEBUG_program)
+   DDR_DEBUG_sym = env.SideEffect(env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.sym'),
+                             DDR_DEBUG_program)
+   
+
+if do_post_link:  
+   #----------------------------------------------------------------------------
+   # Generate ddr debug elf
+   #----------------------------------------------------------------------------
+   if 'USES_BOOT_DDR_DEBUG_USE_PM8916' in env:
+  	 DDR_DEBUG_elf = env.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}',
+                             DDR_DEBUG_program, 
+                             IMAGE_TYPE="ddr_debug_pm8916",
+                             FLASH_TYPE="sdcc",
+                             MBN_TYPE="elf",
+                             ENABLE_ENCRYPT=False)
+   else:
+     DDR_DEBUG_elf = env.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}',
+                             DDR_DEBUG_program, 
+                             IMAGE_TYPE="ddr_debug",
+                             FLASH_TYPE="sdcc",
+                             MBN_TYPE="elf",
+                             ENABLE_ENCRYPT=False)
+   DDR_DEBUG_product= env.BuildProductsFile('${SHORT_BUILDPATH}/${TARGET_NAME}',
+                                       DDR_DEBUG_elf) 
+
+   #----------------------------------------------------------------------------
+   # Install generated files for debugging
+   #----------------------------------------------------------------------------
+   install_dbg_files = Install(env.subst("${DDR_DEBUG_ROOT}"),
+                               [DDR_DEBUG_program,
+                                DDR_DEBUG_map,
+                                DDR_DEBUG_sym,
+                                DDR_DEBUG_elf])
+   #============================================================================
+   # Define units that will be build
+   #============================================================================
+   ddr_debug_units = env.Alias ('a53_ddr_debug_units',
+                           [DDR_DEBUG_program,
+                            DDR_DEBUG_elf,
+                            DDR_DEBUG_product,
+                            install_dbg_files])
+ 
+# add aliases
+for alias in aliases:
+   env.Alias(alias, ddr_debug_units)

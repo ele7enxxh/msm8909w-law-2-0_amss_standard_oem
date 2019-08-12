@@ -1,0 +1,212 @@
+/*!
+  @file
+  lte_rrc_paging.stm
+
+  @brief
+  This module contains the state machine description of the Paging procedure.
+*/
+
+/*===========================================================================
+
+  Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_paging.stm#4 $
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+10/23/09   vatsac  Using CONNECTED mode service_ind
+10/28/08   ask     Added input handling for LTE_RRC_SIB_UPDATED_INDI
+08/06/08   ask     Initial Revision
+           
+===========================================================================*/
+
+/*!===========================================================================
+
+                      STATE MACHINE DESCRIPTION
+
+This state machine implements the RRC Paging procedure.
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_PAGING_SM
+{
+  ENTRY             lte_rrc_paging_sm_entry;  /* State machine entry func */
+  EXIT              lte_rrc_paging_sm_exit;   /* State machine exit func */
+  INITIAL_STATE     INITIAL;
+  ERROR_HOOK        lte_rrc_stm_error;        /* Common error handler */
+  DEBUG_HOOK        lte_rrc_stm_debug;        /* Common debug handler */
+  INPUT_DEF_FILE    lte_rrc_stm.h;            /* STM common defs */
+  INPUT_DEF_FILE    lte_rrc_int_msg.h;        /* External msg defs */
+  INPUT_DEF_FILE    lte_rrc_ext_msg.h;        /* Internal msg defs */
+  INSTANCES         1;                        /* optional if only 1 */
+
+  /*!=========================================================================
+
+                             INITIAL
+
+  This is the entry state of the Paging state machine. In this state, paging
+  drx parameters have not been configured with lower layers. So no OTA
+  Paging messages can be received.
+
+  The state machine transitions out of this state when it receives 
+  LTE_RRC_CAMPED_INDI from CSP.
+
+  =========================================================================*/
+
+  STATE INITIAL
+  {
+    ENTRY                       lte_rrc_paging_sm_initial_entry;
+    EXIT                        lte_rrc_paging_sm_initial_exit;
+
+    INPUTS
+    {
+      /*! Camped indication from controller */
+      LTE_RRC_CAMPED_INDI       lte_rrc_paging_sm_camped_indi;
+      
+      /*! UE specific drx parameters from NAS */
+      LTE_RRC_DRX_INFO_REQ      lte_rrc_paging_sm_drx_info_req;
+
+      /*! UE id from NAS */
+      LTE_RRC_SIM_UPDATE_REQ    lte_rrc_paging_sm_sim_update_req;
+
+      /*! Service indication sent from RRC to NAS */
+      LTE_RRC_SERVICE_IND       lte_rrc_paging_sm_service_ind;
+
+      /*! Paging ota message */
+      LTE_RRC_PAGING_DLM        lte_rrc_paging_sm_paging_dlm;
+
+      /*! Connected indication from cep */
+      LTE_RRC_CONNECTED_INDI   lte_rrc_paging_sm_connected_indi;
+
+      /*! Scale drx parameters from APP via QMI-NAS */
+      LTE_RRC_MTC_CFG_REQ       lte_rrc_paging_sm_mtc_drx_cfg_req;
+    }
+  }
+
+  /*!=========================================================================
+
+                             IDLE_CAMPED
+
+  This is the state of the Paging procedure when the UE is in idle camped mode.
+  Paging drx parameters are configured with the lower layers when this state
+  is entered, so Paging OTA messages can be received.
+
+  Paging procedure transitions out of this state when UE moves either into the
+  connected mode or there is a out-of-service condition.
+
+  =========================================================================*/
+
+  STATE IDLE_CAMPED
+  {
+    ENTRY                       lte_rrc_paging_sm_idle_camped_entry;
+    EXIT                        lte_rrc_paging_sm_idle_camped_exit;
+
+    INPUTS
+    {
+      /*! Stopped indication from controller */
+      LTE_RRC_STOPPED_INDI      lte_rrc_paging_sm_stopped_indi;
+
+      /*! Camped indication from controller */
+      LTE_RRC_CAMPED_INDI       lte_rrc_paging_sm_camped_indi;
+
+      /*! Connected indication from cep */
+      LTE_RRC_CONNECTED_INDI   lte_rrc_paging_sm_connected_indi;
+
+      /*! Not-camped indication from controller */
+      LTE_RRC_NOT_CAMPED_INDI   lte_rrc_paging_sm_not_camped_indi;
+
+      /*! Paging ota message */
+      LTE_RRC_PAGING_DLM        lte_rrc_paging_sm_paging_dlm;
+      
+      /*! UE specific drx parameters from NAS */
+      LTE_RRC_DRX_INFO_REQ      lte_rrc_paging_sm_drx_info_req;
+
+      /*! UE id from NAS */
+      LTE_RRC_SIM_UPDATE_REQ    lte_rrc_paging_sm_sim_update_req;
+
+      /*! New SIBs */
+      LTE_RRC_SIB_UPDATED_INDI  lte_rrc_paging_sm_sib_updated_indi;
+
+      /*! Service indication sent from RRC to NAS */
+      LTE_RRC_SERVICE_IND       lte_rrc_paging_sm_service_ind;
+
+      /*! Scale drx parameters from APP via QMI-NAS */
+      LTE_RRC_MTC_CFG_REQ       lte_rrc_paging_sm_mtc_drx_cfg_req;
+    }
+  }
+
+  /*!=========================================================================
+
+                             CONNECTED
+
+  This is the state of the Paging procedure when the UE is in connected mode.
+  Paging drx parameters are configured with the lower layers and so the UE
+  can receive Paging OTA messages. In connected mode, the Paging OTA messages
+  convey one or more of the following - a SI update notification, a ETWS
+  notification or a CS fallback notification.
+
+  Paging procedure transitions out of this state when the UE moves either into
+  idle camped mode or when there is a radio link failure.
+
+  =========================================================================*/
+
+  STATE CONNECTED
+  {
+    ENTRY                       lte_rrc_paging_sm_connected_entry;
+    EXIT                        lte_rrc_paging_sm_connected_exit;
+
+    INPUTS
+    {
+      /*! Stopped indication from controller */
+      LTE_RRC_STOPPED_INDI      lte_rrc_paging_sm_stopped_indi;
+      
+      /*! Connected indication from cep */
+      LTE_RRC_CAMPED_INDI       lte_rrc_paging_sm_camped_indi;
+
+      /*! Service indication sent from RRC to NAS */
+      LTE_RRC_SERVICE_IND       lte_rrc_paging_sm_service_ind;
+
+      /*! Not-camped indication from controller */
+      LTE_RRC_NOT_CAMPED_INDI   lte_rrc_paging_sm_not_camped_indi;
+
+      /*! Paging ota message */
+      LTE_RRC_PAGING_DLM        lte_rrc_paging_sm_paging_dlm;
+      
+      /*! UE specific drx parameters from NAS */
+      LTE_RRC_DRX_INFO_REQ      lte_rrc_paging_sm_drx_info_req;
+
+      /*! UE id from NAS */
+      LTE_RRC_SIM_UPDATE_REQ    lte_rrc_paging_sm_sim_update_req;
+
+      /*! New SIBs */
+      LTE_RRC_SIB_UPDATED_INDI  lte_rrc_paging_sm_sib_updated_indi;
+
+      /*! Scale drx parameters from APP via QMI-NAS */
+      LTE_RRC_MTC_CFG_REQ       lte_rrc_paging_sm_mtc_drx_cfg_req;
+    }
+  }
+
+}

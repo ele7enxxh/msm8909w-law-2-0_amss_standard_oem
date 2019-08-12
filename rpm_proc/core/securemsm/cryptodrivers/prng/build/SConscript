@@ -1,0 +1,55 @@
+#===============================================================================
+#
+# Crypto Driver Libraries
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/rpm.bf/2.1.1/core/securemsm/cryptodrivers/prng/build/SConscript#3 $
+#  $DateTime: 2015/08/17 04:40:06 $
+#  $Author: pwbldsvc $
+#  $Change: 8824267 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/30/14    nk     Chipset specific
+# 07/04/12    nk     Initial version
+#===============================================================================
+Import('env')
+
+env = env.Clone()
+if env['MSM_ID'] == '9x45':
+    # Don't compile PRNG at all
+    env.PrintWarning('PRNG DRIVER NOT AVALIABLE FOR THIS TARGET')
+elif env['MSM_ID'] == '8952':
+    # Don't compile PRNG at all
+    env.PrintWarning('PRNG DRIVER NOT AVALIABLE FOR THIS TARGET')
+elif env['MSM_ID'] == '8976':
+    # Don't compile PRNG at all
+    env.PrintWarning('PRNG DRIVER NOT AVALIABLE FOR THIS TARGET')
+else:
+    CLEAN_SOURCES = env.FindFiles("*.c", "${BUILD_ROOT}/core/securemsm/cryptodrivers/prng/shared/src")
+    env.CleanPack(['RPM_IMAGE', 'CORE_RPM'], CLEAN_SOURCES)
+    CLEAN_SOURCES = env.FindFiles("*.c", "${BUILD_ROOT}/core/securemsm/cryptodrivers/prng/environment/")
+    env.CleanPack(['RPM_IMAGE', 'CORE_RPM'], CLEAN_SOURCES)
+    CLEAN_SOURCES = env.FindFiles("*.h", "${BUILD_ROOT}/core/securemsm/cryptodrivers/prng/environment/")
+    env.CleanPack(['RPM_IMAGE', 'CORE_RPM'], CLEAN_SOURCES)
+    CLEAN_SOURCES = env.FindFiles("*.c", "${BUILD_ROOT}/core/securemsm/cryptodrivers/prng/chipset/${CHIPSET}")
+    env.CleanPack(['RPM_IMAGE', 'CORE_RPM'], CLEAN_SOURCES)
+    CLEAN_SOURCES = env.FindFiles("*.h", "${BUILD_ROOT}/core/securemsm/cryptodrivers/prng/chipset/${CHIPSET}")
+    env.CleanPack(['RPM_IMAGE', 'CORE_RPM'], CLEAN_SOURCES)
+
+    #-------------------------------------------------------------------------------
+    # Load sub scripts
+    #-------------------------------------------------------------------------------
+    env.LoadSoftwareUnits()

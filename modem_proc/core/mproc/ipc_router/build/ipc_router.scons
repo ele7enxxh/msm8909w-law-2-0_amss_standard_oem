@@ -1,0 +1,198 @@
+#===============================================================================
+#
+# IPC ROUTER Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/2H09/halcyon_modem/main/latest/AMSS/products/7x30/core/mproc/oncrpc/build/SConscript#11 $
+#  $DateTime: 2010/09/22 18:42:11 $
+#  $Author: coresvc $
+#  $Change: 1450404 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/16/14    sm     Added TISE image support.  Note that 'USES_MSVC' and
+#                    'USES_TISE' are used to specify a subset of files from this
+#                    driver to compile for the Windows (MSVC) compiler.  Please
+#                    do not remove these definitions from this file.
+#
+#===============================================================================
+import os.path
+Import('env')
+env = env.Clone()
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_ONCRPC'])
+
+# This is to remove any -Werror declarations in the environmnent for the MSVC
+# compiler.
+if 'USES_MSVC' in env:
+    env.Replace(CFLAGS= '-Dinline="__inline",-DSTATIC="static"')
+    env.Append(CPPDEFINES = [
+    'CUST_H=custaaaaaaaaq.h',
+    'MY_GCC_FILE=__FILE__',
+    '__FILENAME__=__FILE__',
+    ])
+    
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+UNITPATH = "${BUILD_ROOT}/core/mproc/ipc_router"
+SRCPATH = UNITPATH + "/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'MODEM_DATA',
+   'MODEM_HDR',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DEBUGTOOLS',
+   'HAL',
+   'DAL',
+   'MEMORY',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'DSM',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+# Treat all warnings as errors
+if 'HEXAGON_TOOLS' in env:
+   env.Append(CFLAGS = "-Werror ")
+
+#-------------------------------------------------------------------------------
+# Device configuration
+#-------------------------------------------------------------------------------
+if env.has_key('USES_DEVCFG'):
+   devcfg_mdm = [env.RealPath(UNITPATH + "/config/IPCRtrDevCfg_mdm.xml")]
+   devcfg_msm = [env.RealPath(UNITPATH + "/config/IPCRtrDevCfg_msm.xml")]
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   if 'USES_MULTI_DEVCFG' in env:
+      devcfg_taglist = env.get('DEVCFG_XML_TAGS')
+      devcfg_xml_config_dict = {}
+      for xml_tag in devcfg_taglist:
+         if xml_tag.lower().find("platform") == -1:
+            if xml_tag.lower().find("9") == 0:
+               devcfg_xml_config_dict.setdefault(xml_tag, devcfg_mdm)
+            else:
+               devcfg_xml_config_dict.setdefault(xml_tag, devcfg_msm)
+      env.AddDevCfgInfo(DEVCFG_IMG, devcfg_xml_config_dict)
+   else:
+      if 'CHIPSET' in env:
+         if env['CHIPSET'].lower().find("mdm") == 0:
+            env.AddDevCfgInfo(DEVCFG_IMG, {'devcfg_xml' : devcfg_mdm})
+         else:
+            env.AddDevCfgInfo(DEVCFG_IMG, {'devcfg_xml' : devcfg_msm})
+      elif 'MSM_ID' in env:
+         if env['MSM_ID'].lower().find("9x") == 0:
+            env.AddDevCfgInfo(DEVCFG_IMG, {'devcfg_xml' : devcfg_mdm})
+         else:
+            env.AddDevCfgInfo(DEVCFG_IMG, {'devcfg_xml' : devcfg_msm})
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+IPC_ROUTER_SOURCES = [
+   '${BUILDPATH}/ipc_router_core.c',
+   '${BUILDPATH}/ipc_router_protocol.c',
+   '${BUILDPATH}/ipc_router_database.c',
+   '${BUILDPATH}/ipc_router_packet.c',
+   '${BUILDPATH}/ipc_router_log.c',
+   '${BUILDPATH}/ipc_router_init.c',
+   '${BUILDPATH}/ipc_router_policy.c',
+]
+
+IPC_ROUTER_XAL_SMDL_SOURCES = [
+   '${BUILDPATH}/ipc_router_xal_smdl_common.c',
+]
+
+if os.path.isfile("../src/ipc_router_xal_smdl_rex.c"):
+   IPC_ROUTER_XAL_SMDL_SOURCES += ["${BUILDPATH}/ipc_router_xal_smdl_rex.c"]
+else:
+   IPC_ROUTER_XAL_SMDL_SOURCES += ["${BUILDPATH}/ipc_router_xal_smdl_qurt.c"]
+
+IPC_ROUTER_QDI_DRIVER_SOURCES = [
+   '${BUILDPATH}/ipc_router_qdi_driver.c',
+]
+
+IPC_ROUTER_QDI_USER_SOURCES = [
+   '${BUILDPATH}/ipc_router_qdi_user.c',
+]
+
+# Use the socket API which is independent of QDI for TISE
+if 'USES_TISE' in env:
+   IPC_ROUTER_SOURCES += ['${BUILDPATH}/qsocket_ipcr.c']
+else:
+   IPC_ROUTER_QDI_DRIVER_SOURCES += ['${BUILDPATH}/qsocket_ipcr_qdi.c']
+   IPC_ROUTER_QDI_USER_SOURCES += ['${BUILDPATH}/qsocket_ipcr_qdi.c']
+   env.Append(CPPDEFINES=['FEATURE_IPC_ROUTER_QDI_DRIVER'])
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+GUEST_OS_IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SW', 'CORE_TISE_SW']
+MODEM_IMAGES = ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE']
+SENSOR_IMAGES = ['CORE_QDSP6_SENSOR_SW']
+AUDIO_IMAGES = ['CORE_QDSP6_AUDIO_SW']
+GENERIC_USER_PD = ['CORE_USER_PD']
+
+ALL_GUEST_IMAGES = MODEM_IMAGES + GUEST_OS_IMAGES
+ALL_USER_IMAGES = SENSOR_IMAGES + AUDIO_IMAGES + GENERIC_USER_PD
+
+env.AddLibrary(ALL_GUEST_IMAGES, '${BUILDPATH}/ipc_router_core', IPC_ROUTER_SOURCES)
+env.AddLibrary(ALL_GUEST_IMAGES, '${BUILDPATH}/ipc_router_xal_smdl', IPC_ROUTER_XAL_SMDL_SOURCES)
+# Do not enable QDI support for TISE images
+if not('USES_TISE' in env):
+   env.AddLibrary(ALL_GUEST_IMAGES, '${BUILDPATH}/ipc_router_qdi_driver', IPC_ROUTER_QDI_DRIVER_SOURCES)
+env.AddLibrary(ALL_USER_IMAGES, '${BUILDPATH}/ipc_router_qdi_user', IPC_ROUTER_QDI_USER_SOURCES)
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', 'CORE_GSS']
+   env.AddRCInitFunc(           # Code Fragment in TMC: NO
+    RCINIT_IMG,                 # define TMC_RCINIT_INIT_IPC_ROUTER_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+     'init_name'                  : 'ipc_router',                       # required
+     'init_function'              : 'ipc_router_init',                  # required
+     'dependencies'               : ['sio','smd','smem_log']
+    })
+   env.AddRCInitFunc(           # Code Fragment in TMC: NO
+    ALL_USER_IMAGES,   # define TMC_RCINIT_INIT_QMI_FW_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+     'init_name'                  : 'ipc_router_user',                  # required
+     'init_function'              : 'ipc_router_qdi_init',              # required
+     'dependencies'               : []
+    })
+
+
+

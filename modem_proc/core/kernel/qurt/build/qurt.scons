@@ -1,0 +1,233 @@
+#===============================================================================
+#                    Copyright (c) 2013  by Qualcomm Technologies, Inc.  All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+import sys
+import os
+import re
+import subprocess
+Import('env')
+extenv = env.Clone()
+
+#define until scons is upgraded
+try:
+    extenv.AddMethod(is_build_internal, "IsBuildInternal")
+except:
+    def is_build_internal (env):
+       cleanpack = env.GetOption('cleanpack')
+       return ((('USES_NO_STRIP_NO_ODM' in env) and
+                ('USES_CLEAN_PACK' not in env)  and
+                not cleanpack))
+    extenv.AddMethod(is_build_internal, "IsBuildInternal")
+
+target = extenv.subst('${QURT_BUILD_CONFIG}')
+if target is not '':
+    class qurtSpawn:
+        def qurtspawn(self, sh, escape, cmd, args, env):
+            newargs = ' '.join(args[1:])
+            cmdline = cmd + " " + newargs
+            startupinfo = subprocess.STARTUPINFO()
+            if sys.version_info<(2, 7):
+              startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            else:
+              startupinfo.dwFlags |= subprocess._subprocess.STARTF_USESHOWWINDOW                 
+            proc = subprocess.Popen(cmdline, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, startupinfo=startupinfo, shell = False, env = env)
+            data, err = proc.communicate()
+            rv = proc.wait()
+            if rv:
+                print "====="
+                print err
+                print "====="
+            return rv
+
+    def SetupSpawn( env ):
+        buf = qurtSpawn()
+        buf.ourenv = env
+        env['SPAWN'] = buf.qurtspawn
+
+    extrawarnings=False
+    hex_tools_ver=os.environ.get('HEXAGON_RTOS_RELEASE')
+    hex_tools_root=os.environ.get('HEXAGON_ROOT')
+
+    userpd=False
+    if (('CORE_USER_PD' in extenv['IMAGE_BUILD_TAGS']) or ('USER_PD' in extenv['IMAGE_BUILD_TAGS'])):
+        userpd=True
+
+    pie = False
+    extenv.Replace(PIE_FILE_SUFFIX = "")
+    extenv.Replace(PIE_DIR_SUFFIX = "")
+    if (extenv.subst('${USES_QURT_PIC_LIBS}') == 'yes' or extenv.subst('${USES_QURT_PIC_LIBS}') == True):
+        pie = True
+
+    qurtenv = Environment(ENV = {'PATH' : os.environ['PATH']},
+                             TRGT          = target,
+                             Q6_RTOS_ROOT  = os.path.realpath(extenv.subst('${BUILDPATH}/install')),
+                             INSTALL_DIR   = os.path.realpath(extenv.subst('${BUILDPATH}/install')),
+                             BUILD_DIR     = os.path.abspath(extenv.subst('${BUILDPATH}/build')),
+                             Q6_TOOLS_ROOT = hex_tools_root,
+                             Q6_TOOLS_VER = hex_tools_ver,
+                             EXTRA_WARNINGS = extrawarnings,
+                             TEST_OBJS = False,
+                             USE_LLVM = False,
+                             USE_PIE = pie,
+                             API_DIR = os.path.realpath(extenv.subst('${COREBSP_ROOT}/api/kernel')),
+                             tools         = ['mingw'])
+
+    if qurtenv['PLATFORM'] in ['windows', 'win32']:
+        SetupSpawn(qurtenv)
+        if 'SystemRoot' not in qurtenv['ENV']:
+            qurtenv['ENV']['SystemRoot'] = os.environ.get('SystemRoot', "C:\\WINDOWS")
+
+    if (extenv.IsBuildInternal()):
+        qurt_libs = qurtenv.SConscript('../SConscript', exports='qurtenv')
+    else:
+        qurt_libs = qurtenv.SConscript('cleanpacklibs', exports='qurtenv')
+		
+    if pie:
+        extenv.Replace(PIE_FILE_SUFFIX = "S")
+        extenv.Replace(PIE_DIR_SUFFIX = "/pic")
+
+    T32PATH=env.subst("${BUILDPATH}/install/"+target+"/debugger/T32")
+	
+    if 'USES_CMMBUILDER' in env:
+            env.AddCMMScripts2 ( [T32PATH], { 'qurt_model.men' : 'QuRT Menu', 'qurt_model.t32' : 'QuRT Extension' }, 'Kernel')
+
+
+    qurtenv=qurt_libs[-1]
+    (cfsnode,posixnode,compatnode,qurtnode,timernode,qurtkernelnode,qurtkernel_islandnode,qurtkernel_mainnode,crt0node,qurtdebuggernode,crt1node) = qurt_libs[:-1]
+    qurt_lib_paths = []
+    for lib in Flatten(qurt_libs[:-1]):
+        libpath = lib.path
+        libpath = libpath.replace('\\', '/')
+        qurt_lib_paths.append(libpath)
+
+    (cfs,posix,compat,qurt,timer,qurtkernel,qurtkernel_island,qurtkernel_main,crt0,qurtdebugger,crt1) = qurt_lib_paths
+    if 'USES_PLATFORM_FS' in env:
+        cfs=''
+
+    if (not userpd):
+        qurt_lib = [qurt, qurtkernel_main, qurtkernel_island, compat, timer, posix, qurtdebugger]
+        if cfs:
+            qurt_lib.append(cfs)
+        if ('modem' in target.lower()):
+            if extenv.has_key('USES_FEATURE_DYNAMIC_LOADING') in env:
+                qurt_lib.append('${QDSP6_RELEASE_DIR}/qc/lib/${Q6VERSION}/G0/libdl.a')
+        qurt_lib.append('${QDSP6_RELEASE_LIB_DIR}/libc.a')
+        qurt_lib.append('${QDSP6_RELEASE_LIB_DIR}/libqcc.a')
+        qurt_lib.append('${QDSP6_RELEASE_LIB_DIR}/libstdc++.a')
+        
+        extenv.ReplaceHexagonLinkGroup(1, [crt0,'${QDSP6_RELEASE_LIB_DIR}/init.o'])
+        extenv.ReplaceHexagonLinkGroup(3, qurt_lib)
+        if 'USES_ISLAND' in env:
+                env.AddIslandLibrary('CORE_QDSP6_SW', qurtkernel_islandnode)
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_anysignal_asm.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_cache.o'], ['.text','.text.qurt_sysenv_get_app_heap','.text.qurt_sysenv_get_hw_timer','.text.qurt_sysenv_get_process_name'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_exit.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_futex_c.o'], ['.text.qurt_mutex_destroy','.text.qurt_mutex_init','.text.qurt_pimutex_destroy','.text.qurt_pimutex_init','.text.qurt_rmutex_destroy','.text.qurt_rmutex_init','.text.qurt_sem_destroy','.text.qurt_sem_init_val','.text.qurt_signal_destroy','.text.qurt_signal_init','.text.qurt_signal_wait_fatal'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_int.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_island.o'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_island_asm.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_memory.o'], ['.text.qurt_mem_cache_clean'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_memory_syscall.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_mutex.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_pimutex_asm.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_pipe.o'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_power.o'], ['.text.qurt_power_apcr_enter','.text.qurt_power_exit'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_power_asm.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_printf.o'], ['.text.qurt_printf'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_process.o'], ['.text.qurt_process_create','.text.qurt_process_get_id'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_qdi.o'], ['.text.qurt_qdi_method_default'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_qdi_asm.o'], ['.sdata.4.4','.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_qdi_local_client.o'], ['.text.qurt_qdi_state_local_new_handle_from_obj','.text.qurt_qdi_state_local_release_handle'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_rmutex.o'], ['.text.qurt_mutex_unlock_fatal','.text.qurt_rmutex_unlock_fatal'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_rmutex_asm.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_sclk.o'], ['.data.qurt_timer_base','.text.qurt_sysclock_get_hw_ticks'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_sem.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_signal.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_signal2.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_signal_cancellable.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_space.o'], ['.text.qurt_thread_start_osam_hook'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_thread.o'], ['.text.qurt_thread_get_id'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_thread_asm.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['sys_morecore.o'], ['.text.sys_Tlsalloc','.text.sys_Tlsget','.text.sys_Tlsset'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['sys_mutex.o'], ['.text.sys_Mtxdst','.text.sys_Mtxinit','.text.sys_Mtxlock','.text.sys_Mtxunlock'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', qurtnode, ['qurt_error_fatal.o'])
+                env.AddIslandLibrary('CORE_QDSP6_SW', timernode)
+    else:
+        extenv.ReplaceHexagonLinkGroup(1, [crt1,'${QDSP6_RELEASE_LIB_DIR}'+extenv.subst('${PIE_DIR_SUFFIX}')+'/init'+extenv.subst('${PIE_FILE_SUFFIX}')+'.o'])
+        qurt_lib = [qurt, compat, timer, posix, qurtdebugger]
+        if cfs:
+            qurt_lib.append(cfs)
+        qurt_lib.append('${QDSP6_RELEASE_LIB_DIR}'+extenv.subst('${PIE_DIR_SUFFIX}')+'/libc.a')
+        qurt_lib.append('${QDSP6_RELEASE_LIB_DIR}'+extenv.subst('${PIE_DIR_SUFFIX}')+'/libqcc.a')
+        qurt_lib.append('${QDSP6_RELEASE_LIB_DIR}'+extenv.subst('${PIE_DIR_SUFFIX}')+'/libstdc++.a')
+        extenv.ReplaceHexagonLinkGroup(3, qurt_lib)
+
+        if 'USES_ISLAND' in env:
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_anysignal_asm.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_event.o'], ['.text.qurt_sysenv_get_hw_timer'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_event.o'], ['.text.qurt_sysenv_get_process_name'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_exit.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_futex_c.o'], ['.text.qurt_mutex_init', '.text.qurt_rmutex_init', '.text.qurt_signal_init', '.text.qurt_signal_wait_fatal']) 
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_int.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_island.o'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_mutex.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_process.o'], ['.text.qurt_process_create', '.text.qurt_process_get_id'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_qdi_asm.o'], ['.sdata.4.4', '.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_rmutex.o'], ['.text.qurt_mutex_unlock_fatal', '.text.qurt_rmutex_unlock_fatal']) 
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_rmutex_asm.o'], ['.text']) 
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_sclk.o'], ['.data.qurt_timer_base', '.text.qurt_sysclock_get_hw_ticks'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_signal.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_space.o'], ['.text.qurt_thread_start_osam_hook'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_thread.o'], ['.text.qurt_thread_get_id'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_thread_asm.o'], ['.text'])
+                env.AddIslandLibraryObject('CORE_QDSP6_SENSOR_SW', qurtnode, ['qurt_error_fatal.o'])
+                env.AddIslandLibrary('CORE_QDSP6_SENSOR_SW', timernode)
+    extenv.ReplaceHexagonLinkGroup(2, [])
+    extenv.ReplaceHexagonLinkGroup(4, ['${QDSP6_RELEASE_LIB_DIR}'+extenv.subst('${PIE_DIR_SUFFIX}')+'/fini'+extenv.subst('${PIE_FILE_SUFFIX}')+'.o'])
+
+    custxml = extenv.subst('${CONFIG_XML}')
+    if custxml is not '':
+        if ('modem' not in target.lower()):
+            configmainenv = qurtenv.Clone()
+            configislandenv = qurtenv.Clone()
+            configmainenv.Prepend(BUILD_CCFLAGS = ["-DMAIN_ONLY"])
+            configislandenv.Prepend(BUILD_CCFLAGS = ["-DISLAND_ONLY"])
+            cust_config_main_srcname = extenv.subst("${BUILDPATH}/config/cust_config_main.c")
+            cust_config_island_srcname = extenv.subst("${BUILDPATH}/config/cust_config_island.c")
+            cust_config_main_c = qurtenv.CustConfigSrc(cust_config_main_srcname, custxml)
+            cust_config_island_c = qurtenv.CustConfigSrc(cust_config_island_srcname, custxml)
+            cust_config_main_obj = configmainenv.Object(cust_config_main_c)
+            cust_config_island_obj = configislandenv.Object(cust_config_island_c)
+            cust_config_lib = extenv.AddLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CORE_QDSP6_SW', 'CBSP_QDSP6_SW_IMAGE'],
+                        '${BUILDPATH}/cust_config', [cust_config_main_obj, cust_config_island_obj])
+            if 'USES_ISLAND' in env:
+                env.AddIslandLibraryObject('CORE_QDSP6_SW', cust_config_lib, ['cust_config_island.o'])
+        else:
+            cust_config_srcname = extenv.subst("${BUILDPATH}/config/qurt_config.c")
+            cust_config_c = qurtenv.CustConfigSrc(cust_config_srcname, custxml)
+            cust_config_obj = qurtenv.Object(cust_config_c)
+            extenv.AddLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+                            '${BUILDPATH}/config', cust_config_obj)
+
+#-------------------------------------------------------------------------------
+# Pack Info
+#-------------------------------------------------------------------------------
+IMAGE_SOURCES = ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW', 'CORE_USER_PD']
+CLEAN_LIST=[]
+CLEAN_LIST.extend(extenv.FindFiles('*', '${BUILDPATH}/build'))
+CLEAN_LIST.extend(extenv.FindFiles('*', '${BUILDPATH}/config/qurt_config.c'))
+CLEAN_LIST.extend(extenv.FindFiles('*', '${COREBSP_ROOT}/kernel/qurt/benchmark'))
+CLEAN_LIST.extend(extenv.FindFiles('*', '${COREBSP_ROOT}/kernel/qurt/config'))
+CLEAN_LIST.extend(extenv.FindFiles('*', '${COREBSP_ROOT}/kernel/qurt/const'))
+CLEAN_LIST.extend(extenv.FindFiles('*', '${COREBSP_ROOT}/kernel/qurt/debug_monitor'))
+CLEAN_LIST.extend(extenv.FindFiles('*', '${COREBSP_ROOT}/kernel/qurt/docs'))
+CLEAN_LIST.extend(extenv.FindFiles('*', '${COREBSP_ROOT}/kernel/qurt/doxapi'))
+CLEAN_LIST.extend(extenv.FindFiles('*', '${COREBSP_ROOT}/kernel/qurt/kernel'))
+CLEAN_LIST.extend(extenv.FindFiles('*', '${COREBSP_ROOT}/kernel/qurt/libs'))
+CLEAN_LIST.extend(extenv.FindFiles('*', '${COREBSP_ROOT}/kernel/qurt/osam'))
+CLEAN_LIST.extend(extenv.FindFiles('*', '${COREBSP_ROOT}/kernel/qurt/qurtos'))
+CLEAN_LIST.extend(extenv.FindFiles('analyze_icache_dump_v56.cmm', '${COREBSP_ROOT}/kernel/qurt/scripts/cmm'))
+CLEAN_LIST.extend(extenv.FindFiles('analyze_l2cache_dump_256K.cmm', '${COREBSP_ROOT}/kernel/qurt/scripts/cmm'))  
+extenv.CleanPack(IMAGE_SOURCES, CLEAN_LIST)

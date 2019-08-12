@@ -1,0 +1,140 @@
+//============================================================================
+//  Name:                                                                     
+//    std_trace_rpm.cmm 
+//
+//  Description:                                                              
+//    Trace setup script for RPM
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/10/2012 AJCheriyan    Created for B-family.
+
+// Following arguments are supported. 
+// ARG0 - Processor to debug. 
+// ARG1 - Tracing Type . Currently supports TPIU, ETB, SDcard
+// ARG2 - Trace width - supports 4, 8, 16 bit wide
+// ARGn - n > 1 - Any other arguments to be passed to the script 
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+
+
+MAIN:
+
+    do std_utils CHECKARGS FATALEXIT &ARG1 TPIU tpiu SDCARD SDcard sdcard ETB etb SAVEETB saveetb
+    
+	IF (("&ARG1"=="TPIU")||("&ARG1"=="tpiu")||("&ARG1"=="SDCARD")||("&ARG1"=="SDcard")||("&ARG1"=="sdcard"))
+	(
+		SYStem.CONFIG COREBASE E:0xE000E000
+		SYStem.CONFIG ITMBASE E:0xE0000000
+		SYStem.CONFIG DWTBASE E:0xE0001000
+		SYStem.CONFIG ETMBASE E:0xE0041000
+
+		SYStem.CONFIG.FUNNEL2.BASE DAP:0x80019000
+		SYStem.CONFIG.FUNNEL3.BASE DAP:0x8001A000
+		SYStem.CONFIG.TPIU1.BASE DAP:0x80018000
+		SYStem.CONFIG.ETF.BASE DAP:0x80007000
+		SYStem.CONFIG.FUNNEL4.BASE DAP:0x8001B000
+
+		SYStem.CONFIG.FUNNEL2.ATBSOURCE ETM 0
+		SYStem.CONFIG.FUNNEL4.ATBSOURCE FUNNEL2 0
+		SYStem.CONFIG.ETF.ATBSOURCE FUNNEL4
+		SYStem.CONFIG.TPIU1.ATBSOURCE ETF
+
+
+		// Reset ETM
+		ETM.RESET
+        
+        IF ("&ARG2"=="4bit")       
+        (
+            ETM.PORTSIZE 4.
+            print "Configurtion Portsize to 4"
+        )
+        ELSE IF ("&ARG2"=="8bit")  
+        (
+            ETM.PORTSIZE 8.
+            print "Configurtion Portsize to 8"
+        )
+        ELSE IF ("&ARG2"=="16bit") 
+        (
+            ETM.PORTSIZE 16.
+	    print "Configurtion Portsize to 16"
+        )
+        ELSE                       
+        (
+            ETM.PORTSIZE 8.
+            print "Configurtion Portsize to 8"
+        )
+        
+		etm.traceid 4.
+		etm.portmode continuous
+		;etm.timestamps ON
+		etm.stall OFF
+		etm.on
+		etm.clear
+		trace.method ANALYZER
+		trace.init 
+		trace.list
+		TRACE.AUTOFOCUS
+		print "TPIU configuration done!"	
+		GOTO EXIT
+
+	)
+	ELSE IF(("&ARG1"=="ETB")||("&ARG1"=="etb"))
+	(
+		SYStem.CONFIG COREBASE E:0xE000E000
+		SYStem.CONFIG ITMBASE E:0xE0000000
+		SYStem.CONFIG DWTBASE E:0xE0001000
+		SYStem.CONFIG ETMBASE E:0xE0041000
+
+		SYStem.CONFIG.FUNNEL1.BASE DAP:0x80019000
+		SYStem.CONFIG.FUNNEL2.BASE DAP:0x8001A000
+		SYStem.CONFIG.FUNNEL3.BASE DAP:0x8001B000
+		SYStem.CONFIG.ETB.BASE DAP:0x80007000
+
+		SYStem.CONFIG.FUNNEL1.ATBSOURCE ETM 0
+		SYStem.CONFIG.FUNNEL3.ATBSOURCE FUNNEL1 0
+		SYStem.CONFIG.ETB.ATBSOURCE FUNNEL3
+
+		etm.reset
+;		etm.portsize 16.
+		;etm.traceid 4.
+		;etm.portmode continuous
+		;etm.timestamps ON
+		etm.stall OFF
+		etm.on
+		etm.clear
+		trace.method ONCHIP
+		trace.init 
+		trace.list
+
+		print "DONE"
+		GOTO EXIT
+
+	)
+	ELSE
+	(
+		GOTO FATALEXIT
+	)
+
+
+
+	GOTO EXIT
+
+
+FATALEXIT:
+        mmu.on
+	END
+
+EXIT:
+        mmu.on
+	ENDDO
+

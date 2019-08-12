@@ -1,0 +1,488 @@
+/*!
+  @file
+  lte_rrc_meas.stm
+
+  @brief
+  This module contains the state machine description of the Meas procedure.
+*/
+
+/*===========================================================================
+
+  Copyright (c) 2009 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_meas.stm#6 $
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+09/03/10   mm      Changes for transfering dedicated priorities in IRAT scenarios
+06/03/10   mm      Changes for using the new UMID to get serving cell measurements 
+                   from ML1
+05/14/10   da      Added changes for NMR info request handling
+05/10/10   mm      Added changes related to SON / ANR 
+02/26/10   mm      Added an exit function for WAIT_FOR_IDLE_CONFIG_CNF state
+05/01/09   sk      Added support for handling sib updated indi in wait_for_
+                   config_cnf and connected state
+04/17/09   sk      Updated some meas state names
+03/25/09   ask     Added code for connected mode EUTRA measurements
+02/23/09   sk      Removed empty entry and exit functions
+01/12/09   sk      Added remaining meas states
+12/18/08   ask     Initial Revision
+           
+===========================================================================*/
+
+/*!===========================================================================
+
+                      STATE MACHINE DESCRIPTION
+
+This state machine implements the RRC Meas procedure.
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_MEAS_SM
+{
+  ENTRY             lte_rrc_meas_sm_entry;    /* State machine entry func */
+  EXIT              lte_rrc_meas_sm_exit;     /* State machine exit func */
+  INITIAL_STATE     INACTIVE;                 /* State machine initial state */
+  ERROR_HOOK        lte_rrc_stm_error;        /* Common error handler */
+  DEBUG_HOOK        lte_rrc_stm_debug;        /* Common debug handler */
+  INPUT_DEF_FILE    lte_rrc_stm.h;            /* STM common defs */
+  INPUT_DEF_FILE    lte_rrc_int_msg.h;        /* External msg defs */
+  INPUT_DEF_FILE    lte_rrc_ext_msg.h;        /* Internal msg defs */
+  INSTANCES         1;                        /* optional if only 1 */
+
+  /*!=========================================================================
+
+                             INACTIVE
+
+  This is the entry state of the Meas state machine. In this state no
+  measurements are active and no measurement configuration has been sent
+  to the lower layers.
+
+  The state machine transitions out of this state when it receives the 
+  LTE_RRC_CAMPED_INDI
+
+  =========================================================================*/
+
+  STATE INACTIVE
+  {
+    ENTRY                       NULL;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+
+      /*! Camped indication from CSP */
+      LTE_RRC_CAMPED_INDI       lte_rrc_meas_sm_camped_indi;
+
+      /*! Dedicated cell reselection priority from IRAT or CRP procedure */
+      LTE_RRC_DED_PRIORITY_LIST_INDI  lte_rrc_meas_ded_priority_list_indi;
+
+      /*! T320 timer expiry handler */
+      LTE_RRC_T320_TMRI   lte_rrc_meas_sm_t320_tmri;  
+
+      /*! UTRA reselection wait time indication from W IRAT manager */
+      LTE_RRC_IRAT_UTRA_RESEL_WAIT_TIME_INDI  lte_rrc_meas_sm_resel_wait_time_indi;
+
+      /*! UTRA reselection wait time indication from TDS IRAT manager */
+      LTE_RRC_IRAT_UTRA_TDD_RESEL_WAIT_TIME_INDI  lte_rrc_meas_sm_tds_resel_wait_time_indi;
+
+      /*! IRAT W reselection timer expiry handler */
+      LTE_RRC_IRAT_W_RESEL_WAIT_TMRI   lte_rrc_meas_sm_irat_w_resel_tmri;
+      
+      /*! IRAT TDS reselection timer expiry handler */
+      LTE_RRC_IRAT_TDS_RESEL_WAIT_TMRI   lte_rrc_meas_sm_irat_tds_resel_tmri;   
+      
+      /*! Received request for NMR info from SIM */
+      LTE_RRC_NMR_INFO_REQ lte_rrc_meas_sm_nmr_info_req;
+
+      /*! Received request for obtaining stored dedicated priorities */
+      LTE_RRC_GET_DEDICATED_PRI_REQ lte_rrc_meas_sm_dedicated_priority_req;
+
+      /*! Received indication for clearing stored dedicated priorities */
+      LTE_RRC_CLEAR_DEDICATED_PRI_IND lte_rrc_meas_sm_clear_dedicated_priority_ind;
+
+      /*! Connected indication from CEP incase of HO to LTE */
+      LTE_RRC_CONNECTED_INDI lte_rrc_meas_sm_connected_indi;
+
+      /*! T325 timer expiry handler */  
+      LTE_RRC_T325_TMRI   lte_rrc_meas_sm_t325_tmri;
+
+      /*! Received CPHY_NMR_INFO_CNF with NMR report from ML1 */
+      LTE_CPHY_NMR_INFO_CNF lte_rrc_meas_sm_cphy_nmr_info_cnf;
+
+      /*! clear int depri freq ind handler */  
+      LTE_RRC_CLEAR_DEPRI_FREQ_INDI   lte_rrc_meas_sm_clear_depri_freq_indi;
+
+      /*! Received LTE_RRC_MTC_CFG_REQ from APP via QMI-NAS */  
+      LTE_RRC_MTC_CFG_REQ   lte_rrc_meas_sm_mtc_idle_srch_meas_cfg_req;
+	  
+	  /*! Received LTE_RRC_DEPRI_REQUESTED_PLMN_IND from X RAT (W/T/G) */  
+      LTE_RRC_DEPRI_REQUESTED_PLMN_IND   lte_rrc_meas_sm_depri_req_plmn_ind_req;
+    }
+  }
+
+  /*!=========================================================================
+
+                             IDLE_CAMPED
+
+  In this state, the module is waiting for measurements 
+  related SIBs to be read. When SIB module reads measurements related SIBs 
+  (3 through 8), it sends a SIB_UPDATED_INDI msg. On receipt of this message, 
+  Measurements module sends a measurements configuration message to ML1 and 
+  transitions to the IdleConfig state. If due to a RLF scenario, we are no 
+  longer camped on a cell, then the state is transitioned to Inactive.
+
+  =========================================================================*/
+
+  STATE IDLE_CAMPED
+  {
+    ENTRY                       NULL;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+
+      /*! Camped indication from CSP */
+      LTE_RRC_CAMPED_INDI       lte_rrc_meas_sm_camped_indi;
+
+      /*! Not camped Indication from CSP */
+      LTE_RRC_NOT_CAMPED_INDI lte_rrc_meas_sm_not_camped_indi;
+
+      /*! SIB updated indication from SIB */
+      LTE_RRC_SIB_UPDATED_INDI       lte_rrc_meas_sm_sib_updated_indi;
+
+      /*! Pending SIB updated indication from SIB */
+      LTE_RRC_MEAS_PENDING_SIB_UPDATED_INDI lte_rrc_meas_sm_sib_updated_indi;
+
+      /*! T320 timer expiry handler */  
+      LTE_RRC_T320_TMRI   lte_rrc_meas_sm_t320_tmri;  
+
+      /*! RAT priority update handler */  
+      LTE_RRC_RAT_PRIORITY_UPDATE_INDI   lte_rrc_meas_sm_rat_priority_update_indi;  
+
+      /*! Connection establishment indication from CEP */
+      LTE_RRC_CONNECTED_INDI lte_rrc_meas_sm_connected_indi;
+
+      /*! IRAT W reselection timer expiry handler */
+      LTE_RRC_IRAT_W_RESEL_WAIT_TMRI   lte_rrc_meas_sm_irat_w_resel_tmri;
+      
+      /*! IRAT TDS reselection timer expiry handler */
+      LTE_RRC_IRAT_TDS_RESEL_WAIT_TMRI   lte_rrc_meas_sm_irat_tds_resel_tmri;  
+
+      /*! Received request for NMR info from SIM */
+      LTE_RRC_NMR_INFO_REQ lte_rrc_meas_sm_nmr_info_req;
+
+      /*! Received CPHY_NMR_INFO_CNF with NMR report form ML1 */
+      LTE_CPHY_NMR_INFO_CNF lte_rrc_meas_sm_cphy_nmr_info_cnf;
+
+      /*! CSG Config handler */
+      LTE_RRC_CSG_CFG_INDI lte_rrc_meas_sm_csg_cfg_indi;
+
+      /*! LTE Stopped indication */
+      LTE_RRC_STOPPED_INDI lte_rrc_meas_sm_stopped_indi;
+
+      /*! LTE Deprioritization freq indication from CEP */
+      LTE_RRC_DEPRI_FREQ_INDI lte_rrc_meas_sm_depri_freq_indi;
+
+      /*! T325 timer expiry handler */  
+      LTE_RRC_T325_TMRI   lte_rrc_meas_sm_t325_tmri;  
+
+      /*! Resel priority change handler */ 
+      LTE_RRC_ESMGR_RESEL_PRIO_CHANGE_INDI lte_rrc_meas_sm_resel_prio_change_indi;
+
+	  /*! Received LTE_RRC_SYSTEM_UPDATE_REQ from NAS*/
+	  LTE_RRC_SYSTEM_UPDATE_REQ lte_rrc_meas_sm_sys_update_req;
+
+      /*! clear int depri freq ind handler */  
+      LTE_RRC_CLEAR_DEPRI_FREQ_INDI   lte_rrc_meas_sm_clear_depri_freq_indi;
+
+      /*! Received LTE_RRC_MTC_CFG_REQ from APP via QMI-NAS */  
+      LTE_RRC_MTC_CFG_REQ   lte_rrc_meas_sm_mtc_idle_srch_meas_cfg_req;
+    }
+  }
+
+  /*!=========================================================================
+
+                             WAIT_FOR_IDLE_CONFIG_CNF
+
+  In this state, the module is waiting for ML1 to send a confirm 
+  msg for idle mode measurements configuration sent to it. When this 
+  confirmation is received, state is transitioned to IdleCamped. If due to a 
+  OOS scenario, we are no longer camped on a cell, then the state is 
+  transitioned to Inactive.
+
+  =========================================================================*/
+  STATE WAIT_FOR_IDLE_CONFIG_CNF
+  {
+    ENTRY                       NULL;
+    EXIT                        lte_rrc_meas_sm_idle_config_cnf_exit;
+
+    INPUTS
+    {
+      /*! Not camped Indication from CSP */
+      LTE_RRC_NOT_CAMPED_INDI lte_rrc_meas_sm_not_camped_indi;
+
+      /*! Idle-mode measurements config confirm from CPHY */
+      LTE_CPHY_IDLE_MEAS_CFG_CNF    lte_rrc_meas_sm_idle_meas_cfg_cnf;
+
+      /*! SIB updated indication from SIB
+          Pend this command until IDLE_CAMPED state */   
+      LTE_RRC_SIB_UPDATED_INDI lte_rrc_meas_sm_pend_sib_updated_indi;
+
+      /*! T320 timer expiry handler */  
+      LTE_RRC_T320_TMRI   lte_rrc_meas_sm_t320_tmri;  
+
+      /*! RAT priority update handler */  
+      LTE_RRC_RAT_PRIORITY_UPDATE_INDI   lte_rrc_meas_sm_rat_priority_update_indi;        
+
+      /*! Connection establishment indication from CEP */
+      LTE_RRC_CONNECTED_INDI lte_rrc_meas_sm_connected_indi;
+
+      /*! LTE Stopped indication */
+      LTE_RRC_STOPPED_INDI lte_rrc_meas_sm_stopped_indi;
+
+      /*! IRAT W reselection timer expiry handler */
+      LTE_RRC_IRAT_W_RESEL_WAIT_TMRI   lte_rrc_meas_sm_irat_w_resel_tmri;
+      
+      /*! IRAT TDS reselection timer expiry handler */
+      LTE_RRC_IRAT_TDS_RESEL_WAIT_TMRI   lte_rrc_meas_sm_irat_tds_resel_tmri;  
+
+      /*! Received request for NMR info from SIM */
+      LTE_RRC_NMR_INFO_REQ lte_rrc_meas_sm_nmr_info_req;
+
+      /*! Received CPHY_NMR_INFO_CNF with NMR report form ML1 */
+      LTE_CPHY_NMR_INFO_CNF lte_rrc_meas_sm_cphy_nmr_info_cnf;
+
+      /*! CSG Config handler */
+      LTE_RRC_CSG_CFG_INDI lte_rrc_meas_sm_csg_cfg_indi;
+
+      /*! LTE Deprioritization freq indication from CEP */
+      LTE_RRC_DEPRI_FREQ_INDI lte_rrc_meas_sm_depri_freq_indi;
+
+      /*! T325 timer expiry handler */  
+      LTE_RRC_T325_TMRI   lte_rrc_meas_sm_t325_tmri;  
+
+      /*! Resel priority change handler */ 
+      LTE_RRC_ESMGR_RESEL_PRIO_CHANGE_INDI lte_rrc_meas_sm_resel_prio_change_indi;
+	  
+	  /*! Received LTE_RRC_SYSTEM_UPDATE_REQ from NAS*/
+	  LTE_RRC_SYSTEM_UPDATE_REQ lte_rrc_meas_sm_sys_update_req;
+
+      /*! clear int depri freq ind handler */  
+      LTE_RRC_CLEAR_DEPRI_FREQ_INDI   lte_rrc_meas_sm_clear_depri_freq_indi;
+
+      /*! Received LTE_RRC_MTC_CFG_REQ from APP via QMI-NAS */  
+      LTE_RRC_MTC_CFG_REQ   lte_rrc_meas_sm_mtc_idle_srch_meas_cfg_req;
+    }
+  }
+
+/*!=========================================================================
+
+                             CONNECTED
+
+  In this state, the module expects to receive a Measurement 
+  Configuration Request from Config, containing information carried in the 
+  RRCConnectionReconfiguration OTA message. If this results in a change to 
+  the measurement configuration, a Measurement Configuration Request is sent 
+  to ML1, and the state changed to ConnectedConfig. Also, when a Measurement 
+  Events Indication is received from ML1 in this state, a MeasurementReport 
+  OTA message is sent to the eNB.
+  If transitioning from WAIT_FOR_IDLE_CONFIG_CNF, ignore the confirmation
+  that may be received from ML1 at the new state ie.Connected state
+  If transitioning from WAIT_FOR_IDLE_CONFIG_CNF and there is a SIB
+  updated indication in the pending queue LTE_RRC_MEAS_PENDING_SIB_UPDATED_INDI, 
+  process it and send interfreq list ind without changing idle meas config.
+
+  =========================================================================*/
+
+  STATE CONNECTED
+  {
+    ENTRY           lte_rrc_meas_sm_connected_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      /*! measurements config request from Config Proc  */
+      LTE_RRC_MEAS_CFG_REQI lte_rrc_meas_sm_meas_cfg_reqi;
+
+      /*! Measurement report indication from CPHY */
+      LTE_CPHY_MEAS_REPORT_IND lte_rrc_meas_sm_report_ind;
+
+      /*! SIB updated indication from SIB */
+      LTE_RRC_SIB_UPDATED_INDI       lte_rrc_meas_sm_sib_updated_indi_connected;
+      
+      /*! Inter Frequency OTDOA indication from CPHY */
+      LTE_CPHY_IFREQ_OTDOA_IND lte_rrc_meas_sm_interfreq_rstd_ind;
+
+      /*! Connection released indication from CRP */
+      LTE_RRC_CONN_RELEASED_INDI lte_rrc_meas_sm_conn_released_indi;
+
+      /*! LTE Stopped indication */
+      LTE_RRC_STOPPED_INDI lte_rrc_meas_sm_stopped_indi;
+
+      /*! Dedicated cell reselection priority from IRAT or CRP procedure */
+      LTE_RRC_DED_PRIORITY_LIST_INDI  lte_rrc_meas_ded_priority_list_indi;
+
+      /*! Unsolicited SIB indication from SIB */
+      LTE_RRC_UNSOLICITED_SIB_INDI  lte_rrc_meas_sm_unsolicited_sib_indi;
+
+      /*! T321 timer expiry */  
+      LTE_RRC_T321_TMRI   lte_rrc_meas_sm_t321_tmri;  
+
+      /*! IRAT CGI timer expiry */  
+      LTE_RRC_IRAT_CGI_TMRI   lte_rrc_meas_sm_abort_irat_cgi_handler;  
+
+      /*! Received request for NMR info from SIM */
+      LTE_RRC_NMR_INFO_REQ lte_rrc_meas_sm_nmr_info_req;
+
+      /*! Received CPHY_NMR_INFO_CNF with NMR report from ML1 */
+      LTE_CPHY_NMR_INFO_CNF lte_rrc_meas_sm_cphy_nmr_info_cnf;
+
+      /*! Received LTE_CPHY_SERV_CELL_MEAS_CNF with serving cell meas results from ML1 */
+      LTE_CPHY_SERV_CELL_MEAS_CNF lte_rrc_meas_sm_handle_serv_cell_meas_cnf;
+
+      /*! IRAT W reselection timer expiry handler */
+      LTE_RRC_IRAT_W_RESEL_WAIT_TMRI   lte_rrc_meas_sm_irat_w_resel_tmri;
+      
+      /*! IRAT TDS reselection timer expiry handler */
+      LTE_RRC_IRAT_TDS_RESEL_WAIT_TMRI   lte_rrc_meas_sm_irat_tds_resel_tmri;  
+
+      /*! Received LTE_RRC_CRE_STARTED_INDI indication */
+      LTE_RRC_CRE_STARTED_INDI lte_rrc_meas_sm_cre_started_indi;
+
+      /*! Received LTE_CPHY_IRAT_CGI_START_IND from ML1 */
+      LTE_CPHY_IRAT_CGI_START_IND lte_rrc_meas_sm_irat_cgi_start_indi;
+
+      /*! Received LTE_CPHY_IRAT_CGI_END_IND from ML1 */
+      LTE_CPHY_IRAT_CGI_END_IND lte_rrc_meas_sm_abort_irat_cgi_handler;
+      
+      /*! Received LTE_RRC_IRAT_FROM_LTE_TO_W_GET_CGI_CNFI from W IRAT module */
+      LTE_RRC_IRAT_FROM_LTE_TO_W_GET_CGI_CNFI lte_rrc_meas_sm_w_get_cgi_cnfi;
+
+      /*! Received LTE_RRC_IRAT_FROM_LTE_TO_G_GET_CGI_CNFI from G IRAT module */
+      LTE_RRC_IRAT_FROM_LTE_TO_G_GET_CGI_CNFI lte_rrc_meas_sm_g_get_cgi_cnfi;
+
+      /*! Received LTE_RRC_IRAT_FROM_LTE_TO_DO_GET_CGI_CNFI from DO IRAT module */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_GET_CGI_CNFI lte_rrc_meas_sm_do_get_cgi_cnfi;
+
+	  /*! Received LTE_RRC_IRAT_FROM_LTE_TO_1X_GET_CGI_CNFI from 1X IRAT module */
+      LTE_RRC_IRAT_FROM_LTE_TO_1X_GET_CGI_CNFI lte_rrc_meas_sm_1x_get_cgi_cnfi;
+
+      /*! Received LTE_RRC_IRAT_FROM_LTE_ABORT_CNFI from W IRAT module */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_CNFI lte_rrc_meas_sm_abort_cgi_cnfi;
+
+      /*! Received LTE_RRC_ML1_REVOKE_REQI */
+      LTE_RRC_ML1_REVOKE_REQI lte_rrc_meas_sm_abort_irat_cgi_handler;
+
+      /*! T325 timer expiry handler */  
+      LTE_RRC_T325_TMRI   lte_rrc_meas_sm_t325_tmri;  
+
+	  /*! Received LTE_RRC_SYSTEM_UPDATE_REQ from NAS*/
+	  LTE_RRC_SYSTEM_UPDATE_REQ lte_rrc_meas_sm_sys_update_req;
+
+      /*! clear int depri freq ind handler */  
+      LTE_RRC_CLEAR_DEPRI_FREQ_INDI   lte_rrc_meas_sm_clear_depri_freq_indi;
+
+      /*! Received LTE_RRC_MTC_CFG_REQ from APP via QMI-NAS */  
+      LTE_RRC_MTC_CFG_REQ   lte_rrc_meas_sm_mtc_idle_srch_meas_cfg_req;
+
+      LTE_RRC_SEC_ACTIVE_INDI lte_rrc_meas_sm_sec_active_indi;
+    }
+  }
+
+  /*!=========================================================================
+
+                             WAIT_FOR_CONNECTED_CONFIG_CNF
+
+  In this state, a Measurement Configuration Confirm is expected from ML1.
+  On receiving this message, a Measurement Configuration Confirm is sent to Config, and the 
+  state changed to Connected.
+
+  =========================================================================*/
+
+  STATE WAIT_FOR_CONNECTED_CONFIG_CNF
+  {
+    ENTRY           NULL;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      /*! Connected-mode measurements config confirm from CPHY  */
+      LTE_CPHY_CONN_MEAS_CFG_CNF lte_rrc_meas_sm_conn_meas_cfg_cnf;
+
+      /*! Measurement report indication from CPHY */
+      LTE_CPHY_MEAS_REPORT_IND lte_rrc_meas_sm_report_ind;
+
+      /*! Inter Frequency OTDOA indication from CPHY */
+      LTE_CPHY_IFREQ_OTDOA_IND lte_rrc_meas_sm_interfreq_rstd_ind;
+
+      /*! Connection released indication from CRP */
+      LTE_RRC_CONN_RELEASED_INDI lte_rrc_meas_sm_conn_released_indi;
+
+      /*! LTE Stopped indication */
+      LTE_RRC_STOPPED_INDI lte_rrc_meas_sm_stopped_indi;
+
+      /*! Dedicated cell reselection priority from IRAT or CRP procedure */
+      LTE_RRC_DED_PRIORITY_LIST_INDI  lte_rrc_meas_ded_priority_list_indi;
+
+      /*! Unsolicited SIB indication from SIB */
+      LTE_RRC_UNSOLICITED_SIB_INDI  lte_rrc_meas_sm_unsolicited_sib_indi;
+
+      /*! T321 timer expiry handler */  
+      LTE_RRC_T321_TMRI   lte_rrc_meas_sm_t321_tmri;  
+
+      /*! Received request for NMR info from SIM */
+      LTE_RRC_NMR_INFO_REQ lte_rrc_meas_sm_nmr_info_req;
+
+      /*! Received CPHY_NMR_INFO_CNF with NMR report from ML1 */
+      LTE_CPHY_NMR_INFO_CNF lte_rrc_meas_sm_cphy_nmr_info_cnf;
+
+      /*! Received LTE_CPHY_SERV_CELL_MEAS_CNF with serving cell meas results from ML1 */
+      LTE_CPHY_SERV_CELL_MEAS_CNF lte_rrc_meas_sm_handle_serv_cell_meas_cnf;
+
+      /*! IRAT W reselection timer expiry handler */
+      LTE_RRC_IRAT_W_RESEL_WAIT_TMRI   lte_rrc_meas_sm_irat_w_resel_tmri;
+      
+      /*! IRAT TDS reselection timer expiry handler */
+      LTE_RRC_IRAT_TDS_RESEL_WAIT_TMRI   lte_rrc_meas_sm_irat_tds_resel_tmri;  
+
+      /*! T325 timer expiry handler */  
+      LTE_RRC_T325_TMRI   lte_rrc_meas_sm_t325_tmri;  
+
+	  /*! Received LTE_RRC_SYSTEM_UPDATE_REQ from NAS*/
+	  LTE_RRC_SYSTEM_UPDATE_REQ lte_rrc_meas_sm_sys_update_req;
+
+      /*! clear int depri freq ind handler */  
+      LTE_RRC_CLEAR_DEPRI_FREQ_INDI   lte_rrc_meas_sm_clear_depri_freq_indi;
+
+      /*! Received LTE_RRC_MTC_CFG_REQ from APP via QMI-NAS */  
+      LTE_RRC_MTC_CFG_REQ   lte_rrc_meas_sm_mtc_idle_srch_meas_cfg_req;
+
+      LTE_RRC_SEC_ACTIVE_INDI lte_rrc_meas_sm_sec_active_indi;
+    }
+  }
+
+}

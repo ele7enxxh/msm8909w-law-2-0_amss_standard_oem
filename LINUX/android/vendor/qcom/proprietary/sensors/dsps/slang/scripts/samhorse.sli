@@ -1,0 +1,157 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+/* -------------------------------------------------------------------------------------------------
+** desc:  Stream SAM service at $rate Hz for $duration milliseconds, plus optional sample rate in Hz
+** usage: samhorse.sli -args=$service,$report_rate,$duration,$sample_rate,$notify_suspend
+** where    $report_rate in Hz
+**          $duration in seconds - optional
+**          $sample_rate in Hz - optional
+**          $notify_suspend - 0 | 1 - optional
+** ---------------------------------------------------------------------------------------------- */
+sub main( @argv)
+{
+    my ( $service, $report_rate, $duration, $sample_rate, $notify_suspend) = @argv;
+
+    my $report_period = 0;
+    if ( $report_rate) {
+        $report_period = 1 / $report_rate;   // report_period in seconds / report_rate in hz
+    }
+
+    if ( !defined( $duration)) {
+        $duration = 10;                         // seconds
+    }
+
+    my $enable_req = slnew_req( $service, "enable", { report_period => $report_period} );
+    if ( !defined( $enable_req)) {
+        ;   // stub sllast_error
+        return;
+    }
+
+    if ( defined( $sample_rate)) {
+        slset_req( $enable_req, { sample_rate => $sample_rate} );
+    }
+    if ( defined( $notify_suspend)) {
+        slset_req( $enable_req, { notify_suspend => $notify_suspend} );
+    }
+
+
+    my $client = slopen();
+    my $timeout = 3;
+
+    my $time_req = slnew_req( "time", "enable", { reg_report => 1});
+    my $time_resp = slsend_recv( $client, $time_req, $timeout);
+//    if ( defined( $time_resp)) {
+        my ( $ssc_ts, $apps_ts, $error_code, $ssc_rollover_count, $apps_boottime)
+            = slget( $time_resp, { ssc_timestamp, apps_timestamp, error_code, ssc_rollover_count, apps_boottime});
+        print( "\ttime enable resp\n");
+        print( "\tssc_ts             $ssc_ts\n");
+        print( "\tapps_ts            $apps_ts \n");
+        print( "\terror_code         $error_code \n");
+        print( "\tssc_rollover_count $ssc_rollover_count \n");
+        print( "\tapps_boottime      $apps_boottime \n");
+        print( "\n");
+//    }
+
+    my $version_req = slnew_req( $service, "version");
+    my $version_resp = slsend_recv( $client, $version_req, $timeout);
+    if ( defined( $version_resp)) {
+        my ( $version, $max_msg_id) = slget( $version_resp, { version, max_msg_id});
+             print( "\t$service version:\n");
+             print( "\tversion         $version\n");
+             print( "\tmax_msg_id      $max_msg_id\n");
+             print( "\n");
+    }
+
+    my $attributes_req  = slnew_req( $service, "attributes");
+    my $attributes_resp = slsend_recv( $client, $attributes_req, $timeout);
+    if ( defined( $attributes_resp)) {
+        my ( $revision, $proc_type, $modes, $min_report_rate, $max_report_rate,
+             $min_sample_rate, $max_sample_rate, $max_batch_size, $power, $suid)
+             = slget( $attributes_resp, { revision, proc_type, modes, min_report_rate, max_report_rate,
+                                          min_sample_rate, max_sample_rate, max_batch_size, power, suid});
+
+            $min_report_rate /= 65536;      // convert from Q16
+            $max_report_rate /= 65536;
+            $min_sample_rate /= 65536;
+            $max_sample_rate /= 65536;
+            $max_batch_size;
+
+
+             print( "\t$service attributes:\n");
+             print( "\trevision        $revision\n");
+             print( "\tproc_type       $proc_type\n");
+             print( "\tmodes           $modes\n");
+             print( "\tmin_report_rate $min_report_rate\n");
+             print( "\tmax_report_rate $max_report_rate\n");
+             print( "\tmin_sample_rate $min_sample_rate\n");
+             print( "\tmax_sample_rate $max_sample_rate\n");
+             print( "\tmax_batch_size  $max_batch_size\n");
+             print( "\tpower           $power\n");
+             print( "\tsuid            $suid\n");
+             print( "\n");
+    }
+
+    my $enable_resp = slsend_recv( $client, $enable_req, $timeout);
+    if ( defined( $enable_resp)) {
+        my ( $instance_id) = slget( $enable_resp, { instance_id});
+
+        my $state;
+        if (( $service == "amd" || $service == "rmd") && $report_rate) {
+            my $ind_count = 0;
+            my $quantity  = $duration * $report_rate;
+
+            sloption( "script_handles_indications");
+            print( "\t$service indications:\n");
+
+            $timeout = 3;
+            while ( $ind_count < $quantity) {
+                my $indication = slrecv( $timeout);
+                if ( !defined( $indication)) {
+                    print( "indication not defined\n");
+                    break;
+                }
+
+                my ( $srvc_num) = slget( $indication, { srvc_num});
+                if ( $srvc_num == 24) {     // if time
+                    ( $ssc_ts, $apps_ts, $ssc_rollover_count, $apps_boottime)
+                        = slget( $indication, { ssc_timestamp, apps_timestamp, ssc_rollover_count, apps_boottime});
+                    print( "\ttime ssc_ts $ssc_ts, apps_ts $apps_ts, rollover_count $ssc_rollover_count, apps_boottime $apps_boottime\n");
+                }
+                else {                      // else $service
+                    $ind_count += 1;
+                    ( $instance_id, $ssc_ts, $state) = slget( $indication, { instance_id, sscts, state});
+                    print( "\t$ind_count: instance_id $instance_id, ssc_ts $ssc_ts, state $state\n");
+                }
+            }
+        }
+        else {
+            sleep( $duration);
+        }
+/* -->
+        my $report_req = slnew_req( $service, "get_report", { instance_id => $instance_id});
+        my $report_resp = slsend_recv( $client, $report_req, $timeout);
+        if ( $service == "amd" || $service == "rmd") {
+            ( $instance_id, $ssc_ts, $state) = slget( $report_resp, { instance_id, sscts, state});
+
+            print( "\n");
+            print( "\t$service get_report:\n");
+            print( "\tinstance_id          $instance_id\n");
+            print( "\tssc_ts               $ssc_ts\n");
+            print( "\tstate                $state\n");
+            print( "\n");
+        }
+--> */
+        my $disable_req = slnew_req( $service, "disable", { instance_id => $instance_id});
+        my $disable_resp = slsend_recv( $client, $disable_req, $timeout);
+        ( $instance_id) = slget( $disable_resp, { instance_id});
+        print( "\$instance_id $instance_id\n");
+
+    }
+
+    slclose( $client);
+    return  0;
+}
+

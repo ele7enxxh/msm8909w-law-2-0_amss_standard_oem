@@ -1,0 +1,53 @@
+#===============================================================================
+#
+# Crypto Driver Libraries
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/msm7x30/main/latest/securemsm/build/SConscript#4 $
+#  $DateTime: 2009/10/07 11:43:48 $
+#  $Author: wduembeg $
+#  $Change: 1047079 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/13/13    sy     Fixing 8x26 Pack compilation by not cleaning the whole ce/chipset directory 
+# 07/04/12    nk     Initial version
+#===============================================================================
+Import('env')
+
+env = env.Clone()
+
+
+CLEAN_SOURCES = env.FindFiles("*.h", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/environment/")
+
+env.CleanPack(['SBL1_BOOT', 'DEVICEPROGRAMMER_IMAGE'], CLEAN_SOURCES)
+
+CLEAN_SOURCES = env.FindFiles("*.c", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/")
+
+#env.CleanPack(['SBL1_BOOT'], CLEAN_SOURCES)
+
+CLEAN_SOURCES = env.FindFiles("*.h", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/chipset/")
+
+#env.CleanPack(['SBL1_BOOT'], CLEAN_SOURCES)
+
+#  Cryptodriver Test files
+CLEAN_SOURCES = env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/test")
+
+env.CleanPack(['SBL1_BOOT', 'DEVICEPROGRAMMER_IMAGE'], CLEAN_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

@@ -1,0 +1,208 @@
+/*===========================================================================
+#
+# $Header: //source/qcom/qct/core/pkg/wcnss/pr/rel/2.2/build/ms/wcnss_pronto_image.scl#5 $
+#
+# when       who       what, where, why
+# --------   ---       -------------------------------------------------------
+# 10/24/11   acheung   Initial version for Pronto Image on 8974(Aragorn) for Badger family
+===========================================================================*/
+#include "customer.h"
+//#include "armmmu.h"
+
+WCNSS_BOOT WCNSS_BOOT_REMAP_BASE
+{
+  BOOT_RO_REGION +0x0
+  {
+    boot_vectors.o (Int_Vect, +FIRST)
+    boot_reset_handler.o (RST_Handler)
+    bootapp.o (BOOTAPP_IVECT)
+    boot_vectors.o (Boot_Block_Info)	
+    boot* (+RO)
+    crc.o (+RO)
+    armmmu.o (+RO)
+    //init_aeabi.o (+RO)           // RVCT 2.x Runtime
+    //* (.init_array)             // RVCT 2.x Runtime
+    rexarm.o (+RO)           //needed for IRQ_Handler and FIQ_Handler to get remapped.
+  }
+  BOOT_RW_REGION +0x0
+  {
+    boot* (+RW)
+    //crc.o (+RW)
+    //armmmu.o (+RW)
+   //init_aeabi.o (+RW)           // RVCT 2.x Runtime
+    //rexarm.o (+RW)
+  }
+  BOOT_ZI_REGION +0x0
+  {
+    boot* (+ZI)
+    //crc.o (+ZI)
+    //armmmu.o (+ZI)
+    //rexarm.o (+ZI)
+  }
+}
+
+/*PAGE_TABLE must be 16k aligned*/
+//PAGE_TABLE_NOTPAGED +0 ALIGN 0x4000
+PAGE_TABLE +0x0 ALIGN 0x00004000
+{
+   PAGE_TABLE +0x0
+   {
+     * (PAGE_TABLES)
+   }
+}
+
+
+DEVCFG_DATA_SEG ImageLimit(PAGE_TABLE)
+{
+  DEVCFG_DATA +0x0
+  {
+   devcfg_pad.o(+RW)
+  }
+}
+
+
+CMEM_DATA_SEG +0x0 CMEM_DATA_SIZE
+{
+  CMEM_DATA_RW_REGION +0x0 EMPTY CMEM_DATA_SIZE
+  {
+  }  
+}
+
+WCNSS_NON_BOOT +CMEM_DATA_SIZE
+{
+  RO_REGION +0x0
+  {
+    .ANY (+RO)
+  }
+  PKTMEM_REGION_RW +0x0
+  {
+    * (PKTMEM_REGION) 
+  }
+  RW_REGION +0x0
+  {
+    .ANY(+RW)
+    vmm.o (+ZI)
+  }
+  ZI_REGION +0x0
+  {
+    bootmem.o (+ZI)
+    .ANY(+ZI)
+  }
+  UNINIT_RAM +0x0
+  {
+    *_nzi.o (+ZI)
+	boot_stacks.o (Stacks, +LAST)
+  }
+}
+
+WCNSS_OVERLAY_SEG_ONE AlignExpr(ImageLimit(WCNSS_NON_BOOT),0x00000080) OVERLAY 0x78000
+{
+   OVERLAY_SEG_ONE_RW +0x0 
+   {
+     * (OVERLAY_REGION_ONE)
+   }
+}
+
+WCNSS_OVERLAY_SEG_TWO AlignExpr(ImageLimit(WCNSS_NON_BOOT),0x00000080) OVERLAY 0x78000
+{
+   OVERLAY_SEG_TWO_RW +0x0
+   {
+     * (OVERLAY_REGION_TWO)
+   }
+}
+
+#ifdef FEATURE_DEBUG_REGION
+DEBUG_DATA_SEG AlignExpr(((ImageLimit(WCNSS_OVERLAY_SEG_TWO) < ImageLimit(WCNSS_OVERLAY_SEG_ONE)) ? ImageLimit(WCNSS_OVERLAY_SEG_ONE) : ImageLimit(WCNSS_OVERLAY_SEG_TWO)),0x00010000)  
+{
+   DEBUG_DATA_RW +0x0
+   {
+     * (DEBUG_REGION)
+     rcinit_internal.o(+ZI)	 
+   }
+}
+#else
+DEBUG_DATA_SEG_MINI AlignExpr(((ImageLimit(WCNSS_OVERLAY_SEG_TWO) < ImageLimit(WCNSS_OVERLAY_SEG_ONE)) ? ImageLimit(WCNSS_OVERLAY_SEG_ONE) : ImageLimit(WCNSS_OVERLAY_SEG_TWO)),0x00010000)
+{
+  DEBUG_DATA_MINI_RW +0x0
+  {
+    * (DEBUG_REGION_MINI)    
+    rcinit_internal.o(+ZI)	
+  }  
+}
+#endif
+
+/* Heap must be placed at the end of the image */
+AMSS_HEAP_SEG +0x0 ALIGN 0x1000
+{
+  HEAP_ZI +0x0
+  {
+    bootmem.o (AMSS_HEAP)
+  }
+}
+
+//UBSP_IMAGE (SCL_PAGE_TABLE_BASE_ADDR+PAGE_TABLE_SIZE+DEVCFG_DATA_SEG_SIZE) UBSP_IMAGE_SIZE
+//UBSP_IMAGE UBSP_IMAGE_BASE UBSP_IMAGE_SIZE
+UBSP_IMAGE +0x0 ALIGN 0x1000
+{
+  //UBSP_RO_REGION +0x0
+  UBSP_RO_REGION UBSP_IMAGE_BASE
+  {
+    ubsp_vectors.o (CMEM_VECT_TABLE, +FIRST)
+    ubsp_vectors.o (UBSP_VECT_TABLE)
+      ubsp_reset_handler.o (RST_Handler)
+    stack_protect.o (+RO)
+    ubsp* (+RO)	
+    lpwr* (+RO)
+    etm.o (+RO)
+    strlcpy.o
+    llmul.o
+    lludiv5.o
+    memcmp.o
+    rt_memclr.o	  //for _memset
+    rt_memclr_w.o //for _memset_w
+    rt_memcpy.o   //for __rt_memcpy
+    rt_memcpy_w.o //for __rt_memcpy_w
+    * (i.__ARM_common_ll_muluu)
+#if 1
+    strlen.o
+    aeabi_sdivfast.o
+    __2snprintf.o
+    aeabi_ldiv0_sigfpe.o
+	aeabi_idiv0_sigfpe.o
+    _printf_char_common.o
+    _sputc.o
+    rt_div0.o	
+    defsig_fpe_formal.o	
+    * (i.__ARM_common_udiv_6)
+    * (i.__ARM_common_udiv_20)
+    * (i.__ARM_common_udiv_25) 
+    * (i.__ARM_common_sdiv_20)	
+#endif	
+  }
+  UBSP_RW_REGION +0x0
+  {
+    ubsp* (+RW)	
+    lpwr* (+RW)	
+    stack_protect.o (+RW)
+    etm.o (+RW)
+    * (CMEM_SHARED_CFG_REGION)
+    ubsp_vectors.o (INDIRECT_VECT_TABLE)
+  }  
+  UBSP_ZI_REGION +0x0
+  {
+    ubsp* (+ZI)	
+    lpwr* (+ZI)	
+    etm.o (+ZI)
+  }  
+  UBSP_UNINIT_RAM +0x0
+  {
+    ubsp_stacks.o (Stacks, +LAST)
+  }
+}
+
+#ifdef FEATURE_DEBUG_REGION
+ScatterAssert((ImageLength(WCNSS_BOOT)+ImageLength(PAGE_TABLE)+ImageLength(DEVCFG_DATA_SEG)+ImageLength(UBSP_IMAGE)+ImageLength(CMEM_DATA_SEG)+ImageLength(WCNSS_NON_BOOT)+ImageLength(DEBUG_DATA_SEG)+ImageLength(AMSS_HEAP_SEG))<WCNSS_CODE_SIZE);  
+#else
+ScatterAssert((ImageLength(WCNSS_BOOT)+ImageLength(PAGE_TABLE)+ImageLength(DEVCFG_DATA_SEG)+ImageLength(UBSP_IMAGE)+ImageLength(CMEM_DATA_SEG)+ImageLength(WCNSS_NON_BOOT)+ImageLength(AMSS_HEAP_SEG))<WCNSS_CODE_SIZE);
+#endif
+

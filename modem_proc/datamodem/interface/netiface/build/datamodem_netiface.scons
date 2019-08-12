@@ -1,0 +1,242 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //depot/asic/sandbox/DHCPv6-PD/interface/netiface/build/datamodem_netiface.scons#1 $
+#  $DateTime: 2014/03/25 12:19:43 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+	
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    'GPS',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    'GPS',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+#MODEM_PROTECTED_APIS = [
+#    'DATA_ATCOP',
+#    ]
+#env.RequireProtectedApi(MODEM_PROTECTED_APIS)
+
+#-------------------------------------------------------------------------------
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#-------------------------------------------------------------------------------
+REQUIRED_NON_SCONS_APIS = [
+    'WCONNECT', 
+    'BREW',	 
+    ]
+
+if REQUIRED_NON_SCONS_APIS != []:
+  env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Non-compliant Private Header Include Paths (Must be removed for CRM builds)
+#-------------------------------------------------------------------------------
+#if ARGUMENTS.get('SCONS_VIOLATIONS_LEVEL',0) > 99:
+#		print "SCONS VIOLATIONS enabled" 
+#		
+#		env.PublishPrivateApi('VIOLATIONS',[
+#			'${INC_ROOT}/modem/data/1x/707/src',
+#			])
+#		
+#		env.RequirePrivateApi('VIOLATIONS')
+
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+DATAMODEM_NETIFACE_COMMON_C_SOURCES = [
+   '${BUILDPATH}/src/netiface_stubs.c',
+   '${BUILDPATH}/src/ps_acl.c',
+   '${BUILDPATH}/src/ps_arbitration_mgr.c',
+   '${BUILDPATH}/src/ps_flow.c',
+   '${BUILDPATH}/src/ps_flow_ioctl.c',
+   '${BUILDPATH}/src/ps_flowi.c',
+   '${BUILDPATH}/src/ps_flowi_event.c',
+   '${BUILDPATH}/src/ps_iface.c',
+   '${BUILDPATH}/src/ps_iface_flow.c',
+   '${BUILDPATH}/src/ps_iface_ioctl.c',
+   '${BUILDPATH}/src/ps_iface_ipfltr.c',
+   '${BUILDPATH}/src/ps_iface_logging.c',
+   '${BUILDPATH}/src/ps_iface_rx_qos_fltr.c',
+   '${BUILDPATH}/src/ps_ifacei_event.c',
+   '${BUILDPATH}/src/ps_inbound_acl.c',
+   '${BUILDPATH}/src/ps_phys_link.c',
+   '${BUILDPATH}/src/ps_phys_link_ioctl.c',
+   '${BUILDPATH}/src/ps_phys_linki_event.c',
+   '${BUILDPATH}/src/ps_policy_mgr.c',
+   '${BUILDPATH}/src/ps_route.c',
+   '${BUILDPATH}/src/ps_netiface_init.c',
+   '${BUILDPATH}/src/ps_routei.c',
+   '${BUILDPATH}/src/ps_qos_spec_logging.c',
+   '${BUILDPATH}/src/ps_aclrules.c',
+   '${BUILDPATH}/src/ps_iface_logical_flow.c',
+   '${BUILDPATH}/src/ps_iface_logical_flowi.c',
+   '${BUILDPATH}/src/ps_dns_cache_config.c',
+   '${BUILDPATH}/src/ps_iface_dns_cache.c',
+   '${BUILDPATH}/src/ps_qos_net_initiated_req.c',
+   '${BUILDPATH}/src/ps_modem_link_local.c',
+   '${BUILDPATH}/src/ps_wmk_logging.c',
+   '${BUILDPATH}/src/ps_data_call_info_logging.c',
+   '${BUILDPATH}/src/ps_hashtable.c',
+   '${BUILDPATH}/src/ps_iface_ipfltr_mbim.c',
+   '${BUILDPATH}/src/ps_iface_fast_dormancy.c',
+   ]
+
+DATAMODEM_NETIFACE_A2_C_SOURCES = [
+   '${BUILDPATH}/src/ps_iface_ipfltr_a2.c',
+   ]
+
+DATAMODEM_NETIFACE_COMMON_C_SOURCES += DATAMODEM_NETIFACE_A2_C_SOURCES
+
+DATAMODEM_NETIFACE_COMMON_CPP_SOURCES = [
+   '${BUILDPATH}/src/NetPlatformLib.cpp',
+   ]
+
+DATAMODEM_NETIFACE_AMSS_C_SOURCES = [
+   '${BUILDPATH}/src/ps_iface_io.c',
+   '${BUILDPATH}/src/ps_phys_link_io.c',
+   '${BUILDPATH}/src/ps_stat_flow.c',
+   '${BUILDPATH}/src/ps_stat_iface.c',
+   '${BUILDPATH}/src/ps_stat_phys_link.c',
+   ]
+
+if 'USES_DATAMODEM_NETIFACE' in env:
+	env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/netiface',[DATAMODEM_NETIFACE_COMMON_C_SOURCES, DATAMODEM_NETIFACE_AMSS_C_SOURCES])
+	
+#include DS rearch files related to netiface
+if 'USES_DATAMODEM_NETIFACE_SOCK_REARCH' in env:
+	env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/netiface_cpp',[DATAMODEM_NETIFACE_COMMON_CPP_SOURCES, ])
+
+#code shipped as binary library (partial)
+LIB_DATAMODEM_NETIFACE_IPV6_SOURCES = [
+   '${BUILDPATH}/src/ps_iface_addr_v6.c',
+   '${BUILDPATH}/src/ps_iface_addr_mgmt.c',
+   ]
+
+#code shipped as binary to all (partial)
+LIB_DATAMODEM_NETIFACE_LOGICAL_SOURCES = [
+   '${BUILDPATH}/src/ps_iface_handoff.c',
+   '${BUILDPATH}/src/ps_iface_logical.c',
+   '${BUILDPATH}/src/ps_iface_logicali.c',
+   ]
+   
+if 'USES_DATAMODEM_NETIFACE' in env:
+   env.AddBinaryLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], 
+                        '${BUILDPATH}/lib_netiface',
+                        [LIB_DATAMODEM_NETIFACE_IPV6_SOURCES, ],
+                        pack_exception=['USES_CUSTOMER_GENERATE_LIBS', 'USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'])
+                        
+   env.AddBinaryLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], 
+                        '${BUILDPATH}/lib_netiface_logical',
+                        [LIB_DATAMODEM_NETIFACE_LOGICAL_SOURCES, ],
+						pack_exception=['USES_CUSTOMER_GENERATE_LIBS', 'USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'])
+ 

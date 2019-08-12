@@ -1,0 +1,107 @@
+#===============================================================================
+#
+# TZ Common library
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2014 Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# Qualcomm Technologies Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/19/15    wt      Removed AOSTLM_IMAGE
+# 07/24/14    wt     Added AOSTLM_IMAGE
+# 05/21/14    tp     Linked sme_tzcommon_common_shared_lib to DXHDCP2_IMAGE and DXHDCP2DBG_IMAGE
+# 03/03/14    rk     Added new path for app_common_svc_handler.h and removed
+#                    tzcommon_entry.c
+# 12/19/13    rk     Added new path for version handler
+# 07/19/13    ck     Added resource cleanup handler.
+# 05/09/13    ck     SCHK dxhdcp2 support. Independent lib, Added callback reg function to remove config dependency.
+#                    Removed operation parameter. Added log for debugging. Added datarate check.
+# 03/22/13    cm     Remove tz_log.c under tzcommon.
+# 01/15/13   cz      removed the drmprov image and Used BUILDPATH
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared"
+
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --arm')
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/applib/qsee/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/include",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/common/version/shared/inc/",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/time/shared/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/exec_test/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/config/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/services/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/common/app_common_svc/shared/inc",   
+])
+
+#----------------------------------------------------------------------------
+# TZCOMMON Shared Library
+#----------------------------------------------------------------------------   
+
+SME_TZCOMMON_COMMON_SHARED_LIB_SOURCES = [
+    '${BUILDPATH}/src/tzbsp_shim.c',
+    '${BUILDPATH}/src/crc.c',
+    '${BUILDPATH}/src/tzbuffer.c',
+    '${BUILDPATH}/src/tzmemarray.c',
+    '${BUILDPATH}/src/tzmem_ops.c',
+    '${BUILDPATH}/src/tzapps_test_config.c',
+    '${BUILDPATH}/src/resource_cleanup_handler.c',
+]
+
+sme_tzcommon_common_shared_lib = '${BUILDPATH}/sme_tzcommon_common_shared'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary (['PLAYREADY_IMAGE'],sme_tzcommon_common_shared_lib, [SME_TZCOMMON_COMMON_SHARED_LIB_SOURCES])
+env.AddBinaryLibrary (['WIDEVINE_IMAGE'],sme_tzcommon_common_shared_lib, [SME_TZCOMMON_COMMON_SHARED_LIB_SOURCES])
+env.AddBinaryLibrary (['DXHDCP2_IMAGE'],sme_tzcommon_common_shared_lib, [SME_TZCOMMON_COMMON_SHARED_LIB_SOURCES])
+env.AddBinaryLibrary (['DXHDCP2DBG_IMAGE'],sme_tzcommon_common_shared_lib, [SME_TZCOMMON_COMMON_SHARED_LIB_SOURCES])
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+NOSHIP_SOURCES = [
+            SRCPATH + "/inc/crc.h",
+]
+env.CleanPack('PLAYREADY_IMAGE', NOSHIP_SOURCES)
+env.CleanPack('WIDEVINE_IMAGE', NOSHIP_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

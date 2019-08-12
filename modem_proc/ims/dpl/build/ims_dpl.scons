@@ -1,0 +1,185 @@
+#===============================================================================
+#
+# TMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/dpl/build/ims_dpl.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+
+# Import the Environment Variable for the Current Script
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Building feature flags based on features being built
+#-------------------------------------------------------------------------------
+
+# Execute the sconsript in which the variables needs to be imported for the Current Script
+# and export the current environment to that script into which the variables will be exported to the it's export list
+
+# Import the required Variables from the export list of the Environment to which the other script file has added
+
+
+#-------------------------------------------------------------------------------
+# Set the Source PATH location
+#-------------------------------------------------------------------------------
+SRCPATH = '../'
+
+
+# Set the Build path Location where the .o's and .lib's has to go
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('IMS_DPL_INC', [ 
+"${INC_ROOT}/modem/ims/dpl/src",
+"${INC_ROOT}/modem/ims/dpl/mccsec/src/amss",
+"${INC_ROOT}/modem/ims/dpl/milenage/src/amss",
+"${INC_ROOT}/core/systemdrivers/clk/inc",
+"${INC_ROOT}/modem/mcs/mem/inc",
+"${INC_ROOT}/modem/cne/utils/inc",
+"${INC_ROOT}/multimedia/apr/utils/inc",
+"${INC_ROOT}/multimedia/apr/osal/inc",
+"${INC_ROOT}/multimedia/apr/target/modem/utils/l4/inc",
+])
+
+IMS_API = [
+	'IMS_DPL',
+	'IMS_FRAMEWORK',
+	'IMS_PROCESS',
+	'IMS_QMI',
+	'IMS_DPL_MEDIA',
+]
+
+env.RequireProtectedApi(IMS_API)
+
+IMS_DPL_FLAGS = [
+   'MAF_NO_GLOBALS',
+   'QMAF',
+]
+
+IMS_DPL_TLS_TEST_FLAGS = [
+   'QPTLS_CERT_IGNORE_EXPIRATION',
+   'QPTLS_CERT_USE_USER_TIME',
+   'QPDPL_TLS_TEST',
+]
+#-------------------------------------------------------------------------------
+# Specify the list of Sources, libraries with the proper path
+#-------------------------------------------------------------------------------
+
+IMS_DPL_LIB_IPSEC_COMMON_CPP_SOURCES=[
+	'${BUILDPATH}/src/qpIPSec.cpp',
+]
+
+IMS_DPL_LIB_COMMON_CPP_SOURCES=[]
+
+IMS_DPL_LIB_COMMON_C_SOURCES=[
+	'${BUILDPATH}/src/qpdpl.c',
+	'${BUILDPATH}/src/qpdpltls.c',
+	'${BUILDPATH}/src/qpdplsec.c',
+	'${BUILDPATH}/src/qplog.c',
+	'${BUILDPATH}/src/qpDplHandShakeHandler.c', 
+	'${BUILDPATH}/src/qpdplnet.c',
+#	'${BUILDPATH}/src/qpDplGba.c',
+	'${BUILDPATH}/src/qpDcm.c',
+	'${BUILDPATH}/src/qpIsim.c',
+	'${BUILDPATH}/src/qpCircularBuffer.c',
+	'${BUILDPATH}/src/qpMemoryStats.c',
+	'${BUILDPATH}/src/MemoryManager.c',
+	'${BUILDPATH}/src/qpAmssMisc.c',
+	'${BUILDPATH}/src/qpIO.c',
+	'${BUILDPATH}/src/qpDplCallCtrl.c',
+	'${BUILDPATH}/src/qpDplSms.c',
+	'${BUILDPATH}/src/qpDns.c',
+	'${BUILDPATH}/src/qpConfigNVItem.c',
+	'${BUILDPATH}/src/qpdpl_qmi_handler.c',
+	'${BUILDPATH}/src/qpDplQoS.c',
+	'${BUILDPATH}/src/qpDplList.c',
+	'${BUILDPATH}/src/qpDplHandOver.c',
+	'${BUILDPATH}/src/qpdplloc.c',
+]
+
+if 'USES_IMS_NO_CONF_EVENT' in env:
+   IMS_DPL_LIB_COMMON_C_SOURCES += [
+      '${BUILDPATH}/src/qpDplCallCtrlWOConf.c',
+]
+
+if not 'USES_IMS_NO_CONF_EVENT' in env:
+   IMS_DPL_LIB_COMMON_C_SOURCES += [
+      '${BUILDPATH}/src/qpDplCallCtrlConf.c',
+]
+
+IMS_DPL_LIB_STANDALONE_AKA_C_SOURCES=[
+	'${BUILDPATH}/mccsec/src/amss/qimf_bit.c',	# Specify explicitly the path of sources if it elsewhere
+	'${BUILDPATH}/mccsec/src/amss/qimf_mccakasha.c',
+	'${BUILDPATH}/mccsec/src/amss/qimf_mccsec.c',
+	'${BUILDPATH}/mccsec/src/amss/qimf_mccsha.c',
+	'${BUILDPATH}/milenage/src/amss/qimf_milenage.c',
+]
+
+IMS_DPL_LIB_TLS_TEST_SRC=[
+	'${BUILDPATH}/src/qpdpltlstest.c',
+]
+
+env.PublishPrivateApi('VIOLATIONS', [
+"${INC_ROOT}/ims/dpl/mccsec/src/amss",
+"${INC_ROOT}/ims/dpl/milenage/src/amss",
+])
+
+env.RequirePrivateApi('IMS_DPL_INC')
+IMS_DPL_LIB_CALL_COMMON_C_SOURCES = ['${BUILDPATH}/src/qpCall.c']
+
+#-------------------------------------------------------------------
+#                   Common dpl files                         
+#-------------------------------------------------------------------
+IMS_DPL_LIB_CPP_SOURCES=IMS_DPL_LIB_COMMON_CPP_SOURCES
+IMS_DPL_LIB_C_SOURCES=IMS_DPL_LIB_COMMON_C_SOURCES
+
+#-------------------------------------------------------------------
+#                   standalone aka dpl files                         
+#-------------------------------------------------------------------
+if not 'USES_IMS_NO_STANDALONE_AKA' in env:
+	IMS_DPL_LIB_C_SOURCES+=IMS_DPL_LIB_STANDALONE_AKA_C_SOURCES
+
+#-------------------------------------------------------------------
+#                   IpSec                    
+#-------------------------------------------------------------------
+if not 'USES_IMS_NO_IPSEC' in env:
+	IMS_DPL_LIB_CPP_SOURCES+=IMS_DPL_LIB_IPSEC_COMMON_CPP_SOURCES
+
+#-------------------------------------------------------------------
+#                   CALL                
+#-------------------------------------------------------------------
+if not 'USES_IMS_NO_CALL' in env:
+	IMS_DPL_LIB_C_SOURCES+=IMS_DPL_LIB_CALL_COMMON_C_SOURCES
+
+#-------------------------------------------------------------------
+#                   TLS - DPL TEST APP
+#-------------------------------------------------------------------
+if 'USES_IMS_DPL_TLS_TEST' in env:
+	IMS_DPL_LIB_C_SOURCES+=IMS_DPL_LIB_TLS_TEST_SRC
+	IMS_DPL_FLAGS+=IMS_DPL_TLS_TEST_FLAGS
+
+###########################################################################################
+
+# Append the list of Macro Definitions as flags to the Compiler so that it will do a conditional compilation
+env.Append(CPPDEFINES = IMS_DPL_FLAGS)
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Modem Image
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/ims_dpl', [IMS_DPL_LIB_CPP_SOURCES,IMS_DPL_LIB_C_SOURCES])

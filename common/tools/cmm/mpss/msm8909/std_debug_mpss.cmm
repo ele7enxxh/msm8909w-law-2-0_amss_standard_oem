@@ -1,0 +1,160 @@
+//============================================================================
+//  Name:                                                                     
+//    std_debug_mpss.cmm 
+//
+//  Description:                                                              
+//    MPSS debug script
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 02/21/2013 AJCheriyan	Disable clock gating
+// 07/19/2012 AJCheriyan    Created for B-family.
+
+// Following arguments are supported. 
+// ARG0 - Image to debug. 
+// ARG1 - En/Disable Sleep. lpm_enable / lpm_disable
+// ARG2 - Entry point for this debug session. will default to image entry point
+//        if nothing is specified.
+// ARGn - n > 2 - Any other arguments to be passed to the script
+//
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+LOCAL &ELFILE &IMAGE
+
+MAIN:
+	&IMAGE="&ARG0"
+	&LPM_OPTION="&ARG1"
+        &ACCESS="A"
+	// The arguments are valid at this point and the required T32 sessions are open
+	// Go about business without error checking
+	do hwio.cmm
+
+	// For MBA / MPSS image
+	IF (("&IMAGE"=="mpss")||("&IMAGE"=="mba"))
+	(
+		// Attach to the RPM and break
+		do std_utils BREAKPROC 
+
+		// Set the magic number appropriately
+		IF ("&IMAGE"=="mpss")
+		(
+			//debugging using isdb method
+			IF ("&HLOS_TYPE"=="LW")
+			(
+				do std_utils HWIO_OUTF GCC_MSS_CFG_AHB_CBCR CLK_ENABLE 0x1 
+				wait.200ms
+				do std_utils HWIO_OUTF MSS_QDSP6SS_DBG_CFG DBG_SW_REG 0x20
+			)
+			ELSE
+			(
+			D.S E&ACCESS:&MPSS_DEBUG_COOKIE %LONG %LE &DEBUG_COOKIE_VALUE 
+			)
+		)
+		IF ("&IMAGE"=="mba")
+		(
+			D.S E&ACCESS:&MBA_DEBUG_COOKIE %LONG %LE &DEBUG_COOKIE_VALUE
+		)
+
+		// Let RPM run too 
+		do std_utils ATTACHPROC
+
+		// Enable MSA val signal assertion
+		do std_utils HWIO_OUT QDSS_CS_QDSSCSR_LOCKACCESS 0xC5ACCE55
+		do std_utils HWIO_OUT QDSS_CS_QDSSCSR_DAPMSAVAL 0x1
+
+		// Enable the CFG bus clock for the reset reg access
+		// Now poll until modem is brought out of reset
+		&VALUE=0x0
+		//WHILE (&VALUE==0x0)
+		//(
+		//	do std_utils HWIO_INF GCC_MSS_CFG_AHB_CBCR CLK_ENABLE
+		//	ENTRY &VALUE
+		//)
+                print "RELAX!! Modem attach is in progress"
+		WAIT 80.s
+		//do std_utils ATTACHPROC
+		
+		IF ("&HLOS_TYPE"=="LW")
+		(
+				// We need to disable clock gating
+		do std_utils HWIO_OUTF MSS_QDSP6SS_CGC_OVERRIDE CORE_RCLK_EN 0x1
+		do std_utils HWIO_OUTF MSS_QDSP6SS_CGC_OVERRIDE CORE_CLK_EN 0x1
+		)
+		// We need to disable clock gating
+		//do std_utils HWIO_OUTF MSS_QDSP6SS_CGC_OVERRIDE CORE_RCLK_EN 0x1
+		//do std_utils HWIO_OUTF MSS_QDSP6SS_CGC_OVERRIDE CORE_CLK_EN 0x1
+
+		// Now we can attach and break. It should be welcoming us with a "brkpt"
+		do std_intercom_do &MPSS_PORT std_utils BREAKPROC
+                print "lucky Aah!! Modem attach is Done"
+		// Load the symbols appropriately
+		IF ("&IMAGE"=="mpss")
+		(
+			do std_intercom_do &MPSS_PORT std_loadsyms_mpss
+			// We are good to exit fastdebug mode
+			do std_exitfastdebug mpss
+		)
+		IF ("&IMAGE"=="mba")
+		(
+			do std_intercom_do &MPSS_PORT std_loadsyms_mba
+			// We are good to exit fastdebug mode
+			do std_exitfastdebug mba
+		)
+
+		WAIT 5.s
+		
+		// Check if sleep is to be enabled or not
+		INTERCOM.EVALUATE &MPSS_PORT Y.EXIST(sleep_allow_low_power_modes)
+		IF (1==EVAL())
+		(
+			IF (("&LPM_OPTION"=="lpm_disable")&&("&IMAGE"=="mpss"))
+			(
+				INTERCOM.EXECUTE &MPSS_PORT v sleep_allow_low_power_modes = 0
+			)
+			IF (("&LPM_OPTION"=="lpm_enable")&&("&IMAGE"=="mpss"))
+			(
+				INTERCOM.EXECUTE &MPSS_PORT v sleep_allow_low_power_modes = 1
+			)
+		)
+		
+	
+		// Now go to the desired point
+		// Let's check if the symbol is present
+		INTERCOM.EVALUATE &MPSS_PORT Y.EXIST("&ARG2")			
+		IF (1==EVAL())
+		(
+			// Go to user determined breakpoint
+			INTERCOM.EXECUTE &MPSS_PORT GO &ARG2 /O
+		)
+		ELSE
+		(
+			// Go to known point
+		    INTERCOM.EXECUTE &MPSS_PORT GO main /O
+		)
+		
+		INTERCOM.EXECUTE &MPSS_PORT trans.off
+		INTERCOM.EXECUTE &MPSS_PORT trans.reset
+		INTERCOM.EXECUTE &MPSS_PORT mmu.format tlb
+		INTERCOM.EXECUTE &MPSS_PORT trans.tablewalk.on
+		INTERCOM.EXECUTE &MPSS_PORT trans.autoenable
+	)	
+	
+	GOTO EXIT
+
+EXIT:
+	ENDDO
+
+FATALEXIT:
+	END
+
+
+

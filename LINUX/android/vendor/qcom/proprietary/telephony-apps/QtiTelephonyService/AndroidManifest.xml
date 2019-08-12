@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+Copyright (c) 2014 Qualcomm Technologies, Inc.  All Rights Reserved.
+Qualcomm Technologies Proprietary and Confidential.
+-->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.qualcomm.qti.telephonyservice" >
+
+    <!--
+    QtiTelephonyService service is protected by 2 permissions-
+    1. com.qualcomm.qti.permission.USE_QTI_TELEPHONY_SERVICE - client needs this permission to bind
+    to the service
+    2. com.qualcomm.qti.permission.ACCESS_USER_AUTHENTICATION_APIS - client needs this permission
+    to access the user authentication apis
+     -->
+    <permission android:name="com.qualcomm.qti.permission.USE_QTI_TELEPHONY_SERVICE"
+                android:protectionLevel="signatureOrSystem"
+                android:label="Permission to bind to QtiTelephonyService service"/>
+    <permission android:name="com.qualcomm.qti.permission.ACCESS_USER_AUTHENTICATION_APIS"
+                android:protectionLevel="signatureOrSystem"
+                android:label="Permission to access User Authentication apis"/>
+
+    <uses-permission android:name="com.qualcomm.permission.USE_QCRIL_MSG_TUNNEL" />
+    <!--
+    Instrumentation runs in the context of the service and so service requests
+    USE_QTI_TELEPHONY_SERVICE and ACCESS_USER_AUTHENTICATION_APIS for the tests to run.
+    Please un-comment the permissions when the tests need to be run.
+     -->
+<!--uses-permission android:name="com.qualcomm.qti.permission.USE_QTI_TELEPHONY_SERVICE" /-->
+<!--uses-permission android:name="com.qualcomm.qti.permission.ACCESS_USER_AUTHENTICATION_APIS"/-->
+
+    <application>
+        <uses-library android:name="com.qualcomm.qcrilhook" />
+
+        <service android:name=".QtiTelephonyService"
+                 android:enabled="true"
+                 android:exported="true"
+                 android:permission="com.qualcomm.permission.USE_QTI_TELEPHONY_SERVICE">
+            <intent-filter>
+                <action android:name="com.qualcomm.qti.telephonyservice.IQtiTelephonyService" />
+            </intent-filter>
+        </service>
+
+    </application>
+
+</manifest>

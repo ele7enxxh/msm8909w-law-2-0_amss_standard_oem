@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<policy name            = "rat capability"
+        enabled         = "true"
+        schema_ver      = "1"
+        policy_ver      = "1"
+>
+  
+  <initial>
+    <actions>
+      <define_timer name = "oos" interval = "5" units = "min" />
+    </actions>
+  </initial>
+
+  <!-- In the US, do not connect to GSM -->
+  <rule>
+    <conditions>
+      <serving_mcc_in> 310 311 312 313 314 315 316 330 </serving_mcc_in>
+    </conditions>
+    
+    <actions>
+      <rat_capability base = "hardware">
+        <exclude> GSM WCDMA </exclude>
+      </rat_capability>
+      <svc_mode> FULL </svc_mode>
+    </actions>
+  </rule>
+
+  <!-- Otherwise, use full hardware capabilitiy -->
+  <rule>
+    <conditions>
+      <true/>
+    </conditions>
+    
+    <actions>
+      <rat_capability base = "hardware" />
+      <svc_mode> FULL </svc_mode>
+    </actions>
+  </rule>
+
+</policy>
+

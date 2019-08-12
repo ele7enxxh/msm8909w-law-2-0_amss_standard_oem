@@ -1,0 +1,209 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for QDSS common.
+#
+# Copyright (c) 2011 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+# $Header:$
+#
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'HAL',
+   'DAL',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   'SERVICES',
+   'POWER',
+   'SYSTEMDRIVERS',
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+env.RequireProtectedApi(['DEBUGTRACE'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+config='8974'                   #default config
+if env['MSM_ID'] in ['8974']:   #add to this list as more configs are added
+    config=env['MSM_ID']
+
+#-------------------------------------------------------------------------------
+# Add CMM Scripts to T32 Menu
+#-------------------------------------------------------------------------------
+
+#import pdb; pdb.set_trace()
+specific_config = '8974'
+if env['MSM_ID'] in ['8974', '9x25', '8x26', '8916']:   
+    specific_config = env['MSM_ID']
+
+
+if '8916' == specific_config:
+   QDSS_SCRIPTS_PATH = env['BUILD_ROOT'] + '/core/debugtrace/tools/scripts/8916'
+
+   try:
+       env.AddCMMScripts('RPM', [QDSS_SCRIPTS_PATH],\
+      {\
+         '8916_Help.cmm':'Help - 8916 QDSS Scripts',\
+		 
+		 '8916_CTI_RPM_master.cmm':'CTI RPM master',\
+         '8916_CTI_MPSS_master.cmm':'CTI MPSS master',\
+         '8916_CTI_ADSP_master.cmm':'CTI LPASS master',\
+         '8916_Link_HWevent_to_CTI.cmm':'Link HWevents to CTI',\
+		 '8916_CTI_Disable_and_Clear.cmm':'Disable and Clear all CTIs',\
+		 
+         '8916_Dump_ETB.cmm':['Dump ETB to C:\TEMP\ETBdump.bin','C:\TEMP\ETBdump.bin'],\
+		 '8916_Dump_ETR.cmm':['Dump ETR to C:\TEMP\ETBdump.bin','C:\TEMP\ETBdump.bin'],\
+
+         
+      }, 'debugtrace')
+   except:
+      pass   
+	  
+elif '8x26' == specific_config:
+   QDSS_SCRIPTS_PATH = env['BUILD_ROOT'] + '/core/debugtrace/tools/scripts/8x26'
+
+   try:
+       env.AddCMMScripts('RPM', [QDSS_SCRIPTS_PATH],\
+      {\
+         '8x26_Help.cmm':'Help - 8x26 QDSS Scripts',\
+		 
+		 #'8x26_Collect_SD.cmm':'Collect Trace Over SD',\
+		 #'8x26_Collect_TPIU_Set_A.cmm':'Collect Trace Over TPIU Set A',\
+		 #'8x26_Collect_TPIU_Set_B.cmm':'Collect Trace Over TPIU Set A',\
+		 
+		 '8x26_CTI_RPM_master.cmm':'CTI RPM master',\
+         '8x26_CTI_MPSS_master.cmm':'CTI MPSS master',\
+         '8x26_CTI_ADSP_master.cmm':'CTI LPASS master',\
+         '8x26_Link_HWevent_to_CTI.cmm':'Link HWevents to CTI',\
+		 '8x26_CTI_Disable_and_Clear.cmm':'Disable and Clear all CTIs',\
+		 
+         '8x26_Dump_ETB.cmm':['Dump ETB to C:\TEMP\ETBdump.bin','C:\TEMP\ETBdump.bin'],\
+		 '8x26_Dump_ETR.cmm':['Dump ETR to C:\TEMP\ETBdump.bin','C:\TEMP\ETBdump.bin'],\
+
+         
+      }, 'debugtrace')
+   except:
+      pass         
+         
+elif '9x25' == specific_config:
+   QDSS_SCRIPTS_PATH = env['BUILD_ROOT'] + '/core/debugtrace/tools/scripts/9x25'
+
+   try:
+       env.AddCMMScripts('RPM', [QDSS_SCRIPTS_PATH],\
+      {\
+         '9x25_Help.cmm':'Help - 9x25 QDSS Scripts',\
+		 
+		 #'9x25_Collect_SD.cmm':'Collect Trace Over SD',\
+		 #'9x25_Collect_TPIU_Set_A.cmm':'Collect Trace Over TPIU Set A',\
+		 #'9x25_Collect_TPIU_Set_B.cmm':'Collect Trace Over TPIU Set A',\
+		 
+		 '9x25_CTI_RPM_master.cmm':'CTI RPM master',\
+         '9x25_CTI_MPSS_master.cmm':'CTI MPSS master',\
+         '9x25_CTI_ADSP_master.cmm':'CTI LPASS master',\
+         '9x25_CTI_SPARROW_master.cmm':'CTI SPARROW master',\
+         '9x25_Link_HWevents_to_CTI.cmm':'Link HWevents to CTI',\
+		 '9x25_CTI_Disable_and_Clear.cmm':'Disable and Clear all CTIs',\
+		 
+         '9x25_Dump_ETB.cmm':['Dump ETB to C:\TEMP\ETBdump.bin','C:\TEMP\ETBdump.bin'],\
+		 '9x25_Dump_ETR.cmm':['Dump ETR to C:\TEMP\ETBdump.bin','C:\TEMP\ETBdump.bin'],\
+         
+		 '9x25_Hwevent_Audio_usecase.cmm':'HWevents - Audio',\
+		 '9x25_Hwevent_A5_BIMC_usecase.cmm':'HWevents - A5 BIMC',\
+		 '9x25_Hwevent_Bark_Bite_usecase.cmm':'HWevents - Watchdog Barks and Bites',\
+		 '9x25_Hwevent_GDS_usecase.cmm':'HWevents - GDS',\
+		 '9x25_Hwevent_GDS_MM_usecase.cmm':'HWevents - GDS MM',\
+		 '9x25_Hwevent_Modem_Audio_usecase.cmm':'HWevents - Modem and Audio',\
+		 '9x25_Hwevent_MP_DCVS_usecase.cmm':'HWevents - MP DCVS',\
+		 '9x25_Hwevent_MSS_Clocks_and_PLL_usecase.cmm':'HWevents - MSS Clocks and PLL',\
+		 '9x25_Hwevent_NOC_and_BusTimeout_usecase.cmm':'HWevents - NOC errors and bus timeouts', \
+		 '9x25_Hwevent_PLL_A5_Power_States_usecase.cmm':'HWevents - PLL A5 Power States',\
+		 '9x25_Hwevent_RPM_SPM_usecase.cmm':'HWevents - RPM SPM',\
+		 '9x25_Hwevent_RPM_SPM_message_usecase.cmm':'HWevents - RPM SPM message',\
+		 
+         #'9x25_hwio_qdss.cmm':'Run HWIO for HWevent scripts',\
+      }, 'debugtrace')
+   except:
+      pass
+      
+else:
+   QDSS_SCRIPTS_PATH = env['BUILD_ROOT'] + '/core/debugtrace/tools/scripts/8974'
+   
+   try:
+      env.AddCMMScripts('RPM', [QDSS_SCRIPTS_PATH],\
+      {\
+         '8974_Help.cmm':'Help - 8974 QDSS Scripts',\
+		 
+		 #'8974_Collect_SD.cmm':'Collect Trace Over SDCC2',\
+		 #'8974_Collect_TPIU_Set_A.cmm':'Collect Trace Over TPIU Set A',\
+		 #'8974_Collect_TPIU_Set_B.cmm':'Collect Trace Over TPIU Set A',\
+		 
+		 '8974_CTI_RPM_master.cmm':'CTI RPM master',\
+         '8974_CTI_MPSS_master.cmm':'CTI MPSS master',\
+         '8974_CTI_ADSP_master.cmm':'CTI LPASS master',\
+		 '8974_CTI_WCNSS_master.cmm':'CTI WCNSS master',\
+		 '8974_CTI_Disable_and_Clear.cmm':'Disable and Clear all CTIs',\
+         '8974_Link_HWevent_to_CTI.cmm':'Link HWevents to CTI',\
+		 
+         '8974_Dump_ETB.cmm':['Dump ETB to C:\TEMP\ETBdump.bin','C:\TEMP\ETBdump.bin'],\
+         '8974_Dump_ETR.cmm':['Dump ETR to C:\TEMP\ETBdump.bin','C:\TEMP\ETBdump.bin'],\
+		 
+		 '8974_HWevent_Audio_usecase.cmm':'HWevents - Audio',\
+		 '8974_HWevent_Audio_Encode_usecase.cmm':'HWevents - Audio Encode',\
+		 '8974_HWevent_Bark_Bite_usecase.cmm':'HWevents - Watchdog Barks and Bites',\
+		 
+		 '8974_HWevent_Camera_usecase.cmm':'HWevents - Camera',\
+		 '8974_HWevent_GDS_usecase.cmm':'HWevents - GDS',\
+		 '8974_HWevent_Krait_BIMC_usecase.cmm':'HWevents - Krait and BIMC',\
+		 
+		 '8974_HWevent_Modem_Audio_usecase.cmm':'HWevents - Modem and Audio',\
+		 '8974_HWevent_MP_DCVS_usecase.cmm':'HWevents - MP DCVS',\
+		 '8974_HWevent_MSS_usecase.cmm':'HWevents - Modem Subsystem',\
+         '8974_HWevent_NOC_BusTimeout_usecase.cmm':'HWevents - NOC errors and Bus Timeouts',\
+		 '8974_HWevent_PLL_noKrait_usecase.cmm':'HWevents - PLL no Krait',\
+		 
+		 '8974_HWevent_Powerlift_Graphics_usecase.cmm':'HWevents - Powerlift Graphics', \
+		 '8974_HWevent_Powerlift_Graphics_2_usecase.cmm':'HWevents - Powerlift Graphics 2',\
+		 '8974_HWevent_RPM_SPM_usecase.cmm':'HWevents - RPM SPM',\
+		 '8974_HWevent_RPM_SPM_message_usecase.cmm':'HWevents - RPM SPM message',\
+		 '8974_HWevent_Static_Disp_usecase.cmm':'HWevents - Static Display',\
+
+		 '8974_HWevent_Video_Decode_3_GDS_usecase.cmm':'HWevents - Video Decode 3 GDS',\
+		 '8974_HWevent_Video_Decode_audio_usecase.cmm':'HWevents - Video Decode Audio',\
+		 '8974_HWevent_Video_Decode_MDP_usecase.cmm':'HWevents - Video Decode MDP',\
+		 '8974_HWevent_Video_Encode_audio_usecase.cmm':'HWevents - Video Encode Audio',\
+		 '8974_HWevent_Video_Encode_MMSS_usecase.cmm':'HWevents - Video Encode MMSS',\
+		 '8974_HWevent_Video_Stream_modem_wifi_usecase.cmm':'HWevents - Video Stream Modem Wifi',\
+		 '8974_HWevent_WEB_usecase.cmm':'HWevents - WEB',\
+         
+		 #'hwio_qdss.cmm':'Run HWIO for HWevent scripts',\
+		 
+		 '8974_CPU_Trace_RPM_TPIU.cmm':'ETM Tracing over TPIU',\
+		 #'8974_CPU_Trace_RPM__ETB.cmm':'ETM Tracing to ETB',\
+		 
+      }, 'debugtrace')
+   except:
+      pass

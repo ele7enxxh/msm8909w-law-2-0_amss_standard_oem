@@ -1,0 +1,135 @@
+#===============================================================================
+#
+# TMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/utils/fc/main/latest/build/utils_fc.scons#1 $
+#  $DateTime: 2010/08/06 12:28:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/08/12   grk     RCinit featurizations
+# 02/07/12   grk     RC init changes
+# 04/29/11   grk     Fixed compilation error.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+if 'USES_GNSS_SA' in env:
+    Return()
+# ------------------------------------------------------------------------------
+# Include Paths for W
+#-------------------------------------------------------------------------------
+env.PublishProtectedApi('FC', ["${INC_ROOT}/modem/utils/fc/inc"])
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_FC",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Public API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+    'SERVICES',
+    'DAL',
+    'DEBUGTOOLS',
+    'POWER',
+    'MPROC',
+    'SYSTEMDRIVERS',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ], area='core')
+
+# Need to get access to Public FC headers
+env.RequirePublicApi([
+    'MMODE',
+    'UTILS',
+    'MCS',
+    'WCDMA',
+    ])
+
+# Need to get access to Public FC headers
+env.RequireRestrictedApi([
+    'DATA',
+    'MCS',
+    'UTILS',
+    ])
+
+#-------------------------------------------------------------------------------
+# We need our "inc" dir too
+#-------------------------------------------------------------------------------
+env.RequireProtectedApi(['FC'])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# To See smd_lite.h
+#env.RequirePublicApi(['MPROC'])
+
+FC_C_SOURCES = [
+    '${BUILDPATH}/fc.c',
+    '${BUILDPATH}/fcdiag.c',
+    '${BUILDPATH}/fctask.c',
+]
+
+# Add our library to the Modem Modem image
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/fc', FC_C_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+
+#-------------------------------------------------------------------------------
+#  RC INIT
+#-------------------------------------------------------------------------------
+
+# Build image for which this task belongs
+RCINIT_FC = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_FC = {
+	    'sequence_group'      : env.subst('$MODEM_PROTOCOL'),
+	    'init_name'           : 'fc_initialize',
+	    'init_function'       : 'fc_init',
+		     'policy_optin'        : ['default', 'ftm', ],
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_FC = {
+	    'thread_name'         : 'fc',
+	    'sequence_group'      : env.subst('$MODEM_PROTOCOL'),
+	    'stack_size_bytes'    : env.subst('$FC_STKSZ'),
+	    'priority_amss_order' : 'FC_PRI_ORDER',
+	    'stack_name'          : 'fc_stack',
+	    'thread_entry'        : 'fc_task',
+	    'tcb_name'            : 'fc_tcb',
+		     'policy_optin'        : ['default', 'ftm', ],
+            'cpu_affinity'	  : env.subst('$MODEM_CPU_AFFINITY')
+    }
+    
+# Add  task and init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+	    env.AddRCInitFunc(RCINIT_FC, RCINIT_INIT_FC)
+	    env.AddRCInitTask(RCINIT_FC, RCINIT_TASK_FC)
+

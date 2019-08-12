@@ -1,0 +1,81 @@
+#ifndef _SECRND_IPC_
+#define _SECRND_IPC_
+/*============================================================================
+SFS IPC
+
+ABSTRACT
+   SECRND IPC message types.
+
+DESCRIPTION
+   This service will allow remote users to seed the csprng,
+   and get random numbers
+   
+
+Copyright (c) 2006 2010 by QUALCOMM, Incorporated.  All Rights Reserved.
+=========================================================================== */
+
+/*=========================================================================
+                              Edit History
+  
+  $Header:  $
+  $Date:    $ 
+  $Author: $
+
+when       who     what, where, why
+--------   ---     --------------------------------------------------------
+07/18/10   nk      Shared Library Framework
+12/11/06   df      initial version
+=========================================================================== */
+
+
+#include "comdef.h"
+#include "rtedef.h"
+#include "ipcsvc.h"
+
+#define SECRND_MAX_FILL_SIZE 64
+/* ========================================================================
+** Message IDs
+** ======================================================================== */
+#define SECRND_IPC_MSG_BASE                 IPCSVC_SECRND_BASE_MSG_ID
+
+#define secrnd_get_random_req_msg_id    SECRND_IPC_MSG_BASE + 0x0001
+#define secrnd_get_random_rsp_msg_id    SECRND_IPC_MSG_BASE + 0x0002
+#define secrnd_fill_rnd_req_msg_id      SECRND_IPC_MSG_BASE + 0x0003
+
+/*===========================================================================
+
+                    PUBLIC IPC MESSAGE DEFINITIONS
+
+===========================================================================*/
+/*===========================================================================
+
+IPC-MESSAGE SECRND_GET_RANDOM_MSG
+
+DESCRIPTION
+PARAMETERS
+
+RETURN VALUE
+  Status of request:
+    E_SUCCESS if successful
+    E_AGAIN   if not enough random data has been collected since last call
+
+SIDE EFFECTS
+  None.
+===========================================================================*/
+typedef struct
+{
+  ipc_msg_id_type    msg_id;
+  secerrno_enum_type errno;
+  uint8*             random_ptr;
+  uint16             random_len;
+} secrnd_get_random_req_msg, secrnd_get_random_rsp_msg;
+
+typedef struct
+{
+  ipc_msg_id_type    msg_id;
+  uint8              random_buf[SECRND_MAX_FILL_SIZE];
+  uint16             random_len;
+} secrnd_fill_rnd_req_msg;
+
+#endif /* _SECRND_IPC_ */
+

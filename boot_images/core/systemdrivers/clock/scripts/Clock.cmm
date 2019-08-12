@@ -1,0 +1,136 @@
+;============================================================================
+;  Name:
+;    CLOCK.CMM
+;
+;  Description:
+;    This script functions as the high level clock debug interface menu.
+;    It redirects users to the appropriate target specific debug script.
+
+;============================================================================
+;
+;      Copyright (c) 2012 by Qualcomm Technologies, Inc.  All Rights Reserved.
+;      QUALCOMM Proprietary and Confidential.
+;
+;============================================================================
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/systemdrivers/clock/scripts/Clock.cmm#1 $
+; $DateTime: 2015/09/01 00:30:35 $
+; $Author: pwbldsvc $
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; when       who     what, where, why
+; ---------- ---     --------------------------------------------------------
+; 05/11/2012 frv     Created.
+;============================================================================;
+
+
+;-----------------------------------------------------------------------------
+; Global variables
+;-----------------------------------------------------------------------------
+
+
+;-----------------------------------------------------------------------------
+; Local variables
+;-----------------------------------------------------------------------------
+
+local &choice
+local &target
+
+ENTRY &target
+
+;-----------------------------------------------------------------------------
+; Apply default target if none specified when executing this script
+;-----------------------------------------------------------------------------
+
+if "&target"==""
+(
+  &target="msm8916"
+)
+
+;-----------------------------------------------------------------------------
+; Define the window
+;-----------------------------------------------------------------------------
+
+AREA.RESet
+WINPOS 0. 0. 100% 100%
+AREA.Create CLOCK
+AREA.view CLOCK
+AREA.Select CLOCK
+AREA.Clear CLOCK
+
+;-----------------------------------------------------------------------------
+; Read input
+;-----------------------------------------------------------------------------
+
+on ERROR gosub
+(
+  print "An Error has Occured"
+  
+  return
+)
+
+Main_Menu:
+
+  AREA.Select CLOCK
+  AREA.Clear CLOCK
+
+  print " "
+  print " "
+  print "[------------------------------------------------ CLOCK MAIN MENU ------------------------------------------------]"
+  print " "
+  print "1: Clock Driver Structures"
+  print "2: Clocks"
+  print "3: PLLs"
+  print " "
+  print "l: Enable logging"
+  print "x: Exit"
+  print " "
+  
+  &t32_cmm_stopped=1
+  print "Enter option: "
+  enter &choice
+  &t32_cmm_stopped=0
+  print "&choice"
+
+  if "&choice"=="x"
+  (
+    AREA.CLEAR CLOCK
+    AREA.RESET
+    WINCLEAR
+    term.close 
+    enddo (0==0)
+  )
+  else if "&choice"=="l"
+  (
+    print "Enter log file [c:\temp\testclock.log]: "
+    enter &logfile
+    if "&logfile"==""
+    (
+      &logfile="c:\temp\testclock.log"
+    )
+    area.open CLOCK &logfile
+  )
+  else if &choice>3
+  (
+    GOTO Main_Menu 
+  )
+  else if &choice==1
+  (
+    do ClockDriver.cmm 1
+  )
+  else if &choice==2
+  (
+    do &target\testclock.cmm 1
+  )
+  else if &choice==3
+  (
+    do &target\testpll.cmm 1
+  )
+
+  GOTO Main_Menu
+
+;-----------------------------------------------------------------------------
+;  END OF MAIN BODY
+;-----------------------------------------------------------------------------
+

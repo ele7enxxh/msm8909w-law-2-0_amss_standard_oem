@@ -1,0 +1,105 @@
+#===============================================================================
+#
+#                             Edit History
+#
+# $Header: //source/qcom/qct/core/buses/icb/dev/2.0/build/SConscript#2 $
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2012/07/30   sy      Fixing Linux build error
+# 2012/05/21   av      Added support for 9x25
+# 2012/03/20   av      Added BOOT image
+# 2012/03/02   pm      Changes for WCNSS PRONTO
+# 2011/12/12   sds     Initial Creation
+#
+#===============================================================================
+#                    Copyright (c) 2011-2012 QUALCOMM Incorporated.
+#                              All Rights Reserved.
+#                            QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Python library imports
+#-------------------------------------------------------------------------------
+import glob, os
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+BUILDPATH = '..'
+env.VariantDir('${BUILDPATH}', BUILDPATH, duplicate=0)
+SRCPATH = os.path.join( BUILDPATH, 'src' )
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'BUSES',
+   'HAL',
+   'POWER',
+   'RPM',
+   'DAL',
+   'BOOT',
+   'SYSTEMDRIVERS',
+   'SERVICES',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+#-------------------------------------------------------------------------------
+# Private depends within ICB
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('ICB_API', [
+    os.path.join(SRCPATH, 'common'),
+    ])
+
+#-------------------------------------------------------------------------------
+# Build products for RCINIT
+#-------------------------------------------------------------------------------
+if 'USES_RCINIT' in env and env['MSM_ID'] in ['8974']:
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', 
+                'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN']
+
+  RCINIT_INIT_ICBARB = {
+    'sequence_group'             : 'RCINIT_GROUP_1',                       # required
+    'init_name'                  : 'icbarb',                               # required
+    'init_function'              : 'icbarb_init',                          # required
+    'dependencies'               : ['npa'],                       # opt [python list]
+  }
+  env.AddRCInitFunc( RCINIT_IMG, RCINIT_INIT_ICBARB )
+
+#-------------------------------------------------------------------------------
+# Common Sources
+#-------------------------------------------------------------------------------
+icb_src = glob.glob( os.path.join(SRCPATH, 'common', '*.c') )
+
+
+# Prepend build path
+icb_src = ['${BUILDPATH}' + filename[2:] for filename in icb_src]
+
+env.AddLibrary(
+   ['MODEM_IMAGE','CBSP_MODEM_IMAGE',
+   'CORE_QDSP6_SW', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 
+   'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN',
+   'BUSES_AHB_BOOT_DRIVER'],
+   '${BUILDPATH}/icb', icb_src)
+
+#-------------------------------------------------------------------------------
+# Device Configuration Sources
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8909w']: 
+   env['MSM_ID'] = '8909' 
+
+if 'USES_DEVCFG' in env:
+  # Look for data and xml file for the current MSM_ID
+  icb_cfg_src = glob.glob( os.path.join(SRCPATH, env['MSM_ID'], '*.c') )
+  icb_config_xml = glob.glob( '../config/*%s.xml' % env['MSM_ID'] )
+
+  # If we have both, add to device configuration library
+  if icb_cfg_src and icb_config_xml:
+    env.AddDevCfgInfo( ['DAL_DEVCFG_IMG'], {'devcfg_xml' : icb_config_xml[0]} )
+    env.AddLibrary(['DAL_DEVCFG_IMG'], '${BUILDPATH}/icb_cfg_lib', icb_cfg_src)
+
+

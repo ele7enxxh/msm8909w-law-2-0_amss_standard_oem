@@ -1,0 +1,129 @@
+#===============================================================================
+#
+# QFPROM Driver , Diag Libs
+#
+# GENERAL DESCRIPTION
+#    QFPROM HAL build script
+#
+# Copyright 2012-2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/boot/qfprom/build/core_2_0.sconscript#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/20/15   lm      Added support fpr MSM8937
+# 11/12/15   lm      Added support for MDM9x07
+# 12/17/12   kedara  Added src's to support qfprom_drivers in mpss.
+# 07/10/12   dh      Add qfprom_fuse_region.c
+# 11/08/11   plc     Initial Revision.
+#===============================================================================
+Import('env')
+env = env.Clone()
+env.LoadSoftwareUnits(level=1)
+
+# To be updated: if fuse map is different, please create new files
+
+if env['CHIPSET'] in ['mdm9607']: 
+	env.Append(CPPDEFINES = [ 
+		"QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg_v1.h\\\"", 
+        "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target_v1.h\\\"", 
+   ])
+elif env['CHIPSET'] in ['msm8937']: 
+	env.Append(CPPDEFINES = [ 
+		"QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg_v2.h\\\"", 
+        "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target_v2.h\\\"", 
+   ])  
+else: 
+	env.Append(CPPDEFINES = [ 
+		"QFPROM_HWIO_REG_INCLUDE_H=\\\"qfprom_hwioreg.h\\\"", 
+        "QFPROM_TARGET_INCLUDE_H=\\\"qfprom_target.h\\\"", 
+   ]) 
+   
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/boot/qfprom/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'HAL',
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'MPROC',
+   'POWER',
+   'DEBUGTOOLS',
+   'STORAGE',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequirePublicApi(['RFA'],area='modem')
+
+#-------------------------------------------------------------------------------
+# Source Code and LIBs
+#-------------------------------------------------------------------------------
+
+# Note: qfprom_fuse_region.c is image/target specific. On porting driver to
+# different images/targets, this src may need to be updated.
+
+
+if env['CHIPSET'] in ['mdm9607','msm8937']:
+  QFPROM_FUSE_MAP_SOURCES = [
+     '${BUILDPATH}/hw/core_2_0/qfprom_fuse_region_v1.c',
+	]
+else:
+  QFPROM_FUSE_MAP_SOURCES = [
+     '${BUILDPATH}/hw/core_2_0/qfprom_fuse_region.c',
+   ]
+   
+QFPROM_SOURCES = [
+   '${BUILDPATH}/hw/core_2_0/qfprom_target.c',
+   '${BUILDPATH}/src/qfprom.c',
+ ]
+
+QFPROM_MPSS_SOURCES = [
+   '${BUILDPATH}/hw/core_2_0/qfprom_mpss.c',
+ ]
+
+QFPROM_TZ_SOURCES = [
+   '${BUILDPATH}/hw/core_2_0/qfprom_tz.c',
+]
+
+QFPROM_HAL_SOURCES = [
+   '${BUILDPATH}/hw/core_2_0/HALqfprom.c'
+]
+
+QFPROM_TEST_SOURCES = [
+   '${BUILDPATH}/src/qfprom_test.c',
+ ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/qfprom', QFPROM_SOURCES + QFPROM_FUSE_MAP_SOURCES + QFPROM_HAL_SOURCES + QFPROM_TEST_SOURCES + QFPROM_MPSS_SOURCES)
+
+env.AddLibrary(['TZOS_IMAGE'], '${BUILDPATH}/qfprom_tz', QFPROM_SOURCES + QFPROM_FUSE_MAP_SOURCES + QFPROM_HAL_SOURCES + QFPROM_TZ_SOURCES)

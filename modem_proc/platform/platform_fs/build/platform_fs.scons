@@ -1,0 +1,64 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+
+env = env.Clone()
+
+platform_root = '${BUILD_ROOT}/platform'
+env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+
+env.RequirePublicApi([
+'HAPSDK',
+'PLATFORM_LIBS',
+'STDDEF',
+'QAIC',
+'UTILS',
+'A1STD',
+])
+
+core_public_apis = [
+ 'SERVICES',
+ 'STORAGE',
+ 'KERNEL',
+ ]
+
+env.RequirePublicApi(core_public_apis, area='core')
+
+env.RequireRestrictedApi([
+'SECURITY',
+'PLATFORM_FS',
+])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${ADSP_PLATFORM_ROOT}/platform_fs/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+PLATFORM_FS_SOURCES =  [
+ '${BUILDPATH}/platform_fs.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'USES_FEATURE_DYNAMIC_LOADING' in env:
+    # Register as static library
+    env.PLRegister("platform_fs")
+
+    platform_fs_lib = env.AddBinaryLibrary(   ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+      'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/platform_fs', PLATFORM_FS_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load Subunits (sys)
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+#Clean and pack rules
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h'], '${ADSP_PLATFORM_ROOT}/platform_fs/src'))
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h'], '${ADSP_PLATFORM_ROOT}/platform_fs/inc'))
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)

@@ -1,0 +1,150 @@
+#===============================================================================
+#
+# MCFG_UTILS SCons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcfg_fwk/mcfg_utils/build/mcfg_utils.scons#1 $
+#  $DateTime: 2016/12/13 08:00:27 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/08/12   cy     Initial creation
+#===============================================================================
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+if 'USES_GNSS_SA' not in env:
+  #-------------------------------------------------------------------------------
+  # Required Public, Restricted & Protected APIs
+  #-------------------------------------------------------------------------------
+
+  CORE_PUBLIC_APIS = [
+      'DEBUGTOOLS',
+      'SERVICES',
+      'SYSTEMDRIVERS',
+      'BUSES',
+      'HAL',
+      'HWENGINES',
+      'HWIO_API',
+      'IODEVICES',
+      'MPROC',
+      'POWER',
+      'MEMORY',
+      'SECUREMSM',
+      'SERVICES',
+      'STORAGE',
+      'DAL',
+      'WIREDCONNECTIVITY',
+      # needs to be last also contains wrong comdef.h
+      'KERNEL',
+  ]
+
+  MODEM_PUBLIC_APIS = [
+      'MCFG',
+  ]
+
+  MODEM_RESTRICTED_APIS = [
+      'MCFG',
+  ]
+
+  MODEM_PROTECTED_APIS = [
+      'MCFG',
+  ]
+
+  MPSS_QMI_API_PUBLIC_APIS = [
+      'PDC',
+      'COMMON',
+  ]
+
+  #-------------------------------------------------------------------------------
+  # We need the Core BSP APIs
+  #-------------------------------------------------------------------------------
+  env.RequirePublicApi(CORE_PUBLIC_APIS, area="CORE")
+
+  #-------------------------------------------------------------------------------
+  # We need the MPSS Public APIs (old 'API' location or new QMIMSGS now )
+  #-------------------------------------------------------------------------------
+  env.RequirePublicApi(MPSS_QMI_API_PUBLIC_APIS, area='QMIMSGS')
+
+
+  #-------------------------------------------------------------------------------
+  # We need MODEM PUBLIC APIs
+  #-------------------------------------------------------------------------------
+  env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+  env.RequirePublicApi([
+      'PUBLIC',
+      ], area='datamodem')
+
+  env.RequirePublicApi([
+      'MCS',
+      ], area='mcs')
+
+  env.RequirePublicApi([
+      'MMCP',
+      'PUBLIC'
+      ], area='mmcp')
+
+  env.RequirePublicApi([
+      'UIM', 'PUBLIC',
+      ], area='uim')
+
+  #-------------------------------------------------------------------------------
+  # We need MODEM RESTRICTED APIs
+  #-------------------------------------------------------------------------------
+  env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+  #-------------------------------------------------------------------------------
+  # We need our protected APIs within MCFG subsystem
+  #-------------------------------------------------------------------------------
+  env.RequireProtectedApi(MODEM_PROTECTED_APIS)
+
+  #-------------------------------------------------------------------------------
+  # Setup source PATH
+  #-------------------------------------------------------------------------------
+  SRCPATH = '../src'
+
+  env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+  #-------------------------------------------------------------------------------
+  # Set MSG_BT_SSID_DFLT for legacy MSG macros
+  #-------------------------------------------------------------------------------
+  env.Append(CPPDEFINES = [
+     "MSG_BT_SSID_DFLT=MSG_SSID_MCFG",
+  ])
+
+  #-------------------------------------------------------------------------------
+  # Generate the library and add to an image
+  #-------------------------------------------------------------------------------
+  MCFG_UTILS_SOURCES = [
+      '${BUILDPATH}/mcfg_utils.c',
+      '${BUILDPATH}/mcfg_load.c',
+      '${BUILDPATH}/mcfg_log.c',
+      '${BUILDPATH}/mcfg_efs.c',
+      '${BUILDPATH}/mcfg_map.c',
+      '${BUILDPATH}/mcfg_remote.c',
+      '${BUILDPATH}/mcfg_auth.c',
+      '${BUILDPATH}/mcfg_validate.c',
+      '${BUILDPATH}/mcfg_setting.c',
+  ]
+
+  # Add our library to the MODEM_AMSS image
+  env.AddLibrary(['MODEM_MODEM'], '${BUILDPATH}/mcfg_utils', MCFG_UTILS_SOURCES)
+

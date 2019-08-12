@@ -1,0 +1,97 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;==*====*====*====*====*====*====*====*====*====*====*==
+                       ==*====*====*====*===*
+    2 00000000         ;
+    3 00000000         ;                     APT Boot Test Assembly File
+    4 00000000         ;
+    5 00000000         ; GENERAL DESCRIPTION
+    6 00000000         ; This file contains the assembly instructions for APT t
+                       ests in Boot
+    7 00000000         ;
+    8 00000000         ; Copyright 2013 by QUALCOMM Technologies, Incorporated.
+                       All Rights Reserved.
+    9 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   10 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   11 00000000         ;
+   12 00000000         ;                           EDIT HISTORY FOR FILE
+   13 00000000         ;
+   14 00000000         ; when       who     what, where, why
+   15 00000000         ; --------   ---     -----------------------------------
+                       ---------------------
+   16 00000000         ; 05/03/13   jihok   Created.
+   17 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   18 00000000         ;=======================================================
+                       =====================
+   19 00000000         ;
+   20 00000000         ;                             MODULE EXPORTS
+   21 00000000         ;
+   22 00000000         ;=======================================================
+                       =====================
+   23 00000000         ; Export the symbols defined in this module
+   24 00000000                 EXPORT           apt_jump
+   25 00000000                 EXPORT           apt_execute
+   26 00000000                 EXPORT           apt_get_PTptr
+   27 00000000         ;=======================================================
+                       =====================
+   28 00000000         ;
+   29 00000000         ;                             MODULE DATA AREA
+   30 00000000         ;
+   31 00000000         ;=======================================================
+                       =====================
+   32 00000000                 PRESERVE8
+   33 00000000                 AREA             APT_ASM, CODE, READONLY
+   34 00000000                 CODE32
+   35 00000000         apt_jump
+   36 00000000 E12FFF10        bx               r0
+   37 00000004         apt_execute
+   38 00000004 E1A0E00E        mov              lr, lr
+   39 00000008 E12FFF1E        bx               lr
+   40 0000000C         apt_get_PTptr
+   41 0000000C EE120F10        MRC              p15, 0, r0, c2, c0, 0
+   42 00000010 E12FFF1E        bx               lr
+   43 00000014                 END
+Command Line: --cpu=Cortex-A7 --apcs=/noswst/interwork --no_unaligned_access -o
+/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208
+_043404/b/boot_images/core/apt/build/sbl1/Cortex-A7/WAATANAZ/boot_apt_test_asm.
+o -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/apt/build -I/local/mnt/workspace/CRMBuilds/BOOT.
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/build/cust -I.
+ -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161
+208_043404/b/boot_images/core/api/boot -I/local/mnt/workspace/CRMBuilds/BOOT.BF
+.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/boot/qf
+prom -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2
+0161208_043404/b/boot_images/core/apt/inc -I/local/mnt/workspace/CRMBuilds/BOOT
+.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/serv
+ices -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2
+0161208_043404/b/boot_images/core/api/kernel/libstd -I/local/mnt/workspace/CRMB
+uilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/cor
+e/boot/secboot3/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M89
+09WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/ddr/common -I/local/mnt/w
+orkspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/bo
+ot_images/core/boot/ddr/hw/msm8909w -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.
+1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/ddr/hw/ph
+y -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/boot/ddr/hw/controller -I/local/mnt/workspace/CR
+MBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/c
+ore/boot/secboot3/hw/msm8909 -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-
+00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/apt/src -I/local/mnt/
+workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/b
+oot_images/core/services/utils/src --list=/local/mnt/workspace/CRMBuilds/BOOT.B
+F.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/apt/build/
+sbl1/Cortex-A7/WAATANAZ/boot_apt_test_asm.o.lst --sitelicense /local/mnt/worksp
+ace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_im
+ages/core/apt/build/sbl1/Cortex-A7/WAATANAZ/boot_apt_test_asm.o.i

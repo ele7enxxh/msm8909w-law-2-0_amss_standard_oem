@@ -1,0 +1,10 @@
+
+Import('env')
+env = env.Clone()
+
+# Only build the CPR code on targets where the MSS has its own power rail and
+# an independent CPR sensor chain (i.e., MSS is not based on the shared CX rail).
+# 
+if (env['MSM_ID'] not in ['8x26', '8x10', '8916','8936','8909','8937','9609','8976','9607']):
+  env.SConscript('./build.include', exports='env')
+

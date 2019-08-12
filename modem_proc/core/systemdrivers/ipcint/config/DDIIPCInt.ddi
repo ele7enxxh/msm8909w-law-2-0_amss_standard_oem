@@ -1,0 +1,133 @@
+#ifndef DDIIPCINT_H
+#define DDIIPCINT_H
+/*
+===========================================================================
+
+FILE:         DDIIPCInt.h
+
+DESCRIPTION:  
+  This is the DAL interface specification for the inter-processor
+  interrupt driver.
+
+===========================================================================
+             Copyright © 2009 QUALCOMM Incorporated.
+                    All Rights Reserved.
+                  QUALCOMM Proprietary/GTDR
+===========================================================================
+*/
+
+
+/*=========================================================================
+      Include Files
+==========================================================================*/
+
+
+#include "DALSys.h"
+
+
+
+/*=========================================================================
+      Type Definitions
+==========================================================================*/
+
+/*
+ * DALIPCINT_INTERFACE_VERSION
+ *
+ * Define the interface version.
+ */
+#define DALIPCINT_INTERFACE_VERSION DALINTERFACE_VERSION(1,0)
+
+
+/*
+ * DalIPCIntProcessorType
+ *
+ * Processor identification type.  Any new ids must be added to the end.
+ * Note that the numbers must match the IPCInt HAL for
+ * HAL_ipcint_ProcessorType.
+ */
+typedef enum
+{
+  DALIPCINT_PROC_NULL       = 0,
+  DALIPCINT_PROC_MCPU       = 1,
+  DALIPCINT_PROC_MDSPSW     = 2,
+  DALIPCINT_PROC_MDSPFW     = 3,
+  DALIPCINT_PROC_ACPU       = 4,
+  DALIPCINT_PROC_ACPU1      = 5,
+  DALIPCINT_PROC_ADSP       = 6,
+  DALIPCINT_PROC_SPS        = 7,
+  DALIPCINT_PROC_RPM        = 8,
+
+  DALIPCINT_NUM_PROCS       = 9,
+
+  DALIPCINT_PROC_32BITS     = 0x7FFFFFF
+} DalIPCIntIdType;
+
+
+/*
+ * DalIPCIntInterruptType
+ *
+ * Represents which interrupt on the given processor.
+ */
+typedef enum
+{
+  DALIPCINT_GP_0           = 0,
+  DALIPCINT_GP_1           = 1,
+  DALIPCINT_GP_2           = 2,
+  DALIPCINT_GP_3           = 3,
+  DALIPCINT_GP_4           = 4,
+  DALIPCINT_GP_5           = 5,
+  DALIPCINT_GP_6           = 6,
+  DALIPCINT_GP_7           = 7,
+  DALIPCINT_GP_8           = 8,
+  DALIPCINT_GP_9           = 9,
+  DALIPCINT_GP_LOW         = HAL_IPCINT_GP_0,
+  DALIPCINT_GP_MED         = HAL_IPCINT_GP_1,
+  DALIPCINT_GP_HIGH        = HAL_IPCINT_GP_2,
+  DALIPCINT_SOFTRESET      = 10,
+  DALIPCINT_WAKEUP         = 11,
+
+  DALIPCINT_NUM_INTS       = 12,
+
+  DALIPCINT_INT_32BITS     = 0x7FFFFFF
+
+} DalIPCIntInterruptType;
+
+
+
+
+/*=========================================================================
+      Interface Definitions
+==========================================================================*/
+
+
+DALResult Trigger
+(
+  DalDeviceHandle *h,
+  /*i32*/ DalIPCIntProcessorType eTarget,
+  /*i32*/ DalIPCIntInterruptType eInterrupt
+);
+
+DALResult TriggerBySource
+(
+  DalDeviceHandle *h,
+  /*i32*/ DalIPCIntProcessorType eSource,
+  /*i32*/ DalIPCIntProcessorType eTarget,
+  /*i32*/ DalIPCIntInterruptType eInterrupt
+);
+
+DALResult IsSupported
+(
+  DalDeviceHandle *h,
+  /*i32*/ DalIPCIntProcessorType eTarget,
+  /*i32*/ DalIPCIntInterruptType eInterrupt
+);
+
+DALResult IsSupportedBySource
+(
+  DalDeviceHandle *h,
+  /*i32*/ DalIPCIntProcessorType eSource,
+  /*i32*/ DalIPCIntProcessorType eTarget,
+  /*i32*/ DalIPCIntInterruptType eInterrupt
+);
+
+

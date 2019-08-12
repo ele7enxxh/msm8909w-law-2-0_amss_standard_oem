@@ -1,0 +1,197 @@
+;============================================================================
+;  Name:
+;    NAND_STRESS.CMM
+;
+;  Test script for NAND that does not use T32 FLASH.* commands
+;  For use with terminal printf for debugging purposes
+;
+;
+;  Description:
+;    FLASH Stress Testing Script file for Lauterbach JTAG/ICD TRACE32.
+;
+;  Execution:
+;    Inside the debugger, type at the command line: "do nand_stress".
+;
+;  Copyright (c) 2008-2009,2011,2014 Qualcomm Technologies Incorporated.
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/nand_stress.cmm#1 $ $DateTime: 2015/09/01 00:30:35 $ $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 06/04/14   sb      Update to support 9x45
+; 03/21/11   jz      Updated to support new T32 versions
+; 08/27/09   bb      Changing paths from \ to / to support linux environment
+; 07/08/09   mm      Added new mode to disable ECC for OneNAND
+; 06/03/09   mh      Fix comment to state the duration of the test corrrectly
+; 05/20/09   jz      Added checking of flash_tools_disable_ecc existance
+; 04/10/09   jz      Removed setting of &NandSrcRoot which should be auto generated
+; 02/25/09   eo      Disable HW ECC in Onenand for RAW mode page access.
+; 11/05/08   mm      Created
+;
+;============================================================================;
+
+
+LOCAL &TempDir
+LOCAL &FileSpec
+
+;============================================================================
+; Set some MSM specific variables used later in flash.target command
+;    &NandCodeAddr=
+;    &NandParamAddr=
+;    &NandCpuType=
+;============================================================================
+ do nand_param
+;============================================================================
+; 1) Set up the JTAG debugger for this MSM
+; 2) Init important MSM/ASB registers
+;    use existing external script that is MSM specific
+;============================================================================
+do &NandConfigDir/nand_msm_init
+
+;============================================================================
+; Put up terminal window
+;============================================================================
+term.close
+winclear MYTERM
+term.size 60 1000
+term.scroll on
+WinPOS 50% 0% 50% 100% ,, MYTERM
+if "&TermBlipBreak"=="yes"
+(
+  print "Using buffered terminal IO"
+  term.protocol bs
+  term output_port input_port
+  print "Setting TermBlip breakpoint"
+  b.s term_blip /s /onchip /program
+)
+else
+(
+  &TempDir=OS.ENV(TEMP)
+  &FileSpec="&TempDir/term.out"
+  print "Log location : &FileSpec"
+  term.mode ascii
+  if "&VirtioPlatform"=="no"
+  (
+    term.method dcc
+  )
+  term.view
+  term.write &FileSpec
+)
+
+on error gosub
+ (
+   term.close
+   print "terminal output closed"
+   enddo
+   return
+ )
+
+
+;-------------------------------------------------------------------------------
+; Set some variables used later on
+;   This script file is sourced by both nand.cmm and nandtest.cmm
+;-------------------------------------------------------------------------------
+
+do nand_init.cmm
+
+
+;======================================================
+; Create the ROM mapping to be used with all commands
+;======================================================
+&RomBegin=&NandCodeRomBegin
+&RomEnd=&NandCodeRomEnd
+
+
+
+;======================================================
+; Map flash readonly - must encompass the addresse
+;     of the image being loaded
+;======================================================
+ map.readonly &RomBegin--&RomEnd
+
+
+ ;--------------------------------------------------------
+ ; reset our flash command
+ ;--------------------------------------------------------
+ flash.res
+
+ ;--------------------------------------------------------
+ ; Let flash command know where our routine and buffer is located
+ ; code at &NandCodeAddr, data at &NandParamAddr, buffer size = 16K
+ ; Earlier versions of JTAG s/w would allow larger buffer of 64k
+ ; but now we seem to be limited to 16k
+ ;--------------------------------------------------------
+ ;
+ flash.target &NandCodeAddr &NandParamAddr 4000
+
+ ;--------------------------------------------------------
+ ; Define our flash range and tell flash command we're using
+ ; our own flash programming routine via keyword "target"
+ ; right now, we are defining 3 MBytes for code which in
+ ; the NAND environment is meaningless, as this has to do
+ ; with memory mapping in the flash, but we have to use it
+ ; to use the other FLASH.* functions
+ ;--------------------------------------------------------
+ ;
+ flash.create &RomBegin--&RomEnd target byte
+
+
+;======================================================
+; Load our flash programming routine and prepare flash
+;======================================================
+ d.load.elf "nand_tools.elf"
+ ; need this breakpoint as per Lauterbach Spec so that we
+ ; can hand back control to the Debugger
+ break.delete /ALL
+ break.set swbp /onchip /program
+
+
+ ;--------------------------------------------------------
+ ; Call Stress Test function, will loop 5 times
+ ;--------------------------------------------------------
+ ;
+ print "Running stress test, will loop 5 times"
+ data.set &ParmCmd %LONG &StressTestCmd
+ r.s pc &StartAddr
+ b.s swbp /onchip /program
+ go
+ enddo
+
+;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+;
+;  SUBROUTINES
+;
+;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+;=====================================================
+; --- Function to check command status return
+;       and exit if 0x100
+;=====================================================
+
+check_status:
+ wait !run()
+
+ &Result=data.long(A:&ParmStatus)
+ if &Result==0x100
+ (
+   print "Command failed"
+   &Result=data.long(A:&ParmReserved)
+   do flash_prog_error &Result
+   print "exiting"
+   end
+ )
+ else
+ (
+  print "Command Success"
+ )
+ return
+
+
+ENDDO

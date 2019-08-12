@@ -1,0 +1,247 @@
+#===============================================================================
+#
+# CLOCK DRIVER SHARED LIBRARY
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2016 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/clock/build/clock.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Add API folders
+#-------------------------------------------------------------------------------
+
+CLOCK_BUILD_ROOT = os.getcwd();
+
+env.PublishPrivateApi('SYSTEMDRIVERS_CLOCK', [
+   CLOCK_BUILD_ROOT + "/../src",
+   "${BUILD_ROOT}/core/systemdrivers/hal/clk/inc",
+   "${BUILD_ROOT}/core/systemdrivers/clock/config/${CHIPSET}",
+   "${BUILD_ROOT}/core/systemdrivers/clock/hw/${CHIPSET}/mss/inc"
+])
+
+#-------------------------------------------------------------------------------
+# Define paths
+#-------------------------------------------------------------------------------
+
+SRCPATH = "../"
+SRCPATHSCRIPTS = env['BUILD_ROOT'] + '/core/systemdrivers/clock/scripts/'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Define any features or compiler flags
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'POWER',
+   'KERNEL',
+   'DEBUGTRACE',
+   'DEBUGTOOLS'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Define sources
+#-------------------------------------------------------------------------------
+
+CLOCK_SOURCES = [
+   '${BUILDPATH}/src/ClockDriver.c',
+   '${BUILDPATH}/src/ClockLegacy.c',   
+   '${BUILDPATH}/src/ClockSources.c',
+   '${BUILDPATH}/src/ClockVoltage.c',
+   '${BUILDPATH}/src/ClockFwk.c'
+]
+
+CLOCK_BIST_SOURCES = [
+   '${BUILDPATH}/src/ClockBIST.c'
+]
+
+#-------------------------------------------------------------------------------
+# Add libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(
+   ['CORE_MODEM'],
+   '${BUILDPATH}/Clock',
+   CLOCK_SOURCES)
+
+env.AddLibrary(
+   ['CORE_MODEM'],
+   '${BUILDPATH}/ClockBIST',
+   CLOCK_BIST_SOURCES)
+
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+
+# Remove documentation source files
+DOCSRC_FILES = env.FindFiles(
+  ['*'],
+  '${BUILD_ROOT}/core/api/systemdrivers/docsrc/clock/')
+env.CleanPack(['CORE_MODEM'], DOCSRC_FILES)
+
+# Remove target config files
+ALL_CONFIG_FILES = env.FindFiles(
+  ['*'],
+  '../config/')
+SHARED_CONFIG_FILES = env.FindFiles(
+  ['DalClock.cfg', 'DDIClock.ddi'],
+  '../config/')
+if env['MSM_ID'] == '8909':
+  MY_CONFIG_FILES_8909 = env.FindFiles(
+    ['*'],
+    '../config/msm8909')
+  MY_CONFIG_FILES_8909W = env.FindFiles(
+    ['*'],
+    '../config/msm8909w')
+  PACK_CONFIG_FILES = list(set(ALL_CONFIG_FILES) - set(SHARED_CONFIG_FILES) - set(MY_CONFIG_FILES_8909W) - set(MY_CONFIG_FILES_8909))
+else:
+  MY_CONFIG_FILES = env.FindFiles(
+    ['*'],
+    '../config/${CHIPSET}')
+  PACK_CONFIG_FILES = list(set(ALL_CONFIG_FILES) - set(SHARED_CONFIG_FILES) - set(MY_CONFIG_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_CONFIG_FILES)
+
+# Remove target hw files
+ALL_HW_FILES = env.FindFiles(
+  ['*'],
+  '../hw/')
+MY_HW_FILES = env.FindFiles(
+  ['*'],
+  '../hw/${CHIPSET}')
+PACK_HW_FILES = list(set(ALL_HW_FILES) - set(MY_HW_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_HW_FILES)
+
+# Remove target scripts files
+ALL_SCRIPTS_FILES = env.FindFiles(
+  ['*'],
+  '../scripts/')
+SHARED_SCRIPTS_FILES = env.FindFiles(
+  ['Clock.cmm', 'ClockDriver.cmm'],
+  '../scripts/')
+MY_SCRIPTS_FILES = env.FindFiles(
+  ['*'],
+  '../scripts/${CHIPSET}')
+PACK_SCRIPTS_FILES = list(set(ALL_SCRIPTS_FILES) - set(SHARED_SCRIPTS_FILES) - set(MY_SCRIPTS_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_SCRIPTS_FILES)
+
+#-------------------------------------------------------------------------------
+# Register initialization function and dependencies.
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['CORE_MODEM']
+  env.AddRCInitFunc(              # Code Fragment in TMC: NO
+    RCINIT_IMG,                   # define TMC_RCINIT_INIT_CLK_REGIME_INIT
+    {
+      'sequence_group' : 'RCINIT_GROUP_0',                            # required
+      'init_name'      : 'clk_regime',                                # required
+      'init_function'  : 'clk_regime_init',                           # required
+      'dependencies'   : ['busywait', 'dalsys', 'npa', 'sys_m_smsm_init', 'vcs']
+    })
+
+#-------------------------------------------------------------------------------
+# Invoke chipset build file
+#-------------------------------------------------------------------------------
+
+env.SConscript('${BUILDPATH}/hw/${CHIPSET}/build/clock_chipset.scons', exports='env')
+
+#-------------------------------------------------------------------------------
+# Invoke document generation SConscript
+#-------------------------------------------------------------------------------
+
+if os.path.exists(env['BUILD_ROOT'] + '/core/api/systemdrivers/docsrc/clock/SConscript') :
+  env.SConscript(
+    '${BUILD_ROOT}/core/api/systemdrivers/docsrc/clock/SConscript',
+    exports='env')
+
+#-------------------------------------------------------------------------------
+# DEVCFG - Clock XML
+#-------------------------------------------------------------------------------
+
+if 'USES_DEVCFG' in env:
+  DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+  if env['MSM_ID'] == '8909' and 'USES_SENSORS_COMPONENT' in env:
+    env.AddDevCfgInfo(DEVCFG_IMG, 
+    {
+      '8909_xml' : ['${BUILD_ROOT}/core/systemdrivers/clock/config/msm8909w/ClockChipset.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/clock/config/msm8909w/ClockBSP.c',
+                    '${BUILD_ROOT}/core/systemdrivers/clock/config/msm8909w/ClockMSSBSP.c'],
+    })
+
+  else:
+    env.AddDevCfgInfo(DEVCFG_IMG, 
+    {
+      '8909_xml' : ['${BUILD_ROOT}/core/systemdrivers/clock/config/msm8909/ClockChipset.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/clock/config/msm8909/ClockBSP.c',
+                    '${BUILD_ROOT}/core/systemdrivers/clock/config/msm8909/ClockMSSBSP.c'],
+      '8937_xml' : ['${BUILD_ROOT}/core/systemdrivers/clock/config/msm8937/ClockChipset.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/clock/config/msm8937/ClockBSP.c',
+                    '${BUILD_ROOT}/core/systemdrivers/clock/config/msm8937/ClockMSSBSP.c'],
+      '9607_xml' : ['${BUILD_ROOT}/core/systemdrivers/clock/config/mdm9607/ClockChipset.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/clock/config/mdm9607/ClockBSP.c',
+                    '${BUILD_ROOT}/core/systemdrivers/clock/config/mdm9607/ClockMSSBSP.c'],
+    })
+
+#-------------------------------------------------------------------------------
+# SWEvent processing
+#-------------------------------------------------------------------------------
+
+if 'USES_QDSS_SWE' in env:
+  env.Append(CPPDEFINES = ["CLOCK_TRACER_SWEVT"])
+  QDSS_IMG = ['QDSS_EN_IMG']
+  events = [
+    ['CLOCK_EVENT_INIT',          'Clock Initialize'],
+    ['CLOCK_EVENT_CLOCK_STATUS',  'Clock Name: %plugin[1]<clock>.  Requested state = %d (enable/disable), actual state (reference count) = %d'],
+    ['CLOCK_EVENT_CLOCK_FREQ',    'Clock Name: %plugin[1]<clock>.  Frequency = %d (KHz)'],
+    ['CLOCK_EVENT_SOURCE_STATUS', 'Clock Source %d.  Status = %d (on/off)'],
+    ['CLOCK_EVENT_SOURCE_FREQ',   'Source ID: %d.  Frequency = %d (KHz)'],
+    ['CLOCK_EVENT_CX_VOLTAGE',    'CX Rail Voltage = %d (level)'],
+    ['CLOCK_EVENT_MSS_VOLTAGE',   'MSS Rail Voltage = %d (uV)'],
+    ['CLOCK_EVENT_XO',            'XO lpr = %d (enable/disable)'],
+    ['CLOCK_EVENT_LDO',           'LDO = %d (enable/disable)'],
+    ['CLOCK_EVENT_LDO_VOLTAGE',   'LDO Voltage = %d (uV)']]
+  env.AddSWEInfo(QDSS_IMG, events)
+
+if 'QDSS_TRACER_SWE' in env:
+  env.SWEBuilder(['${BUILD_ROOT}/core/systemdrivers/clock/build/${BUILDPATH}/src/ClockSWEventId.h'], None)
+  env.Append(CPPPATH = ['${BUILD_ROOT}/core/systemdrivers/clock/build/${BUILDPATH}/src'])
+
+#-------------------------------------------------------------------------------
+# Add CMM scripts to T32 menu
+#-------------------------------------------------------------------------------
+
+CMM_ARGUMENT = env['CHIPSET']
+
+try:
+  env.AddCMMScripts ('MPSS', [SRCPATHSCRIPTS], { 'Clock.cmm' : ['Clocks', CMM_ARGUMENT] }, 'SystemDrivers')
+except:
+  pass
+  

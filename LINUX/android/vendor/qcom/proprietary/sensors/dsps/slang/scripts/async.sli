@@ -1,0 +1,137 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub main( @argv)
+{
+    my $rc;
+    my $timeout = 1;    // seconds
+
+    my ( $sensor, $rate, $seconds) = @argv;
+
+    sloption( "script_handles_indications");
+
+    my $client = slopen();
+    print( "slopen() client handle $client\n");
+
+    my $all_req  = slnew_req( "smgr", "all_info");
+    my $all_resp = slsend_recv( $client, $all_req, $timeout);
+    my ( $count) = slget( $all_resp, { info});
+
+    my $i = 0;
+    while ( $i < $count) {
+        my ( $sid, $sname) = slget( $all_resp, { info.$i, sensor_id, short_name});
+        print ( "sensor_id[ $i] $sid, short_name $sname\n");
+
+        my $sngl_req   = slnew_req( "smgr", "sngl_info", { sensor_id => $sid});
+        $rc = slsend_req( $client, $sngl_req);
+        if ( $rc != 0) {
+            print( "slsend_req sngl_req sensor_id $sid rc=$rc\n");
+        }
+        $i += 1;
+    }
+
+    $i = 0;
+    while ( $i < $count) {
+        $i += 1;
+        my $sngl_resp= slrecv( 1);
+
+// stub these can only be sngl_resp packets.
+//    my ( $srvc_num, $msg_id, $msg_type, $msg_size)  = slget( $all_resp, { srvc_num, msg_id, msg_type, msg_size});
+//    print( "all_resp srvc_num $srvc_num, msg_id $msg_id, msg_type $msg_type, msg_size $msg_size\n");
+//    my ( $txn_id)     = slget( $all_resp, { txn_id  });
+//    print( "all_resp txn_id   $txn_id\n");
+//    my ( $result, $err) = slget( $all_resp, { result, err});
+//    print( "all_resp result   $result, err $err\n");
+
+        if ( !defined( $sngl_resp)) {
+            print( "slrecv timeout\n");
+            break;
+        }
+
+        my ( $entries) = slget( $sngl_resp, { info});
+
+        my $j = 0;
+        while ( $j < $entries) {
+            my ( $sid, $datatype, $sensor_name) = slget( $sngl_resp, { info.$j, sensor_id, datatype, sensor_name} );
+            print( "\tdatatype $datatype\n");
+            print( "\tsensor_name $sensor_name\n");
+
+            my ( $vendor, $max_rate, $idle_power, $max_power, $max_range, $resolution) =
+                 slget( $sngl_resp, { info.$j, vendor, max_rate,
+                                               idle_power, max_power,
+                                               max_range, resolution} );
+
+            print( "\tvendor $vendor\n");
+            print( "\tmax_rate $max_rate\n");
+            print( "\tidle_power $idle_power\n");
+            print( "\tmax_power $max_power\n");
+            print( "\tmax_range $max_range\n");
+            print( "\tresolution $resolution\n");
+
+            my ( $max_reports) = slget( $sngl_resp, { info.$j, max_reports} );
+            print( "\tmax_reports $max_reports\n");
+
+            my ( $op_mode) = slget( $sngl_resp, { info.$j, op_mode} );
+            print( "\top_mode $op_mode\n");
+
+            my ( $suid) = slget( $sngl_resp, { info.$j, suid} );
+            print( "\tsuid $suid\n");
+
+            my ( $odr_count) = slget( $sngl_resp, { info.$j, odr_list});
+            print( "\todr_count $odr_count\n");
+            if ( defined( $odr_count)) {
+                my $k = 0;
+                while ( $k < $odr_count) {
+                    my ( $odr) = slget( $sngl_resp, { odr_list.$k, odr} );
+                    print( "\t\todr[ $k] $odr\n");
+                    $k += 1;
+                }
+            }
+            print( "\n");
+
+            $j += 1;
+        }
+    }
+
+    // now stream for a while...
+    $timeout = 3;
+    my $add_req = slnew_req( "smgr", "report", { report_id => 1, action => "add", report_rate => $rate,
+                             item => 0, sensor_id => $sensor});
+    my $add_resp = slsend_recv( $client, $add_req, $timeout);
+    if ( !defined( $add_resp)) {
+        print( "add_resp not defined\n");
+    }
+
+//    sleep( $seconds);       // seconds
+
+    my $total_count = 0;
+    my $ind_count = 0;
+    my $quantity = $seconds * $rate;
+    while ( $ind_count < $quantity) {
+        my $respind = slrecv( $timeout);
+        if ( !defined( $respind)) {
+            print( "respind not defined\n");
+            break;
+        }
+        my ( $msg_type) = slget( $respind, {msg_type});
+        if ( $msg_type == 2) {
+            $ind_count += 1;
+        }
+        $total_count += 1;
+    }
+
+    print( "total count $total_count, ind count $ind_count\n");
+
+    my $del_req = slnew_req( "smgr", "report", { report_id => 1, action => "delete"});
+    my $del_resp = slsend_recv( $client, $del_req, $timeout);
+    if ( !defined( $del_resp)) {
+        print( "$del_resp not defined\n");
+    }
+    my ( $del_type) = slget( $del_resp, {msg_type});
+    print( "del_resp msg_type $del_type\n");
+
+    $rc  = slclose( $client);
+    print( "slclose() rc $rc\n");
+}

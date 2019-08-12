@@ -1,0 +1,178 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011 Qualcomm Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/systemdrivers/pmic/build/pmic.scons#1 $
+# $DateTime: 2016/06/17 14:31:11 $ 
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/07/12   hs      Added support for BOOT builds.
+# 03/12/12   hs      Updated.
+# 03/07/12   hs      Added support for MPSS and RPM builds.
+# 01/24/12   hs      Created
+#===============================================================================
+
+Import('env')
+
+if env.has_key('MODEM_PROC'):
+   env.Replace(PMIC_ROOT = [
+      "${INC_ROOT}/core/systemdrivers/pmic",
+   ])
+   env.Append(CPPDEFINES = 'PM_IMAGE_MODEM_PROC')
+elif env.has_key('RPM_IMAGE'):
+   env.Replace(PMIC_ROOT = [
+      "${INC_ROOT}/core/systemdrivers/pmic",
+   ])
+   env.Append(CPPDEFINES = 'PM_IMAGE_RPM_PROC')
+else:
+   env.Replace(PMIC_ROOT = [
+      "${INC_ROOT}/core/systemdrivers/pmic",
+   ])
+   env.Append(CPPDEFINES = 'PM_IMAGE_APPS_PROC')
+
+env.PublishProtectedApi( 'RFA_PMIC_APPLICATION', [    
+    '${PMIC_ROOT}/application/rtc/common/protected',
+    '${PMIC_ROOT}/application/uicc/common/protected',
+    '${PMIC_ROOT}/application/ftm/common/protected',
+    ])
+
+env.PublishProtectedApi( 'PMIC_COMM', [    
+    '${PMIC_ROOT}/comm/spmi_lite/src',
+    ])
+
+env.PublishProtectedApi( 'PMIC_DRIVERS', [    
+    '${PMIC_ROOT}/drivers/buck/base/protected',
+    '${PMIC_ROOT}/drivers/buck/pwr_buck_alg_interfaces/protected',
+    '${PMIC_ROOT}/drivers/buck/pwr_buck_alg_v6/protected',
+    '${PMIC_ROOT}/drivers/buck/concrete_v6/protected',
+    '${PMIC_ROOT}/drivers/linear/base/protected',
+    '${PMIC_ROOT}/drivers/linear/pwr_linear_alg_interfaces/protected',
+    '${PMIC_ROOT}/drivers/linear/pwr_linear_alg_v6/protected',
+    '${PMIC_ROOT}/drivers/linear/concrete_v6/protected',
+    '${PMIC_ROOT}/drivers/pwr/base/protected',
+    '${PMIC_ROOT}/drivers/pwr/pwr_alg_interfaces/protected',
+    '${PMIC_ROOT}/drivers/pwr/pwr_alg_v6/protected',
+    '${PMIC_ROOT}/drivers/pwr/concrete_v6/protected',
+    '${PMIC_ROOT}/drivers/vs/base/protected',
+    '${PMIC_ROOT}/drivers/vs/concrete_v6/protected',
+    '${PMIC_ROOT}/drivers/clk/base/protected',
+    '${PMIC_ROOT}/drivers/clk/clk_v6/protected',
+    '${PMIC_ROOT}/drivers/coinchg/base/protected',
+    '${PMIC_ROOT}/drivers/coinchg/coinchg_v6/protected',
+    '${PMIC_ROOT}/drivers/gpio/base/protected',
+    '${PMIC_ROOT}/drivers/gpio/gpio_v6/protected',
+    '${PMIC_ROOT}/drivers/interrupt/base/protected',
+    '${PMIC_ROOT}/drivers/interrupt/interrupt_v6/protected',
+    '${PMIC_ROOT}/drivers/mpp/base/protected',
+    '${PMIC_ROOT}/drivers/mpp/mpp_v6/protected',
+    '${PMIC_ROOT}/drivers/pwron/base/protected',
+    '${PMIC_ROOT}/drivers/pwron/pwron_v6/protected',
+    '${PMIC_ROOT}/drivers/rtc/base/protected',
+    '${PMIC_ROOT}/drivers/rtc/rtc_v6/protected',
+    '${PMIC_ROOT}/drivers/talm/base/protected',
+    '${PMIC_ROOT}/drivers/talm/talm_v6/protected',
+    '${PMIC_ROOT}/drivers/uicc/base/protected',
+    '${PMIC_ROOT}/drivers/uicc/uicc_v6/protected',
+    '${PMIC_ROOT}/drivers/vbatt/base/protected',
+    '${PMIC_ROOT}/drivers/vbatt/vbatt_v6/protected',
+    '${PMIC_ROOT}/drivers/xo/base/protected',
+    '${PMIC_ROOT}/drivers/xo/xo_v6/protected',
+   ])
+      
+env.PublishProtectedApi( 'PMIC_DEVICES', [    
+    '${PMIC_ROOT}/pmic_devices/common/src',
+    ])
+
+env.PublishProtectedApi( 'PMIC_NPA', [    
+    '${PMIC_ROOT}/npa/src',
+    '${PMIC_ROOT}/npa/inc',
+    ])
+
+#if env['CHIPSET'] in ['msm8916']:
+#    env.PublishProtectedApi( 'PMIC_TARGET_COMMON', [    
+#    '${PMIC_ROOT}/target/msm8916_pm8916/common/npa/protected',
+#    '${PMIC_ROOT}/target/msm8916_pm8916/common/system/protected',
+#    ])
+
+#    env.PublishProtectedApi( 'PMIC_TARGET_SBL1', [    
+#    '${PMIC_ROOT}/target/msm8916_pm8916/sbl1/gen/protected',
+#    '${PMIC_ROOT}/target/msm8916_pm8916/sbl1/system/protected',
+#    ])
+
+if env['CHIPSET'] in ['msm8974']:
+    env.PublishProtectedApi( 'PMIC_TARGET_COMMON', [    
+    '${PMIC_ROOT}/target/msm8974_pm8941_pm8841/common/npa/protected',
+    '${PMIC_ROOT}/target/msm8974_pm8941_pm8841/common/system/protected',
+    ])
+
+    env.PublishProtectedApi( 'PMIC_TARGET_SBL1', [    
+    '${PMIC_ROOT}/target/msm8974_pm8941_pm8841/sbl1/gen/protected',
+    '${PMIC_ROOT}/target/msm8974_pm8941_pm8841/sbl1/system/protected',
+    ])
+
+elif env['CHIPSET'] in ['mdm9x25']:
+    env.PublishProtectedApi( 'PMIC_TARGET_COMMON', [    
+    '${PMIC_ROOT}/target/mdm9x25_pm8019/common/npa/protected',
+    '${PMIC_ROOT}/target/mdm9x25_pm8019/common/system/protected',
+    ])
+
+    env.PublishProtectedApi( 'PMIC_TARGET_SBL1', [    
+    '${PMIC_ROOT}/target/mdm9x25_pm8019/sbl1/gen/protected',
+    '${PMIC_ROOT}/target/mdm9x25_pm8019/sbl1/system/protected',
+    ])
+
+elif env['CHIPSET'] in ['msm8x26']:
+    env.PublishProtectedApi( 'PMIC_TARGET_COMMON', [    
+    '${PMIC_ROOT}/target/msm8x26_pm8026/common/npa/protected',
+    '${PMIC_ROOT}/target/msm8x26_pm8026/common/system/protected',
+    ])
+
+    env.PublishProtectedApi( 'PMIC_TARGET_SBL1', [    
+    '${PMIC_ROOT}/target/msm8x26_pm8026/sbl1/gen/protected',
+    '${PMIC_ROOT}/target/msm8x26_pm8026/sbl1/system/protected',
+    ])
+
+elif env['CHIPSET'] in ['msm8x10']:
+    env.PublishProtectedApi( 'PMIC_TARGET_COMMON', [    
+    '${PMIC_ROOT}/target/msm8x10_pm8026/common/npa/protected',
+    '${PMIC_ROOT}/target/msm8x10_pm8026/common/system/protected',
+    ])
+
+    env.PublishProtectedApi( 'PMIC_TARGET_SBL1', [    
+    '${PMIC_ROOT}/target/msm8x10_pm8026/sbl1/gen/protected',
+    '${PMIC_ROOT}/target/msm8x10_pm8026/sbl1/system/protected',
+    ])
+
+       
+env.PublishPrivateApi('RFA_VIOLATIONS', [ 
+    '${INC_ROOT}/core/buses/api/spmi', # TODO need to remove it
+    '${INC_ROOT}/core/api/power', # TODO need to remove it
+    '${INC_ROOT}/core/api/hwengines', # TODO need to remove it
+    ])
+    
+env.LoadSoftwareUnits( ) 

@@ -1,0 +1,1091 @@
+/*=============================================================================
+
+                           EDIT HISTORY FOR MODULE
+
+  This section contains comments describing changes made to the module.
+  Notice that changes are listed in reverse chronological order.
+
+  $Header:  $
+  $DateTime: $
+  $Author:  $
+
+  when        who  what, where, why
+  ----------  ---  -----------------------------------------------------------
+  2014-08-25   ah  Initial version
+  
+
+=============================================================================*/
+
+XtProtocol DEFINITIONS AUTOMATIC TAGS ::=
+
+BEGIN
+
+xtProtocolVersion VersionIdentifier ::= {majorRelease 3, minorRelease 2, pointRelease 0}
+
+
+
+/* This file is targeted for System Release 3.2  */
+
+
+
+XtRequestMessagePackage ::= SEQUENCE {
+	clientInformation			ClientInformation,
+	xtMobileRequestMessage			XtMobileRequestMessage,
+	...
+}
+
+XtResponseMessagePackage ::= SEQUENCE {
+	response		CHOICE {
+		reject				XtServerRejectMessage,
+		xtServerResponseMessage		XtServerResponseMessage,
+		...
+	},
+	...
+}
+
+XtMobileRequestMessage ::= SEQUENCE {
+	mobileStatusData			MobileStatusData,
+	cellDB					BIT STRING			OPTIONAL,
+	snDB					BIT STRING			OPTIONAL,
+	apDB					BIT STRING			OPTIONAL,
+	opsMeasurements				BIT STRING			OPTIONAL,
+	...,
+	cellDB_extension1			SEQUENCE (SIZE (1.. maxNumOfUploadArrays)) OF OCTET STRING /* Modified in 3.1.10 for TDP Upload. Each OCTET STRING contains a single Cell_Record_Array */
+
+}
+
+XtServerResponseMessage ::= SEQUENCE {
+	timeAssistanceData			TimeAssistanceData,
+	clientDownloadData			ClientDownloadData,
+	locationInformation			LocationInformation		OPTIONAL,
+	xtaDownloadData				XtaDownloadData			OPTIONAL,
+	frequencyMaskData			FrequencyMaskData		OPTIONAL,	/* added in 1.0.4, marked as not used in 1.0.9 */
+	...
+}
+
+XtServerRejectMessage ::= SEQUENCE {
+	causeCode				CauseCode,
+	causeInformation			VisibleString			OPTIONAL,
+	...
+}
+
+  /* the following are the main data blocks of the request message */
+
+MobileStatusData  ::= SEQUENCE {
+	homeCarrierID			CHOICE {
+		gsmWcdmaHomeCarrierID		GsmWcdmaHomeCarrierID,
+		cdmaHomeCarrierID		CdmaRealm,
+		wifiCarrierID			NULL,
+		...
+		},
+	airInterfaceCapability		BIT STRING 	{ airInterfaceCapabilityCdma1x(0), 
+							  airInterfaceCapabilityGsm(1), 
+							  airInterfaceCapabilityWcdma(2), 
+							  airInterfaceCapabilityWifi(3), 
+							  airInterfaceCapabilityLte(4), 
+							  airInterfaceCapabilityEvdo(5)
+							}	(SIZE (0..16)),
+	positionCapability		BIT STRING 	{ positionCapabilityGnss(0), 
+							  positionCapabilityCellid(1), 
+							  positionCapabilityAflt(2), 
+							  positionCapabilityOtdoa(3), 
+							  positionCapabilityWifi(4), 
+							  positionCapabilityIns(5)
+							}	(SIZE (0..16)),
+	latestPosition				LocationInformation		OPTIONAL,
+	currentCellData		CHOICE {
+		cdmaCellData			CdmaCellData,
+		gsmCellData			GsmCellData,
+		wcdmaCellData			WcdmaCellData,
+		lteCellData			LteCellData,
+		...
+		}			OPTIONAL,
+	wifiData				WiFiData			OPTIONAL,
+/* Data for a WWAN serving cell may also be present with wifiData */
+	downloadPreference			BIT STRING 	{ downloadRequestBsa(0), 
+								  downloadRequestSna(1), 
+								  downloadRequestLocation(2), 
+								  downloadRequestBasicWfa(3)
+								}	(SIZE (0..16)),
+	maxDlXtaSize				INTEGER (0..1048575),
+	maxDlBsaSize				INTEGER	(0..1048575)	OPTIONAL, 
+/* include if downloadRequestBsa bit is set in downloadPreference */
+	maxDlSnaSize				INTEGER	(0..1048575)	OPTIONAL,
+/* include if downloadRequestSna bit is set in downloadPreference */
+	maxDlWfaSize				INTEGER	(0..1048575)	OPTIONAL,
+/* include if downloadRequestBasicWfa bit is set in downloadPreference */
+	localPartitionInfo			LocalPartitionInfo		OPTIONAL,
+/* localPartitionInfo is not reported for WLAN */
+	localFrequencyMaskInfo			LocalFrequencyMaskInfo		OPTIONAL, /* added in 1.0.4, marked as not used in 1.0.9 */
+	...,
+	uploadModeStatus			BOOLEAN		OPTIONAL  /* added in 3.1.8 for dualProcessorClient */
+}
+
+  /* the following are the main data blocks of the response message */
+
+ClientDownloadData ::= SEQUENCE {
+	wwanClientDownloadData			WwanClientDownloadData		OPTIONAL,
+	wlanClientDownloadData			WlanClientDownloadData		OPTIONAL,
+	...
+}
+
+LocationInformation ::= SEQUENCE {
+	locationType				LocationType, 
+ /* if LocationType is locationTypeNone, the following fields are not needed. */
+	locationData				LocationData		OPTIONAL,
+	gpsTime					GpsTimeMs		OPTIONAL,
+	...
+}
+
+TimeAssistanceData ::= SEQUENCE {
+	gpsTime					GpsTimeMs,
+	timeUncertaintyMs			INTEGER (0..65535),
+	...
+}
+
+XtaDownloadData ::= SEQUENCE  (SIZE (1..numDownloadPartitions)) OF CHOICE {
+	wwanDownloadData		WwanDownloadData,
+	wlanDownloadData		WlanDownloadData,
+	...,
+	wwanDownloadDataV2		WwanDownloadDataV2	/* added in 3.1.4 */	
+}
+
+  /* the following are the main data blocks of the reject message */
+
+CauseCode ::= ENUMERATED	{ unspecified(0),    /*  renamed in 1.0.12  */
+				  unsupportedProtocolVersion(1),
+				  ...,
+				  deviceBlacklisted(2) /* added in 1.0.12   */
+}
+
+  /* the following are common information elements in the major data blocks */
+
+AirInterfaceType ::= ENUMERATED { cdma(0), /* defined in 3.1.1 for SNA partition ID */
+				  gsm(1),
+				  wcdma(2),
+				  lte(3),
+	...
+}
+
+ApRecord	::= SEQUENCE {
+	mac					OCTET STRING (SIZE (6)),
+	ssid					OCTET STRING (SIZE (1..32)) 		OPTIONAL, /* modified in 1.0.3 */
+	encryptionType			ENUMERATED	{ encryptionTypeOpen(0), 
+							  encryptionTypeWep(1), 
+							  encryptionTypeWpa(2), 
+							  encryptionTypeWpa-psk(3), 
+							  encryptionTypeEap(4),
+							  ...
+							}				OPTIONAL,
+	rssi					INTEGER (0..255),
+	rtt					INTEGER (0..65535) 		OPTIONAL,
+	radioType	SEQUENCE {
+		radioSpec		ENUMERATED  	{ ieee80211a(0), 
+							  ieee80211b(1), 
+							  ieee80211g(2),
+							  ieee80211n(3),
+							  ...
+							},
+		frequencyBand		ENUMERATED  	{ freq2point4ghz(0), 
+							  freq5ghz(1),
+							  ...
+							},
+		...
+	}				OPTIONAL,
+	channelNumber				INTEGER (0..255) 		OPTIONAL,
+	maxRate					INTEGER (0..65535)		OPTIONAL,
+	networkType			ENUMERATED  	{ wifiNetworkTypeAdHoc(0), 
+							  wifiNetworkTypeInfrastructure(1),
+							  ...
+							}				OPTIONAL,
+	scanAge				INTEGER (0..255)			OPTIONAL, /* 1.0.5 */
+...,
+	rttVariance			INTEGER (0..65535)			OPTIONAL, /* added in 3.1.5 */
+	rttMeasurementCount		INTEGER (0..255)			OPTIONAL /* added in 3.1.5 */
+}
+
+Arfcn ::= INTEGER (0..1023)  /* 1.0.4 */
+
+CdmaPartitionID ::= SEQUENCE {
+	carrierID				INTEGER (1..65535),
+	mcc					Mcc,
+	sid					Sid,
+	nid					Nid,
+	subRegionID				INTEGER (0..255),
+	...
+}
+
+CdmaCellData  ::= SEQUENCE {
+	mcc					Mcc,
+	sidUpload				SidUpload,
+	nidUpload				NidUpload,
+	bsid					INTEGER (0..65535),
+	pilotPN					INTEGER (0..511)	OPTIONAL,	/* 1.0.11 change */
+	bandClass				INTEGER (0..31)		OPTIONAL,	/* 1.0.11 change */
+	cdmaFrequency				INTEGER (0..2047)	OPTIONAL,	/* 1.0.11 change */
+	baseStationLatitude			REAL (-90..90),
+	baseStationLongitude			REAL (-180..180),
+	timeZoneInformation	SEQUENCE {	
+		dayLightSavingsTimeInd		BOOLEAN,
+		timeZoneOffset			INTEGER (-24..24),
+		...
+		}		OPTIONAL,
+	...
+}
+
+CdmaFrequencyInfo ::= SEQUENCE {  /* 1.0.4 */
+	bandClass			INTEGER (0..31),
+	cdmaFrequency			INTEGER (0..2047),
+	...
+}
+
+CdmaRealm	::= IA5String
+
+CellDB_Record ::= SEQUENCE {
+	positionConflict		BOOLEAN,
+	localTime			OCTET STRING		OPTIONAL,
+	gpsTime				GpsTimeMs		OPTIONAL,  /* time of latest update to record */
+	cellDBCellIdentification 	CHOICE {
+		cdmaCellId 		CDMACellId,
+		gsmCellId 		GSMCellId,
+		wcdmaCellId 		WCDMACellId,
+		lteCellId 		LTECellId,
+		...
+		},
+	positionEstimate		PositionEstimateCellDB,		
+		/* best location estimate with lowest uncertainty */
+	positionHistory			PositionHistoryCellDB,
+	timeTag					TimeTag				OPTIONAL,  /* gsm and wcdma records only */
+	fineTimeAssistanceUpload	CHOICE {
+		gsmFtaUpload		GsmFtaUpload,
+		wcdmaFtaUpload		WcdmaFtaUpload,
+		...
+	}								OPTIONAL,  /* gsm and wcdma records only */
+	tdpUploadData			TdpUploadData	OPTIONAL,
+	...  
+}	
+
+
+Cell_Record_Array ::= SEQUENCE (SIZE (1..maxNumOfCellDbRecords)) OF CellDB_Record /* Defined in 3.1.10. */
+
+ClientInformation ::= SEQUENCE {
+	pseudoClientID				INTEGER (0..4294967295),
+	oemID					IA5String,
+	modelID					IA5String,
+	clientInfoContent   			ClientInfoContent,
+	...,
+	wifiChipID				IA5String	OPTIONAL	/* added in 3.1.5 */
+}
+
+ClientInfoContent ::= SEQUENCE {
+	clientType	ENUMERATED 	{ wwanClient(0), 
+					wlanClient(1), 
+					combinedClient(2),
+				 	...,
+					dualProcessorClient(3) /* added in 3.1.8 */
+					},
+	timeOfLastDownload  			GpsTimeSeconds			OPTIONAL,
+	/* not present for first request */
+	chipsetVersion				INTEGER (0..65535)		OPTIONAL,
+	swVersion				IA5String			OPTIONAL,
+	clientSwVersion			SEQUENCE {
+		majorClientSwVersion		INTEGER (0..255),	/* '0' used for ‘not available’ */
+		minorClientSwVersion		INTEGER (0..255),	/* '0' used for ‘not available’ */
+		...
+		}, 	/* changed in 1.0.1 */	
+	...,
+	protocolVersion		VersionIdentifier	OPTIONAL,	/* added in 3.1.5 */
+	clientCapabilities	BIT STRING 	{  lteTdpUpload(0) /* added in 3.1.7 */
+						}  (SIZE (0..32))	OPTIONAL,
+	tdpClientInformation	TdpClientInformation	OPTIONAL,  /* added in 3.1.7 */
+	modemClientInformation	ModemClientInformation	OPTIONAL /* added in 3.1.8, changed to OPTIONAL in 3.2 */
+}
+
+Earfcn ::= 	INTEGER (0..39649) /*1.0.4 */
+
+FrequencyMaskData ::= NULL	/* added in 1.0.4, marked as not used in 1.0.9, changed to NULL in 3.1.1 */
+
+GpsTimeMs ::= SEQUENCE {
+	gpsWeek					INTEGER (0..65535),
+	gpsMS					INTEGER (0..604800000),
+	...
+}
+
+GpsTimeSeconds ::= SEQUENCE {
+	gpsWeek					INTEGER (0..65535),
+	gpsSeconds				INTEGER (0..604800),
+	...
+}
+
+GsmCellData ::= SEQUENCE {
+	mcc					Mcc,
+	mnc					Mnc,
+	lac					Lac,
+	cellID					INTEGER (0..65535),
+	arfcn					INTEGER (0..1023)	OPTIONAL,	/* 1.0.11 change */
+	bsic					INTEGER (0..63)		OPTIONAL,	/* 1.0.11 change */
+	rxLevel					INTEGER (0..63)		OPTIONAL,	/* 1.0.11 change */
+	...
+}
+
+GsmWcdmaHomeCarrierID ::= SEQUENCE {
+	mcc					Mcc,
+	mnc					Mnc,
+	...
+}	
+
+GsmWcdmaPartitionID ::= SEQUENCE {
+	carrierID				INTEGER (1..65535),
+	mcc					Mcc,
+	mnc					Mnc,
+	lac					Lac,
+	subRegionID				INTEGER (0..255),
+	...
+}
+
+Lac ::=	INTEGER (0..65535)	/* 0 and 65534 not valid values */
+
+LocalFrequencyMaskInfo ::= NULL /* added in 1.0.4, marked as not used in 1.0.9, changed to NULL in 3.1.1 */
+
+LocalPartitionInfo ::= SEQUENCE  (SIZE (1..numLocalPartitions)) OF PartitionIdentifier
+
+LocationData ::= SEQUENCE {
+	latitude				REAL (-90..90),
+	longitude				REAL (-180..180),
+	altitude				REAL (-500..15883)	OPTIONAL, /* changed in 1.0.1*/
+	horUncertainty				INTEGER (0..127),
+	vertUncertainty				INTEGER (0..127)	OPTIONAL, /* changed in 1.0.1 */
+	confidence				INTEGER (0..100)	OPTIONAL, /* changed in 1.0.1, 1.0.2, 1.0.3 */
+	velocity				REAL (0..255)		OPTIONAL, /* 1.0.5 */
+	velocityUncertainty			REAL (0..255)		OPTIONAL, /* 1.0.5 */
+	...,
+	velocityV2				VelocityV2		OPTIONAL /* added in 3.1.7 for TDP support */
+}
+
+
+LocationDataInteger ::= SEQUENCE { /* defined in 1.0.9 */
+	latitude				INTEGER (-2147483648..2147483647),
+	longitude				INTEGER (-2147483648..2147483647),
+	altitude				INTEGER (-500..15883)	OPTIONAL,
+	horUncertainty				INTEGER (0..127),
+	vertUncertainty				INTEGER (0..127)	OPTIONAL,
+	confidence				INTEGER (0..100)	OPTIONAL,
+	velocity				INTEGER (0..511)	OPTIONAL,
+	velocityUncertainty			INTEGER (0..127)	OPTIONAL,
+	...,
+	velocityV2				VelocityV2		OPTIONAL  /* added in 3.1.7 for TDP support */
+}
+
+
+LocationType ::=		ENUMERATED	{ locationTypeNone(0), 
+						  locationTypeMsBasedGnss(1), 
+						  locationTypePdeProvided(2), 
+						  locationTypeAflt(3), 
+						  locationTypeOtdoa(4), 
+						  locationTypeOtherExternalSource(5), 
+						  locationTypeOta(6), 
+						  locationTypeWifi(7),
+  /* locationTypeWifi shall not be used for crowd sourced wifi data reporting */
+ 						  ...
+}
+
+LteCellData ::= SEQUENCE {
+	mcc					Mcc,
+	mnc					Mnc,
+	tacUpload				INTEGER (0..65535),	
+	/* 65534 is not a valid value.
+	   0 is allowed if the TAC is not available */
+	globalCellID				INTEGER (0..268435455),
+	earfcn					INTEGER (0..39649)		OPTIONAL,	/* 1.0.11 change */
+	physicalCellID				INTEGER (0..503)		OPTIONAL,	/* 1.0.11 change */
+	...,
+	extendedEarfcn				INTEGER (0..262143)		OPTIONAL	/* added in 3.1.6 */
+}
+
+LtePartitionID ::= SEQUENCE {
+	carrierID				INTEGER (1..65535),
+	mcc					Mcc,
+	mnc					Mnc,
+	tac					INTEGER (1..65535), /* 65534 is not a valid value */
+	subRegionID				INTEGER (0..255),
+	...
+}
+
+Mac ::= OCTET STRING (SIZE (6))               /* added in 1.0.2 */
+
+Mcc ::= INTEGER (0..999)
+
+ModemClientInformation ::= SEQUENCE {  /* defined in 3.1.8 */
+	pseudoClientID			INTEGER (0..4294967295),
+	chipsetVersion			INTEGER (0..65535),
+	swVersion			IA5String,
+	clientSwVersion			SEQUENCE {
+		majorClientSwVersion		INTEGER (0..255),
+		minorClientSwVersion		INTEGER (0..255),
+	...
+	},
+	protocolVersion				VersionIdentifier,
+	...
+}
+
+Mnc ::= INTEGER (0..999)
+
+Nid ::= INTEGER (0..65535)	/* changed range to include 65535 in 3.1.1 */
+
+NidUpload ::= INTEGER (0..65535) 
+
+PartitionIdentifier ::= SEQUENCE {
+	partitionID	CHOICE {
+		snaPartitionID			SnaPartitionID,
+		cdmaPartitionID			CdmaPartitionID,
+		gsmPartitionID			GsmWcdmaPartitionID,
+		wcdmaPartitionID		GsmWcdmaPartitionID,
+		ltePartitionID			LtePartitionID,
+		...
+		},
+	partitionReleaseVersion			INTEGER(0..255),
+	...
+}
+
+Sid ::= INTEGER (1..32767)
+
+SidUpload ::= INTEGER (0..32767)
+		
+SnaPartitionID ::= SEQUENCE {
+	carrierID				INTEGER (1..65535),
+	divisionID				INTEGER (0..255),
+	...,
+	airInterfaceType			AirInterfaceType	/* added in 3.1.1 */
+}
+
+Tac ::= INTEGER (1..65535)	/* 64434 is not valid */
+
+TdpClientInformation ::= SEQUENCE {   /* added in 3.1.7 */
+	selectionMethodsSupport		BIT STRING	{  randomSelection(0)
+							} (SIZE (1..32)),
+...
+}
+
+TdpUploadConfig ::= SEQUENCE {   /* defined in 3.1.7 */
+	tdpUploadControl		BOOLEAN,
+	maxNumScanListPerCell		INTEGER (0..1000)		OPTIONAL,
+	gridSizeDeg			INTEGER (0..1000)		OPTIONAL,
+	minScanIntervalUploadSec	INTEGER (0..86400)		OPTIONAL,
+	maxPosUncUpload	 		INTEGER (0..1000)		OPTIONAL,
+	scanSelectionParameter		INTEGER (0..1000)		OPTIONAL,
+	scanSelectionMethod		ENUMERATED	{  randomSelection(0), 
+							   ...
+							}	OPTIONAL,
+	...
+}	
+
+TimerFrequency ::= SEQUENCE {
+	freqScale	ENUMERATED	{ noTimer(0),  /* indicates that the associated timer will not be used */
+					weeks(1), 
+					days(2), 
+					hours(3), 
+					minutes(4), 
+					seconds(5), /* added in 1.0.6, moved to before ellipsis in 1.0.8 */
+					...
+					},
+	freqUnits	INTEGER (0..255)	OPTIONAL,
+	...
+}
+
+
+TimeStampL64    ::= INTEGER (-9223372036854775808..9223372036854775807)
+
+Uarfcn ::=	INTEGER (0..16383) /* 1.0.4 */	
+
+VelocityV2 ::= SEQUENCE {  /* defined in 3.1.7 for TDP Upload */
+	horizontalSpeed			INTEGER (0..1030),
+	horSpeedUncertainty		INTEGER (0..640),
+	heading				INTEGER (0..1023),
+	headingUncertainty		INTEGER (0..63),
+	...
+}
+
+VersionIdentifier ::= SEQUENCE {
+                majorRelease    INTEGER (0..255),
+                minorRelease    INTEGER (0..255),
+                pointRelease   	INTEGER (0..255)
+}
+
+WcdmaCellData ::= SEQUENCE {
+	mcc					Mcc,
+	mnc					Mnc,
+	currentWcdmaCellLac			INTEGER (0..65535),
+	/* 65534 is not a valid value
+	   0 is allowed for WCDMA if LAC is not available */
+	universalCellID				INTEGER (0..268435455),
+	frequency				INTEGER (0..16383)	OPTIONAL,	/* 1.0.11 change */
+	primarySynchcode			INTEGER (0..511)	OPTIONAL,	/* 1.0.11 change */
+	...
+}
+
+WiFiData ::= SEQUENCE {
+	observationTime				TimeStampL64		OPTIONAL,	/* include if available */
+	servingApRecord				ApRecord		OPTIONAL,	/* include if available */
+	perApRecord			SEQUENCE SIZE (1..numApRecords) OF ApRecord,
+	...
+}
+
+WifiPartitionID ::= SEQUENCE {
+	formatVersion		INTEGER (1..65535),
+	latitude		REAL (-90..90),
+	longitude		REAL (-180..180),
+ 	stepInLatitude		INTEGER (1..65535),   /* in degrees */
+ 	stepInLongitude		INTEGER (1..65535),   /* in degrees */
+	...
+}
+
+WlanClientDownloadData ::= SEQUENCE {
+	wlanDeviceConfiguration	SEQUENCE {
+		wlanUploadShortTimer		TimerFrequency,
+		wlanUploadLongTimer		TimerFrequency,
+		scanIntervalTimer		TimerFrequency,
+		activeDeviceTimer		TimerFrequency,
+		inactiveDeviceTimer		TimerFrequency,
+		maxRecordsPerUpload		INTEGER (0..16383),  /* renamed in 1.0.12 */
+		maxDailyUploadMeasurementSets	INTEGER (0..4095),   /* renamed in 1.0.12 */
+		similarityThreshold		INTEGER (0..100),
+		hepeThreshold			REAL,
+		...
+	},
+	wlanRecordInclInd			BIT STRING 	{ includeSsid(0), 
+								  includeEncryption(1), 
+								  includeRssi(2), 
+								  includeRtt(3), 
+								  includeRadioType(4), 
+								  includeChannelNumber(5),
+								  includeMaximumRate(6),
+								  includeNetworkType(7)
+								}	(SIZE (0..16)),
+	wlanDownloadFlag			BIT STRING	{ wfaAvailable(0) } 	(SIZE (0..16)),
+	apNotFound	SEQUENCE SIZE (1..numApsNotFound) OF Mac	OPTIONAL,	/* added in 1.0.2, changed to Optional in 1.0.3, changed range in 1.0.6 */
+	...
+}
+
+WlanDownloadData ::= SEQUENCE	{
+	downLoadUrl				IA5String,
+	/* full URL to send to tile server, no client parsing required */
+	tileLat					REAL (-90..90),
+	tileLong				REAL (-180..180),
+	tileHorizontalSize			REAL	OPTIONAL, /* in degrees */
+	tileVerticalSize			REAL	OPTIONAL, /* in degrees */
+	fileSizeBytes				INTEGER,
+	fileContentVersion			INTEGER (0..4294967295),
+	filePriority				INTEGER (1..255) 	OPTIONAL,
+	urlExpirationTime			INTEGER (1..525600) 	OPTIONAL,
+	fileEncryptionType	ENUMERATED	{ none(0), 
+						  aes128-CBC(1),
+						  ...
+						}		OPTIONAL,
+	encryptionKey				OCTET STRING	OPTIONAL,
+	compression				BOOLEAN,
+	compressedFileSizeBytes			INTEGER		OPTIONAL,
+	...
+}	
+
+WwanClientDownloadData ::= SEQUENCE {
+	wwanUploadPreference 	SEQUENCE {
+		wwanUploadContent		BOOLEAN,
+		wwanUploadFrequency		TimerFrequency,
+		wwanUploadControl		BOOLEAN,
+		...,
+		uploadScreeningManagement	BOOLEAN		OPTIONAL,  /* added in 3.1.5 */
+		wwanUploadMode			BOOLEAN		OPTIONAL  /* added in 3.1.8 for dualProcessorClient */
+	},
+	wwanDownloadFlag			BIT STRING 	{ cellIdRecognized(0), 
+								  participatingNetworkCell(1), 
+								  bsaAvailable(2), 
+								  regionRecognized(3), 
+								  participatingNetworkRegion(4),
+								  snaAvailable(5),
+								  level3RegionRecognized(6),   /* added in 1.0.12 */
+								  mobileL3CoverageComplete(7)   /* added in 1.0.12 */
+								}	(SIZE (0..16)),
+	...,
+	tdpUploadConfig				TdpUploadConfig		OPTIONAL  /* added in 3.1.7 */
+}
+
+WwanDownloadData ::= SEQUENCE {
+	wwanDataUse			BIT STRING 	{ uploadAllowed(0),
+							xtaAvailable(1)
+							}	(SIZE (1..8)),
+	wwanDataManagement 	ENUMERATED	{ deletion(0), 
+						  retention(1),
+						  conditionalRetention(2),
+						  replacement(3),
+						  insertion(4),
+						  ...
+						},
+	wwanPartitionProximityOrder		INTEGER (0..255),	
+	partitionIdentifier 			PartitionIdentifier,
+	partitionGenerationTime			GpsTimeMs	OPTIONAL, /*changed to OPTIONAL in 1.0.10 */
+	dataDownload		CHOICE {	
+		xtaDataPartitionDownload		BIT STRING,  /* defined in separate module */
+		downLoadUrl				IA5String,
+		...
+		} OPTIONAL, /*changed to OPTIONAL in 1.0.10 */
+	...
+}	
+
+WwanDownloadDataV2 ::= SEQUENCE (SIZE (1..65535)) OF WwanDownloadData /* added in 3.1.4 */
+
+
+  /* Definition of range constants */
+
+numApRecords					INTEGER ::= 255
+numApsNotFound					INTEGER ::= 256 /* added in 1.0.6 */
+numApsReported					INTEGER ::= 255	/* added in 1.0.2 */
+numDownloadPartitions				INTEGER ::= 255
+numLocalPartitions				INTEGER ::= 65535
+maxNumOfUploadCellDbRecords			INTEGER ::= 16777215
+maxNumOfUploadArrays				INTEGER ::= 1023 /* added in 3.1.10, modified in 3.1.11 */
+maxNumOfCellDbRecords				INTEGER ::= 1024 /* added here in 3.1.12 */
+
+END
+
+XtCellDB DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+IMPORTS
+	Arfcn,
+	CdmaFrequencyInfo,
+	Earfcn,
+	GpsTimeMs,
+	Lac,
+	LocationDataInteger,
+	LocationType,
+	Mcc,
+	Mnc,
+	Nid,
+	NidUpload,
+	Sid,
+	SidUpload,
+	TimeStampL64,
+	Uarfcn,
+	VelocityV2
+
+FROM
+	XtProtocol
+	;	
+
+
+CellDB ::= SEQUENCE  (SIZE (1..maxNumOfCellDbRecords)) OF SEQUENCE {
+	positionConflict		BOOLEAN,
+	localTime			OCTET STRING			OPTIONAL,  /* Table 5-13 in NDD */ 
+	gpsTime				GpsTimeMs			OPTIONAL,  /* time of latest update to record */
+	cellDBCellIdentification 	CHOICE {
+		cdmaCellId 		CDMACellId,
+		gsmCellId 		GSMCellId,
+		wcdmaCellId 		WCDMACellId,
+		lteCellId 		LTECellId,
+		...
+		},
+	positionEstimate		PositionEstimateCellDB,		/* best location estimate with lowest uncertainty */
+	positionHistory			PositionHistoryCellDB,
+	timeTag				TimeTag				OPTIONAL,  /* gsm and wcdma records only */
+	fineTimeAssistanceUpload	CHOICE {
+		gsmFtaUpload		GsmFtaUpload,
+		wcdmaFtaUpload		WcdmaFtaUpload,
+		...
+	}								OPTIONAL,  /* gsm and wcdma records only */
+	...
+}
+
+CDMACellId ::= SEQUENCE {
+	sidUpload			SidUpload,
+	nidUpload			NidUpload,
+	bsid				INTEGER (0..65535),
+	pilotPN				INTEGER (0..511)	OPTIONAL,	/* 1.0.11 change */
+	cdmaFrequencyInfo		CdmaFrequencyInfo	OPTIONAL, /* Modified in 1.0.4, changed to optional in 1.0.11 */				
+	frequencyListCDMA		SEQUENCE (SIZE (1..numFrequencies)) OF CdmaFrequencyInfo	OPTIONAL, /* Added in 1.0.4. 
+	    Used to report additional observed frequencies */
+	mcc				Mcc			OPTIONAL,	/* added in 1.0.11 */	
+	...
+}
+
+GSMCellId ::= SEQUENCE {
+	mcc 				Mcc,
+	mnc 				Mnc,
+	bsic 				INTEGER (0..63)		OPTIONAL,	/* 1.0.11 change */
+	arfcn				Arfcn			OPTIONAL, /* Modified in 1.0.4, changed to optional in 1.0.11 */
+	lac 				Lac,
+	cellId 				INTEGER (0..65535),
+	frequencyListGSM		SEQUENCE (SIZE (1..numFrequencies)) OF Arfcn	OPTIONAL, /* Added in 1.0.4. -
+												Used to report additional observed frequencies */
+	...
+}
+
+GsmCellTime ::= SEQUENCE {
+	timeTagFn			INTEGER (0..2147483647),
+	timeTagTimeSlot			INTEGER (0..7),
+	timeTagSymbolCount		INTEGER (0..2147483647),
+	...
+}
+
+GsmFtaUpload ::= SEQUENCE {
+	frameNumber			INTEGER (0..2715647),
+	bcchCarrier			INTEGER (0..1023),
+	cellId				INTEGER (0..65535),
+	bsic				INTEGER (0..63),
+	ftaGpsWeek			INTEGER (0..1023),
+	ftaGpsTimeOfWeek		INTEGER (0..604799999),
+	ftaGpsTimeOfWeekSubMs		INTEGER (0..9999)		OPTIONAL,
+	timeRelationshipUncert		INTEGER (0..127),
+	timingAdvance			INTEGER (0..63),
+	ftaLocationData			LocationDataInteger, /* changed in 1.0.9 */
+	...
+}	
+					
+LTECellId ::= SEQUENCE {
+	mcc 				Mcc,
+	mnc 				Mnc,
+	earfcn				Earfcn			OPTIONAL, /* Modified in 1.0.4, changed to optional in 1.0.11 */
+	plid	 			INTEGER (0..503)	OPTIONAL, /* changed in 1.0.11 */
+	globalCellId 			INTEGER (0..268435455),
+	tacUpload 			INTEGER (0..65535),		
+/* 65534 is not a valid value.
+  0 is allowed if the TAC is not available */
+	frequencyListLTE	SEQUENCE (SIZE (1..numFrequencies)) OF Earfcn	OPTIONAL, /* Added in 1.0.4.
+											Used to report additional observed frequencies. */
+	...,
+	extendedEarfcn			INTEGER (0..262143)	OPTIONAL /* added in 3.1.6 */
+}
+
+LteSystemBandwidth ::= ENUMERATED	{  bw_1point4(0),  /* defined in 3.1.7 for TDP upload */
+					   bw_3(1),
+					   bw_5(2),
+					   bw_10(3),
+					   bw_15(4),
+					   bw_20(5),
+					   ...
+}
+
+LteTdpCellId ::= SEQUENCE {  /* added in 3.1.7 for TDP Upload */
+	globalIdentifier	SEQUENCE {
+		mcc 		Mcc,
+		mnc 		Mnc,
+		tacUpload	INTEGER (0..65535)		OPTIONAL,
+		globalCellId 	INTEGER (0..268435455),
+		...
+	}	OPTIONAL,
+	localIdentifier	SEQUENCE {
+		plid	 			INTEGER (0..503), 
+		earfcn				INTEGER (0..262143),
+		...
+	},
+	...
+}	
+
+LteTdpUploadData ::= SEQUENCE  {  /* defined in 3.1.7 for TDP Upload */
+	locationInformation		PositionEstimateCellDB,
+	lteTdpMeasAndCellData		SEQUENCE (SIZE (1..numTdpMeasurement)) OF SEQUENCE {
+		neighborCellID		LteTdpCellId	OPTIONAL,
+		measurementBlock	MeasurementBlock,
+		...
+	},	
+	...
+}
+
+MeasurementBlock ::= SEQUENCE {  /* defined in 3.1.7 for TDP Upload */
+	signalPower		INTEGER (0..97)			OPTIONAL,
+	signalQuality		INTEGER (0..34)			OPTIONAL,
+	rxTxTimeDiff		INTEGER (0..4095)		OPTIONAL,
+	rangingMeasurements	SEQUENCE {
+		rangingMeasurementType	ENUMERATED	{ prs(0),
+				 			  ukCRS(1),
+							  opCRS(2),
+							  ...
+							},
+		rangingMeasurementBW	LteSystemBandwidth, 
+		fineClockSyncFlag	BOOLEAN,
+		rToaTimeStamp		INTEGER (0..10239)	OPTIONAL,
+		rToaMs			INTEGER (-32767..32767),
+		rToaNs			INTEGER (-500000..500000),
+		rToaMeasUnc		INTEGER (0..63),
+		rToaClockUnc		INTEGER (0..63),
+		...
+	},
+	...
+}
+
+
+PositionEstimateCellDB ::= SEQUENCE {
+	positionSource			LocationType,
+	gpsTime				GpsTimeMs				OPTIONAL,
+	bestLocationData		LocationDataInteger, /* changed in 1.0.9 */
+	...,
+	posReliability			PosReliability  /* added in 3.1.7 for TDP Upload support */
+}
+
+PositionHistoryCellDB ::= SEQUENCE {
+	maxLatitude			INTEGER (-2147483648.. 2147483647), /*changed in 1.0.9 */
+	minLatitude			INTEGER (-2147483648.. 2147483647), /*changed in 1.0.9 */
+	maxLongitude			INTEGER (-2147483648.. 2147483647), /*changed in 1.0.9 */
+	minLongitude			INTEGER (-2147483648.. 2147483647), /*changed in 1.0.9 */
+	numberOfFixes			INTEGER (0..255),
+	...
+}	
+
+PosReliability	::= ENUMERATED  { not_set(0), /* defined in 3.1.7 */
+				  very_low(1), 
+				  low(2), 
+				  medium(3), 
+				  high(4),
+				  max(5), 
+				  ...
+}
+
+ServingCellConfiguration ::= SEQUENCE {  /* defined in 3.1.7 for TDP Upload */
+	cellSystemBW		LteSystemBandwidth,
+	cyclicPrefix		BOOLEAN,
+	antennaPorts		BOOLEAN, 
+ 	systemTime		SEQUENCE {  /* added in 3.1.9 */
+		asynchronousSystemTimePresent		BOOLEAN,
+		synchronousSystemTime			INTEGER (0.. 549755813887)	OPTIONAL, /* changed from BIT STRING (39) in 3.1.13 */
+		timeInfoUTC				INTEGER (0.. 549755813887)	OPTIONAL,
+		...
+	}	OPTIONAL,	...
+}
+
+
+TdpUploadData ::= SEQUENCE {  /* defined in 3.1.7 */
+	servingCellConfiguration	ServingCellConfiguration,
+	scanSelectionMethod		ENUMERATED	{  randomSelection(0),
+							   ...
+							},
+	tdpDataObservations		CHOICE {
+		lteTdpUploadData	SEQUENCE  (SIZE (1..maxNumTdpObservationSets)) OF LteTdpUploadData,
+		...
+	},
+	...
+}
+
+TimeTag ::= SEQUENCE {
+	timeTagGpsTime			GpsTimeMs,
+	timeTagBias			INTEGER (-2147483648..2147483647),
+	timeTagUncertaintyMs		INTEGER (0..4294967295),	/* changed range in 1.0.7 */
+	timeTagCellTime		CHOICE {
+		gsmCellTime		GsmCellTime,
+		wcdmaCellTime 		WcdmaCellTime,
+		...
+	},
+	...
+}
+
+WCDMACellId ::=SEQUENCE {
+	mcc			 	Mcc,
+	mnc 				Mnc,
+	primarySynchCode		INTEGER (0..511)	OPTIONAL, /* changed in 1.0.11 */
+	uarfcn				Uarfcn			OPTIONAL, /* Modified in 1.0.4. Changed to optional in 1.0.11 */	
+	wcdmaReportedLac 		INTEGER (0..65535),
+  /* 65534 is not a valid value.
+     0 is allowed for WCDMA if the LAC is not available */
+	uCellID				INTEGER (0..268435455),
+	frequencyListWCDMA	SEQUENCE (SIZE (1..numFrequencies)) OF Uarfcn	OPTIONAL, /* Added in 1.0.4. 
+											Used to report additional observed frequencies. */
+	...
+}
+
+WcdmaCellTime ::= SEQUENCE {
+	timeTagSfn			INTEGER (0..4095),
+	timeTagPnPosChip		INTEGER (0..307200),
+	...
+}
+
+WcdmaFtaUpload ::= SEQUENCE {
+	referenceSfn			INTEGER (0..4095),
+	primaryCpichInformation		INTEGER (0..511),
+	uCellID				INTEGER (0..268435455),
+	ueGpsTiming			INTEGER (0..37158911999999),
+	ftaGpsWeek			INTEGER (0..1023),
+	timeRelationshipUncert		INTEGER (0..127),
+	ftaLocationData			LocationDataInteger, /* changed in 1.0.9 */
+	...
+}
+
+
+  /* Definition of range constants */
+
+maxNumOfCellDbRecords			INTEGER ::= 1024
+numFrequencies				INTEGER ::= 32 /* 1.0.4 */
+maxNumTdpObservationSets		INTEGER ::= 1023 /* added in 3.1.7 */
+numTdpMeasurement			INTEGER ::= 24  /* added in 3.1.7 */
+
+END
+
+
+SNDB DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+IMPORTS
+	GpsTimeMs,
+	LocationDataInteger,
+	LocationType,
+	Mcc,
+	Mnc,
+	Nid,
+	NidUpload,
+	Sid,
+	SidUpload,
+	TimeStampL64
+
+FROM
+	XtProtocol
+	;	
+
+
+SNDB ::= SEQUENCE  (SIZE (1..maxNumOfRegionRecords)) OF SEQUENCE {
+	sndbRegionIdentification 	CHOICE {
+		cdmaRegionId 		CDMARegionId,
+		gsmRegionId 		GSM-WCDMARegionId,
+		wcdmaRegionId 		GSM-WCDMARegionId,
+		lteRegionId 		LTERegionId,
+		...
+		},
+	localTime			OCTET STRING			OPTIONAL,  /* Table 5-13 in NDD */ 
+	gpsTime				GpsTimeMs			OPTIONAL,  /* time of latest update to record */
+	regionPositionEstimate		RegionPositionEstimate,
+	...
+}
+
+CDMARegionId ::= SEQUENCE {
+	sidUpload			SidUpload,
+	nidUpload			NidUpload,
+	...
+}
+
+GSM-WCDMARegionId ::= SEQUENCE {
+	mcc 				Mcc,
+	mnc 				Mnc,
+	reportedLac 			INTEGER (0..65535),	
+  /* 65534 is not a valid value
+     0 is allowed for WCDMA if LAC is not available */
+	...
+}	
+					
+LTERegionId ::= SEQUENCE {
+	mcc 				Mcc,
+	mnc 				Mnc,
+	tac 				INTEGER (1..65535),		/* 65534 is not a valid value */
+...
+}
+
+RegionPositionEstimate ::= SEQUENCE {
+	positionSource			LocationType,
+	gpsTime				GpsTimeMs				OPTIONAL,
+	latestLocationData		LocationDataInteger, /* changed in 1.0.9 */
+	regionPositionHistory  	SEQUENCE {
+		maxLatitude			INTEGER (-2147483648.. 2147483647), /* changed in 1.0.9 */
+		minLatitude			INTEGER (-2147483648.. 2147483647), /* changed in 1.0.9 */
+		maxLongitude			INTEGER (-2147483648.. 2147483647), /* changed in 1.0.9 */
+		minLongitude			INTEGER (-2147483648.. 2147483647), /* changed in 1.0.9 */
+		numberOfFixes			INTEGER (0..255),
+		...
+	},
+	...
+}
+
+
+  /* Definition of range constants */
+
+maxNumOfRegionRecords			INTEGER ::= 255
+
+END
+
+
+
+APDB DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+IMPORTS
+	ApRecord,
+	GpsTimeMs,
+	LocationData,
+	LocationType,
+	Mcc,
+	Mnc,
+	TimeStampL64
+
+FROM
+	XtProtocol
+	;	
+
+APDB ::= SEQUENCE {
+	rawApDataSets			ApDataSets,
+	...
+}
+
+ApDataSets ::= SEQUENCE  (SIZE (1..maxNumOfObservedApSets)) OF SEQUENCE {
+	observationTime			TimeStampL64,
+	observationLocationType		LocationType,			/* added in 1.0.1 */	
+	observationPositionEstimate	LocationData	OPTIONAL,	/* changed in 1.0.1 */
+	perApRecords		SEQUENCE SIZE (1..maxNumApRecords) OF ApRecord,	
+	...
+}
+					
+  /* Definition of range constants */
+
+maxNumOfObservedApSets			INTEGER ::= 4095
+maxNumApRecords				INTEGER ::= 255
+
+END
+
+OpsMeasurements DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+IMPORTS
+	ApRecord,
+	GpsTimeSeconds
+
+FROM
+	XtProtocol
+	;	
+
+
+OpsMeasurements ::= SEQUENCE {
+	reportStartTime				GpsTimeSeconds,
+	wwanOpsMeasurements			WwanOpsMeasurements		OPTIONAL,
+	wlanOpsMeasurements			WlanOpsMeasurements		OPTIONAL,
+	...
+}
+
+MeasurementCount ::= INTEGER (1..65535)
+
+WlanOpsMeasurements ::= SEQUENCE {
+	wlanMeasurement_01				MeasurementCount,
+	wlanMeasurement_02				MeasurementCount,
+	wlanMeasurement_03				MeasurementCount,
+	...
+}	
+
+
+
+WwanOpsMeasurements ::= SEQUENCE {
+	celldbEntryUsed					MeasurementCount,
+	sndbEntryUsed					MeasurementCount,
+	downloadCellEntryUsed				MeasurementCount,
+	downloadRegionEntryUsed				MeasurementCount,
+	noCelldbMatch					MeasurementCount,
+	noSndbMatch					MeasurementCount,
+	celldbRecordsAdd				MeasurementCount,
+	sndbRecordsAdd					MeasurementCount,
+	downloadCellRecordsAdd				MeasurementCount,
+	downloadRegionRecordsAdd			MeasurementCount,
+	celldbRecordsDel				MeasurementCount,
+	sndbRecordsDel					MeasurementCount,
+	downloadCellRecordsDel				MeasurementCount,
+	downloadRegionRecordsDel			MeasurementCount,
+	celldbRecordsUpdated				MeasurementCount,
+	sndbRecordsUpdated				MeasurementCount,
+	downloadCellRecordsUpdated			MeasurementCount,
+	downloadRegionRecordsUpdated			MeasurementCount,
+	numberOfCelldbRecords				MeasurementCount,
+	numberOfSndbRecords				MeasurementCount,
+	numberOfDownloadCellRecords			MeasurementCount,
+	numberOfDownloadRegionRecords			MeasurementCount,
+	...
+}	
+
+END
+
+

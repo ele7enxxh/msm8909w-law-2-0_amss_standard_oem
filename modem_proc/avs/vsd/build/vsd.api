@@ -1,0 +1,86 @@
+#===============================================================================
+#
+# Core APIs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (C) 2009, 2013 QUALCOMM Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/avs/vsd/build/vsd.api#1 $
+#  $DateTime: 2016/12/13 07:59:59 $
+#  $Author: mplcsds1 $
+#  $Change: 11985186 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/11/13   sre     Added support to make VOICECFG public API.
+#===============================================================================
+Import('env')
+
+env.PublishPublicApi('AUDIO', [
+   "${INC_ROOT}/avs/api/common",
+   "${INC_ROOT}/multimedia/avs/api/audioinit",
+   "${INC_ROOT}/multimedia/avs/api/mvs",
+   "${INC_ROOT}/avs/api/voicemem",   
+   "${INC_ROOT}/avs/api/vs",   
+   "${INC_ROOT}/multimedia/avs/api/deprecated",
+   "${INC_ROOT}/avs/api/voicecfg",
+])
+
+env.PublishPublicApi('COMMON', [
+   "${INC_ROOT}/avs/api/common",      
+])
+
+env.PublishRestrictedApi('VOCSVC', [
+   "${INC_ROOT}/multimedia/avs/vsd/inc/protected",
+])
+
+env.PublishPublicApi('CVD', [
+   "${INC_ROOT}/multimedia/avs/api/cvd",
+])
+
+env.PublishPublicApi('MVS', [
+   "${INC_ROOT}/multimedia/avs/api/mvs",
+])
+
+env.PublishPublicApi('VOICEMEM', [
+   "${INC_ROOT}/avs/api/voicemem",      
+])
+
+env.PublishPublicApi('VS', [
+   "${INC_ROOT}/avs/api/vs",      
+])
+
+env.PublishRestrictedApi('CVD', [
+   "${INC_ROOT}/multimedia/avs/vsd/inc/private",
+])
+
+env.PublishRestrictedApi('MVS', [
+   "${INC_ROOT}/multimedia/avs/vsd/inc/private",
+   "${INC_ROOT}/multimedia/avs/vsd/common/mvs/inc",
+])
+
+env.PublishRestrictedApi('VS', [
+   "${INC_ROOT}/avs/vsd/common/vs/inc",
+])
+
+env.PublishPublicApi('VOICECFG', [
+   "${INC_ROOT}/avs/api/voicecfg",      
+])
+
+env.PublishProtectedApi('VADAPTER',[
+       "${INC_ROOT}/avs/vsd/vadapter/inc/protected",
+])
+
+
+
+env.LoadAPIUnits()

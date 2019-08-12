@@ -1,0 +1,63 @@
+#===============================================================================
+#                    Copyright (c) 2014  by Qualcomm Technologies, Inc.  All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+import SCons
+import os
+import re
+
+Import('qurtenv')
+env = qurtenv.Clone()
+
+#setup target
+env.Tool('target_tools',toolpath=['..'])
+
+#setup builders
+env.Tool('qurt_builders',toolpath=['..'])
+
+result=[]
+f=open(env.subst('${INSTALL_DIR}')+"/scripts/Input/build_params.txt")
+p = re.compile('(.*)(%s)(\s*=\s*)(.*?)(\s*^)' % "BUILD_CONFIG_FLAGS", re.M | re.S)
+m = re.match(p, f.read())
+if m:
+   result = re.split('\s+', m.group(4))
+env.Replace(BUILD_CCFLAGS = result)
+
+install_lib = env.subst('${INSTALL_DIR}') + '/lib'
+qlibs = []
+
+#libqurtcfs.a
+qlibs.append(env.File(install_lib+"/libqurtcfs.a"))
+
+#libposix.a
+qlibs.append(env.File(install_lib+"/libposix.a"))
+
+#libqube_compat.a
+qlibs.append(env.File(install_lib+"/libqube_compat.a"))
+
+#libqurt.a
+qlibs.append(env.File(install_lib+"/libqurt.a"))
+
+#libtimer.a
+qlibs.append(env.File(install_lib+"/libtimer.a"))
+
+#libqurtkernel.a
+qlibs.append(env.File(install_lib+"/libqurtkernel.a"))
+
+#libqurtkernel_island.a
+qlibs.append(env.File(install_lib+"/libqurtkernel_island.a"))
+
+#libqurtkernel_main.a
+qlibs.append(env.File(install_lib+"/libqurtkernel_main.a"))
+
+#crt0.o
+qlibs.append(env.File(install_lib+"/crt0.o"))
+
+#libqurtdebugger.a
+qlibs.append(env.File(install_lib+"/libqurtdebugger.a"))
+
+#crt1.o
+qlibs.append(env.File(install_lib+"/crt1.o"))
+
+qlibs.append(env)
+Return('qlibs')

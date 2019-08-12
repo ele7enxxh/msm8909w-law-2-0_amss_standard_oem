@@ -1,0 +1,46 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+platform_root = '${BUILD_ROOT}/platform'
+env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+
+env.RequireRestrictedApi([
+  'ATOMIC',
+  ])
+
+env.RequirePublicApi([
+  'STDDEF',
+  'A1STD',
+  ])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${ADSP_PLATFORM_ROOT}/platform_libs"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+PLATFORM_LIBS_SOURCES =  [
+   '${BUILDPATH}/platform_libs.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+pl_lib = env.AddBinaryLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+    'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/platform_libs', PLATFORM_LIBS_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load Subunits (sys)
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.S', '*.h'], '${ADSP_PLATFORM_ROOT}/platform_libs'))
+for x in env.FindFiles(['platform_libs.h'], '${ADSP_PLATFORM_ROOT}/platform_libs'):
+    CLEAN_LIST.remove(x)
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)

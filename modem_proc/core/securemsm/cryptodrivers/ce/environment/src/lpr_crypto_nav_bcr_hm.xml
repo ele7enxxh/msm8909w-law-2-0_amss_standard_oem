@@ -1,0 +1,32 @@
+<!--
+                Copyright (c) 2011-2012 Qualcomm Technologies Incorporated.
+                All Rights Reserved.
+                Qualcomm Confidential and Proprietary
+                Format followed by sleep team for LPR
+                Dependency : LPR wont be created until
+                             that dependency is available
+                Order : at which point will the the lpr entry
+                        be executed before sleep
+                PowerSavings : This entry and exit is not intended
+                               for power saving
+                EnterLat/ExitLat : Time taken by entry/exit function
+                                   to execute in ticks
+                EnterFn/ExitFn : function to be called on entry/exit
+                                 defined in CeElBam.c
+-->
+
+<LPRDefinition>
+  <LPR Name="crypto_nav" CoreMask="0xFFFFFFFF">
+    <Mode Name="bcr_hm"
+          Dependency="cpu_vdd"
+          Order="BEFORE DEP crypto_nav.bcr_hm"
+          PowerSavings="0"
+          EnterLat="1000"
+          ExitLat="1000"
+          Backoff="1000"
+          EnterFn="CeElBamNavHMAssert"
+          ExitFn="CeElBamNavHMDeassert"
+          > 
+    </Mode>
+  </LPR> 
+</LPRDefinition>

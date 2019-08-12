@@ -1,0 +1,68 @@
+;****************************************************************************
+;**         boot_debug_target_data.cmm
+;**
+;**         This script performs setup for debugging target on secboot 3.0 Architecture.
+;**
+;** Copyright  2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.
+;**
+;****************************************************************************
+;**
+;**                        EDIT HISTORY FOR MODULE
+;**
+;** $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/boot/secboot3/scripts/boot_debug_target_data.cmm#1 $
+;**
+;** when       who     what, where, why
+;** --------   ---     ------------------------------------------------------
+;** 10/30/14   aus     Clear SDI and DLOAD cookie for SBL debugging 
+;** 10/08/14   jz      Added back the magic number for shared IMEM boot region needed for flashless boot logging
+;** 03/25/14   ck      Updated for Bear family
+;** 08/07/12   jz      ported from target's boot_debug to make it shared
+
+;****************************************************************************
+
+;****************************************************************************
+;  CMM script variables
+;****************************************************************************
+global &shared_imem_base
+global &boot_dload_enable_value
+global &boot_logger_loop_magic_num
+global &shared_imem_boot_etb_addr
+global &boot_dload_boot_misc_detect_addr
+global &boot_reset_debug_sw_entry_addr
+global &boot_debug_cookie_addr
+global &boot_debug_cookie_val
+global &shared_imem_boot_magic_num_addr
+global &boot_shared_imem_magic_num
+
+;global variable for intercom name and apps core reset function
+global &apcs_start_address_reg
+global &rpmview_temp_apps_start_address
+global &appview_temp_apps_start_address
+global &pbl_bring_apps_out_of_reset_func
+global &apps_reset_handler_addr
+global &APPS_CORE0_T32
+
+
+;Intercom port number for APPS core 0
+&APPS_CORE0_T32="localhost:15370."
+
+;Bear family uses ocimem as shared imem
+&shared_imem_base=0x08600000
+
+&boot_shared_imem_magic_num=0xC1F8DB40
+&boot_logger_loop_magic_num=0xD1C2B3A3
+
+;dload is now a bit in the BOOT_MISC_DETECT register
+&boot_dload_enable_value=0x10
+&boot_dload_boot_misc_detect_addr=0x0193D100
+&boot_reset_debug_sw_entry_addr=0x01940000
+
+;boot shared imem magic num location
+&shared_imem_boot_magic_num_addr=&shared_imem_base
+
+;boot shared imem etb pointer location
+&shared_imem_boot_etb_addr=&shared_imem_base+8
+
+;sbl1 debug cookie address and value, it's always in ocimem
+&boot_debug_cookie_addr=&shared_imem_base+0x944
+&boot_debug_cookie_val=0x53444247

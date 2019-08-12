@@ -1,0 +1,262 @@
+#===============================================================================
+# UIM GSTK Subsystem build script
+# GENERAL DESCRIPTION
+#    build script for modem/uim/gstk
+#
+# Copyright (c) 2010-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/uim/gstk/build/main/latest/uim_gstk.scons#4 $ $DateTime: 2010/08/15 23:58:06 $ $Author: amitp $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/26/14   av      Changes to make sure task opts for inclusion in FTM mode
+# 07/11/14   shr     Add Support for NV Refresh
+# 01/14/14   hn      Scons fix for segment loading
+# 12/12/13   vr      GSTK INIT call before task startup
+# 10/23/13   hn      Support segment loading for TDSCDMA/WCDMA
+# 09/23/13   vr      qtf-crm MOB migration
+# 04/30/13   yt      Remove non-existent paths
+# 04/02/13   av      Move UIM tasks to group4 of RCINIT
+# 09/18/12   nk      Changes to support modem folder removal
+# 09/17/12   hk      Register TDSCDMA serving cell change event
+# 03/07/12   yt      RCInit changes
+# 11/10/11   sg      Add newly added gstk file gstk_activate.c
+# 10/13/11   yt      Added support for RCInit
+# 04/20/11   adp     Moving GSTK logging under UIM
+# 12/22/10   nk      Fix for including MVS headers needed for WCDMA
+# 12/15/10   nk      Updated to fix integration errors for header file not found
+# 11/30/10   nk      Removed files that are not compiled in build
+# 10/22/10   nk      Moved USES_GSTK Flag check to after env.Clone(). Added
+#                     env.PublishPrivateApi('VIOLATIONS') for successful compilation
+# 10/11/10   nk      Updated with header and UESES Flag Check
+#
+#===============================================================================
+
+
+from glob import glob
+from os.path import join, basename
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+# Verify that USES_GSTK is set, otherwise bail out now
+if 'USES_GSTK' not in env:
+    Return()
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-----------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-----------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_RUIM",
+])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+env.RequirePublicApi([
+    'DEBUGTOOLS',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'DAL',
+    'BUSES',
+    'POWER',
+    'MPROC',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ], area='core')
+
+
+
+env.RequirePublicApi(['AUDIO', 'MVS'], area='MULTIMEDIA')
+
+# PUBLIC MODEM APIS
+env.RequirePublicApi(['UIM',
+                      'MCS',
+                      'MMODE',
+                      'GERAN',
+                      'WMS',
+                      'WCDMA',
+                      'UTILS',
+                      'GPS',
+                      'ONEX',
+                      'TDSCDMA'])
+
+#needed for NAS
+env.RequirePublicApi(['NAS', 'RFA', 'DATACOMMON', 'DATA', 'HDR'])
+
+#needed for TDSCDMA/WCDMA segment loading
+uim_gstk_public_api_list = [
+   ('CORE', 'BUSES'),
+   ('UTILS', 'OSYS'),
+   ('UTILS', 'A2'),
+   ('AVS', 'MVS'),
+   ('UIM', 'UIM'),
+   ('MPOWER', 'MPOWER'),
+   ('WCDMA', 'WCDMA'),
+   ('FW', 'WCDMA'),
+   ('TDSCDMA', 'TDSCDMA'),
+   ('MCFG', 'MCFG'),
+   ('RFA', 'CDMA'),
+   ('FW', 'RF'),
+   ('FW', 'COMMON'),
+   ('RFA', 'MEAS'),
+   ('RFA', 'WCDMA'),
+   ('RFLM', 'DTR'),
+   ('RFA', 'GSM'),
+   ('RFA', 'LTE'),
+   ('FW', 'GERAN'),
+   ('RFA', 'GNSS'),
+]
+
+for api_area,api_name in uim_gstk_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+#-----------------------------------------
+# Necessary Restricted API's
+#-----------------------------------------
+# We need our "inc" dir too + other UIM "inc" dirs
+# We need WCDMA RRC Restricted APIs
+# We need the WMS API's
+# We need the MMODE API's
+# We need MCS Restricted dirs needed for dsm_init.h included by dsm.h
+# We need NAS Restricted dirs needed for ms.h
+# We need GERAN Restricted dirs needed for rr_usat_if.h
+# We need WCMDA Restricted dirs needed for rrcmmif.h
+# We need MMODE Restricted dirs needed for sys_v.h needed by modem\nas\mm\inc\mm_as_types.h
+env.RequireRestrictedApi(['UIM',
+                          'RRC',
+                          'ONEX',
+                          'MCS',
+                          'NAS',
+                          'GERAN',
+                          'WCDMA',
+                          'FW',
+                          'UTILS',
+                          'LTE',
+                          'MMODE',
+                          'MDSP',
+                          'GPS',
+                          'RFA'
+                          ])
+
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(['BREW', 'MODEM_WCDMA', 'MULTIMEDIA_AUDIO'])
+
+
+#-----------------------------------------
+# Violations
+#-----------------------------------------
+env.PublishPrivateApi('VIOLATIONS',[
+   '${INC_ROOT}/geran/variation/inc',
+   '${INC_ROOT}/geran/cust/inc',
+])
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+GSTK_C_SOURCES = [
+    '${BUILDPATH}/gstk.c',
+    '${BUILDPATH}/gstk_activate.c',
+    '${BUILDPATH}/gstk_close_ch.c',
+    '${BUILDPATH}/gstk_disp_txt.c',
+    '${BUILDPATH}/gstk_envelope_cmd.c',
+    '${BUILDPATH}/gstk_envelope_rsp.c',
+    '${BUILDPATH}/gstk_evt_dl.c',
+    '${BUILDPATH}/gstk_get_ch_status.c',
+    '${BUILDPATH}/gstk_get_inkey.c',
+    '${BUILDPATH}/gstk_get_input.c',
+    '${BUILDPATH}/gstk_lang_notification.c',
+    '${BUILDPATH}/gstk_launch_browser.c',
+    '${BUILDPATH}/gstk_more_time.c',
+    '${BUILDPATH}/gstk_open_ch.c',
+    '${BUILDPATH}/gstk_play_tone.c',
+    '${BUILDPATH}/gstk_polling.c',
+    '${BUILDPATH}/gstk_proactive_cmd.c',
+    '${BUILDPATH}/gstk_provide_local_info.c',
+    '${BUILDPATH}/gstk_receive_data.c',
+    '${BUILDPATH}/gstk_refresh.c',
+    '${BUILDPATH}/gstk_s_gsdi_sig_wait.c',
+    '${BUILDPATH}/gstk_s_idle.c',
+    '${BUILDPATH}/gstk_s_no_sim.c',
+    '${BUILDPATH}/gstk_s_start.c',
+    '${BUILDPATH}/gstk_s_term_profile_rsp_wait.c',
+    '${BUILDPATH}/gstk_s_term_profile_wait.c',
+    '${BUILDPATH}/gstk_select_item.c',
+    '${BUILDPATH}/gstk_send_data.c',
+    '${BUILDPATH}/gstk_send_dtmf.c',
+    '${BUILDPATH}/gstk_send_sms.c',
+    '${BUILDPATH}/gstk_send_ss.c',
+    '${BUILDPATH}/gstk_send_ussd.c',
+    '${BUILDPATH}/gstk_setup_call.c',
+    '${BUILDPATH}/gstk_setup_evt_list.c',
+    '${BUILDPATH}/gstk_setup_idle_txt.c',
+    '${BUILDPATH}/gstk_setup_menu.c',
+    '${BUILDPATH}/gstk_state.c',
+    '${BUILDPATH}/gstk_tal.c',
+    '${BUILDPATH}/gstk_term_profile.c',
+    '${BUILDPATH}/gstk_terminal_rsp.c',
+    '${BUILDPATH}/gstk_timer_management.c',
+    '${BUILDPATH}/gstklib.c',
+    '${BUILDPATH}/gstkpacker.c',
+    '${BUILDPATH}/gstkparser.c',
+    '${BUILDPATH}/gstkutil.c',
+    '${BUILDPATH}/gstk_nv.c'
+]
+
+ # Add our library to the MODEM_AMSS image
+env.AddLibrary(['MODEM_MODEM','MOB_UIM'], '${BUILDPATH}/uim_gstk', GSTK_C_SOURCES)
+
+# Build image for which this task belongs
+RCINIT_GSTK = ['MODEM_MODEM','MOB_UIM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_GSTK = {
+            'sequence_group'      : 'RCINIT_GROUP_4',
+            'init_name'           : 'gstk_init',
+            'init_function'       : 'gstk_init',
+            'dependencies'        : [],
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_GSTK= {
+            'thread_name'          : 'gstk',
+            'sequence_group'       : 'RCINIT_GROUP_4',
+            'stack_size_bytes'     : env.subst('$GSTK_STKSZ'),
+            'priority_amss_order'  : 'GSTK_PRI_ORDER',
+            'stack_name'           : 'gstk_stack',
+            'thread_entry'         : 'gstk_task',
+            'tcb_name'             : 'gstk_tcb',
+            'cpu_affinity'         :  env.subst('$MODEM_CPU_AFFINITY'),
+            'policy_optin'         : ['default', 'ftm', ]
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+            env.AddRCInitTask(RCINIT_GSTK, RCINIT_TASK_GSTK)
+            env.AddRCInitFunc(RCINIT_GSTK, RCINIT_INIT_GSTK)
+
+# Load test units
+env.LoadSoftwareUnits()

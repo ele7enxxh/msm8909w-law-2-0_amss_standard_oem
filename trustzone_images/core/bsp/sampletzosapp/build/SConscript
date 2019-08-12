@@ -1,0 +1,196 @@
+#===============================================================================
+#
+# Sample TZ OS App  build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles aliases
+aliases = [
+   'sampletzosapp', 'genboot', 'boot', 'boot_arm11',
+   'amss', 'amss_arm11',
+   'arm11', 'all'
+]
+
+image_name = str(aliases[0])
+env.Replace(IMAGE_NAME = image_name)
+env.Replace(PROC = 'scorpion')
+
+if not env.CheckAlias(image_name, aliases):
+   Return()
+
+#------------------------------------------------------------------------------
+# Init defualt values this PROC/Image
+#------------------------------------------------------------------------------
+
+# Init root env soo all scosntructs will add their libs
+env.Replace(ROOT_ENV = env)
+env.Replace(LIBS = [])
+
+# set other variables used by the build system...
+env.Replace(PLAT = 'boot')
+env.Replace(LIBPATH = env.subst('${LIBPATH}/${PROC}'))
+env.Replace(BUILDPATH = image_name.lower())
+env.Replace(BUILD_ID = env.subst('${BUILD_ID}A'))
+env.Replace(CUST_H = env.subst('CUST${BUILD_ID}.H').lower())
+
+# set image type
+env.Replace(APPS_PROC = env.subst('${PROC}'))
+env.Replace(SAMPLETZOSAPP_IMAGE = env.subst('${PROC}'))
+
+#===============================================================================
+# Sample TZ OS App build rules
+#===============================================================================
+
+#------------------------------------------------------------------------------
+# configure and load in uses and path variables,
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('rvct', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+env.LoadToolScript('apps_defs', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+
+#------------------------------------------------------------------------------
+# Add extension flags for Sample TZ OS App
+#------------------------------------------------------------------------------
+if env['BUILD_VER'] == "":
+   env.Replace(BUILD_VER = '0')
+
+# TODO Not sure why this is needed. Sample TZ OS App must be added somewhere,
+# otherwise a CPU without TZ instructions is being used.
+# env.Replace(ARM_CPU_SCORPION = '7')
+
+env.Append(CPPDEFINES = [
+   "SAMPLETZOSAPP",
+   "BUILD_BOOT_CHAIN",
+   "BUILD_BOOT_CHAIN_SPBL",
+   "BOOT_LOADER",
+   "BOOT_WATCHDOG_DISABLED",
+   "FLASH_NAND_SINGLE_THREADED",
+   "FLASH_CLIENT_BOOT",
+   "FLASH_USE_DM_PAGES",
+   "FEATURE_HS_USB_BASIC",
+   "BOOT_SBL_H=\\\"boot_comdef.h\\\"",
+   "BOOT_CUSTSBL_H=\\\"custsbl.h\\\"",
+   "BOOT_MODULE_BUILD_VERSION=" + env['BUILD_VER'],
+   "FEATURE_USES_TURBO",
+   "RUMIBUILD",
+])
+
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+
+# load Core BSP Lib build rule scripts
+env.LoadCoreBSPLibScripts()
+
+# load External Lib build rule scripts
+env.LoadExternalLibScripts()
+prebuild_libs = [
+# from pre-build units
+   # CS libraries
+      File(env['PLAT_ROOT'] + '/libstd/lib/RVCT22arm11_Release/a1std.lib'),
+]
+
+if env.get('ARMTOOLSVERSION', 0) >= 4:
+        arm_libs = [
+                # ARM Libs (this need to be last, otherwise linker will use ARMlibs functions
+                # which we want to override)
+                File(env.SubstRealPath('${ARMLIB}/armlib/c_5.l')),
+                File(env.SubstRealPath('${ARMLIB}/armlib/g_5s.l')),
+                File(env.SubstRealPath('${ARMLIB}/armlib/m_5s.l'))
+        ]
+else:
+		arm_libs = [
+				# ARM Libs (this need to be last, otherwise linker will use ARMlibs functions
+				# which we want to override)
+				File(env.SubstRealPath('${ARMLIB}/armlib/c_t__un.l')),
+				File(env.SubstRealPath('${ARMLIB}/armlib/g_t_p.l')),
+				File(env.SubstRealPath('${ARMLIB}/armlib/m_t_pu.l'))
+	]
+
+subsystem = ARGUMENTS.get('subsystem', None)
+if not subsystem:
+   env.AddLibsToImage('SAMPLETZOSAPP_IMAGE', prebuild_libs)
+   env.AddLibsToImage('SAMPLETZOSAPP_IMAGE', arm_libs)
+
+root_env = env['ROOT_ENV']
+libs = root_env['LIBS']
+libs_path = env['LIBPATH']
+
+# user overide default units
+subsystem = ARGUMENTS.get('subsystem', None)
+if subsystem:
+   sampletzosapp_units = env['LIBS']
+else:
+   #============================================================================
+   # Sample TZ OS App Environment
+   #============================================================================
+
+   #----------------------------------------------------------------------------
+   # Beging building Sample TZ OS App
+   #----------------------------------------------------------------------------
+   env.Replace(TARGET_NAME = 'sampletzosapp_${BUILD_ID}')
+   env.Replace(TARGET_BLD_KCFG = 'M')
+   env.Replace(TARGET_IMAGE = 'MODEM_PROC')
+   env.Replace(FLASH_TYPE = 'sdcc')
+   env.Replace(SAMPLETZOSAPP_ROOT = "${COREBSP_ROOT}/securemsm/sampletzosapp")
+
+   #----------------------------------------------------------------------------
+   # Generate scatter load file
+   #----------------------------------------------------------------------------
+   target_scl = env.SclBuilder('${COREBSP_ROOT}/bsp/sampletzosapp/build/${TARGET_NAME}',
+      '${SAMPLETZOSAPP_ROOT}/build/sampletzosapp.scl')
+
+   #----------------------------------------------------------------------------
+   # Generate Sample TZ OS App elf
+   #----------------------------------------------------------------------------
+   sampletzosapp_elf = env.Program('${TARGET_NAME}', source=[], LIBS=libs, LIBPATH=libs_path)
+   env.Depends(sampletzosapp_elf, target_scl)
+        
+   sampletzosapp_pbn = env.InstallAs("${TARGET_NAME}.pbn", sampletzosapp_elf)         
+   
+   sampletzosapp_mbn = env.MbnBuilder('${TARGET_NAME}', sampletzosapp_pbn, 
+                                   IMAGE_TYPE="sampletzosapp",
+                                   MBN_TYPE="elf",
+                                   IMAGE_ID=4,
+                                   FLASH_TYPE="sdcc",
+                                 )                                         
+   #============================================================================
+   # Define units that will be build
+   #============================================================================
+   sampletzosapp_units = env.Alias ('arm11_sampletzosapp_units', [
+      sampletzosapp_elf,
+      sampletzosapp_mbn
+   ])
+
+# add aliases
+for alias in aliases:
+   env.Alias(alias, sampletzosapp_units)

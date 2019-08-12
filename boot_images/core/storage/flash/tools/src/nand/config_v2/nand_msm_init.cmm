@@ -1,0 +1,179 @@
+;============================================================================
+;  Name:
+;    NAND_MSM_INIT.CMM
+;
+;  Description:
+;    MSM specific hardware init script for flash programming
+;
+;  Copyright (c) 2009-2012, 2014 Qualcomm Technologies Incorporated.
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/config_v2/nand_msm_init.cmm#1 $
+; $DateTime: 2015/09/01 00:30:35 $
+; $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 10/17/14   sb      Invoke clock script for required clocks on 8909
+; 09/19/14   eo      Disable virtio platform and invoke clock script for 9x45
+; 07/14/14   sb      To support non DDR based tools
+; 07/09/14   sb      Update to support 8x09 Virtio
+; 06/19/14   sb      Update to support 8x09
+; 06/04/14   sb      Update to support 9x45
+; 10/16/12   eo      Set the JTAG clock to 20Mhz for 9x25
+; 10/11/12   sv      Set the JTAG clock to RTCK for 9x25
+; 09/28/12   sv      Update clock an ddr scrips for 9x25
+; 09/10/12   eo      Update hwio.cmm path for 9x25
+; 08/29/11   eo      Add support to run nand tools from sparrow on 9x15
+; 08/14/11   eo      Call ddr script
+; 06/22/11   eo      Add suuport for 9x15
+; 01/04/11   bb      Passing MSM id to setuphwio.cmm for 9K
+; 09/21/10   sv      Add support for mdm6615 target
+; 05/11/10   eo      Fix build id argument passed to setupddr.cmm
+; 07/05/10   sb      Invoking setupddr.cmm instead of setupebi_128mhz.cmm for SCMM
+; 04/01/10   bb      Cleaning up 9K MSM initialization scripts
+; 02/10/10   mcg     Add support for FLASH_8K_RPM_NAND_CFG
+; 02/02/10   op      Do not prompt hwio.cmm for 8K Apps download in STD mode
+; 01/11/10   sv      Remove passing msm id to setuphwio.cmm for 8K
+; 12/18/09   jz      Remove calling hwio scripts for 7x30, pass msm id to setuphwio.cmm for scmm
+; 11/30/09   op      Do not prompt hwio.cmm for 8K WM7 Apps download in STD mode
+; 10/12/09   mh      Remove any JTAG/T32 related initialization for 7x30
+; 10/05/09   mh      Replace setupclk cmm scripts with one generic cmm for 7x30
+; 09/14/09   eo      Add clock/smi boot scripts to support 9K SURF
+; 08/22/09   op      Add support for 8K target
+; 08/18/09   mh      Add support for daisy chain setup for 7K;
+; 08/14/09   sv      Use sysup script instead of sys.u for 9K
+; 07/21/09   sv      Add support for 9K target
+; 06/28/09   mh      Add support for SURF initialization
+; 06/03/09   mh      Add support for dual nand ctlr target
+; 05/28/09   jz      Updated hwio.cmm path with new location, cleaned up script
+; 04/14/09   jz      Corrected settings for surf and cleaned up
+; 02/27/09   jz      Created
+;============================================================================;
+
+global &VirtioPlatform
+
+;============================================================================
+; Get the arguments passed in.
+;============================================================================
+
+LOCAL &CurDir
+
+&CurDir=os.pwd()
+
+;------------------------------------------------------------
+;                   DEBUGGER SYSTEM SETUP
+;------------------------------------------------------------
+; Turbo mode of debug state accesses - CPU makes no checks of
+; memory access in debug mode.
+;Set for virtio testing
+&VirtioPlatform="no"
+
+System.Option TURBO off
+
+; Usage of TRST in system - Must be off if reset tied to trst.
+SYStem.Option.TRST on
+SYStem.Option.CFLUSH on
+SYStem.Option.ENRESET on
+SYStem.Option.WAITRESET off
+SYStem.Option.ResBreak off
+
+if "&NandTargetFamily"=="FLASH_9K_CORTEXA5_CFG"
+(
+  SYStem.CPU CORTEXA5
+  SYStem.JtagClock 20.0MHz
+)
+else if "&NandTargetFamily"=="FLASH_9K_CORTEXA7_CFG"
+(
+  SYStem.CPU CORTEXA7
+  ;SYStem.CPU CORTEXA7MPCore
+)
+else if "&NandTargetFamily"=="FLASH_8K_CORTEXA7_CFG"
+(
+  SYStem.CPU CORTEXA7
+  
+  if "&VirtioPlatform"=="yes"
+  (
+    sys.config core "CortexA7Core.CortexA7_Cn"
+  ) 
+)
+else
+(
+  SYStem.CPU ARM1136J
+  SYStem.JtagClock RTCK
+)
+
+; Disassembler selection - Automatically selects correct one.
+SYStem.Option DisMode Auto
+
+;------------------------------------------------------------
+; lock L2 Cache
+;------------------------------------------------------------
+
+do nand_l2_cache_lock.cmm
+
+;------------------------------------------------------------
+;  MSM configuration
+;------------------------------------------------------------
+
+; Generate a reset
+if "&NandTargetFamily"=="FLASH_9K_CFG"
+(
+  ; 9K requires extra settings to do sysup. Use the script in build/ms
+  ; to do a sysup
+  cd &NandSrcRoot/build/ms
+  do sysup.cmm
+  cd &CurDir
+)
+else
+(
+;  SYStem.Up
+  r.reset
+)
+
+if "&NandTargetFamily"=="FLASH_9K_CORTEXA5_CFG"
+(
+  cd &NandSrcRoot/build/ms
+  ;do hwio.cmm
+  ;do ddr_init.cmm
+  do ../../core/systemdrivers/hwio/scripts/mdm9x25/hwio.cmm
+  do clk_init_9x25.cmm
+  do ddr_init_9x25.cmm
+  cd &CurDir
+)
+
+if "&NandTargetFamily"=="FLASH_9K_CORTEXA7_CFG"
+(
+  cd &NandSrcRoot/build/ms
+  ;do hwio.cmm
+  ;do ddr_init.cmm
+  do ../../core/systemdrivers/hwio/scripts/mdm9x45/hwio.cmm
+  do clk_init_9x45.cmm
+  ;do ddr_init_9x45.cmm
+  cd &CurDir
+
+  ;Set EBI2_BOOT_SELECT in TLMM_EBI2_EMMC_GPIO_CFG
+  D.S A:0x01111000 %LE %LONG 0x2
+)
+
+if "&NandTargetFamily"=="FLASH_8K_CORTEXA7_CFG"
+(
+  cd &NandSrcRoot/build/ms
+  ;do hwio.cmm
+  ;do ddr_init.cmm
+  do ../../core/systemdrivers/hwio/scripts/msm8909/hwio.cmm
+  do clk_init_8909.cmm
+  ;do ddr_init_8x09.cmm
+  cd &CurDir
+
+  ;TLMM_SDC1_HDRV_PULL_CTL
+  D.S A:0x0110A000 %LE %LONG 0x00090404
+  ;TLMM_EBI2_EMMC_GPIO_CFG
+  D.S A:0x01111000 %LE %LONG 0x1C210841
+)
+
+enddo

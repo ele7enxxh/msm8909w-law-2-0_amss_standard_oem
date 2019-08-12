@@ -1,0 +1,28 @@
+#-------------------------------------------------------------------------------
+# MBMSM
+#-------------------------------------------------------------------------------
+MBMSM_SOURCES=\
+	msmtask.c      \
+	msmmain.c
+	
+MBMSM_CINCPATH=\
+	     $(COMMON)        \
+	     $(DIAG)          \
+         $(REX)           \
+	     $(L1)	          \
+	     $(TASK)	      \
+             $(WMS)		\
+	     $(WCDMA_L1)	\
+	     $(RLC)		\
+	     $(RRC)       \
+	     $(CM)        \
+       $(MM)        \
+       $(SM)
+
+
+MBMSM_OBJS :=  $(addprefix $(TARGETDIR)/, $(MBMSM_SOURCES:%.c=%.o))
+$(MBMSM_OBJS): INCLUDES = $(addprefix -I, $(MBMSM_CINCPATH))
+$(MBMSM_OBJS): CFLAGS := $(CFLAGS) 
+vpath %.c $(MBMSM)
+
+

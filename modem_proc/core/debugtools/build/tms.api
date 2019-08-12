@@ -1,0 +1,50 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#===============================================================================
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+#-------------------------------------------------------------------------------
+
+env.PublishPublicApi('DEBUGTOOLS', [
+   "${INC_ROOT}/core/api/services/tms",
+   "${INC_ROOT}/core/api/debugtools",
+])
+
+env.PublishPublicApi('TMS', [
+   "${INC_ROOT}/core/api/services/tms",
+])
+
+#-------------------------------------------------------------------------------
+# Publish Restricted APIs
+#-------------------------------------------------------------------------------
+
+env.PublishRestrictedApi('DEBUGTOOLS', [
+   "${INC_ROOT}/core/api/debugtools",
+   "${INC_ROOT}/core/debugtools/api",
+   "${INC_ROOT}/core/debugtools/dog/src",
+   "${INC_ROOT}/core/debugtools/err/src",
+   "${INC_ROOT}/core/debugtools/rcevt/src",
+   "${INC_ROOT}/core/debugtools/rcinit/src",
+   "${INC_ROOT}/core/debugtools/sys_m/src",
+   "${INC_ROOT}/core/debugtools/utils/src",
+])
+
+env.PublishRestrictedApi('TMS_RESTRICTED', [
+   "${INC_ROOT}/core/services/tms/api",
+   "${INC_ROOT}/core/services/tms/dog/src",
+   "${INC_ROOT}/core/services/tms/err/src",
+   "${INC_ROOT}/core/services/tms/rcevt/src",
+   "${INC_ROOT}/core/services/tms/rcinit/src",
+   "${INC_ROOT}/core/services/tms/sys_m/src",
+   "${INC_ROOT}/core/services/tms/utils/src",
+])

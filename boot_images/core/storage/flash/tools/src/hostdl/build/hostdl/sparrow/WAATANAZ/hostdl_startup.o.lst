@@ -1,0 +1,487 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000                 CODE32
+    2 00000000                 AREA             BootRom, CODE, READONLY
+    3 00000000                 IMPORT           main_c
+    4 00000000                 IMPORT           abort_stack
+    5 00000000                 IMPORT           undef_stack
+    6 00000000                 IMPORT           irq_stack
+    7 00000000                 IMPORT           svc_stack
+    8 00000000                 IMPORT           hw_init
+    9 00000000                 IMPORT           |Image$$APP_RAM$$ZI$$Base|
+   10 00000000                 IMPORT           |Image$$APP_RAM$$ZI$$Limit|
+   11 00000000                 IMPORT           |Image$$ZI_RAM$$ZI$$Base|
+   12 00000000                 IMPORT           |Image$$ZI_RAM$$ZI$$Limit|
+   13 00000000                 EXPORT           startup
+   14 00000000                 PRESERVE8
+   15 00000000                 ENTRY
+   16 00000000                 MACRO
+   17 00000000                 blxx             $destreg
+   18 00000000                 ROUT
+   19 00000000                 tst              $destreg, #0x01
+   20 00000000                 ldrne            lr, =%1
+   21 00000000                 ldreq            lr, =%2
+   22 00000000                 bx               $destreg
+   23 00000000         1
+   24 00000000                 CODE16
+   25 00000000                 bx               pc
+   26 00000000                 ALIGN
+   27 00000000                 CODE32
+   28 00000000         2
+   29 00000000                 MEND
+   30 00000000         ;=======================================================
+                       ================
+   31 00000000         ; MACRO mmu_set_default_cfg
+   32 00000000         ; ARGS
+   33 00000000         ;   NONE
+   34 00000000         ; DESCRIPTION
+   35 00000000         ;   Update the mmu control register with the read-modify
+                       -write sequence
+   36 00000000         ;   bit [0]:   0 = MMU disabled
+   37 00000000         ;   bit [1]:   0 = Strict alignment fault checking disab
+                       led
+   38 00000000         ;   bit [3]:   1 = Write buffer enabled (for ARM9)
+   39 00000000         ;   bit [6:4]: Should Be One
+   40 00000000         ;   bit [13]:  1 = High exception vectors selected.
+   41 00000000         ;   bit [16]:  Should Be One
+   42 00000000         ;   bit [18]:  Should Be One
+   43 00000000         ;   bit [22]:  1 = unaligned data access support enabled
+                        (for ARM11)
+   44 00000000         ;=======================================================
+                       ================
+   45 00000000                 MACRO
+   46 00000000                 mmu_set_default_cfg
+   47 00000000                 MRC              p15, 0, r0, c1, c0, 0 ; read co
+                                                            ntrol register
+   48 00000000                 LDR              r1, = 0x00452078
+   49 00000000                 ORR              r0, r0, r1
+   50 00000000                 MCR              p15, 0, r0, c1, c0, 0 ; write c
+                                                            ontrol register
+   51 00000000                 MEND
+   52 00000000         ;=======================================================
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+                       ================
+   53 00000000         ;=======================================================
+                       ================
+   54 00000000         ; MACRO mmu_enable_i_cache
+   55 00000000         ; ARGS
+   56 00000000         ;  NONE
+   57 00000000         ; DESCRIPTION
+   58 00000000         ;  Enables the I Cache
+   59 00000000         ;  Does a read modify write, so no other bits in the con
+                       trol register a
+   60 00000000         ;  affected
+   61 00000000         ;=======================================================
+                       ================
+   62 00000000                 MACRO
+   63 00000000                 mmu_enable_i_cache
+   64 00000000                 mrc              p15, 0 , r0, c1, c0, 0
+   65 00000000                 orr              r0, r0, # (1 << 12 )
+   66 00000000                 mcr              p15, 0 , r0, c1, c0, 0
+   67 00000000                 MEND
+   68 00000000         ;=======================================================
+                       ================
+   69 00000000         ;=======================================================
+                       ================
+   70 00000000         ; MACRO mmu_disable_d_cache
+   71 00000000         ; ARGS
+   72 00000000         ;  NONE
+   73 00000000         ; DESCRIPTION
+   74 00000000         ;  Disables the D Cache
+   75 00000000         ;  Does a read modify write, so no other bits in the con
+                       trol register a
+   76 00000000         ;  affected
+   77 00000000         ;=======================================================
+                       ================
+   78 00000000                 MACRO
+   79 00000000                 mmu_disable_d_cache
+   80 00000000                 mrc              p15, 0 , r0, c1, c0, 0
+   81 00000000                 and              r0, r0, # ~(1 << 2 )
+   82 00000000                 mcr              p15, 0 , r0, c1, c0, 0
+   83 00000000                 MEND
+   84 00000000         ;=======================================================
+                       ================
+   85 00000000         ;=======================================================
+                       ================
+   86 00000000         ; MACRO init_app_ram_zi
+   87 00000000         ; ARGS
+   88 00000000         ;  NONE
+   89 00000000         ; DESCRIPTION
+   90 00000000         ;  Initializes the zero-init region (.bss) to zero
+   91 00000000         ;  r0  = start of APP RAM ZI
+   92 00000000         ;  r1  = end of APP RAM ZI
+   93 00000000         ;  r2  = 0 (for initializing memory) 
+   94 00000000         ;  r3  = watchdog register
+   95 00000000         ;  r4  = 1 (for kicking the dog)
+   96 00000000         ;=======================================================
+                       ================
+   97 00000000                 MACRO
+   98 00000000                 init_app_ram_zi
+   99 00000000                 ldr              r0, =|Image$$APP_RAM$$ZI$$Base|
+  100 00000000                 ldr              r1, =|Image$$APP_RAM$$ZI$$Limit
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+|
+  101 00000000                 mov              r2,#0
+  102 00000000         init_app_ram_zi_label
+  103 00000000                 cmp              r0,r1       ; unsigned compare,
+                                                             clear c on borrow
+  104 00000000                 strcc            r2,[r0],#4  ; str 0 in [r0] if 
+                                                            r0 < r1
+  105 00000000                 bcc              init_app_ram_zi_label ; loop wh
+                                                            ile ro < r1
+  106 00000000                 MEND
+  107 00000000         ;=======================================================
+                       ================
+  108 00000000         ;=======================================================
+                       ================
+  109 00000000         ; MACRO init_zi
+  110 00000000         ; ARGS
+  111 00000000         ;  NONE
+  112 00000000         ; DESCRIPTION
+  113 00000000         ;  Initializes the zero-init region (.bss) to zero
+  114 00000000         ;  r0  = start of ZI
+  115 00000000         ;  r1  = end of ZI
+  116 00000000         ;  r2  = 0 (for initializing memory) 
+  117 00000000         ;  r3  = watchdog register
+  118 00000000         ;  r4  = 1 (for kicking the dog)
+  119 00000000         ;=======================================================
+                       ================
+  120 00000000                 MACRO
+  121 00000000                 init_zi
+  122 00000000                 ldr              r0, =|Image$$ZI_RAM$$ZI$$Base|
+  123 00000000                 ldr              r1, =|Image$$ZI_RAM$$ZI$$Limit|
+  124 00000000                 mov              r2,#0
+  125 00000000         init_zi_label
+  126 00000000                 cmp              r0,r1       ; unsigned compare,
+                                                             clear c on borrow
+  127 00000000                 strcc            r2,[r0],#4  ; str 0 in [r0] if 
+                                                            r0 < r1
+  128 00000000                 bcc              init_zi_label ; loop while ro <
+                                                             r1
+  129 00000000                 MEND
+  130 00000000         ;=======================================================
+                       ================
+  131 00000000         ;=======================================================
+                       ================
+  132 00000000         ; MACRO reloc_data
+  133 00000000         ; ARGS
+  134 00000000         ;  NONE
+  135 00000000         ; DESCRIPTION
+  136 00000000         ;  Relocates the RW data for eHOSTDL
+  137 00000000         ;  r0  = start of dest mem
+  138 00000000         ;  r1  = end of dest mem (length of data to be relocated
+                       )
+  139 00000000         ;  r2  = start of src mem
+  140 00000000         ;  r3  = watchdog register
+  141 00000000         ;  r4  = 1 (for kicking the dog)
+  142 00000000         ;  r5  = tmp data holder for data relocation
+  143 00000000         ;=======================================================
+                       ================
+  144 00000000                 MACRO
+  145 00000000                 reloc_data
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+  146 00000000                 ldr              r0, =|Image$$APP_RAM$$Base|
+  147 00000000                 ldr              r1, =|Image$$APP_RAM$$ZI$$Base|
+  148 00000000                 ldr              r2, =|Load$$APP_RAM$$Base|
+  149 00000000         reloc_data_label
+  150 00000000                 cmp              r0,r1       ; unsigned compare,
+                                                             clear c on borrow
+  151 00000000                 ldrcc            r5,[r2],#4  ; Load [r2] to r5, 
+                                                            increment [r2] if r
+                                                            0 < r1
+  152 00000000                 strcc            r5,[r0],#4  ; str r5 at [r0],  
+                                                            increment [r0] if r
+                                                            0 < r1
+  153 00000000                 bcc              reloc_data_label ; loop while r
+                                                            o < r1
+  154 00000000                 MEND
+  155 00000000         ;=======================================================
+                       ================
+  156 00000000         startup
+  157 00000000 E59F1128        ldr              r1,  =0xdeadbeef
+  158 00000004 E59F2124        ldr              r2,  =0xdeadbeef
+  159 00000008 E59F3120        ldr              r3,  =0xdeadbeef
+  160 0000000C E59F411C        ldr              r4,  =0xdeadbeef
+  161 00000010 E59F5118        ldr              r5,  =0xdeadbeef
+  162 00000014 E59F6114        ldr              r6,  =0xdeadbeef
+  163 00000018 E59F7110        ldr              r7,  =0xdeadbeef
+  164 0000001C E59F810C        ldr              r8,  =0xdeadbeef
+  165 00000020 E59F9108        ldr              r9,  =0xdeadbeef
+  166 00000024 E59FB104        ldr              r11, =0xdeadbeef
+  167 00000028 E59FC100        ldr              r12, =0xdeadbeef
+  168 0000002C         ;   ldr     r13, =0xdeadbeef
+  169 0000002C E59FE0FC        ldr              r14, =0xdeadbeef
+  170 00000030 E10F0000        mrs              a1, CPSR
+  171 00000034 E3801080        orr              a2, a1, #0x80
+  172 00000038 E121F001        msr              CPSR_c, a2
+  173 0000003C E321F0D7        msr              CPSR_c, #0x17:OR:0x40:OR:0x80
+  174 00000040 E59FD0EC        ldr              r13, =abort_stack+0x100
+  175 00000044 E321F0DB        msr              CPSR_c, #0x1b:OR:0x40:OR:0x80
+  176 00000048 E59FD0E8        ldr              r13,=undef_stack+0x100
+  177 0000004C E321F0D2        msr              CPSR_c, #0x12:OR:0x40:OR:0x80
+  178 00000050 E59FD0E4        ldr              r13, =irq_stack+0x800
+  179 00000054 E321F0D3        msr              CPSR_c, #0x13:OR:0x80:OR:0x40
+  180 00000058 E59FD0E0        ldr              r13, =svc_stack+0x1000
+  181 0000005C E59F00E0        ldr              a1,=hw_init
+  182 00000060                 blxx             a1
+   18 00000060                 ROUT
+   19 00000060 E3100001        tst              a1, #0x01
+   20 00000064 159FE0DC        ldrne            lr, =%1
+   21 00000068 059FE0DC        ldreq            lr, =%2
+   22 0000006C E12FFF10        bx               a1
+   23 00000070         1
+   24 00000070                 CODE16
+   25 00000070 4778            bx               pc
+   26 00000072 00 00           ALIGN
+   27 00000074                 CODE32
+   28 00000074         2
+  183 00000074                 init_zi
+  122 00000074 E59F00D4        ldr              r0, =|Image$$ZI_RAM$$ZI$$Base|
+  123 00000078 E59F10D4        ldr              r1, =|Image$$ZI_RAM$$ZI$$Limit|
+  124 0000007C E3A02000        mov              r2,#0
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+  125 00000080         init_zi_label
+  126 00000080 E1500001        cmp              r0,r1       ; unsigned compare,
+                                                             clear c on borrow
+  127 00000084 34802004        strcc            r2,[r0],#4  ; str 0 in [r0] if 
+                                                            r0 < r1
+  128 00000088 3AFFFFFC        bcc              init_zi_label ; loop while ro <
+                                                             r1
+  184 0000008C                 init_app_ram_zi
+   99 0000008C E59F00C4        ldr              r0, =|Image$$APP_RAM$$ZI$$Base|
+  100 00000090 E59F10C4        ldr              r1, =|Image$$APP_RAM$$ZI$$Limit
+|
+  101 00000094 E3A02000        mov              r2,#0
+  102 00000098         init_app_ram_zi_label
+  103 00000098 E1500001        cmp              r0,r1       ; unsigned compare,
+                                                             clear c on borrow
+  104 0000009C 34802004        strcc            r2,[r0],#4  ; str 0 in [r0] if 
+                                                            r0 < r1
+  105 000000A0 3AFFFFFC        bcc              init_app_ram_zi_label ; loop wh
+                                                            ile ro < r1
+  185 000000A4         ; ======================================================
+                       ================
+  186 000000A4         ; Set MMU control register and enable the instruction ca
+                       che
+  187 000000A4         ; ======================================================
+                       ================
+  188 000000A4                 mmu_set_default_cfg
+   47 000000A4 EE110F10        MRC              p15, 0, r0, c1, c0, 0 ; read co
+                                                            ntrol register
+   48 000000A8 E59F10B0        LDR              r1, = 0x00452078
+   49 000000AC E1800001        ORR              r0, r0, r1
+   50 000000B0 EE010F10        MCR              p15, 0, r0, c1, c0, 0 ; write c
+                                                            ontrol register
+  189 000000B4                 mmu_enable_i_cache
+   64 000000B4 EE110F10        mrc              p15, 0 , r0, c1, c0, 0
+   65 000000B8 E3800A01        orr              r0, r0, # (1 << 12 )
+   66 000000BC EE010F10        mcr              p15, 0 , r0, c1, c0, 0
+  190 000000C0                 mmu_disable_d_cache
+   80 000000C0 EE110F10        mrc              p15, 0 , r0, c1, c0, 0
+   81 000000C4 E3C00004        and              r0, r0, # ~(1 << 2 )
+   82 000000C8 EE010F10        mcr              p15, 0 , r0, c1, c0, 0
+  191 000000CC E59F0090        ldr              a1, =main_c
+  192 000000D0 E12FFF10        bx               a1
+  193 000000D4         ; Software breakpoint code
+  194 000000D4         ; main_c never returns, but if it did, a breakpoint here
+                       
+  195 000000D4         ; would catch it
+  196 000000D4 EEDEEEDE 
+                       swbp    DCD              0xEEDEEEDE
+  197 000000D8         ; Terminal emulation entry point for put/get a character
+                       .
+  198 000000D8         ; When called, it will put or get a charactr from the
+  199 000000D8         ; JTAG debugger terminal emulation window.  These functi
+                       on
+  200 000000D8         ; are incompatible with the JTAG debugger FLASH.* functi
+                       ons
+  201 000000D8         ; and will cause the debugger to hang if both are used.
+  202 000000D8                 CODE16
+  203 000000D8                 EXPORT           term_put
+  204 000000D8         term_put
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+  205 000000D8 4778            bx               pc
+  206 000000DA 00 00           ALIGN
+  207 000000DC                 CODE32
+  208 000000DC         ; Check the ID code by reading the cp15 register c0 to
+  209 000000DC         ; determine if it's ARM9 or ARM11
+  210 000000DC         ; [15:4] Part number 0x926 for ARM926, 0xB36 for ARM1136
+                       
+  211 000000DC EE101F10        mrc              p15, 0, r1, c0, c0, 0 ; read ID
+                                                            
+  212 000000E0 E2011A0F        and              r1, r1, #0xf000
+  213 000000E4 E3510A0B        cmp              r1, #0xb000 ; if 0xb in part nu
+                                                            mber it's ARM11
+  214 000000E8 AA000006        bge              term_put_arm11
+  215 000000EC         term_put_arm9
+  216 000000EC E3A02002        mov              r2, #2
+  217 000000F0         put_again_arm9
+  218 000000F0 EE101E10        mrc              p14, 0, r1, c0, c0
+  219 000000F4 E0011002        and              r1, r1, r2
+  220 000000F8 E3510000        cmp              r1, #0
+  221 000000FC 1AFFFFFB        bne              put_again_arm9
+  222 00000100 EE010E10        mcr              p14, 0, r0, c1, c0
+  223 00000104 E12FFF1E        bx               lr
+  224 00000108         term_put_arm11
+  225 00000108 E3A02202        ldr              r2, =0x20000000 ; bit 29
+  226 0000010C         put_again_arm11
+  227 0000010C EE101E11        mrc              p14, 0, r1, c0, c1 ; read debug
+                                                             status and control
+                                                             register
+  228 00000110 E0011002        and              r1, r1, r2  ; check if wDTR is 
+                                                            ready to receive da
+                                                            ta
+  229 00000114 E3510000        cmp              r1, #0
+  230 00000118 1AFFFFFB        bne              put_again_arm11
+  231 0000011C EE000E15        mcr              p14, 0, r0, c0, c5 ; write the 
+                                                            write data transfer
+                                                             register
+  232 00000120 E12FFF1E        bx               lr
+  233 00000124         ;  Jump to address passed in.
+  234 00000124         ;  Used to fake a reset by passing zero
+  235 00000124                 CODE16
+  236 00000124                 EXPORT           jmp_abs
+  237 00000124         jmp_abs
+  238 00000124 4778            bx               pc
+  239 00000126 00 00           ALIGN
+  240 00000128                 CODE32
+  241 00000128         jmp_abs_arm
+  242 00000128 E1A07000        mov              r7,r0
+  243 0000012C E12FFF17        bx               r7
+  244 00000130                 END
+              DEADBEEF 
+              00000100 
+              00000100 
+              00000800 
+              00001000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+
+
+
+ARM Macro Assembler    Page 7 
+
+
+              00000000 
+              00000000 
+              00452078 
+              00000000 
+Command Line: --debug --dwarf2 --keep --cpu=7-A.security --apcs=/noswst/interwo
+rk --no_unaligned_access -o/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0001
+2-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flash/tools/src/h
+ostdl/build/hostdl/sparrow/WAATANAZ/hostdl_startup.o -I/local/mnt/workspace/CRM
+Builds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/co
+re/storage/flash/tools/src/hostdl/build -I/local/mnt/workspace/CRMBuilds/BOOT.B
+F.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/build/cust -I. 
+-I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_201612
+08_043404/b/boot_images/core/api/dal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3
+.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/boot -I/l
+ocal/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_0
+43404/b/boot_images/core/api/boot/qfprom -I/local/mnt/workspace/CRMBuilds/BOOT.
+BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/buses/api
+/spmi -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_
+20161208_043404/b/boot_images/core/buses/api/icb -I/local/mnt/workspace/CRMBuil
+ds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/b
+uses/api/uart -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAA
+ANAZB-1_20161208_043404/b/boot_images/core/buses/api/i2c -I/local/mnt/workspace
+/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_image
+s/core/api/services -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M89
+09WAAAANAZB-1_20161208_043404/b/boot_images/core/api/storage -I/local/mnt/works
+pace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_i
+mages/core/api/systemdrivers -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-
+00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/systemdrivers/pmi
+c -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/api/systemdrivers/hwio/msm8909 -I/local/mnt/work
+space/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_
+images/core/api/wiredconnectivity -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.
+2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/kernel/libst
+d -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/dal/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF
+.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/dal/config 
+-I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_201612
+08_043404/b/boot_images/core/boot/secboot3/src -I/local/mnt/workspace/CRMBuilds
+/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boo
+t/ddr/common -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAA
+NAZB-1_20161208_043404/b/boot_images/core/boot/ddr/hw/msm8909w -I/local/mnt/wor
+kspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot
+_images/core/boot/ddr/hw/phy -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-
+00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/ddr/hw/controlle
+r -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/boot/secboot3/hw/msm8909 -I/local/mnt/workspace/
+CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images
+/core/services/utils/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0001
+2-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flash/src/dal -I/
+local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_
+043404/b/boot_images/core/storage/flash/src/hal -I/local/mnt/workspace/CRMBuild
+s/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/st
+orage/flash/tools/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M
+8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flash/inc -I/local/m
+nt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/
+b/boot_images/core/storage/sdcc/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.
+1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/sdcc/s
+rc/hal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1
+_20161208_043404/b/boot_images/core/storage/sdcc/src/bsp -I/local/mnt/workspace
+
+
+
+ARM Macro Assembler    Page 8 
+
+
+/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_image
+s/core/storage/efs/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-
+M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/hfat/inc -I/local/m
+nt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/
+b/boot_images/core/storage/hotplug/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF
+.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/too
+ls/deviceprogrammer_ddr/src/firehose -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3
+.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/ufs/s
+rc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_201
+61208_043404/b/boot_images/core/systemdrivers/tlmm/inc -I/local/mnt/workspace/C
+RMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/
+core/systemdrivers/tlmm/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0
+0012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/wiredconnectivity/qusb
+/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2
+0161208_043404/b/boot_images/core/storage/flash/tools/src/nand -I/local/mnt/wor
+kspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot
+_images/core/storage/flash/tools/src/nor -I/local/mnt/workspace/CRMBuilds/BOOT.
+BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/f
+lash/tools/src/hostdl -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M
+8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flash/tools/src/host
+dl/config_v2 --list=/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909
+WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flash/tools/src/hostdl/b
+uild/hostdl/sparrow/WAATANAZ/hostdl_startup.o.lst --sitelicense /local/mnt/work
+space/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_
+images/core/storage/flash/tools/src/hostdl/build/hostdl/sparrow/WAATANAZ/hostdl
+_startup.o.i

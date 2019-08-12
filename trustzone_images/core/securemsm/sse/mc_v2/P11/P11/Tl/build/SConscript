@@ -1,0 +1,116 @@
+#===============================================================================
+#
+# SSE TL P11
+#
+# GENERAL DESCRIPTION
+#    SSE PKCS#11 TrustLet
+#
+# Copyright (c) 2012 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/sse/mc_v2/P11/P11/Tl/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/mc_v2/P11/P11/Tl/src/public/include")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/mc_v2/P11/P11/Tl/src/private")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/mc_v2/P11/P11/Tl/src/mech/include")
+
+env.RequirePrivateApi(['MCTL_SDK'])
+
+#-------------------------------------------------------------------------------
+# Include PATH
+#-------------------------------------------------------------------------------
+INC_PATH_API = ["${INC_ROOT}/core/api/kernel/libstd/stringl"]
+env.Append(CPPPATH = INC_PATH_API)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+TL_SRC = "${COREBSP_ROOT}/securemsm/sse/mc_v2/P11/P11/Tl/src"
+
+env.VariantDir('${BUILDPATH}', TL_SRC, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SOURCES = [ '${BUILDPATH}/asn1.c',
+            '${BUILDPATH}/securityExt.c',
+            '${BUILDPATH}/tlP11Config.c',
+            '${BUILDPATH}/tlLog.c',
+            '${BUILDPATH}/tlP11Utils.c',
+            '${BUILDPATH}/tlP11Attributes.c',
+            '${BUILDPATH}/tlP11Validation.c',
+            '${BUILDPATH}/tlP11.c',
+            '${BUILDPATH}/01_tlP11Initialize.c',
+            '${BUILDPATH}/07_tlP11GetTokenInfo.c',
+            '${BUILDPATH}/08_09_tlP11GetMechanismList_Info.c',
+            '${BUILDPATH}/10_tlP11InitToken.c',
+            '${BUILDPATH}/10_tlP11InitTokenSO.c',
+            '${BUILDPATH}/11_tlP11InitPIN.c',
+            '${BUILDPATH}/12_tlP11SetPIN.c',
+            '${BUILDPATH}/13_tlP11OpenSession.c',
+            '${BUILDPATH}/14_tlP11CloseSession.c',
+            '${BUILDPATH}/19_tlP11Login.c',
+            '${BUILDPATH}/20_tlP11Logout.c',
+            '${BUILDPATH}/21_tlP11CreateObject.c',
+            '${BUILDPATH}/22_tlP11CopyObject.c',
+            '${BUILDPATH}/25_tlP11GetAttributeValue.c',
+            '${BUILDPATH}/25_tlP11GetTokenChallenge.c',
+            '${BUILDPATH}/26_tlP11SetAttributeValue.c',
+            '${BUILDPATH}/30_tlP11CryptoInit.c',
+            '${BUILDPATH}/32_tlP11CryptoUpdate.c',
+            '${BUILDPATH}/41_tlP11DigestKey.c',
+            '${BUILDPATH}/59_tlP11GenerateKey.c',
+            '${BUILDPATH}/60_tlP11GenerateKeyPair.c',
+            '${BUILDPATH}/61_tlP11WrapKey.c',
+            '${BUILDPATH}/62_tlP11UnwrapKey.c',
+            '${BUILDPATH}/63_tlP11DeriveKey.c',
+            '${BUILDPATH}/65_tlP11GenerateRandom.c',
+            '${BUILDPATH}/mech_aes.c',
+            '${BUILDPATH}/mech_des.c',
+            '${BUILDPATH}/mech_common.c',
+            '${BUILDPATH}/mech_generic.c',
+            '${BUILDPATH}/mech_hmac.c',
+            '${BUILDPATH}/mech_hotp.c',
+            '${BUILDPATH}/mech_pbkd.c',
+            '${BUILDPATH}/mech_rsa.c',
+            '${BUILDPATH}/mech_sha.c',
+            '${BUILDPATH}/mech_so.c',
+            '${BUILDPATH}/mech_ssl.c',
+            '${BUILDPATH}/mech_tls.c',]
+
+SOURCES_SK = [
+            '${BUILDPATH}/10_tlP11InitTokenSK.c',
+            '${BUILDPATH}/11_tlP11InitPINSK.c',
+            '${BUILDPATH}/12_tlP11SetPINSK.c',
+            '${BUILDPATH}/19_tlP11LoginSK.c',
+            '${BUILDPATH}/59_tlP11GenerateKeySK.c',
+]
+
+HEADERS = env.FindFiles(['*.h'], TL_SRC + '/private')
+HEADERS += env.FindFiles(['*.h'], TL_SRC + '/mech/include')
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary('TLP11_IMAGE', '${BUILDPATH}/tlp11', SOURCES)
+env.CleanPack('TLP11_IMAGE', SOURCES_SK)
+env.CleanPack('TLP11_IMAGE', HEADERS)

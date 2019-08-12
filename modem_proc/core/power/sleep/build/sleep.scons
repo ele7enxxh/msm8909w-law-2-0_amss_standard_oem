@@ -1,0 +1,372 @@
+#===============================================================================
+#
+# Sleep build script
+#
+# GENERAL DESCRIPTION
+#    Builds the sleep libraries for all target.
+#
+# Copyright (c) 2012-2015 by QUALCOMM Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Technologies Proprietary and Confidential
+#
+#===============================================================================
+import os
+import stat
+import fnmatch
+import itertools
+import subprocess
+from os.path import join, basename, exists
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Target Checks
+#-------------------------------------------------------------------------------
+
+# This check is used to build correct version of sleep implementation depending
+# on targets. Once we have PW that has all targets which supports same sleep
+# implementation, this check can be skipped.
+
+sleep_20_targets = ['8952','8976','8937','9607']
+if env['MSM_ID'] in sleep_20_targets:
+  Return()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = os.path.join("..","src")
+LPRSRCPATH = SRCPATH + "/lpr"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL', #needs to be last also contains wrong comdef.h
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['POWER_UTILS'])
+
+env.PublishPrivateApi('SLEEP', [
+   '${BUILD_ROOT}/core/power/sleep/inc',
+   '${BUILD_ROOT}/core/power/sleep/src',
+   '${BUILD_ROOT}/core/power/sleep/src/log',
+   '${BUILD_ROOT}/core/power/sleep/src/lpr',
+   '${BUILD_ROOT}/core/power/sleep/src/solver',
+   '${BUILD_ROOT}/core/power/sleep/src/compiler',
+   '${BUILD_ROOT}/core/power/sleep/src/config',
+   '${BUILD_ROOT}/core/power/sleep/src/npa_nodes',
+   '${BUILD_ROOT}/core/power/sleep/src/statistics',
+   '${BUILDPATH}/lpr'
+   ]
+)
+
+if env['MSM_ID'] in ['8916']:
+  env.PublishPrivateApi('POWER_SLEEP', [
+     "${INC_ROOT}/core/power/sleep/src/hwio/8916", 
+  ])
+elif env['MSM_ID'] in ['8909']:
+  env.PublishPrivateApi('POWER_SLEEP', [
+     "${INC_ROOT}/core/power/sleep/src/hwio/8909", 
+  ])
+elif env['MSM_ID'] in ['8937']:
+  env.PublishPrivateApi('POWER_SLEEP', [
+     "${INC_ROOT}/core/power/sleep/src/hwio/8937", 
+  ])
+elif env['MSM_ID'] in ['9607']:
+  env.PublishPrivateApi('POWER_SLEEP', [
+     "${INC_ROOT}/core/power/sleep/src/hwio/9607", 
+  ])
+elif env['MSM_ID'] in ['8952']:
+  env.PublishPrivateApi('POWER_SLEEP', [
+     "${INC_ROOT}/core/power/sleep/src/hwio/8952", 
+  ])
+elif env['MSM_ID'] in ['9609']:
+  env.PublishPrivateApi('POWER_SLEEP', [
+     "${INC_ROOT}/core/power/sleep/src/hwio/9609", 
+  ])
+elif env['MSM_ID'] in ['8936']:
+    env.PublishPrivateApi('POWER_SLEEP', [
+     "${INC_ROOT}/core/power/sleep/src/hwio/8936", 
+  ])
+elif env['MSM_ID'] in ['8952']:
+    env.PublishPrivateApi('POWER_SLEEP', [
+     "${INC_ROOT}/core/power/sleep/src/hwio/8909", 
+  ])
+elif env['MSM_ID'] in ['8976']:
+    env.PublishPrivateApi('POWER_SLEEP', [
+     "${INC_ROOT}/core/power/sleep/src/hwio/8976", 
+  ])  
+  
+# Map sleep's diag message to the sleep category.
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_SLEEP'])
+
+#===============================================================================
+# These sleep features are ENABLED by default on all targets.  
+# To disable, add the target to the list of the particular option to disable
+#===============================================================================
+
+#Option enables automatic adjusting of synth mode backoff times
+if env['MSM_ID'] not in []:
+  env.Append(CPPDEFINES=['SLEEP_ENABLE_AUTO_SYNTH_BACKOFF_ADJUSTMENT'])
+
+#Option enables frequency scaled lookup tables 
+if env['MSM_ID'] not in []:
+  env.Append(CPPDEFINES=['SLEEP_ENABLE_FREQUENCY_SCALING'])
+
+#===============================================================================
+# These sleep features are DISABLED by default on all targets.  
+# To enable, add the target to the list of the particular option to enable
+#===============================================================================
+
+#Option enables automatic LPRM profiling data
+if env['MSM_ID'] in []:
+  env.Append(CPPDEFINES=['SLEEP_ENABLE_AUTO_LPR_PROFILING'])
+
+#-------------------------------------------------------------------------------
+# QDSS Strings and Number of Arguments Per String
+#-------------------------------------------------------------------------------
+SLEEP_ENTER_IDLE_STR = 'Sleep entry'
+SLEEP_ENTER_IDLE_NUM_ARGS = '0'
+
+SLEEP_EXIT_STM_STR = 'Sleep STM exit'
+SLEEP_EXIT_STM_NUM_ARGS = '0'
+
+SLEEP_EARLY_EXIT_STM_STR = 'Sleep early STM exit'
+SLEEP_EARLY_EXIT_STM_NUM_ARGS = '0'
+
+SLEEP_EXIT_IDLE_STR = 'Sleep exit (Enter ticks: %u) (STM exit: 0x%llx)' 
+SLEEP_EXIT_IDLE_NUM_ARGS = '3'
+
+SLEEP_WAKEUP_STR = 'Master wakeup stats (reason: %s) (int pending: %u) (Actual: 0x%llx) (Expected: 0x%llx) (Err: %lld)'
+SLEEP_WAKEUP_NUM_ARGS = '8'
+
+SLEEP_ENTER_SOLVER_STR = 'Solver entry (cpu frequency: %u) (hard duration: 0x%llx) (soft duration: 0x%llx) (latency budget: 0x%x)'
+SLEEP_ENTER_SOLVER_NUM_ARGS = '6' # Hard duration and Soft duration are 64-bit
+
+SLEEP_EXIT_SOLVER_STR = 'Solver exit'
+SLEEP_EXIT_SOLVER_NUM_ARGS = '0'
+
+SLEEP_MODE_ENABLED_STR = 'Mode enabled (lpr: %s) (lprm: %s)'
+SLEEP_MODE_ENABLED_NUM_ARGS = '2'
+
+SLEEP_MODE_DISABLED_STR = 'Mode disabled (lpr: %s) (lprm: %s)'
+SLEEP_MODE_DISABLED_NUM_ARGS = '2'
+
+SLEEP_ENTER_MODE_STR = 'Mode entering (lpr: %s) (lprm: %s) (Enter Time 0x%llx)'
+SLEEP_ENTER_MODE_NUM_ARGS = '4'
+
+SLEEP_EXIT_MODE_STR = 'Mode exiting (lpr: %s) (lprm: %s) (Exit Time 0x%llx)'
+SLEEP_EXIT_MODE_NUM_ARGS = '4'
+
+SLEEP_SET_SEND_STR = ' Sleep set sent (wakeup time requested: 0x%llx)'
+SLEEP_SET_SEND_NUM_ARGS = '2' # Wakeup time is 64-bit
+
+SLEEP_BKOFF_STATS_STR = 'Backoff Stats (lpr: %s) (Freq: %u) (Range: %d : %d) (Total: %lld) (Count: %u) (Avg: %lld)' 
+SLEEP_BKOFF_STATS_NUM_ARGS = '9'
+
+env.Append( CPPDEFINES = [ ( 'SLEEP_ENTER_IDLE_STR           = \\\"' + SLEEP_ENTER_IDLE_STR + '\\\"' ),
+                           ( 'SLEEP_ENTER_IDLE_NUM_ARGS      = ' + SLEEP_ENTER_IDLE_NUM_ARGS ),
+                           ( 'SLEEP_EARLY_EXIT_STM_STR       = \\\"' + SLEEP_EARLY_EXIT_STM_STR + '\\\"'),
+                           ( 'SLEEP_EARLY_EXIT_STM_NUM_ARGS  = ' + SLEEP_EARLY_EXIT_STM_NUM_ARGS ),
+                           ( 'SLEEP_EXIT_IDLE_STR            = \\\"' + SLEEP_EXIT_IDLE_STR + '\\\"' ),
+                           ( 'SLEEP_EXIT_IDLE_NUM_ARGS       = ' + SLEEP_EXIT_IDLE_NUM_ARGS ),
+                           ( 'SLEEP_EXIT_STM_STR             = \\\"' + SLEEP_EXIT_STM_STR + '\\\"' ),
+                           ( 'SLEEP_EXIT_STM_NUM_ARGS        = ' + SLEEP_EXIT_STM_NUM_ARGS ),
+                           ( 'SLEEP_BKOFF_STATS_STR          = \\\"' + SLEEP_BKOFF_STATS_STR + '\\\"' ),
+                           ( 'SLEEP_BKOFF_STATS_NUM_ARGS     = ' + SLEEP_BKOFF_STATS_NUM_ARGS ),
+                           ( 'SLEEP_WAKEUP_STR               = \\\"' + SLEEP_WAKEUP_STR + '\\\"' ),
+                           ( 'SLEEP_WAKEUP_NUM_ARGS          = ' + SLEEP_WAKEUP_NUM_ARGS ),
+                           ( 'SLEEP_ENTER_SOLVER_STR         = \\\"' + SLEEP_ENTER_SOLVER_STR + '\\\"' ),
+                           ( 'SLEEP_ENTER_SOLVER_NUM_ARGS    = ' + SLEEP_ENTER_SOLVER_NUM_ARGS ),
+                           ( 'SLEEP_EXIT_SOLVER_STR          = \\\"' + SLEEP_EXIT_SOLVER_STR + '\\\"' ),
+                           ( 'SLEEP_EXIT_SOLVER_NUM_ARGS     = ' + SLEEP_EXIT_SOLVER_NUM_ARGS ),
+                           ( 'SLEEP_MODE_ENABLED_STR         = \\\"' + SLEEP_MODE_ENABLED_STR + '\\\"' ),
+                           ( 'SLEEP_MODE_ENABLED_NUM_ARGS    = ' + SLEEP_MODE_ENABLED_NUM_ARGS ),
+                           ( 'SLEEP_MODE_DISABLED_STR        = \\\"' + SLEEP_MODE_DISABLED_STR + '\\\"' ),
+                           ( 'SLEEP_MODE_DISABLED_NUM_ARGS   = ' + SLEEP_MODE_DISABLED_NUM_ARGS ),
+                           ( 'SLEEP_ENTER_MODE_STR           = \\\"' + SLEEP_ENTER_MODE_STR + '\\\"' ),
+                           ( 'SLEEP_ENTER_MODE_NUM_ARGS      = ' + SLEEP_ENTER_MODE_NUM_ARGS ),
+                           ( 'SLEEP_EXIT_MODE_STR            = \\\"' + SLEEP_EXIT_MODE_STR + '\\\"' ),
+                           ( 'SLEEP_EXIT_MODE_NUM_ARGS       = ' + SLEEP_EXIT_MODE_NUM_ARGS ),
+                           ( 'SLEEP_SET_SEND_STR             = \\\"' + SLEEP_SET_SEND_STR + '\\\"' ),
+                           ( 'SLEEP_SET_SEND_NUM_ARGS        = ' + SLEEP_SET_SEND_NUM_ARGS ),
+                          ] )
+
+#-------------------------------------------------------------------------------
+# QDSS Events
+#-------------------------------------------------------------------------------
+if 'USES_QDSS_SWE' in env:
+  env.Append(CPPDEFINES=['SLEEP_ENABLE_QDSS'])
+
+  QDSS_IMG = ['QDSS_EN_IMG']
+
+  events = [ [ 'SLEEP_ENTER_IDLE',       SLEEP_ENTER_IDLE_STR ],
+             [ 'SLEEP_EARLY_EXIT_STM',   SLEEP_EARLY_EXIT_STM_STR ],
+             [ 'SLEEP_EXIT_IDLE',        SLEEP_EXIT_IDLE_STR ],
+             [ 'SLEEP_EXIT_STM',         SLEEP_EXIT_STM_STR ],
+             [ 'SLEEP_BKOFF_STATS',      SLEEP_BKOFF_STATS_STR ],
+             [ 'SLEEP_WAKEUP',           SLEEP_WAKEUP_STR ],
+             [ 'SLEEP_ENTER_SOLVER',     SLEEP_ENTER_SOLVER_STR ],
+             [ 'SLEEP_EXIT_SOLVER',      SLEEP_EXIT_SOLVER_STR ],
+             [ 'SLEEP_MODE_ENABLED',     SLEEP_MODE_ENABLED_STR ],
+             [ 'SLEEP_MODE_DISABLED',    SLEEP_MODE_DISABLED_STR ],
+             [ 'SLEEP_ENTER_MODE',       SLEEP_ENTER_MODE_STR ],
+             [ 'SLEEP_EXIT_MODE',        SLEEP_EXIT_MODE_STR ],
+             [ 'SLEEP_SET_SEND',         SLEEP_SET_SEND_STR ],
+           ]
+  env.AddSWEInfo(QDSS_IMG, events)
+else:
+  env.Append( CPPDEFINES = [ ( 'SLEEP_ENTER_IDLE         = 0' ),
+                             ( 'SLEEP_EARLY_EXIT_STM     = 0' ),
+                             ( 'SLEEP_EXIT_IDLE          = 0' ),
+                             ( 'SLEEP_EXIT_STM           = 0' ),
+                             ( 'SLEEP_BKOFF_STATS        = 0' ),
+                             ( 'SLEEP_WAKEUP             = 0' ),
+                             ( 'SLEEP_ENTER_SOLVER       = 0' ),
+                             ( 'SLEEP_EXIT_SOLVER        = 0' ),
+                             ( 'SLEEP_MODE_ENABLED       = 0' ),
+                             ( 'SLEEP_MODE_DISABLED      = 0' ),
+                             ( 'SLEEP_ENTER_MODE         = 0' ),
+                             ( 'SLEEP_EXIT_MODE          = 0' ),
+                             ( 'SLEEP_SET_SEND           = 0' ),
+                            ] )
+
+#-------------------------------------------------------------------------------
+# Regenerate HWIO Header: build hwio --filter=path/to/tech/area
+#-------------------------------------------------------------------------------
+
+if env.has_key('HWIO_IMAGE'):
+    env.AddHWIOFile('HWIO', [
+            {
+                'filename': '${INC_ROOT}/core/power/sleep/src/lpr/HALsleep_hwio.h',
+                'modules': ['QDSP6SS_CSR'],
+                'output-offsets': True,
+                'header':'#include "msmhwiobase.h"'
+                }
+            ])
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+sleep_target_obj_list = []
+source_patterns = ['*.c']
+sources = []
+
+for root, dirnames, filenames in os.walk(SRCPATH):
+    matches = itertools.chain(*[fnmatch.filter(filenames, pattern) for pattern in source_patterns])
+    matches = [os.path.join(root, filename) for filename in matches]
+    matches = [matched_path.replace(SRCPATH,'${BUILDPATH}',1) for matched_path in matches]
+    sources.extend(matches)
+
+#---------------------------------------------------------------------------
+# Compiling Sources
+#---------------------------------------------------------------------------
+sleep_obj = env.Object(sources)
+
+#---------------------------------------------------------------------------
+# Custom Builder call for Autogenerating LPR based on XML files placed in
+# different tech code area.
+#---------------------------------------------------------------------------
+
+if 'USES_CORESLEEP_TOOL' in env:
+
+    # Right now default to 8974 LPR's
+    # This is to keep up with binary compatibilty requirement in a hacky way
+    # If other target comes up add extra elif's.
+
+    xml_dir = env['BUILD_ROOT'] + '/core/power/sleep/src/lpr/8909/'
+	
+    if env['MSM_ID'] in ['9x25']:
+        xml_dir = env['BUILD_ROOT'] + '/core/power/sleep/src/lpr/9x25/'
+    elif env['MSM_ID'] in ['8926']:
+        xml_dir = env['BUILD_ROOT'] + '/core/power/sleep/src/lpr/8926/'
+    elif env['MSM_ID'] in ['8962']:
+        xml_dir = env['BUILD_ROOT'] + '/core/power/sleep/src/lpr/8962/'
+    elif env['MSM_ID'] in ['8936']:
+        xml_dir = env['BUILD_ROOT'] + '/core/power/sleep/src/lpr/8936/'
+    elif env['MSM_ID'] in ['8909']:
+       xml_dir = env['BUILD_ROOT'] + '/core/power/sleep/src/lpr/8909/'
+    elif env['MSM_ID'] in ['8937']:
+       xml_dir = env['BUILD_ROOT'] + '/core/power/sleep/src/lpr/8937/'
+    elif env['MSM_ID'] in ['9607']:
+       xml_dir = env['BUILD_ROOT'] + '/core/power/sleep/src/lpr/9607/'   
+    elif env['MSM_ID'] in ['8952']:
+       xml_dir = env['BUILD_ROOT'] + '/core/power/sleep/src/lpr/8952/'
+    elif env['MSM_ID'] in ['8976']:
+       xml_dir = env['BUILD_ROOT'] + '/core/power/sleep/src/lpr/8976/'   
+
+    env.AddCoreSleepLPR('CBSP_QDSP6_SW_IMAGE', {'sleep_lpr_xml' : [xml_dir]})
+
+    # target list contains autogenerated file by SleepSynthTool. Keep .h file
+    # at the end and .c/.cpp file at the beginning.
+    target_list = [
+      os.path.join(LPRSRCPATH, 'SleepLPR_data.c'),
+      os.path.join(LPRSRCPATH, 'SleepLPR_lookup_table.c'),
+      os.path.join(LPRSRCPATH, 'SleepLPR_synth_modes.c'),
+      os.path.join(LPRSRCPATH, 'SleepLPR_lookup_table.h'),
+      os.path.join(LPRSRCPATH, 'SleepLPR_synth_modes.h')
+    ]
+
+    target_list = [ aFile.replace(SRCPATH, '${BUILDPATH}', 1) for aFile in target_list]
+    sleep_synth_out = env.CoreSleepLPRBuilder( target_list, None )
+
+    # Explicitly adding path as scons was not able to include non-existent path
+    # for private APIs.
+    env.Append(CPPPATH = [env.RealPath('${BUILDPATH}/lpr')])
+
+    # Slicing as we don't want to build .h files. Index passed here is of first
+    # .h file.
+    sleep_synth_lpr_obj = env.Object(sleep_synth_out[:3])
+    sleep_target_obj_list.extend([sleep_synth_lpr_obj])
+    sources.extend(sleep_synth_out[:3])
+
+    # Adding dependency on autogenerated header files just to be on safer side
+    env.Depends(sleep_obj, target_list[3:])
+
+#-------------------------------------------------------------------------------
+# Libraries
+#-------------------------------------------------------------------------------
+sleep_target_obj_list.extend(sleep_obj)
+#sleep_lib = env.Library(os.path.join('${BUILDPATH}','sleep'), sleep_target_obj_list)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+                    'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+                   '${BUILDPATH}/sleep', sources )
+
+#-------------------------------------------------------------------------------
+# User RCINIT
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+    RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+    env.AddRCInitTask(
+        RCINIT_IMG,
+        {
+            'sequence_group'             : 'RCINIT_GROUP_1',    # required
+            'thread_name'                : 'sleep',             # required
+            'thread_entry'               : 'sleep_task',
+            'stack_size_bytes'           : '8192',
+            'priority_amss_order'        : 'SLEEP_PRI_ORDER',
+            'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+            'dependencies'               : ['vmpm', 'spm'],
+            }
+        )
+
+if 'QDSS_TRACER_SWE' in env:
+    env.SWEBuilder(['${BUILDPATH}/sleep_tracer_event_ids.h'],None)
+    env.Append(CPPPATH = ['${BUILD_ROOT}/core/power/sleep/build/$BUILDPATH'])

@@ -1,0 +1,182 @@
+#===============================================================================
+#                    Copyright 2015 Qualcomm Incorporated.
+#                           All Rights Reserved.
+#                      Qualcomm Confidential and Proprietary
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/InterruptController/build/SConscript#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#
+#===============================================================================
+# DAL InterruptController Lib
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/systemdrivers/InterruptController"
+SRCPATHSCRIPTS = env['BUILD_ROOT']+'/core/systemdrivers/InterruptController/scripts'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+
+env.PublishPrivateApi('DAL_INTERRUPTCONTROLLER', [
+   "${INC_ROOT}/core/api/kernel/libstd/stringl",
+   "${INC_ROOT}/core/api/kernel/qurt",
+   "${INC_ROOT}/core/systemdrivers/InterruptController/src",
+   "${INC_ROOT}/core/systemdrivers/InterruptController/inc",
+   "${INC_ROOT}/core/systemdrivers/InterruptController/src/qurt",
+])
+
+if env.has_key('QDSP6_PROC'):
+   env.Replace(SRC_DIR='qurt')
+   env.Append(CPPDEFINES = ["DALINTERRUPT_LOG"])
+   env.Append(CPPDEFINES = ["DALINTERRUPT_MPM_WAKEUP"])
+   env.Append(CPPDEFINES = ["INTERRUPT_LOG_ENTRIES=2048"])
+   env.Append(CPPPATH = [
+      "${INC_ROOT}/core/api/kernel/qurt",
+    ])
+elif env.has_key('CORE_RPM') or env.has_key('RPM_IMAGE'):
+   Return()
+elif env.has_key('CORE_SPS'):
+   env.Replace(SRC_DIR='dsps')
+   env.Append(CPPDEFINES = ["DAL_NATIVE_PLATFORM"])
+elif env.has_key('MODEM_PROC'):
+   env.Replace(SRC_DIR='l4_qgic')
+   env.Append(CPPDEFINES = ["DAL_L4_QGIC_PLATFORM"])
+   env.Append(CPPDEFINES = ["DALINTERRUPT_LOG"])
+   env.Append(CPPDEFINES = ["DALINTERRUPT_MPM_WAKEUP"])
+   env.Append(CPPDEFINES = ["INTERRUPT_LOG_ENTRIES=200"])
+else:
+   env.Replace(SRC_DIR='l4_tramp')
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DEBUGTOOLS',
+   'MPROC',
+   'POWER',
+   # needs to be last also contains wrong comdef.h      
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+DAL_INTERRUPT_CONTROLLER_SOURCES = [
+   '${BUILDPATH}/src/DALInterruptControllerInfo.c',
+   '${BUILDPATH}/src/DALInterruptControllerFwk.c',
+   '${BUILDPATH}/src/qurt/DALInterruptController.c'
+]
+
+DAL_DSPS_INTERRUPT_CONTROLLER_SOURCES = [
+   '${BUILDPATH}/src/DALInterruptControllerInfo.c',
+   '${BUILDPATH}/src/qurt/DALInterruptController.c'
+]
+
+if env.has_key('CORE_SPS'):
+   env.AddLibrary(
+     ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+      'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+      'APPS_IMAGE', 'CBSP_APPS_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+      'CORE_SPS', 'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN'],
+     '${BUILDPATH}/DALInterruptController', DAL_DSPS_INTERRUPT_CONTROLLER_SOURCES)
+else:
+   env.AddLibrary(
+     ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+      'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+      'APPS_IMAGE', 'CBSP_APPS_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+      'CORE_SPS', 'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN'],
+     '${BUILDPATH}/DALInterruptController', DAL_INTERRUPT_CONTROLLER_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+
+# Remove target API files
+ALL_API_FILES = env.FindFiles(
+  ['*'],
+  '${BUILD_ROOT}/core/api/systemdrivers/irqs/')
+MY_API_FILES = env.FindFiles(
+  ['*'],
+  '${BUILD_ROOT}/core/api/systemdrivers/irqs/${CHIPSET}')
+PACK_API_FILES = list(set(ALL_API_FILES) - set(MY_API_FILES))
+env.CleanPack(
+     ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+      'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+      'APPS_IMAGE', 'CBSP_APPS_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+      'CORE_SPS', 'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN'], PACK_API_FILES)
+
+# Remove target config files
+ALL_CONFIG_FILES = env.FindFiles(
+  ['*'],
+  '../config/')
+MY_CONFIG_FILES = env.FindFiles(
+  ['*'],
+  '../config/${MSM_ID}')
+PACK_CONFIG_FILES = list(set(ALL_CONFIG_FILES) - set(MY_CONFIG_FILES))
+env.CleanPack(
+     ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+      'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+      'APPS_IMAGE', 'CBSP_APPS_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+      'CORE_SPS', 'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN'], PACK_CONFIG_FILES)
+
+#-------------------------------------------------------------------------------
+# Add CMM Scripts to T32 Menu
+#-------------------------------------------------------------------------------
+
+try:
+  if env['IMAGE_NAME'] in ['MODEM_PROC','MBA']:
+    env.AddCMMScripts ('MPSS', [SRCPATHSCRIPTS], { 'InterruptController.cmm' : ' Interrupt Controller', 'InterruptLog.cmm' : ' Interrupt Log' }, 'DAL')
+  elif env['IMAGE_NAME'] in ['ADSP_PROC']:
+    env.AddCMMScripts ('ADSP', [SRCPATHSCRIPTS], { 'InterruptController.cmm' : ' Interrupt Controller', 'InterruptLog.cmm' : ' Interrupt Log' }, 'DAL')
+  elif env['IMAGE_NAME'] in ['WCNSS_PROC']:
+    env.AddCMMScripts ('WCNSS', [SRCPATHSCRIPTS], { 'InterruptController.cmm' : ' Interrupt Controller', 'InterruptLog.cmm' : ' Interrupt Log' }, 'DAL')
+except:
+  pass
+
+#-------------------------------------------------------------------------------
+# DEVCFG
+#-------------------------------------------------------------------------------
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      '8974_xml' : ['${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8974/InterruptController.xml',
+                   '${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8974/InterruptConfigData.c'],    
+      '9625_xml' : ['${BUILD_ROOT}/core/systemdrivers/InterruptController/config/9x25/InterruptController.xml',
+                   '${BUILD_ROOT}/core/systemdrivers/InterruptController/config/9x25/InterruptConfigData.c'],
+      '8926_xml' : ['${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8926/InterruptController.xml',
+                   '${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8926/InterruptConfigData.c'],
+      '8962_xml' : ['${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8962/InterruptController.xml',
+                   '${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8962/InterruptConfigData.c'],  
+      '8916_xml' : ['${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8916/InterruptController.xml',
+                   '${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8916/InterruptConfigData.c'],
+      '8936_xml' : ['${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8936/InterruptController.xml',
+                   '${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8936/InterruptConfigData.c'],
+      '8909_xml' : ['${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8909/InterruptController.xml',
+                   '${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8909/InterruptConfigData.c'],
+      '8937_xml' : ['${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8937/InterruptController.xml',
+                   '${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8937/InterruptConfigData.c'],
+      '9607_xml' : ['${BUILD_ROOT}/core/systemdrivers/InterruptController/config/9607/InterruptController.xml',
+                   '${BUILD_ROOT}/core/systemdrivers/InterruptController/config/9607/InterruptConfigData.c'],
+      '8952_xml' : ['${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8952/InterruptController.xml',
+                   '${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8952/InterruptConfigData.c'],
+      '8976_xml' : ['${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8976/InterruptController.xml',
+                   '${BUILD_ROOT}/core/systemdrivers/InterruptController/config/8976/InterruptConfigData.c'],
+   })

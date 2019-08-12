@@ -1,0 +1,262 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/datacommon/linklayer/rel/10.02.02/build/datacommon_linklayer.scons#3 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env or 'USES_DATAMODEM_LINKLAYER' not in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+	
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_DS",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+	 'DAL',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+#MODEM_PROTECTED_APIS = [
+#    'DATA_ATCOP',
+#    ]
+#env.RequireProtectedApi(MODEM_PROTECTED_APIS)
+
+#-------------------------------------------------------------------------------
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#-------------------------------------------------------------------------------
+REQUIRED_NON_SCONS_APIS = [
+    'WCONNECT', 
+    'BREW',
+    ]
+
+if REQUIRED_NON_SCONS_APIS != []:
+  env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Non-compliant Private Header Include Paths (Must be removed for CRM builds)
+#-------------------------------------------------------------------------------
+#if ARGUMENTS.get('SCONS_VIOLATIONS_LEVEL',0) > 99:
+#		print "SCONS VIOLATIONS enabled" 
+#		
+#		env.PublishPrivateApi('VIOLATIONS',[
+#			'${INC_ROOT}/modem/data/1x/707/src',
+#			])
+#		
+#		env.RequirePrivateApi('VIOLATIONS')
+
+#-------------------------------------------------------------------------------
+#  OffTarget/QTF
+#-------------------------------------------------------------------------------
+if 'USES_MOB' in env:
+  env.RequireRestrictedApi(['DATAMODEM_QTF_OFT'])
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+DATAMODEM_LINKLAYER_HDLC_SOURCES = [   
+   '${BUILDPATH}/src/ps_hdlc_lib.c',
+   ]
+
+DATAMODEM_LINKLAYER_ARP_SOURCES = [
+   '${BUILDPATH}/src/ps_arp.c',
+   '${BUILDPATH}/src/ps_arpi.c',
+   '${BUILDPATH}/src/ps_stat_arp.c', 
+   ]
+
+DATAMODEM_LINKLAYER_EAP_SOURCES = [
+   '${BUILDPATH}/src/ps_eap_eap.c',
+   '${BUILDPATH}/src/ps_eap_ext.c',
+   '${BUILDPATH}/src/ps_eap_mgr.c',
+   '${BUILDPATH}/src/ps_eap_peer.c',
+   '${BUILDPATH}/src/ps_eapi_methods.c',
+   '${BUILDPATH}/src/ps_eap_server.c',
+   '${BUILDPATH}/src/ps_utils_aka.c',
+   ]
+
+DATAMODEM_LINKLAYER_LLC_SOURCES = [
+   '${BUILDPATH}/src/ps_lan_llc.c',
+   '${BUILDPATH}/src/ps_lan_llci.c',
+   '${BUILDPATH}/src/ps_ll_addr_mgr.c',
+   '${BUILDPATH}/src/ps_stat_llc.c',
+   ]
+
+DATAMODEM_LINKLAYER_PPP_SOURCES = [
+   '${BUILDPATH}/src/linklayer_stubs.c',
+   '${BUILDPATH}/src/ps_ppp.c',
+   '${BUILDPATH}/src/ps_ppp_auth.c',
+   '${BUILDPATH}/src/ps_ppp_callbacks.c',
+   '${BUILDPATH}/src/ps_ppp_fsm.c',
+   '${BUILDPATH}/src/ps_ppp_ipcp.c',
+   '${BUILDPATH}/src/ps_ppp_lcp.c',
+   '${BUILDPATH}/src/ps_ppp_logging.c',
+   '${BUILDPATH}/src/ps_ppp_netmodel.c',
+   '${BUILDPATH}/src/ps_ppp_snoop.c',
+   '${BUILDPATH}/src/ps_ppp_snpip.c',
+   '${BUILDPATH}/src/ps_ppp_task.c',
+   '${BUILDPATH}/src/ps_ppp_vend.c',
+   '${BUILDPATH}/src/ps_ppp_ncp.c',
+   '${BUILDPATH}/src/ps_ppp_vsncp_3gpp2i.c',
+   '${BUILDPATH}/src/ps_pppi.c',
+   '${BUILDPATH}/src/ps_stat_arp.c',
+   '${BUILDPATH}/src/ps_stat_llc.c',
+   '${BUILDPATH}/src/ps_stat_ppp.c',
+   ]
+
+DATAMODEM_LINKLAYER_SOURCES = []
+
+if 'USES_DATAMODEM_LINKLAYER_PPP' in env:
+   DATAMODEM_LINKLAYER_SOURCES += DATAMODEM_LINKLAYER_PPP_SOURCES
+
+if 'USES_DATAMODEM_LINKLAYER_HDLC' in env:
+   DATAMODEM_LINKLAYER_SOURCES += DATAMODEM_LINKLAYER_HDLC_SOURCES
+
+if 'USES_DATAMODEM_LINKLAYER_LLC' in env:
+   DATAMODEM_LINKLAYER_SOURCES += DATAMODEM_LINKLAYER_LLC_SOURCES + DATAMODEM_LINKLAYER_ARP_SOURCES
+
+if 'USES_DATAMODEM_LINKLAYER_EAP' in env:
+   DATAMODEM_LINKLAYER_SOURCES += DATAMODEM_LINKLAYER_EAP_SOURCES
+   
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/linklayer',[DATAMODEM_LINKLAYER_SOURCES, ])
+
+
+#code shipped as binary library
+
+LIB_DATAMODEM_LINKLAYER_EAP_SOURCES = [
+   '${BUILDPATH}/src/ps_eap_aka.c',
+   '${BUILDPATH}/src/ps_eap_aka_pb.c',
+   '${BUILDPATH}/src/ps_eap_aka_prime.c',
+   '${BUILDPATH}/src/ps_eap_aka_prime_pb.c',
+   '${BUILDPATH}/src/ps_eap_sim.c',
+   '${BUILDPATH}/src/ps_eap_sim_aka.c',
+   '${BUILDPATH}/src/ps_eap_sim_aka_cry.c',
+   '${BUILDPATH}/src/ps_eap_sim_aka_ime.c',
+   '${BUILDPATH}/src/ps_eap_sim_aka_pb.c',
+   '${BUILDPATH}/src/ps_eap_sim_aka_ume.c',
+   '${BUILDPATH}/src/ps_eap_sim_pb.c',
+   '${BUILDPATH}/src/ps_eap_client_config.c',   
+   ]
+LIB_DATAMODEM_LINKLAYER_IPV6CP_SOURCES = [
+   '${BUILDPATH}/src/ps_ppp_ipv6cp.c',
+   ]
+
+LIB_DATAMODEM_LINKLAYER_SOURCES = LIB_DATAMODEM_LINKLAYER_EAP_SOURCES
+
+if 'USES_DATAMODEM_LINKLAYER_PPP' in env:
+   if 'USES_MODEM_DATAMODEM_IPV6' in env:
+      LIB_DATAMODEM_LINKLAYER_SOURCES += LIB_DATAMODEM_LINKLAYER_IPV6CP_SOURCES
+
+env.AddBinaryLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], 
+                     '${BUILDPATH}/lib_linklayer',
+                     [LIB_DATAMODEM_LINKLAYER_SOURCES, ],
+                      pack_exception=['USES_CUSTOMER_GENERATE_LIBS', 'USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'])

@@ -1,0 +1,151 @@
+#===============================================================================
+#
+# TRM Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcs/trm/build/trm.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/17/14   mn      Remove unwanted files from TRM. (CR: 687777).
+# 11/12/14   sk      Exclude asdiv file compilation for CUST_1 build
+# 06/18/14   mn      Changes for DR-DSDS (CR:  651800).
+# 11/13/13   mn      Opp. SGLTE/SGTDS/SVLTE +G DSDA support.
+# 08/29/13   sr      Changes for TRM QTF
+# 07/19/13   sk      Exclude asdiv file compilation for di.2.1
+# 05/01/13   sk      Separate Ant Switch div file to different library
+# 05/01/13   sr      Include Storage APIs for supporting Ant Switch.
+# 03/05/12   sr      RCInit Changes.
+# 02/08/12   sr      RC-Init Changes for task initialization.
+# 05/20/11   ejv     Remove remaining violations.
+# 04/07/11   ejv     Remove majority of violations.
+# 11/18/10    zm     Update requirements for building.
+# 09/21/10    ag     Added DAL, ONEX, RFA and UIM paths.
+# 09/21/10    ag     Initial version.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Exit immediately for PLT builds
+#-------------------------------------------------------------------------------
+if 'USES_PLT' in env:
+    Return()
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+TRM_LIB_SRC = [
+    '${BUILDPATH}/trm.cpp',
+    '${BUILDPATH}/trm_client.cpp',
+    '${BUILDPATH}/trm_client_array.cpp',
+    '${BUILDPATH}/trm_config_handler.c',
+    '${BUILDPATH}/trm_interface.cpp',
+    '${BUILDPATH}/trm_async_handler.cpp',
+    '${BUILDPATH}/trm_band_handler.cpp',
+    '${BUILDPATH}/trm_xlate.c',
+    '${BUILDPATH}/trmlog.cpp',
+    '${BUILDPATH}/trm_interface_deprecated.cpp',
+]
+
+TRM_CFG_SRC = [
+    '${BUILDPATH}/trmcfg.cpp',
+]
+
+# Add our library to the Modem Modem image
+#env.AddLibrary(['MODEM_MODEM','MOB_MCS_TRM'], '${BUILDPATH}', TRM_LIB_SRC)
+#env.AddLibrary(['MODEM_MODEM','MOB_MCS_TRM'], '${BUILDPATH}', TRM_CFG_SRC)
+
+if 'USES_CUST_1' in env:
+	# Compile the trm source and convert to a binary library
+	env.AddBinaryLibrary(['MODEM_MODEM','MOB_MCS_TRM'],
+						'${BUILDPATH}/trm',
+						TRM_LIB_SRC,
+						pack_exception=['USES_CUSTOMER_GENERATE_LIBS', 'USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'])
+
+	# Compile the trm cfg source and convert to a library
+	env.AddLibrary(['MODEM_MODEM','MOB_MCS_TRM'],
+					'${BUILDPATH}/trmcfg',
+					TRM_CFG_SRC)
+
+else:
+	# Compile the trm source and convert to a binary library
+	env.AddBinaryLibrary(['MODEM_MODEM','MOB_MCS_TRM'],
+						  '${BUILDPATH}/trm',
+						  TRM_LIB_SRC,
+						  pack_exception=['USES_CUSTOMER_GENERATE_LIBS', 'USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'])
+
+	# Compile the trm cfg source and convert to a library
+	env.AddLibrary(['MODEM_MODEM','MOB_MCS_TRM'],
+					'${BUILDPATH}/trmcfg',
+					TRM_CFG_SRC)	
+
+	# Compile the trm asd source and convert to a library
+	env.AddLibrary(['MODEM_MODEM','MOB_MCS_TRM'],
+					'${BUILDPATH}/asdiv',
+					'${BUILDPATH}/trm_ant_switch_div.c')
+
+
+
+
+# Load test units
+env.LoadSoftwareUnits()
+
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+
+RCINIT_TRM_INIT = {
+ 'sequence_group'             : env.subst('$MODEM_PROTOCOL'),    # required
+ 'init_name'                  : 'trm_taskinit',                  # required
+ 'init_function'              : 'trm_taskinit',                  # opt
+ 'dependencies'               : ['RFA',],                        # opt [python list]
+ 'policy_optin'               : ['default', 'ftm', ],
+}
+
+RCINIT_TRM_TASK = {
+ 'thread_name'                : 'trm',
+ 'sequence_group'             : env.subst('$MODEM_PROTOCOL'),
+ 'stack_size_bytes'           : env.subst('$TRM_STKSZ'),         # required
+ 'priority_amss_order'        : 'TRM_PRI_ORDER',  # required
+ 'stack_name'                 : 'trm_stack',
+ 'thread_entry'               : 'trm_task',
+ 'tcb_name'                   : 'trm_tcb',
+ 'cpu_affinity'	              : env.subst('$MODEM_CPU_AFFINITY'),
+ 'policy_optin'               : ['default', 'ftm', ],
+} 
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_TRM = ['MODEM_MODEM','MOB_MCS_TRM', 'CORE_QDSP6_SW']
+   env.AddRCInitFunc(RCINIT_TRM, RCINIT_TRM_INIT)
+   env.AddRCInitTask(RCINIT_TRM, RCINIT_TRM_TASK)   

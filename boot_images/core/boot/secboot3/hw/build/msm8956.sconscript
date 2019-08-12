@@ -1,0 +1,97 @@
+#===============================================================================
+#
+# SECBOOT3 SBL Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/boot/secboot3/hw/build/msm8956.sconscript#1 $
+#  $DateTime: 2015/09/01 00:30:35 $
+#  $Author: pwbldsvc $
+#  $Change: 8935858 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/04/14   bs      Initial revision
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+SBL_SRC = "${COREBSP_ROOT}/boot/secboot3/hw"
+env.VariantDir('${BUILDPATH}', SBL_SRC, duplicate=0)
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'RFA',
+])
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BUSES',
+   'DAL',
+   'HAL',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'SECUREMSM',
+   'HWENGINES',
+]
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['BOOT'])
+#-------------------------------------------------------------------------------
+# External dependency
+#-------------------------------------------------------------------------------
+env.RequirePublicApi('RFA', 'pmic')
+#-------------------------------------------------------------------------------
+# SBL1 Sources, libraries
+#-------------------------------------------------------------------------------
+SBL1_TARGET_SOURCES = [
+   '${BUILDPATH}/msm8952/sbl1/sbl1_mc.c',
+   '${BUILDPATH}/msm8952/sbl1/sbl1.s',
+   '${BUILDPATH}/msm8952/sbl1/sbl1_target.c',
+   '${BUILDPATH}/msm8952/sbl1/sbl1_hw.c',
+   '${BUILDPATH}/msm8956/sbl1/sbl1_config.c',
+   '${BUILDPATH}/msm8956/boot_cdt_array.c',
+   '${BUILDPATH}/msm8952/boot_rollback_img_set.c',
+   '${BUILDPATH}/msm8956/sys_debug.s',
+   '${BUILDPATH}/msm8956/sys_debug_mc.c',
+]
+if env.has_key('USES_SAHARA_BOOT'):
+  SBL1_TARGET_SOURCES += [
+    '${BUILDPATH}/msm8952/sbl1/sbl1_sahara.c',
+]
+secboot3_sbl1_obj = env.Object([ 
+   SBL1_TARGET_SOURCES,
+])
+#-------------------------------------------------------------------------------
+# Dload target Sources 
+#-------------------------------------------------------------------------------
+DLOAD_TARGET_SOURCES = [
+   '${BUILDPATH}/msm8956/boot_dload_debug_target.c',   
+]
+
+dload_target_obj = env.Object([DLOAD_TARGET_SOURCES])
+dload_target_lib = env.Library('${BUILDPATH}/dload_target', dload_target_obj)
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibsToImage('SBL1_BOOT', [secboot3_sbl1_obj, dload_target_obj])

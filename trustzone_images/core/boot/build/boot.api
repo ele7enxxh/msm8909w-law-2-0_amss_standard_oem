@@ -1,0 +1,70 @@
+#===============================================================================
+#
+# BOOT INC PATHs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2009-2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/dev/pconnors.pconnors_apq8064_1025/boot_images/core/boot/build/boot.api#1 $
+#  $DateTime: 2011/10/25 12:51:50 $
+#  $Author: coresvc $
+#  $Change: 2001975 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who       what, where, why
+# --------   ---       ---------------------------------------------------------
+# 11/08/11   plc       Update to support QFPROM in TZ 1.4 PW
+# 08/04/11   kedara    Path changes to support PW 1.2.
+# 03/28/11   aus       Branched to shared location
+# 10/07/10   kedara    Added paths for Qfprom driver.
+# 10/01/10   tw        Exposed core\api\boot in all circumstances to support RPM
+# 09/22/10   dh        Added /secboot3/${CHIPSET}/ to Restricted
+# 08/06/10   sl        Moved DDR from Protected Boot API to Restricted.
+# 08/09/10   dh        use ${CHIPSET} instead of MSM_ID to refer to target name
+# 07/30/10   anushkas  Clean-up for secboot3
+# 06/18/10   kedara    Added path to include sysini for Ehostdl
+# 06/18/10   sl        Removed ddr/shared/src and drivers/ddr
+# 06/01/10   pconnors  Refactored for SB3.0
+# 03/29/10   pconnors  Pull in DDR path
+# 12/23/09   anushkas  Added common/shared path to restricted paths as 
+#                      it is required by securemsm
+# 12/21/09   anushkas  Added MIBIB to restricted paths
+# 12/15/09   tw        Updated ddr share folder to only using ddr\share\src
+# 12/04/09   msm       Added support for efuse.
+# 11/12/09   tw        Changes for DDR HAL
+# 11/12/09   anushkas  Added path to amssboot/target
+# 10/01/09   wduembeg  Added paths to be used by BOOT TOOLS.
+# 09/16/09   msm       added path for amssboot.
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# these are accecible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('BOOT', [ 
+     "${INC_ROOT}/core/api/boot",
+     "${INC_ROOT}/core/api/boot/qfprom",
+ ])
+
+#-------------------------------------------------------------------------------
+# Publish Restricted APIs
+# these are accecible only within CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishRestrictedApi('BOOT', [
+   "${INC_ROOT}/core/boot/mibib/src",
+   "${INC_ROOT}/core/boot/mibib/hw/msm8960",
+   "${INC_ROOT}/core/boot/secboot3/src",
+   "${INC_ROOT}/core/boot/qfprom/hw/core_2_0",
+   "${INC_ROOT}/core/boot/qfprom/src",
+])

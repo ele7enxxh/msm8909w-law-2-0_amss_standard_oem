@@ -1,0 +1,45 @@
+#===============================================================================
+#
+# Crypto Driver Chipset Library
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/22/11   nk      Added scon fork based on chipset. 
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+# set default script name
+#script_fname = '${CHIPSET}.SConscript'
+
+# change name for other targets that migh start with q, etc
+if env['MSM_ID'] in ['8909', '8909w']:
+   script_fname = "msm8909.SConscript"
+else:
+   script_fname = "${CHIPSET}.SConscript"
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.SConscript(script_fname, exports='env')
+
+
+

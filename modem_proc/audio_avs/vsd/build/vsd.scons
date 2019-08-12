@@ -1,0 +1,44 @@
+#===============================================================================
+#
+# AVS AU
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror") 
+env = env.Clone(HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")
+env.Replace(HEXAGON_DBG="-g ")
+env.Append(CFLAGS = '-DUSE_ENABLE_QURT_SHMEM')
+
+env.PublishProtectedApi('AVS',[
+   '${AVS_ROOT}/vsd/inc/patch',
+   '${AVS_ROOT}/vsd/inc/protected',
+   '${AVS_ROOT}/vsd/inc/private',
+   '${AVS_ROOT}/apr/domain/inc',
+   '${AVS_ROOT}/apr/osal/inc',
+   '${AVS_ROOT}/apr/utils/inc',
+   ])
+
+
+env.LoadSoftwareUnits()

@@ -1,0 +1,60 @@
+// *====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+//
+//                     SCATTER LOADING DESCRIPTION FILE TEMPLATE
+//  
+//
+//  GENERAL DESCRIPTION
+//
+//  Memory Map for HOSTDL.
+//
+//  This file is a template which gets run through the C pre-processor to
+//  generate the actual scatter load file which will be used.  This allows
+//  this file to be used by all targets and be relocated on the fly.
+//
+//  Copyright (c) 2014-2015 Qualcomm Incorporated. 
+//  All Rights Reserved.
+//  Qualcomm Confidential and Proprietary
+//
+//*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+
+/* ===========================================================================
+
+                           EDIT HISTORY FOR FILE
+  This section contains comments describing changes made to the module.
+  Notice that changes are listed in reverse chronological order.
+
+  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/hostdl/hostdl_in.scl#1 $ $DateTime: 2015/09/01 00:30:35 $ $Author: pwbldsvc $
+   
+ when       who     what, where, why
+ --------   ---     -------------------------------------------------------
+ 06/09/15   sb      Replace qusb with qhsusb for 8909 
+ 06/25/14   sb      Replace qhsusb with qusb for 9x45
+==========================================================================*/
+
+RAM CODE_START_ADDR
+{
+   CODE CODE_START_ADDR 
+   {
+      EHOSTDL_STARTUP_SOURCE (BootRom, +FIRST)
+   }
+
+   CODE_ALL +0
+   {
+      * (+RO)
+   }
+
+   APP_RAM DATA_ADDR
+   {
+
+      * (.constdata)   ; Relocate all constdata to RAM since accessing
+                       ; string literals and other unaligned
+                       ; data in ADSP IRAM could cause issues
+      * (+RW, +ZI)
+   }
+
+   ZI_RAM  ZI_ADDR
+   {
+      qhsusb_*.o (+ZI)
+      * (FLASH_TOOLS_HEAP_ZONE)
+   }
+}

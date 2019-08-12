@@ -1,0 +1,70 @@
+
+#include "DALDeviceId.h"
+
+<!-- =================================================================================== -->
+<!-- Use the following configurations for GPIOs:                                         -->
+<!--                                                                                     -->
+<!-- UART1DM_RFR_N  = TLMM_GPIO_CFG( 43, 2, GPIO_OUTPUT, GPIO_PULL_UP,   GPIO_2MA )      -->
+<!-- UART1DM_CTS_N  = TLMM_GPIO_CFG( 44, 2, GPIO_INPUT,  GPIO_PULL_DOWN, GPIO_2MA )      -->
+<!-- UART1DM_RX     = TLMM_GPIO_CFG( 45, 2, GPIO_INPUT,  GPIO_PULL_DOWN, GPIO_2MA )      -->
+<!-- UART1DM_TX     = TLMM_GPIO_CFG( 46, 3, GPIO_OUTPUT, GPIO_PULL_UP,   GPIO_2MA )      -->
+<!--                                                                                     -->
+<!-- i.e.                                                                                -->
+<!--                                                                                     -->
+<!--   CTS_N, RX = PULL_DOWN;                                                            -->
+<!--   RFR_N, TX = PULL_UP.                                                              -->
+<!--                                                                                     -->
+<!--   Note that the alternate functions change.                                         -->
+<!-- =================================================================================== -->
+
+<driver name="Uart">
+  <global_def>    
+    <var_seq name="g_uart1dm_gpio_cfg" type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x72b02, 0x22c02, 0x22d02, 0x72e02, end</var_seq>
+    <var_seq name="g_uart2dm_gpio_cfg" type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x71302, 0x21402, 0x21502, 0x76c02, end</var_seq>
+    <var_seq name="g_uart1_gpio_cfg"   type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x72b01, 0x22c01, 0x22d01, 0x72e01, end</var_seq>
+    <var_seq name="g_uart2_gpio_cfg"   type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x72f01, 0x23001, 0x23101, 0x73201, end</var_seq>
+    <var_seq name="g_uart3_gpio_cfg"   type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x75401, 0x25501, 0x25601, 0x75701, end</var_seq>
+  </global_def>
+
+  <!-- =================================================== -->
+  <!-- UART1DM (needs DM parameters).                      -->
+  <!-- =================================================== -->
+
+  <device id=DALDEVICEID_UARTDM_DEVICE_1>
+    <props name="GpioCfg" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> g_uart1dm_gpio_cfg </props>    
+  </device>
+
+  <!-- =================================================== -->
+  <!-- UART2DM (needs DM parameters).                      -->
+  <!-- =================================================== -->
+
+  <device id=DALDEVICEID_UARTDM_DEVICE_2>
+    <props name="GpioCfg" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> g_uart2dm_gpio_cfg </props>    
+  </device>
+
+  <!-- =================================================== -->
+  <!-- UART1                                               -->
+  <!-- =================================================== -->
+
+  <device id=DALDEVICEID_UARTLG_DEVICE_1>
+    <props name="GpioCfg" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> g_uart1_gpio_cfg </props>    
+  </device>
+
+  <!-- =================================================== -->
+  <!-- UART2                                               -->
+  <!-- =================================================== -->
+
+  <device id=DALDEVICEID_UARTLG_DEVICE_2>
+    <props name="GpioCfg" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> g_uart2_gpio_cfg </props>    
+  </device>
+
+  <!-- =================================================== -->
+  <!-- UART3                                               -->
+  <!-- =================================================== -->
+
+  <device id=DALDEVICEID_UARTLG_DEVICE_3>
+    <props name="GpioCfg" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> g_uart3_gpio_cfg </props>    
+  </device>
+
+</driver>
+

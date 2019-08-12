@@ -1,0 +1,241 @@
+# -------------------------------------------------------------------------------- #
+#                       W C D M A _ L 2. S C O N S                                      
+#
+# DESCRIPTION                                                                      
+#       Scons file for the W subsytem. Defines the existence of L2 
+#                                                                                  
+#                                                                                  
+# INITIALIZATION AND SEQUENCING REQUIREMENTS                                       
+#       None.                                                                      
+#                                                                                  
+#
+# Copyright (c) 2010 Qualcomm Technologies Incorporated.                                        
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary                       
+# Export of this technology or software is regulated by the U.S. Government.       
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/wcdma/l2/build/wcdma_l2.scons#1 $
+# $DateTime: 2016/12/13 08:00:12 $
+# 
+#  when         who     what, where, why
+# ---------     ---     ------------------------------------------------------------
+#  03/08/12     amj     Made changes for RC init task initialization support.
+#  10/06/11     mk      Added MPROC to CORE_APIS.
+#  07/08/11     mk      Added LTE to MODEM_RESTRICTED_APIS.
+#  05/30/11     kc      Include NAS and MMODE in the restricted api list
+#  02/22/11     rmsd    Set MSG_BT_SSID_DFLT for legacy MSG MACROs
+#  02/04/11     rmsd    Featurised Q6 and non-Q6 portions.  
+#  11/11/10     rmsd    Replaced RETURN() with Return()
+#  10/14/10     rmsd    Made changes to USES_FLAG.
+#  09/01/10     rmsd    Initial Cut
+#
+#===================================================================================#
+
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------------
+# USES_FLAG :: Do not compile WCDMA_L2 subsystem if 
+#              USES_WPLT is defined or (USES_UMTS and USES_WCDMA) are not defined.
+#------------------------------------------------------------------------------------
+if 'USES_WPLT' in env or ('USES_WCDMA' not in env and 'USES_UMTS' not in env):
+   Return()
+
+#-------------------------------------------------------------------------------
+# VIOLATIONS
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('VIOLATIONS',["${INC_ROOT}/core/systemdrivers/clk/inc",
+#                                                      "${INC_ROOT}/modem/utils/oss/oss_asn1_rvds21/include",
+                                                     ])
+# ------------------------------------------------------------------------------
+# Include Paths
+#-------------------------------------------------------------------------------
+
+
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'DEBUGTOOLS', #task.h is needed
+    'DAL', #HALcomdef.h is needed
+    'KERNEL',
+    'SYSTEMDRIVERS', #timetick.h is needed
+    'MPROC',
+    'SERVICES',
+    # needs to be last also contains wrong comdef.h
+    ]
+
+MODEM_PUBLIC_APIS = [
+     'MCS',
+     'UTILS',
+     'WCDMA',
+     'MMODE',
+    ]
+
+MULTIMEDIA_APIS = [
+    'AUDIO',
+    'ADSPINFO',
+    'MVS',
+    ]
+
+MODEM_RESTRICTED_APIS =[
+    'MCS',
+    'MDSP',
+    'WCDMA',
+    'FW',
+    'UTILS',
+    'NAS',
+    'MMODE',
+    'LTE',
+    ]
+
+
+#----------------------------------------------------------------------------#
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#----------------------------------------------------------------------------#
+REQUIRED_NON_SCONS_APIS = [
+    'BREW',
+    'MODEM_SERVICES',
+    'MULTIMEDIA_AUDIO',
+    'BASE_PATHS', #mdsp/cdma/inc
+    ]
+
+#-------------------------------------------------------------------------------
+# We need the Core BSP API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+#-------------------------------------------------------------------------------
+# We need the Multimedia APIs
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MULTIMEDIA_APIS, area="MULTIMEDIA")
+
+#-------------------------------------------------------------------------------
+# We need MODEM PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need different restricted API's within MODEM
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#----------------------------------------------------------------------------#
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#----------------------------------------------------------------------------#
+env.Append(CPPDEFINES = [
+   'MSG_BT_SSID_DFLT=MSG_SSID_WCDMA_L2',
+])
+
+#-------------------------------------------------------------------------------
+# Images that this VU is added .
+#-------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM']
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+WCDMA_L2_C_SOURCES = [
+	'${BUILDPATH}/l2dltask.c',
+	'${BUILDPATH}/l2ultask.c'
+]
+
+
+#-------------------------------------------------------------------------------
+# Add our library to the MODEM_AMSS image
+#-------------------------------------------------------------------------------
+env.AddLibrary(IMAGES, '${BUILDPATH}/wcdma/l2', WCDMA_L2_C_SOURCES)
+
+#-------------------------------------------------------------------------------
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM']
+   env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+     'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                   # required
+     'init_name'                  : 'wl2_dl',                           # required
+     'init_function'              : 'wcdma_l2_dl_task_init',            # required
+     'dependencies'               : []
+    })
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                  # required
+      'thread_name'                : 'wcdma_l2_dl',                     # required
+      'thread_entry'               : 'wcdma_l2_dl_task',                
+      'stack_size_bytes'           : env.subst('$WCDMA_L2_DL_STKSZ'),
+      'priority_amss_order'        : 'WCDMA_L2_DL_PRI_ORDER',
+      #'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+      'tcb_name'                   : 'wcdma_l2_dl_tcb',
+      'cpu_affinity'	           : env.subst('$MODEM_CPU_AFFINITY')
+    })
+
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM']
+   env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+     'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                   # required
+     'init_name'                  : 'wl2_ul',                           # required
+     'init_function'              : 'wcdma_l2_ul_task_init',            # required
+     'dependencies'               : []
+    })
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                  # required
+      'thread_name'                : 'wcdma_l2_ul',                     # required
+      'thread_entry'               : 'wcdma_l2_ul_task',                
+      'stack_size_bytes'           : env.subst('$WCDMA_L2_UL_STKSZ'),
+      'priority_amss_order'        : 'WCDMA_L2_UL_PRI_ORDER',
+      'tcb_name'                   : 'wcdma_l2_ul_tcb',
+      'cpu_affinity'	           : env.subst('$MODEM_CPU_AFFINITY')
+    })
+
+#-------------------------------------------------------------------------------

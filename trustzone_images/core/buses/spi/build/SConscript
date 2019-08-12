@@ -1,0 +1,162 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Public build script for SPI BUS driver.
+#
+# Copyright (c) 2009-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/buses/spi/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/01/14   ms      Added support for 8909
+# 08/26/14   ms      Added compile support for 9x09
+# 07/24/14   ms      Added support for 8909
+# 07/24/14   ms      Added support for 8936
+# 06/12/12   ddk     Added requirements to compile for specific images.
+# 06/03/12   ddk     Added 9625 support.
+# 04/16/12   ddk     Added updates for dev config settings.
+# 03/27/12   ddk     Added path for hwengines.
+# 02/09/12   ag      Fixed the location where the object files are built.
+# 01/21/12   ag      Initial release
+#
+#===============================================================================
+Import('env')
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+env = env.Clone()
+#print env
+# Additional defines
+env.Append(CPPDEFINES = ["FEATURE_LIBRARY_ONLY"])   
+
+SRCPATH = "../src"
+IMAGES = []
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+CBSP_APIS = []
+SPI_CONFIG_XML = []
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('BUSES_SPI_DEVICE', [
+   '${INC_ROOT}/core/buses/spi/hw',
+   '${INC_ROOT}/core/buses/spi/inc',
+   '${INC_ROOT}/core/buses/spi/src/hal/inc',
+   '${INC_ROOT}/core/buses/spi/src/logs/inc/',
+   '${INC_ROOT}/core/buses/spi/src/device/inc',
+   '${INC_ROOT}/core/buses/qup/hw',
+   '${INC_ROOT}/core/buses/qup/inc',
+   '${INC_ROOT}/core/buses/qup/src/hal/inc',   
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS += [
+   'BUSES',
+   'DAL',
+   'HAL',
+   'SYSTEMDRIVERS',
+   'KERNEL',   
+   'SERVICES',   
+   'HWENGINES',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+if env.has_key('ADSP_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+elif env.has_key('ADSP_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+elif env.has_key('MODEM_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+elif env.has_key('TZOS_IMAGE') and 'tzbsp_disable_spi' in env and env['tzbsp_disable_spi'] == 0:
+      IMAGES = ['TZOS_IMAGE']
+else:
+   Return();      
+
+if env.has_key('TZOS_IMAGE'):
+   IMAGES = ['TZOS_IMAGE'] 
+   if env['MSM_ID'] in ['8974']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8974.xml')
+   elif env['MSM_ID'] in ['8x26']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8626.xml')
+   elif env['MSM_ID'] in ['8084']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8084.xml')
+   elif env['MSM_ID'] in ['8962']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8962.xml')
+   elif env['MSM_ID'] in ['8x10']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8x10.xml')
+   elif env['MSM_ID'] in ['8092']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8084.xml')
+   elif env['MSM_ID'] in ['8916']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8916.xml')
+   elif env['MSM_ID'] in ['9x09']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8916.xml')       
+   elif env['MSM_ID'] in ['8936']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8936.xml')
+   elif env['MSM_ID'] in ['8939']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8936.xml')      
+   elif env['MSM_ID'] in ['8909']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8909.xml')
+   elif env['MSM_ID'] in ['8909w']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8909.xml')
+   elif env['MSM_ID'] in ['9x07']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_9x07.xml')
+   elif env['MSM_ID'] in ['8996']:
+      env.Replace(SPI_CONFIG_XML = 'spi_props_tz_8994.xml')     
+   else:
+      Return();
+else:
+   Return();   
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SPI_DEVICE_GLOB_FILES = env.GlobFiles('../src/*/*.c', posix=True)
+
+#GLOB returns the relative path name, it needs to replaced with correct build location
+SPI_DEVICE_SOURCES = [path.replace(SRCPATH, '${BUILDPATH}') for path in SPI_DEVICE_GLOB_FILES]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+# env.AddLibrary is a new API, only if the IMAGES is valid in the build env
+# the objects will built and added to the image.
+#-------------------------------------------------------------------------------
+env.AddLibrary(IMAGES, '${BUILDPATH}/SpiDevice', SPI_DEVICE_SOURCES)
+
+#---------------------------------------------------------------------------
+# Device Config
+#---------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      'devcfg_xml'    : '${BUILD_ROOT}/core/buses/spi/config/${SPI_CONFIG_XML}'
+   })
+
+
+
+
+
+   

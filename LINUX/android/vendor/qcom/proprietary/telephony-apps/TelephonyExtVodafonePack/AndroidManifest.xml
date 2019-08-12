@@ -1,0 +1,33 @@
+<!--
+    Copyright (c) 2015, Qualcomm Technologies, Inc.
+    All Rights Reserved.
+    Confidential and Proprietary - Qualcomm Technologies, Inc.
+-->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:androidprv="http://schemas.android.com/apk/prv/res/android"
+    package="com.qualcomm.qti.telephony.vodafonepack"
+    android:sharedUserId="android.uid.phone"
+    android:versionCode="1"
+    coreApp="true"
+    android:versionName="1.0" >
+
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:process="com.android.phone"
+        android:name="CarrierpackApplication">
+        <uses-library
+            android:name="com.qualcomm.qcrilhook" />
+
+        <receiver
+            android:name=".CarrierPackReceiver"
+            androidprv:primaryUserOnly="true" >
+            <intent-filter android:priority="100">
+                 <action android:name="org.codeaurora.wifibearer.WIFI_CONNECTION_STATE"/>
+                 <action android:name="qualcomm.intent.action.ACTION_CSG_ID_CHANGED_IND"/>
+                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

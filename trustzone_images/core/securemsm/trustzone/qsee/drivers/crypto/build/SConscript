@@ -1,0 +1,75 @@
+#===============================================================================
+#
+# TZBSP crypto lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       	who        what, where, why
+# --------   	---        ---------------------------------------------------------
+# 2/15/2010   cap        Initial
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/drivers/crypto/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(['SERVICES', 
+                      'KERNEL',    #< stringl.h
+                      'HWIO',
+                      'SECUREMSM',			
+                     ])
+env.RequireProtectedApi(['CRYPTODRIVERS'])
+env.RequireRestrictedApi(['TZLIBARMV7',
+                          'TZKS',
+                          'TZCRYPTO',
+                          'TZSECAPP',     #< smc.h
+			  'SECUREMSM',
+                          ])
+
+INC_PATH_API = ["${INC_ROOT}/core/securemsm/trustzone/qsee/include/crypto/",
+                "${INC_ROOT}/core/securemsm/trustzone/qsee/arch/${CHIPSET}/cfg/common",
+                "${INC_ROOT}/core/kernel/lk/kernel/inc/",
+		"${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+		"${INC_ROOT}/core/securemsm/cryptodriver/ce/shared/inc",
+                "${INC_ROOT}/core/kernel/lk/arch/inc/",]
+env.Append(CPPPATH = INC_PATH_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+#
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+TZ_CRYPTO_LIB_SOURCES = ['${BUILDPATH}/src/tzbsp_cipher.c',
+                        '${BUILDPATH}/src/tzbsp_hash.c',
+                        '${BUILDPATH}/src/tzbsp_hmac.c',
+                        '${BUILDPATH}/src/tzbsp_cmac.c',
+                        '${BUILDPATH}/src/tzbsp_kdf.c',
+                        '${BUILDPATH}/src/tzbsp_crypto_api.c',
+                        '${BUILDPATH}/src/tzbsp_ce_pipe.c',]
+
+env.AddBinaryLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_crypto', TZ_CRYPTO_LIB_SOURCES)

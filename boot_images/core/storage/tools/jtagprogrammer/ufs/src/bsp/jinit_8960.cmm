@@ -1,0 +1,69 @@
+;============================================================================
+;  Name:
+;    JINIT_8960.CMM - JTAG CMM script with the required initialization
+;    steps for 8960 specific configuration
+;
+;  Description:
+;    Mainly target specific configurations
+;
+;
+; Copyright (c) 2010 Qualcomm Technologies Incorporated.
+; All Rights Reserved.
+; Qualcomm Confidential and Proprietary
+;
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+;  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/tools/jtagprogrammer/ufs/src/bsp/jinit_8960.cmm#1 $ 
+;  $DateTime: 2015/09/01 00:30:35 $ 
+;  $Author: pwbldsvc $
+;
+;when         who     what, where, why
+;----------   ---     ----------------------------------------------------------
+;2011-05-06   ah      removed any seeting of the system.jtagclock
+;2010-09-21   ah      SYSTEM.JTAGCLOCK changed from 5MHz to RTCK
+;2010-02-22   rh      Initial Creation
+;
+;
+;============================================================================;
+
+;============================================================================
+; Declare variables used
+;============================================================================
+
+;-------------------------------------------------------------------------------
+; Turbo mode of debug state accesses - CPU makes no checks of memory access in
+; debug mode
+;-------------------------------------------------------------------------------
+ sys.o.TURBO off
+ sys.o.ResBreak on
+ sys.o.EnReset on
+ sys.o.TRST on
+ sys.o.CFLUSH on
+
+;-------------------------------------------------------------------------------
+; Disassembler selection - Automatically selects correct one.
+;-------------------------------------------------------------------------------
+ sys.o.DisMode Auto
+
+;-------------------------------------------------------------------------------
+; select CPU type
+;-------------------------------------------------------------------------------
+ sys.CPU SCORPION
+
+;-------------------------------------------------------------------------------
+; restart CPU with debug mode
+;-------------------------------------------------------------------------------
+  system.down
+;;  SYSTEM.JTAGCLOCK RTCK
+  SYSTEM.POLLING SLOW
+  SYSTEM.OPTION RESBREAK OFF
+  System.Option TURBO off
+  SYSTEM.OPTION ENRESET ON
+  system.up
+
+enddo
+ 
+

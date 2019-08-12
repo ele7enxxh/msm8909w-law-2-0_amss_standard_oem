@@ -1,0 +1,196 @@
+#===============================================================================
+#
+# VCS DRIVER SHARED LIBRARY
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2015 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/vcs/build/vcs.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Add API folders
+#-------------------------------------------------------------------------------
+
+VCS_BUILD_ROOT = os.getcwd();
+
+env.PublishPrivateApi('SYSTEMDRIVERS_VCS', [
+   VCS_BUILD_ROOT + "/../src",
+   "${BUILD_ROOT}/core/systemdrivers/hal/ldo/inc",
+   "${BUILD_ROOT}/core/systemdrivers/vcs/config/${CHIPSET}",
+   "${BUILD_ROOT}/core/systemdrivers/vcs/hw/${CHIPSET}/mss/inc"
+])
+
+#-------------------------------------------------------------------------------
+# Define paths
+#-------------------------------------------------------------------------------
+
+SRCPATH = "../"
+SRCPATHSCRIPTS = env['BUILD_ROOT'] + '/core/systemdrivers/vcs/scripts/'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Define any features or compiler flags
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'POWER',
+   'KERNEL',
+   'DEBUGTRACE',
+   'DEBUGTOOLS'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Define sources
+#-------------------------------------------------------------------------------
+
+VCS_SOURCES = [
+   '${BUILDPATH}/src/VCSDriver.c',
+   '${BUILDPATH}/src/VCSFwk.c',
+   '${BUILDPATH}/src/VCSCPU.c',
+   '${BUILDPATH}/src/VCSNPA.c',
+   '${BUILDPATH}/src/VCSRails.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(
+  ['CORE_MODEM'],
+  '${BUILDPATH}/VCS',
+  VCS_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+
+# Remove documentation source files
+DOCSRC_FILES = env.FindFiles(
+  ['*'],
+  '${BUILD_ROOT}/core/api/systemdrivers/docsrc/vcs/')
+env.CleanPack(['CORE_MODEM'], DOCSRC_FILES)
+
+# Remove target config files
+ALL_CONFIG_FILES = env.FindFiles(
+  ['*'],
+  '../config/')
+MY_CONFIG_FILES = env.FindFiles(
+  ['*'],
+  '../config/${CHIPSET}')
+PACK_CONFIG_FILES = list(set(ALL_CONFIG_FILES) - set(MY_CONFIG_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_CONFIG_FILES)
+
+# Remove target hw files
+ALL_HW_FILES = env.FindFiles(
+  ['*'],
+  '../hw/')
+MY_HW_FILES = env.FindFiles(
+  ['*'],
+  '../hw/${CHIPSET}')
+PACK_HW_FILES = list(set(ALL_HW_FILES) - set(MY_HW_FILES))
+env.CleanPack(['CORE_MODEM'], PACK_HW_FILES)
+
+#-------------------------------------------------------------------------------
+# Register initialization function and dependencies.
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['CORE_MODEM']
+  env.AddRCInitFunc( 
+    RCINIT_IMG,
+    {
+      'sequence_group' : 'RCINIT_GROUP_0',                     # required
+      'init_name'      : 'vcs',                                # required
+      'init_function'  : 'vcs_init',                           # required
+      'dependencies'   : ['dalsys','npa','pm']
+    })
+
+  if env['MSM_ID'] in ['8937']:
+    env.AddRCInitFunc( 
+      RCINIT_IMG,
+      {
+        'sequence_group' : 'RCINIT_GROUP_0',                     # required
+        'init_name'      : 'vcs_cpr',                            # required
+        'init_function'  : 'vcs_cpr_init',                       # required
+        'dependencies'   : ['cpr']
+      })
+
+
+#-------------------------------------------------------------------------------
+# Invoke chipset build file
+#-------------------------------------------------------------------------------
+
+env.SConscript('${BUILDPATH}/hw/${CHIPSET}/build/vcs_chipset.scons', exports='env')
+
+#-------------------------------------------------------------------------------
+# Invoke document generation SConscript
+#-------------------------------------------------------------------------------
+
+if os.path.exists(env['BUILD_ROOT'] + '/core/api/systemdrivers/docsrc/vcs/SConscript') :
+  env.SConscript(
+    '${BUILD_ROOT}/core/api/systemdrivers/docsrc/vcs/SConscript',
+    exports='env')
+
+#-------------------------------------------------------------------------------
+# DEVCFG - VCS XML
+#-------------------------------------------------------------------------------
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      '8909_xml' : ['${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8909/VCSChipset.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8909/VCSBSP.c',
+                    '${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8909/VCSMSSBSP.c'],
+      '8937_xml' : ['${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8937/VCSChipset.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8937/VCSBSP.c',
+                    '${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8937/VCSMSSBSP.c'],
+      '9607_xml' : ['${BUILD_ROOT}/core/systemdrivers/vcs/config/mdm9607/VCSChipset.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/vcs/config/mdm9607/VCSBSP.c',
+                    '${BUILD_ROOT}/core/systemdrivers/vcs/config/mdm9607/VCSMSSBSP.c'],
+      '8952_xml' : ['${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8952/VCSChipset.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8952/VCSBSP.c',
+                    '${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8952/VCSMSSBSP.c'],
+      '8976_xml' : ['${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8976/VCSChipset.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8976/VCSBSP.c',
+                    '${BUILD_ROOT}/core/systemdrivers/vcs/config/msm8976/VCSMSSBSP.c'],
+   })
+
+#-------------------------------------------------------------------------------
+# Add CMM scripts to T32 menu
+#-------------------------------------------------------------------------------
+
+CMM_ARGUMENT = env['CHIPSET']
+
+try:
+  env.AddCMMScripts ('MPSS', [SRCPATHSCRIPTS], { 'VCS.cmm' : ['VCS'] }, 'SystemDrivers')
+except:
+  pass
+

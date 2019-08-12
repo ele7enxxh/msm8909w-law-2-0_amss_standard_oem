@@ -1,0 +1,208 @@
+//============================================================================
+//  Name:                                                                     
+//    std_intercom_init.cmm
+//
+//  Description:                                                              
+//    It initializes the intercom ports for all the subsystems. It will ping
+//    a particular sub-system to check if it is "alive" depending on the arguments
+//    passes
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/19/2012 AJCheriyan	Fixed localhost issue and renamed intercom ports 
+// 07/10/2012 AJCheriyan    Created for B-family
+//
+//
+
+// We support two values for the first argument with arguments = no.of sub-systems + 1  
+// IARG0 - NEWSESSION or CHECKSESSION. If NEWSESSION, we just initialize the intercom ports and return
+// 		  If CHECKSESSION is chosen, sessions indicated by ARG1 - ARGn are checked and global
+// 		  variables are updated
+// IARG1 - No. of sessions to check. Used only if ARG0 is CHECKSESSION
+// IARGn - n > 1 - SESSION names to check for. Currently supports the following
+// 		  RPM, APPS0, APPS1, APPS2, APPS3, MPSS, ADSP, WCNSS
+
+ENTRY &IARG0 &IARG1 &IARG2 &IARG3 &IARG4 &IARG5 &IARG6 &IARG7 &IARG8 &IARG9
+
+// Globals: Global Variables
+// Global variables / intercom handles for every subsystem
+GLOBAL &RPM_ALIVE &RPM_PORT 
+GLOBAL &APPS0_ALIVE &APPS0_PORT 
+GLOBAL &APPS1_ALIVE &APPS1_PORT 
+GLOBAL &APPS2_ALIVE &APPS2_PORT 
+GLOBAL &APPS3_ALIVE &APPS3_PORT
+GLOBAL &MPSS_ALIVE &MPSS_PORT
+GLOBAL &WCNSS_ALIVE &WCNSS_PORT
+
+
+// Handle for this processor
+GLOBAL &LOCALHOST
+
+
+
+MAIN:
+
+   // Setup intercom ports only if NEWSESSION	
+   IF ("&IARG0"=="NEWSESSION")
+   (
+
+	// Intercom port number of the currrent session
+   	&LOCALHOST=INTERCOM.PORT()
+	
+	&RPM_PORT="10000."
+	&APPS0_PORT="10001."
+	&APPS1_PORT="10002."
+	&APPS2_PORT="10003."
+	&APPS3_PORT="10004."
+	&MPSS_PORT="10005."
+	&WCNSS_PORT="10006."
+	
+  )
+
+  // We want to check if a particular session is 
+  // active. So ping and find out 
+  IF ("&IARG0"=="CHECKSESSION")
+  (
+	GOSUB CHECKSESSIONARG &IARG2
+	GOSUB CHECKSESSIONARG &IARG3
+	GOSUB CHECKSESSIONARG &IARG4
+	GOSUB CHECKSESSIONARG &IARG5
+	GOSUB CHECKSESSIONARG &IARG6
+	GOSUB CHECKSESSIONARG &IARG7
+	GOSUB CHECKSESSIONARG &IARG8
+	GOSUB CHECKSESSIONARG &IARG9
+  )
+
+  GOTO EXIT
+
+
+ // Function to check if the session is valid or not
+ // If invalid, it will exit the script. The assumption
+ // is that the first argument which is "NULL" will be 
+ // followed by more NULL arguments and hence, can exit. 
+ // The arguments must be checked in serial order for this 
+ // to be true.
+CHECKSESSIONARG:
+	ENTRY &SESSION
+
+	IF ("&SESSION"=="")
+	(
+		GOTO EXIT
+	)
+
+	IF ("&SESSION"=="RPM")
+	(
+	 	IF INTERCOM.PING(&RPM_PORT)
+	  	(
+	 		&RPM_ALIVE=1.
+	   		PRINT "RPM Session Active."
+		)
+		ELSE
+		(
+ 			&RPM_ALIVE=0.
+   		)
+		
+	)
+
+	IF ("&SESSION"=="APPS0")
+	(
+	 	IF INTERCOM.PING(&APPS0_PORT)
+	  	(
+	 		&APPS0_ALIVE=1.
+	   		PRINT "Apps Session 0 Active."
+		)
+		ELSE
+		(
+ 			&APPS0_ALIVE=0.
+   		)
+		
+	)
+
+	IF ("&SESSION"=="APPS1")
+	(
+	 	IF INTERCOM.PING(&APPS1_PORT)
+	  	(
+	 		&APPS1_ALIVE=1.
+	   		PRINT "Apps Session 1 Active."
+		)
+		ELSE
+		(
+ 			&APPS1_ALIVE=0.
+   		)
+		
+	)
+
+	IF ("&SESSION"=="APPS2")
+	(
+	 	IF INTERCOM.PING(&APPS2_PORT)
+	  	(
+	 		&APPS2_ALIVE=1.
+	   		PRINT "Apps Session 2 Active."
+		)
+		ELSE
+		(
+ 			&APPS2_ALIVE=0.
+   		)
+		
+	)
+
+	IF ("&SESSION"=="APPS3")
+	(
+	 	IF INTERCOM.PING(&APPS3_PORT)
+	  	(
+	 		&APPS3_ALIVE=1.
+	   		PRINT "Apps Session 3 Active."
+		)
+		ELSE
+		(
+ 			&APPS3_ALIVE=0.
+   		)
+		
+	)
+	
+	IF ("&SESSION"=="MPSS")
+	(
+	 	IF INTERCOM.PING(&MPSS_PORT)
+	  	(
+	 		&MPSS_ALIVE=1.
+	   		PRINT "MPSS Session Active."
+		)
+		ELSE
+		(
+ 			&MPSS_ALIVE=0.
+   		)
+		
+	)
+
+
+	IF ("&SESSION"=="WCNSS")
+	(
+	 	IF INTERCOM.PING(&WCNSS_PORT)
+	  	(
+	 		&WCNSS_ALIVE=1.
+	   		PRINT "WCNSS Session Active."
+		)
+		ELSE
+		(
+ 			&WCNSS_ALIVE=0.
+   		)
+		
+	)
+
+	
+	
+
+	RETURN
+	
+
+EXIT:
+	ENDDO

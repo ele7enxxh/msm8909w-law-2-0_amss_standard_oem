@@ -1,0 +1,92 @@
+# -------------------------------------------------------------------------------- #
+#                         G N S S _ S A M L I T E . S C O N S
+#
+# DESCRIPTION
+#   SCons file for the GNSS SAMLite subsystem.
+#
+#
+# INITIALIZATION AND SEQUENCING REQUIREMENTS
+#   None.
+#
+#
+# Copyright (c) 2014 Qualcomm Atheros, Inc.
+# All Rights Reserved.
+# Qualcomm Atheros Confidential and Proprietary.
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------------- #
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/gps/gnss/samlite/algo/pedometer/build/gnss_samlite_algo_pedometer.scons#1 $
+# $DateTime: 2016/12/13 07:59:45 $
+# $Author: mplcsds1 $
+#
+# when          who     what, where, why
+# ----------    ---     ------------------------------------------------------------
+# 2014/05/13     mk      Initial Version
+#
+# --------------------------------------------------------------------------------- #
+
+#--------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#--------------------------------------------------------------------------------
+Import('env')
+from glob import glob
+from os.path import join, basename
+
+#--------------------------------------------------------------------------------
+# Check USES flags and return if library isn't needed
+#--------------------------------------------------------------------------------
+if 'USES_CGPS' not in env:
+    Return()
+
+#--------------------------------------------------------------------------------
+# Setup source PATH
+#--------------------------------------------------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#--------------------------------------------------------------------------------
+# Name of the subsystem to which this unit belongs
+#--------------------------------------------------------------------------------
+LIB_TARGET = '${BUILDPATH}/' + 'gnss_samlite_algo_pedometer'
+
+#--------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros by removing previous version and adding new
+# Definition
+#--------------------------------------------------------------------------------
+env.Replace(CPPDEFINES = [x for x in env['CPPDEFINES'] if not x.startswith("MSG_BT_SSID_DFLT=")] +
+                                         ["MSG_BT_SSID_DFLT=MSG_SSID_GPSSM"])
+
+#--------------------------------------------------------------------------------
+# Images that this VU is added
+#--------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM']
+
+#--------------------------------------------------------------------------------
+# Generate the library and add to an image
+#--------------------------------------------------------------------------------
+BINARY_LIB_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                      for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+#--------------------------------------------------------------------------------
+# Ship our code as binary library and add it to the Modem image
+#--------------------------------------------------------------------------------
+env.AddBinaryLibrary(IMAGES, (LIB_TARGET + '_pvt'), BINARY_LIB_SOURCES)
+

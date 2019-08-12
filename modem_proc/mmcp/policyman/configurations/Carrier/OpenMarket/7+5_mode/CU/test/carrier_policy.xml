@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Policy for CU CSFB+G DSDS 
+$Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/policyman/configurations/Carrier/OpenMarket/7+5_mode/CU/test/carrier_policy.xml#1 $
+-->
+<policy name        = "generic"
+        changelist  = "$Change: 11985193 $"
+        schema_ver  = "1"
+        policy_ver  = "75.3.15"
+>
+
+  <initial>
+    <actions>
+      <!-- Define the MCCs in which FDD LTE is to be disabled -->
+      <mcc_list name="home_mccs">
+        404 460 310 001
+      </mcc_list>
+
+      <define_fullrat_config>
+        <actions>
+          <rat_capability base="none" >
+            <include> G W L </include>
+          </rat_capability>
+          <rf_bands base="hardware" />
+          <svc_mode> LIMITED </svc_mode>
+          <freq_list list="cpfl" />
+        </actions>
+      </define_fullrat_config>
+
+      <rat_capability base="none" >
+        <include> G W L </include>
+      </rat_capability>
+      <rf_bands base="hardware" />
+
+      <ue_mode> CSFB </ue_mode>
+
+      <feature single_sim="normal"> dualmmode </feature>
+
+      <freq_list_if list="cpfl" />
+
+    </actions>
+  </initial>
+
+  <!-- RULE #1 -->
+  <!-- We wait if we don't have location or we are not ONLINE.
+  -->
+  <if precond="none">
+    <any_of>
+      <not> <have_location /> </not>
+      <not> <phone_operating_mode> ONLINE </phone_operating_mode> </not>
+    </any_of>
+    <then>
+      <stop />
+    </then>
+  </if>
+
+  <!-- RULE #2 -->
+  <!-- Continue setting the capabilities.
+  -->
+  <svc_mode> FULL </svc_mode>
+  <rat_capability base="none">
+    <include> G W L </include>
+  </rat_capability>
+  <rf_bands base="hardware" />
+
+  <!-- RULE #3 -->
+  <!-- Set capability based on location.
+  -->
+  <if>
+    <cond> <location_mcc_in list="home_mccs" /> </cond>
+    <then> <freq_list list="cpfl" /> </then>
+    <else> <freq_list list="default" /> </else>
+  </if>
+
+</policy>

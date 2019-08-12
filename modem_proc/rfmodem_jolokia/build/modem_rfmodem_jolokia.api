@@ -1,0 +1,188 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2014 Qualcomm Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rfmodem_jolokia/build/modem_rfmodem_jolokia.api#1 $
+# $DateTime: 2016/12/13 07:59:25 $ 
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/16/14   dej     Clean-up SCons and add support for TABASCO
+# 06/20/14   aa      Publish FBRX interface 
+# 06/18/14   php     Add support for new LTE CCS API file 
+# 06/04/14   dej     Fix Compiler errors
+# 05/30/14   dej     Initialize for Jolokia
+# 05/27/14   spa     Publish CDMA interface as public API for FED standalone
+# 02/21/14   aa      DimePM compiler error fix
+# 11/08/13   spa     Expose cdma interface 
+# 10/17/13   bmg     Beginning cleanup of target-specific coupling
+# 10/02/13   ra      Added Publish CCS API support
+# 08/28/13   hdz     Added ccs inc in RFMODEM_BOLT
+# 05/13/13   ra      Created
+#===============================================================================
+
+Import('env')
+
+env.Replace(RFMODEM_DIR = 'rfmodem_jolokia')
+image_env = env.get('IMAGE_ENV')
+if image_env:
+  # IMAGE_ENV will not be found when doing --listapis, so don't crash if it
+  # isn't present
+  if 'RF_GLOBALS' not in image_env:
+    image_env.Replace(RF_GLOBALS = dict())
+  rf_globals = image_env.get('RF_GLOBALS')
+  rf_globals['RFMODEM_AREA'] = env.get('AU_NAME')
+
+env.Replace(RFMODEM_JOLOKIA_ROOT = Dir('..').path)
+env.Replace(RFMODEM_ROOT = Dir('..').path)
+
+env.PublishPublicApi('RFMODEM_DIMEPM',  [
+  '${RFMODEM_JOLOKIA_ROOT}/api',
+	'${RFMODEM_JOLOKIA_ROOT}/api/fw',
+	'${RFMODEM_JOLOKIA_ROOT}/api/cdma',
+	'${RFMODEM_JOLOKIA_ROOT}/api/ccs',
+	'${RFMODEM_JOLOKIA_ROOT}/api/dm',
+	'${RFMODEM_JOLOKIA_ROOT}/api/fbrx',
+	'${RFMODEM_JOLOKIA_ROOT}/rflm/ccs/rf_ccs/protected',
+	'${RFMODEM_JOLOKIA_ROOT}/rflm/ccs/downloader/protected',
+        '${RFMODEM_JOLOKIA_ROOT}/hal/common/inc',
+        '${RFMODEM_JOLOKIA_ROOT}/api/lte'
+    ])
+env.PublishPublicApi('RFMODEM', [
+                      '${RFMODEM_JOLOKIA_ROOT}/api/ccs',
+                      '${RFMODEM_JOLOKIA_ROOT}/api/dm',
+                      '${RFMODEM_JOLOKIA_ROOT}/api/fw',
+	                  '${RFMODEM_JOLOKIA_ROOT}/api/cdma',
+	                  '${RFMODEM_JOLOKIA_ROOT}/api/fbrx',
+					  '${RFMODEM_JOLOKIA_ROOT}/api/autopin',
+                      '${RFMODEM_JOLOKIA_ROOT}/rflm/ccs/rf_ccs/protected',
+                      '${RFMODEM_JOLOKIA_ROOT}/rflm/ccs/downloader/protected',
+                      '${RFMODEM_JOLOKIA_ROOT}/api/lte'
+                      ])
+
+env.PublishPublicApi('LM',  [    '${RFMODEM_JOLOKIA_ROOT}/api/lm',])
+env.PublishPublicApi('LM_INC',  [    '${RFMODEM_JOLOKIA_ROOT}/lm/inc',])
+env.PublishRestrictedApi('RFMODEM_LM_INC',  [    '${RFMODEM_JOLOKIA_ROOT}/lm/inc',])
+env.PublishPublicApi('HAL',  [
+        '${RFMODEM_JOLOKIA_ROOT_}/hal/cdma/inc',
+        '${RFMODEM_JOLOKIA_ROOT}/hal/common/inc',
+        '${RFMODEM_JOLOKIA_ROOT}/hal/gsm/inc',
+        '${RFMODEM_JOLOKIA_ROOT}/hal/lte/inc',
+        '${RFMODEM_JOLOKIA_ROOT}/hal/meas/inc',
+        '${RFMODEM_JOLOKIA_ROOT}/hal/tdscdma/inc',
+        '${RFMODEM_JOLOKIA_ROOT}/hal/wcdma/inc',
+        ])
+env.PublishPublicApi('FW',  [    '${RFMODEM_JOLOKIA_ROOT}/api/fw',])
+env.PublishPublicApi('FBRX',  [    '${RFMODEM_JOLOKIA_ROOT}/api/fbrx',])
+env.PublishPublicApi('AUTOPIN',  [    '${RFMODEM_JOLOKIA_ROOT}/api/autopin',])
+env.PublishPublicApi('DTR',  [    '${RFMODEM_JOLOKIA_ROOT}/api/dtr',])
+env.PublishPublicApi('CCS',  [    '${RFMODEM_JOLOKIA_ROOT}/api/ccs',])
+env.PublishPublicApi('DM',  [    '${RFMODEM_JOLOKIA_ROOT}/api/dm',])
+env.PublishPublicApi('RFMODEM_PROTECTED_RFLM_AUTOPIN',  [    '${RFMODEM_JOLOKIA_ROOT}/api/autopin',])
+env.PublishPublicApi('CDMA',  [    '${RFMODEM_JOLOKIA_ROOT}/api/cdma',])
+env.PublishPublicApi('LTE',  [    '${RFMODEM_JOLOKIA_ROOT}/api/lte',])
+env.PublishPublicApi('TARGET',  [    '${RFMODEM_JOLOKIA_ROOT}/target/msm8909/inc',])
+
+env.PublishRestrictedApi('RFMODEM_DIMEPM_LM_INC',[ '${RFMODEM_JOLOKIA_ROOT}/lm/inc',])
+
+env.PublishRestrictedApi ('VIOLATIONS',[
+                           '${INC_ROOT}/mcs/hwio/inc',
+                           '${INC_ROOT}/mcs/hwio/inc/${CHIPSET}'
+                           ])
+
+env.PublishRestrictedApi('VIOLATIONS',[
+        '${INC_ROOT}/rfa/variation/inc',
+        '${INC_ROOT}/rfa/rf/common/ftm/inc',
+        '${INC_ROOT}/geran/cust/inc',
+        '${INC_ROOT}/geran/variation/inc',
+        #'${INC_ROOT}/utils/osys',
+        #'${INC_ROOT}/wcdma/l1/offline/inc',
+        '${INC_ROOT}/hdr/common/api',
+        #'${INC_ROOT}/tdscdma/l1/src',
+        #'${INC_ROOT}/tdscdma/l1/inc',
+        #'${INC_ROOT}/tdscdma/mac/inc',
+        #'${INC_ROOT}/tdscdma/rrc/inc',
+        '${INC_ROOT}/hdr/cust/inc',
+        #'${INC_ROOT}/mcs/cust/inc',
+        #'${INC_ROOT}/core/buses/api/icb',
+        #'${INC_ROOT}/wcdma/rrc/inc',
+        #'${INC_ROOT}/wcdma/cust/inc',
+        #'${INC_ROOT}/wcdma/mac/inc',
+        #'${INC_ROOT}/tdscdma/rlc/inc',
+        #'${INC_ROOT}/wcdma/rlc/inc',
+        '${INC_ROOT}/hdr/mac/api',
+        '${INC_ROOT}/hdr/srch/api',
+        '${INC_ROOT}/hdr/variation/inc',
+        #'${INC_ROOT}/mcs/variation/inc',
+        #'${INC_ROOT}/hdr/cp/api',
+        #'${INC_ROOT}/tdscdma/rrc/inc/ASN1/on_target',
+        #'${INC_ROOT}/wcdma/variation/inc',
+        #'${INC_ROOT}/tdscdma/cust/inc',
+        #'${INC_ROOT}/tdscdma/l2/inc',
+        #'${INC_ROOT}/geran/grr/inc',
+        #'${INC_ROOT}/mmcp/cust/inc',
+        #'${INC_ROOT}/tdscdma/variation/inc',
+        #'${INC_ROOT}/wcdma/l2/inc',
+        #'${INC_ROOT}/core/services/diag/diag_mask_tbl/src',
+        '${INC_ROOT}/hdr/drivers/api',
+        #'${INC_ROOT}/mmcp/nas/mm/inc',
+        #'${INC_ROOT}/mmcp/variation/inc',
+        #'${INC_ROOT}/wcdma/diag/inc',
+	    '${INC_ROOT}/rfa/rfc/dime/target/mdm9x25/inc',
+        '${INC_ROOT}/modem/fw/target/emu/vi/env/bolt/drivers',	
+	    '${INC_ROOT}/rfc_bolt/target/mdm9x35/inc',
+        ])
+
+if 'USES_STANDALONE_FW' in env or 'USES_RF_TEST_APP' in env:
+   env.PublishRestrictedApi('RFMODEM_DIMEPM',[
+        '${RFMODEM_JOLOKIA_ROOT}/api/ccs',
+        '${RFMODEM_JOLOKIA_ROOT}/api/dm',
+        '${RFMODEM_JOLOKIA_ROOT}/api/fw',
+        '${RFMODEM_JOLOKIA_ROOT}/api/cdma',
+		'${RFMODEM_JOLOKIA_ROOT}/api/autopin',
+        ])
+   env.PublishRestrictedApi('RFMODEM',[
+        '${RFMODEM_JOLOKIA_ROOT}/api/ccs',
+        '${RFMODEM_JOLOKIA_ROOT}/api/dm',
+        '${RFMODEM_JOLOKIA_ROOT}/api/fw',
+        '${RFMODEM_JOLOKIA_ROOT}/api/cdma',
+        '${RFMODEM_JOLOKIA_ROOT}/api/fbrx',
+		'${RFMODEM_JOLOKIA_ROOT}/api/autopin',
+        ])
+else:
+   env.PublishPublicApi('RFMODEM_DIMEPM', ["${RFMODEM_JOLOKIA_ROOT}/api","${RFMODEM_JOLOKIA_ROOT}/hal/common/inc"]) 
+   env.PublishPublicApi('RFMODEM', ["${RFMODEM_JOLOKIA_ROOT}/api","${RFMODEM_JOLOKIA_ROOT}/hal/common/inc"]) 
+   env.PublishRestrictedApi('RFMODEM',[
+        '${RFMODEM_JOLOKIA_ROOT}/api/ccs',
+        '${RFMODEM_JOLOKIA_ROOT}/api/dm',
+        '${RFMODEM_JOLOKIA_ROOT}/api/fw',
+        '${RFMODEM_JOLOKIA_ROOT}/api/cdma',
+        '${RFMODEM_JOLOKIA_ROOT}/api/fbrx',
+		'${RFMODEM_JOLOKIA_ROOT}/api/autopin',
+        ])
+env.LoadAPIUnits()
+

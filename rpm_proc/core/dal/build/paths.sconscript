@@ -1,0 +1,52 @@
+#===============================================================================
+#
+# DAL Paths
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/scmm/main/latest/dal/build/paths.sconscript#3 $
+#  $DateTime: 2009/07/03 21:39:44 $
+#  $Author: wduembeg $
+#  $Change: 958475 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+if env['MSM_ID'] == '8909W':
+	env['TARGET_ID'] = '8909'
+else:
+	env['TARGET_ID'] = env['MSM_ID']
+
+# Public APIs these are accecible by anyone internal or external to CoreBSP
+env.PublishPublicApi('DAL', [
+   "${INC_ROOT}/core/api/dal",
+])
+
+# Restricted APIs these are accecible by anyone with in CoreBSP
+env.PublishRestrictedApi('DAL', [
+   "${INC_ROOT}/core/api/dal",
+   "${INC_ROOT}/core/dal/inc",
+   "${INC_ROOT}/core/dal/framework/inc",
+   "${INC_ROOT}/core/dal/framework/sys/inc",
+   "${INC_ROOT}/core/dal/framework/sys/src/dsps",
+   "${INC_ROOT}/core/dal/config/${TARGET_ID}",
+   "${INC_ROOT}/core/dal/drivers/InterruptController/inc",
+   "${INC_ROOT}/core/dal/drivers/remote_test/inc",
+   "${INC_ROOT}/core/dal/drivers/Timer/inc",
+   "${INC_ROOT}/core/dal/remote/inc",
+])
+

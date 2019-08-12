@@ -1,0 +1,136 @@
+//============================================================================
+//  Name:                                                                     
+//    std_debug_wcnss.cmm 
+//
+//  Description:                                                              
+//    WCNSS debug script
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 02/26/2013 AJCheriyan	Set sw_debug_enable 
+// 12/05/2012 AJCheriyan	Added change to disable watchdog while using debugger
+// 10/27/2012 AJCheriyan	Changed debug mode exit logic (needs SW changes)
+// 07/19/2012 AJCheriyan    Created for B-family.
+
+// Following arguments are supported. 
+// ARG0 - Image to debug. 
+// ARG1 - En/Disable Sleep. lpm_enable / lpm_disable
+// ARG2 - Entry point for this debug session. will default to image entry point
+//        if nothing is specified.
+// ARGn - n > 2 - Any other arguments to be passed to the script
+//
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+LOCAL &ELFILE &IMAGE
+
+MAIN:
+	&IMAGE="&ARG0"
+	&LPM_OPTION="&ARG1"
+	
+	// The arguments are valid at this point and the required T32 sessions are open
+	// Go about business without error checking
+	do hwio.cmm
+
+	// For WCNSS image
+	IF ("&IMAGE"=="wcnss")
+	(
+		// We expect the device to be in 'fastdebug' mode
+		// Attach to the RPM 
+		do std_utils ATTACHPROC
+		do std_utils BREAKPROC
+		
+		// Set the magic number appropriately
+		D.S E&ACCESS:&WCNSS_DEBUG_COOKIE %LONG %LE &DEBUG_COOKIE_VALUE
+		
+		// Let RPM run too 
+		do std_utils ATTACHPROC
+		
+		WAIT 20.s
+		
+		do std_utils ATTACHPROC
+
+		// Enable the CFG bus clock for the reset reg access
+		// Now poll until modem is brought out of reset
+		&VALUE=0x0
+		WHILE (&VALUE==0x0)
+		(
+			do std_utils HWIO_INF WCSS_A_PMU_CCPU_BOOT_REMAP_ADDR CCPU_BOOT_REMAP_ADDR
+			ENTRY &VALUE
+		)
+
+		//WAIT 5.s
+
+		// Now we can attach and break. It should be welcoming us with an "infinite loop"
+		do std_intercom_do &WCNSS_PORT std_utils BREAKPROC
+
+		// Load the symbols appropriately
+		do std_intercom_do &WCNSS_PORT std_loadsyms_wcnss
+		
+		// We are good to exit fastdebug mode
+		do std_exitfastdebug wcnss
+		
+		// Now go to the desired point
+		// Let's check if the symbol is present
+		INTERCOM.EVALUATE &WCNSS_PORT Y.EXIST("&ARG2")			
+		IF (1==EVAL())
+		(
+			// Go to user determined breakpoint
+			INTERCOM.EXECUTE &WCNSS_PORT GO &ARG2 /O
+		)
+		ELSE
+		(
+			// Go to known point
+		    INTERCOM.EXECUTE &WCNSS_PORT GO main /O
+		)
+		
+		WAIT 5.s
+		
+		// Check if sleep is to be enabled or not
+		INTERCOM.EVALUATE &WCNSS_PORT Y.EXIST(sleep_allow_low_power_modes)
+		IF (1==EVAL())
+		(
+			IF ("&LPM_OPTION"=="lpm_disable")
+			(
+				INTERCOM.EXECUTE &WCNSS_PORT v sleep_allow_low_power_modes = 0
+			)
+			IF ("&LPM_OPTION"=="lpm_enable")
+			(
+				INTERCOM.EXECUTE &WCNSS_PORT v sleep_allow_low_power_modes = 1
+			)
+		)
+
+		// MSM8974v1 HW bug - Watchdog is not disabled automatically when T32 debugger is
+		// connected and stopped. To prevent dog from expiring, disable watchdog using flag
+		INTERCOM.EVALUATE &WCNSS_PORT Y.EXIST(t32_debug_dog_disable)
+		IF (1==EVAL())
+		(
+			INTERCOM.EXECUTE &WCNSS_PORT v t32_debug_dog_disable = 0	
+		)
+
+		INTERCOM.EVALUATE &WCNSS_PORT Y.EXIST(sw_debug_enable)
+		IF (1==EVAL())
+		(
+			INTERCOM.EXECUTE &WCNSS_PORT v sw_debug_enable = 1			
+		)
+	)		
+	
+	GOTO EXIT
+
+EXIT:
+	print "Done std_debug_wcnss"
+	ENDDO
+
+FATALEXIT:
+	END
+
+
+

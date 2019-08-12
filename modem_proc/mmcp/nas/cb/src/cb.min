@@ -1,0 +1,29 @@
+#-------------------------------------------------------------------------------
+# CB
+#-------------------------------------------------------------------------------
+CB_SOURCES=\
+	cb_msg_asm.c	\
+	cb_schedule.c	\
+	cb_state.c	    \
+	cb_task.c	    \
+	cb_utils.c      \
+	cb_mem.c
+	
+CB_CINCPATH=\
+	     $(COMMON)        \
+	     $(DIAG)          \
+         $(REX)           \
+	     $(L1)	          \
+	     $(TASK)	      \
+             $(WMS)		\
+	     $(WCDMA_L1)	\
+	     $(RLC)		\
+	     $(RRC)
+
+
+CB_OBJS :=  $(addprefix $(TARGETDIR)/, $(CB_SOURCES:%.c=%.o))
+$(CB_OBJS): INCLUDES = $(addprefix -I, $(CB_CINCPATH))
+$(CB_OBJS): CFLAGS := $(CFLAGS) 
+vpath %.c $(CB)
+
+

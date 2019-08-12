@@ -1,0 +1,518 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!--
+  Copyright (c) 2015 Qualcomm Technologies, Inc.
+  All Rights Reserved.
+  Confidential and Proprietary - Qualcomm Technologies, Inc.
+-->
+<head>
+<title>Message definition for the QFP service</title>
+<link rel="stylesheet" type="text/css" href="qmi_idl_wiredoc.css" />
+</head>
+
+<body>
+<h1>Message definition for the QFP service
+</h1>
+ This file defines messages used by QFP service.<br><br> The service uses the Ontario4 fingerprint sensor in order to implement<br> a low-power finger detection which runs in the SLPI, and to provide support<br> for running standard fingerprint functionality in HLOS when fingerprint<br> sensor is connected to SSC SPI port.<br><br> The messages defined herein will be passed to the Sensor framework using<br> the sensor1_write() API.
+
+<h1>Service Type</h1>
+<ul>
+<li>QMI service type <b>SNS_QMI_SVC_ID_56</b>
+<li>Version <b>01</b>
+<li>Revision <b>00</b>
+</ul>
+<h1><a name='Messages'>Messages</a></h1>
+<table class = 'tlv'><tr class='head'><th>Command</th><th>ID</th><th>Messages</th><th>Description</th></tr>
+<tr><td class='l'><a href='#SNS_COMMON_CANCEL'>SNS_COMMON_CANCEL</a></td><td>0x0000</td><td class='l'><a href="#SNS_QFP_CANCEL_REQ">SNS_QFP_CANCEL_REQ</a></br><a href="#SNS_QFP_CANCEL_RESP">SNS_QFP_CANCEL_RESP</a></br></td><td class='l'>Cancels all requests from a client to any sensor service. This must be the first message of any sensor service. </td></tr>
+<tr><td class='l'><a href='#SNS_COMMON_VERSION'>SNS_COMMON_VERSION</a></td><td>0x0001</td><td class='l'><a href="#SNS_QFP_VERSION_REQ">SNS_QFP_VERSION_REQ</a></br><a href="#SNS_QFP_VERSION_RESP">SNS_QFP_VERSION_RESP</a></br></td><td class='l'>Requests the version of the sensor service. This must be the second message of any sensor service. </td></tr>
+<tr><td class='l'><a href='#SNS_QFP_OPEN'>SNS_QFP_OPEN</a></td><td>0x0020</td><td class='l'><a href="#SNS_QFP_OPEN_REQ">SNS_QFP_OPEN_REQ</a></br><a href="#SNS_QFP_OPEN_RESP">SNS_QFP_OPEN_RESP</a></br></td><td class='l'>Allocate resources, opens SPI port and configures clocks. </td></tr>
+<tr><td class='l'><a href='#SNS_QFP_CLOSE'>SNS_QFP_CLOSE</a></td><td>0x0021</td><td class='l'><a href="#SNS_QFP_CLOSE_REQ">SNS_QFP_CLOSE_REQ</a></br><a href="#SNS_QFP_CLOSE_RESP">SNS_QFP_CLOSE_RESP</a></br></td><td class='l'>Close SPI port, free resources used by sensor </td></tr>
+<tr><td class='l'><a href='#SNS_QFP_KEEP_ALIVE'>SNS_QFP_KEEP_ALIVE</a></td><td>0x0022</td><td class='l'><a href="#SNS_QFP_KEEP_ALIVE_REQ">SNS_QFP_KEEP_ALIVE_REQ</a></br><a href="#SNS_QFP_KEEP_ALIVE_RESP">SNS_QFP_KEEP_ALIVE_RESP</a></br></td><td class='l'>Enable or disable keep alive - prevent SLPI from shutting down SPI port. </td></tr>
+<tr><td class='l'><a href='#SNS_QFP_FINGER_DETECT_ENABLE'>SNS_QFP_FINGER_DETECT_ENABLE</a></td><td>0x0023</td><td class='l'><a href="#SNS_QFP_FINGER_DETECT_ENABLE_REQ">SNS_QFP_FINGER_DETECT_ENABLE_REQ</a></br><a href="#SNS_QFP_FINGER_DETECT_ENABLE_RESP">SNS_QFP_FINGER_DETECT_ENABLE_RESP</a></br></td><td class='l'>Start the wake-up finger detect processing. </td></tr>
+<tr><td class='l'><a href='#SNS_QFP_FINGER_DETECT_DISABLE'>SNS_QFP_FINGER_DETECT_DISABLE</a></td><td>0x0024</td><td class='l'><a href="#SNS_QFP_FINGER_DETECT_DISABLE_REQ">SNS_QFP_FINGER_DETECT_DISABLE_REQ</a></br><a href="#SNS_QFP_FINGER_DETECT_DISABLE_RESP">SNS_QFP_FINGER_DETECT_DISABLE_RESP</a></br></td><td class='l'>Stop the wake-up finger detect processing. </td></tr>
+<tr><td class='l'><a href='#SNS_QFP_FINGER_DETECT_IND'>SNS_QFP_FINGER_DETECT_IND</a></td><td>0x0025</td><td class='l'><a href="#SNS_QFP_FINGER_DETECT_IND">SNS_QFP_FINGER_DETECT_IND</a></br></td><td class='l'>Indication when finger is detected </td></tr>
+<tr><td class='l'><a href='#SNS_QFP_SIMPLE_ITEM_WRITE'>SNS_QFP_SIMPLE_ITEM_WRITE</a></td><td>0x0026</td><td class='l'><a href="#SNS_QFP_SIMPLE_ITEM_WRITE_REQ">SNS_QFP_SIMPLE_ITEM_WRITE_REQ</a></br><a href="#SNS_QFP_SIMPLE_ITEM_WRITE_RESP">SNS_QFP_SIMPLE_ITEM_WRITE_RESP</a></br></td><td class='l'>Set the value of a simple configuration item </td></tr>
+<tr><td class='l'><a href='#SNS_QFP_FFD_BASIS_DATA_CREATE'>SNS_QFP_FFD_BASIS_DATA_CREATE</a></td><td>0x0027</td><td class='l'><a href="#SNS_QFP_FFD_BASIS_DATA_CREATE_REQ">SNS_QFP_FFD_BASIS_DATA_CREATE_REQ</a></br><a href="#SNS_QFP_FFD_BASIS_DATA_CREATE_RESP">SNS_QFP_FFD_BASIS_DATA_CREATE_RESP</a></br></td><td class='l'>Initialize upload of basis data file </td></tr>
+<tr><td class='l'><a href='#SNS_QFP_FFD_BASIS_DATA_WRITE'>SNS_QFP_FFD_BASIS_DATA_WRITE</a></td><td>0x0028</td><td class='l'><a href="#SNS_QFP_FFD_BASIS_DATA_WRITE_REQ">SNS_QFP_FFD_BASIS_DATA_WRITE_REQ</a></br><a href="#SNS_QFP_FFD_BASIS_DATA_WRITE_RESP">SNS_QFP_FFD_BASIS_DATA_WRITE_RESP</a></br></td><td class='l'>Write a chunk of basis data </td></tr>
+<tr><td class='l'><a href='#SNS_QFP_FFD_BASIS_DATA_CLOSE'>SNS_QFP_FFD_BASIS_DATA_CLOSE</a></td><td>0x0029</td><td class='l'><a href="#SNS_QFP_FFD_BASIS_DATA_CLOSE_REQ">SNS_QFP_FFD_BASIS_DATA_CLOSE_REQ</a></br><a href="#SNS_QFP_FFD_BASIS_DATA_CLOSE_RESP">SNS_QFP_FFD_BASIS_DATA_CLOSE_RESP</a></br></td><td class='l'>Finish upload of basis data file </td></tr>
+<tr><td class='l'><a href='#SNS_QFP_DEBUG'>SNS_QFP_DEBUG</a></td><td>0x002A</td><td class='l'><a href="#SNS_QFP_DEBUG_REQ">SNS_QFP_DEBUG_REQ</a></br><a href="#SNS_QFP_DEBUG_RESP">SNS_QFP_DEBUG_RESP</a></br></td><td class='l'>Debug and diagnostics command. For internal usage only, may be disabled in production </td></tr>
+</table>
+<br><br>
+<h2><a name='SNS_COMMON_CANCEL'></a><a href='#Messages'>SNS_COMMON_CANCEL</a></h2>
+Cancels all requests from a client to any sensor service.<br> This must be the first message of any sensor service.
+<h4>Message ID</h4>
+0x0000
+<h3><a name="SNS_QFP_CANCEL_REQ"></a><a href='#Messages'>SNS_QFP_CANCEL_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+None
+<h4>Optional TLVs</h4>
+None
+<h3><a name="SNS_QFP_CANCEL_RESP"></a><a href='#Messages'>SNS_QFP_CANCEL_RESP</a></h3>
+<h4>Message Type</h4>Response 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>2</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h4>Description of SNS_COMMON_CANCEL REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_COMMON_VERSION'></a><a href='#Messages'>SNS_COMMON_VERSION</a></h2>
+Requests the version of the sensor service.<br> This must be the second message of any sensor service.
+<h4>Message ID</h4>
+0x0001
+<h3><a name="SNS_QFP_VERSION_REQ"></a><a href='#Messages'>SNS_QFP_VERSION_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+None
+<h4>Optional TLVs</h4>
+None
+<h3><a name="SNS_QFP_VERSION_RESP"></a><a href='#Messages'>SNS_QFP_VERSION_RESP</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>2</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x03</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>interface_version_number</td><td>4</td><td class='l'>Version number of the interface supported by the service. </td></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x04</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>max_message_id</td><td>2</td><td class='l'>Maximum message ID supported by this service. </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h4>Description of SNS_COMMON_VERSION REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_QFP_OPEN'></a><a href='#Messages'>SNS_QFP_OPEN</a></h2>
+Allocate resources, opens SPI port and configures clocks.
+<h4>Message ID</h4>
+0x0020
+<h3><a name="SNS_QFP_OPEN_REQ"></a><a href='#Messages'>SNS_QFP_OPEN_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>1</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>port_id</td><td>1</td><td class='l'> SPI port ID. Values 1-3 for SSC SPI ports 1 to 3.<br> </td></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x02</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>1</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>slave_index</td><td>1</td><td class='l'> SPI slave index to identify FP sensor when multiple devices are<br> connected to the SPI bus, otherwise set to 0<br> </td></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x03</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>freq</td><td>4</td><td class='l'> Requested clock frequency to use in SPI transactions, in Hz.<br> </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h3><a name="SNS_QFP_OPEN_RESP"></a><a href='#Messages'>SNS_QFP_OPEN_RESP</a></h3>
+<h4>Message Type</h4>Response 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h4>Description of SNS_QFP_OPEN REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_QFP_CLOSE'></a><a href='#Messages'>SNS_QFP_CLOSE</a></h2>
+Close SPI port, free resources used by sensor
+<h4>Message ID</h4>
+0x0021
+<h3><a name="SNS_QFP_CLOSE_REQ"></a><a href='#Messages'>SNS_QFP_CLOSE_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+None
+<h4>Optional TLVs</h4>
+None
+<h3><a name="SNS_QFP_CLOSE_RESP"></a><a href='#Messages'>SNS_QFP_CLOSE_RESP</a></h3>
+<h4>Message Type</h4>Response 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h4>Description of SNS_QFP_CLOSE REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_QFP_KEEP_ALIVE'></a><a href='#Messages'>SNS_QFP_KEEP_ALIVE</a></h2>
+Enable or disable keep alive - prevent SLPI from shutting down<br> SPI port.
+<h4>Message ID</h4>
+0x0022
+<h3><a name="SNS_QFP_KEEP_ALIVE_REQ"></a><a href='#Messages'>SNS_QFP_KEEP_ALIVE_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>1</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>enable</td><td>1</td><td class='l'>enable or disable keep alive </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h3><a name="SNS_QFP_KEEP_ALIVE_RESP"></a><a href='#Messages'>SNS_QFP_KEEP_ALIVE_RESP</a></h3>
+<h4>Message Type</h4>Response 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h4>Description of SNS_QFP_KEEP_ALIVE REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_QFP_FINGER_DETECT_ENABLE'></a><a href='#Messages'>SNS_QFP_FINGER_DETECT_ENABLE</a></h2>
+Start the wake-up finger detect processing.
+<h4>Message ID</h4>
+0x0023
+<h3><a name="SNS_QFP_FINGER_DETECT_ENABLE_REQ"></a><a href='#Messages'>SNS_QFP_FINGER_DETECT_ENABLE_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>poll_time</td><td>4</td><td class='l'>polling time in ms </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h3><a name="SNS_QFP_FINGER_DETECT_ENABLE_RESP"></a><a href='#Messages'>SNS_QFP_FINGER_DETECT_ENABLE_RESP</a></h3>
+<h4>Message Type</h4>Response 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h4>Description of SNS_QFP_FINGER_DETECT_ENABLE REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_QFP_FINGER_DETECT_DISABLE'></a><a href='#Messages'>SNS_QFP_FINGER_DETECT_DISABLE</a></h2>
+Stop the wake-up finger detect processing.
+<h4>Message ID</h4>
+0x0024
+<h3><a name="SNS_QFP_FINGER_DETECT_DISABLE_REQ"></a><a href='#Messages'>SNS_QFP_FINGER_DETECT_DISABLE_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+None
+<h4>Optional TLVs</h4>
+None
+<h3><a name="SNS_QFP_FINGER_DETECT_DISABLE_RESP"></a><a href='#Messages'>SNS_QFP_FINGER_DETECT_DISABLE_RESP</a></h3>
+<h4>Message Type</h4>Response 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h4>Description of SNS_QFP_FINGER_DETECT_DISABLE REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_QFP_FINGER_DETECT_IND'></a><a href='#Messages'>SNS_QFP_FINGER_DETECT_IND</a></h2>
+Indication when finger is detected
+<h4>Message ID</h4>
+0x0025
+<h3><a name="SNS_QFP_FINGER_DETECT_IND"></a><a href='#Messages'>SNS_QFP_FINGER_DETECT_IND</a></h3>
+<h4>Message Type</h4>Indication 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>timestamp</td><td>4</td><td class='l'>timestamp of event in SSC ticks </td></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x02</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>8</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>flags</td><td>8</td><td class='l'>Defines the indication flags. This bit flags have meanings following<br>: - 01 - SNS_QFP_FINGER_DETECT_IND_FLAG_DETECTED - Finger was detected.<br> Note that this indication is always sent when finger detection sensor is<br> disabled for any reason. If a finger was detected, the sensor will be<br> disabled because it is a one-shot sensor and the indication will be sent<br> with this bit set. If the sensor was explicitly disabled by a service<br> command, the indication will be sent with this bit clear.<ul><li>All other values are reserved for future use</ul> </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h4>Description of SNS_QFP_FINGER_DETECT_IND</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_QFP_SIMPLE_ITEM_WRITE'></a><a href='#Messages'>SNS_QFP_SIMPLE_ITEM_WRITE</a></h2>
+Set the value of a simple configuration item
+<h4>Message ID</h4>
+0x0026
+<h3><a name="SNS_QFP_SIMPLE_ITEM_WRITE_REQ"></a><a href='#Messages'>SNS_QFP_SIMPLE_ITEM_WRITE_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>item_id</td><td>4</td><td class='l'>ID of the item to be written </td></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x02</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>Var</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>data_len</td><td>1</td><td class='l'>Number of sets of the following elements<br>:- data</td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>data</td><td>Var</td><td class='l'>Item data to be written to the registry. Data types varies according<br> to item </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h3><a name="SNS_QFP_SIMPLE_ITEM_WRITE_RESP"></a><a href='#Messages'>SNS_QFP_SIMPLE_ITEM_WRITE_RESP</a></h3>
+<h4>Message Type</h4>Response 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h4>Description of SNS_QFP_SIMPLE_ITEM_WRITE REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_QFP_FFD_BASIS_DATA_CREATE'></a><a href='#Messages'>SNS_QFP_FFD_BASIS_DATA_CREATE</a></h2>
+Initialize upload of basis data file
+<h4>Message ID</h4>
+0x0027
+<h3><a name="SNS_QFP_FFD_BASIS_DATA_CREATE_REQ"></a><a href='#Messages'>SNS_QFP_FFD_BASIS_DATA_CREATE_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>item_id</td><td>4</td><td class='l'>ID of the basis data to be uploaded </td></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x02</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>vector_size</td><td>4</td><td class='l'>size of each basis vector in units of float32 </td></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x03</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>num_vectors</td><td>4</td><td class='l'>number of basis vectors in the data </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h3><a name="SNS_QFP_FFD_BASIS_DATA_CREATE_RESP"></a><a href='#Messages'>SNS_QFP_FFD_BASIS_DATA_CREATE_RESP</a></h3>
+<h4>Message Type</h4>Response 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x10</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>handle</td><td>4</td><td class='l'>handle of basis data file. Use in write and close requests </td></tr>
+
+</table>
+<h4>Description of SNS_QFP_FFD_BASIS_DATA_CREATE REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_QFP_FFD_BASIS_DATA_WRITE'></a><a href='#Messages'>SNS_QFP_FFD_BASIS_DATA_WRITE</a></h2>
+Write a chunk of basis data
+<h4>Message ID</h4>
+0x0028
+<h3><a name="SNS_QFP_FFD_BASIS_DATA_WRITE_REQ"></a><a href='#Messages'>SNS_QFP_FFD_BASIS_DATA_WRITE_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>handle</td><td>4</td><td class='l'>handle of basis data file returned from open request </td></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x02</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>Var</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>data_len</td><td>2</td><td class='l'>Number of sets of the following elements<br>:- data</td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>data</td><td>Var</td><td class='l'>data to write </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h3><a name="SNS_QFP_FFD_BASIS_DATA_WRITE_RESP"></a><a href='#Messages'>SNS_QFP_FFD_BASIS_DATA_WRITE_RESP</a></h3>
+<h4>Message Type</h4>Response 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x10</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>written</td><td>4</td><td class='l'>number of bytes actually written </td></tr>
+
+</table>
+<h4>Description of SNS_QFP_FFD_BASIS_DATA_WRITE REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_QFP_FFD_BASIS_DATA_CLOSE'></a><a href='#Messages'>SNS_QFP_FFD_BASIS_DATA_CLOSE</a></h2>
+Finish upload of basis data file
+<h4>Message ID</h4>
+0x0029
+<h3><a name="SNS_QFP_FFD_BASIS_DATA_CLOSE_REQ"></a><a href='#Messages'>SNS_QFP_FFD_BASIS_DATA_CLOSE_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>handle</td><td>4</td><td class='l'>handle of basis data file returned from open request </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h3><a name="SNS_QFP_FFD_BASIS_DATA_CLOSE_RESP"></a><a href='#Messages'>SNS_QFP_FFD_BASIS_DATA_CLOSE_RESP</a></h3>
+<h4>Message Type</h4>Response 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+None
+<h4>Description of SNS_QFP_FFD_BASIS_DATA_CLOSE REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+<h2><a name='SNS_QFP_DEBUG'></a><a href='#Messages'>SNS_QFP_DEBUG</a></h2>
+Debug and diagnostics command. For internal usage only,<br> may be disabled in production
+<h4>Message ID</h4>
+0x002A
+<h3><a name="SNS_QFP_DEBUG_REQ"></a><a href='#Messages'>SNS_QFP_DEBUG_REQ</a></h3>
+<h4>Message Type</h4>Request 
+<h4>Sender</h4>Client 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>req_id</td><td>4</td><td class='l'>id of debug request </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x10</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>Var</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>data_len</td><td>2</td><td class='l'>Number of sets of the following elements<br>:- data</td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>data</td><td>Var</td><td class='l'>request data </td></tr>
+
+</table>
+<h3><a name="SNS_QFP_DEBUG_RESP"></a><a href='#Messages'>SNS_QFP_DEBUG_RESP</a></h3>
+<h4>Message Type</h4>Response 
+<h4>Sender</h4>Service 
+
+<h4>Mandatory TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x01</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>2</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>sns_result_t</td><td>1</td><td class='l'>0 == SUCCESS; 1 == FAILURE<br> A result of FAILURE indicates that any data contained in the response<br> should not be used (other than sns_err_t) to determine the type of error. </td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>sns_err_t</td><td>1</td><td class='l'>See sensor1_error_e in sensor1.h </td></tr>
+
+</table>
+<h4>Optional TLVs</h4>
+<table class = 'tlv'><tr class='head'><th>Field</th><th>Field Value</th><th>Parameter</th><th>Size (bytes)</th><th>Description</th></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x10</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>4</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>req_id</td><td>4</td><td class='l'>id of debug request issued </td></tr>
+<tr class='row_0'><td class='l'>Type</td><td>0x11</td><td class='l'></td><td>1</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Length</td><td>Var</td><td class='l'></td><td>2</td><td class='l'></td></tr>
+<tr class='row_0'><td class='l'>Value</td><td>&rarr;</td><td class='l'>data_len</td><td>2</td><td class='l'>Number of sets of the following elements<br>:- data</td></tr>
+<tr class='row_0'><td class='l'></td><td></td><td class='l'>data</td><td>Var</td><td class='l'>response data if any </td></tr>
+
+</table>
+<h4>Description of SNS_QFP_DEBUG REQ/RESP</h4>
+
+<br><br>
+<table class='sep'><tr><td></td></tr></table>
+\appendix
+\chapter{Additional Information}
+\section{@FOOTER}
+

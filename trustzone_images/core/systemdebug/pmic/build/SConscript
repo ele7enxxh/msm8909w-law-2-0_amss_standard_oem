@@ -1,0 +1,87 @@
+#===============================================================================
+#
+# System Debug Source Builder Script
+#
+# GENERAL DESCRIPTION
+#    Build script for system debug sources
+#
+# Copyright 2012-2014 by QUALCOMM, Incorporated.
+#           All Rights Reserved.
+#           QUALCOMM Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who            what, where, why
+# --------   ---            ---------------------------------------------------------
+# 01/29/14   ntonupun       Ported to Bear
+# 05/10/12   ajcheriyan     Initial revision
+#====================================================================================
+
+#===============================================================================
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011/07/12   spa     Create initial version
+#
+#===============================================================================
+#                    Copyright (c) 2011 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+# QSEE Lib
+#-------------------------------------------------------------------------------
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/systemdebug/pmic"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+   'KERNEL',
+   'HAL',
+   'BOOT',
+   'SERVICES',
+   'SYSTEMDEBUG',
+   'SYSTEMDRIVERS',     
+   'DAL',              
+])
+
+env.PublishPrivateApi('SYSTEMDEBUG', [
+   "${BUILD_ROOT}/core/systemdebug/spmi/inc",
+])
+
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = "--gnu --c99")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SOURCES = [
+'${BUILDPATH}/src/sysdbg_pmic.c',
+'${BUILDPATH}/src/target/${CHIPSET}/sysdbg_pmic_target.c',
+'${BUILDPATH}/src/target/${CHIPSET}/pm_map.c'
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_init', SOURCES)
+
+

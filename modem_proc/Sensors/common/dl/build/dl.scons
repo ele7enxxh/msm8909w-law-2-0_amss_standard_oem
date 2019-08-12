@@ -1,0 +1,143 @@
+#===============================================================================
+# Copyright (c) 2015 by Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential : Minor / Documentation
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/dl/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+  'DEBUGTOOLS',
+  'SERVICES',
+  'MPROC',
+  'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API, area='core')
+#-------------------------------------------------------------------------------
+# External depends within ADSP Platform
+#-------------------------------------------------------------------------------
+PLATFORM_API = [
+  'HAPSDK',
+]
+env.RequirePublicApi(PLATFORM_API, area='platform')
+
+#-------------------------------------------------------------------------------
+# External and Internal depends within SNS
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+  'SENSORS',
+  'SNS_SMR',
+  'SNS_QUEUE',
+  'SNS_MEMMGR',
+  'SNS_COMMON',
+  'SNS_INT_SVC',
+  'SNS_DEBUG_DSPS',
+]
+env.RequirePublicApi(SENSORS_API)
+env.RequireProtectedApi(SENSORS_API)
+
+#-------------------------------------------------------------------------------
+# Main Feature Defines and Build Environment Variables
+#-------------------------------------------------------------------------------
+# Main ON/OFF flag to either enable or disable this feature. If disabled all
+# public/restricted APIs will be available but return an "unsupported" error
+# code. To disable feature use SENSORS_DISABLE_DL_FLAG flag option in build command.
+if 'USES_FEATURE_DYNAMIC_LOADING_SENSORS' in env and 'SENSORS_DISABLE_DL_FLAG' not in env:
+  # Main FEATURE ON/OFF feature guard
+  env.Append(CPPDEFINES=['FEATURE_SNS_DL'])
+
+# Main DBG ON/OFF feature guard.
+# Note: It is expected that for release builds, this define is disabled.
+#if 'USES_FEATURE_DYNAMIC_LOADING_SENSORS' in env and 'SENSORS_DISABLE_DL_FLAG' not in env:
+  #env.Append(CPPDEFINES=['FEATURE_SNS_DL_DEBUG'])
+
+# Main build flag to enable/disable DL test code.
+# Note: It is expected that for release builds, this flag is disabled.
+#if 'USES_FEATURE_DYNAMIC_LOADING_SENSORS' in env and 'SENSORS_DISABLE_DL_FLAG' not in env:
+  #env.Replace(USES_SNS_DL_TEST_FLAG = 'yes')
+
+# Main DL SVC Test ON/OFF feature guard
+if 'USES_SNS_DL_TEST_FLAG' in env:
+  # Main C define to turn ON/OFF test code and APIs
+  env.Append(CPPDEFINES=['FEATURE_SNS_DL_TEST'])
+
+#-------------------------------------------------------------------------------
+# DL SVC Tuning Parameters
+#-------------------------------------------------------------------------------
+# DL SVC Simultaneous parallel read request batch message sizes
+# Note: Choose level sizes that divide the number of registry entries evenly
+#       for optimal performance.
+#
+# Note: Should there be a need to add/remove additional levels please
+#       modify read_batch_sizes and these levels below as required.
+env.Append(CPPDEFINES=['FEATURE_SNS_DL_READ_BATCH_LARGE_NUM=20'])
+env.Append(CPPDEFINES=['FEATURE_SNS_DL_READ_BATCH_SMALL_NUM=5'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+env.Append(CPPPATH = [
+     "${BUILD_ROOT}/Sensors/common/dl/unsupported",
+     "${BUILD_ROOT}/Sensors/common/dl/inc",
+])
+
+if 'USES_FEATURE_DYNAMIC_LOADING_SENSORS' in env and 'SENSORS_DISABLE_DL_FLAG' not in env:
+  DL_SOURCES = [
+    '${BUILDPATH}/src/sns_dl.c',
+    '${BUILDPATH}/src/sns_dl_reg.c',
+    '${BUILDPATH}/src/sns_dl_reg_client.c',
+    '${BUILDPATH}/src/sns_dl_reg_cmd.c',
+    '${BUILDPATH}/src/sns_dl_stubs.c',
+    '${BUILDPATH}/src/sns_dl_util.c',
+  ]
+else:
+  DL_SOURCES = [
+    '${BUILDPATH}/unsupported/sns_dl.c',
+  ]
+
+DL_TEST_SOURCES = []
+
+if 'USES_SNS_DL_TEST_FLAG' in env:
+  DL_TEST_SOURCES = [
+    '${BUILDPATH}/test/sns_dl_test.c',
+  ]
+
+dl_lib = env.AddBinaryLibrary(['CORE_QDSP6_SENSOR_SW'],
+                                    '${BUILDPATH}/dl',
+                                      DL_SOURCES + DL_TEST_SOURCES)
+
+if 'USES_RCINIT' in env and 'USES_SNS_DL_TEST_FLAG' in env:
+  SMGR_IMGS =  ['CORE_QDSP6_SENSOR_SW']
+  env.AddRCInitTask(
+   SMGR_IMGS,
+   {
+     'sequence_group'             : 'RCINIT_GROUP_7',           # required
+     'thread_name'                : 'dl_svc_test',              # required
+     'thread_entry'               : 'dl_svc_test_entry',
+     'thread_type'                : 'RCINIT_TASK_QURTTASK',
+     'stack_size_bytes'           : '4096',
+     'priority_amss_order'        : 'TIMER_SLAVE1_PRI_ORDER',
+     'dependencies'               : ['platform','sleep','diag']
+   })
+
+if 'SENSORS_DD_DEV_FLAG' in env:
+   DL_CLEAN_SOURCES = env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/common/dl/src')
+   DL_CLEAN_SOURCES = env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/common/dl/unsupported')
+   DL_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/dl/inc')
+   DL_CLEAN_SOURCES += env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/common/dl/test')
+
+   # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], DL_CLEAN_SOURCES)

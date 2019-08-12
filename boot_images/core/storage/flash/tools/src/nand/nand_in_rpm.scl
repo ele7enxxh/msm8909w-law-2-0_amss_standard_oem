@@ -1,0 +1,87 @@
+/*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*/
+//
+//           SCATTER LOADING DESCRIPTION FILE NAND
+//
+//  FILE:  NAND_IN_RPM.SCL
+//  
+//  GENERAL DESCRIPTION
+//
+//  Memory Map for our Lauterbach JTAG ICD FLASH Programming Routine.
+//
+//  The code and RW/ZI data all reside atNAND_CODE_ADDR  except 
+//  for the jtag_flash_param data which starts at NAND_PARAM_ADDR. This area is
+//  where Lauterbach JTAG TRACE32 Debugger communicates with us and where our buffer
+//  is located. See type_jtag_flash_param struct.
+//
+//  This file is sent through the C Preprocessor to expand symbols to numbers
+//  unique to a target so C or C++ style comments must be used
+//
+//                         _______________________
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        | jtag_flash_param DATA |
+//      NAND_PARAM_ADDR   _______________________
+//                        |                       |
+//                        |                       |
+//                        |                       |
+//                        |     CODE + DATA       |
+//                        |     + DEBUG DATA      |
+//                        |                       |
+//       NAND_CODE_ADDR   _______________________
+//                        |                       |
+//                        |    ROM CHIP SELECT    |
+//                        |                       |
+//                        |         AREA          |
+//                        |                       |
+//                        |        (FLASH)        |
+//                        |                       |
+//                        |                       |
+//            0x00000000  -------------------------
+//
+//  Copyright (c) 2008-09 Qualcomm Incorporated. 
+//  All Rights Reserved.
+//  Qualcomm Confidential and Proprietary
+//
+/*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*/
+
+/*===========================================================================
+
+                           EDIT HISTORY FOR FILE
+  This section contains comments describing changes made to the module.
+  Notice that changes are listed in reverse chronological order.
+
+  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/nand_in_rpm.scl#1 $ $DateTime: 2015/09/01 00:30:35 $ $Author: pwbldsvc $
+   
+ when       who     what, where, why
+ --------   ---     -------------------------------------------------------
+
+ ===========================================================================*/
+
+RAM NAND_CODE_ADDR
+{
+    CODE NAND_CODE_ADDR 
+    {
+      nand_start_rpm.o (StartHere, +FIRST)
+      nand_entry.o (+RO)
+      nand_core.o (+RO)
+      * (+RO)
+    }
+
+    
+    //  This block is for the RW and zero init data
+    //
+    APP_RAM +0x0
+    {
+      * (+RW, +ZI)
+    }
+      
+    //  This block locates the parameter block
+    //
+    PARAM NAND_PARAM_ADDR
+    {
+      nand_param.o (+ZI)
+    }
+}

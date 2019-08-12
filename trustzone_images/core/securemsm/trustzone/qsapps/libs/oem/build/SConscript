@@ -1,0 +1,81 @@
+#===============================================================================
+#
+# TZBSP chipset lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsapps/libs/oem/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/27/15   wt      Removed AOSTLM_IMAGE
+# 07/24/14   wt      Added AOSTLM_IMAGE
+# 01/28/14   sa      Added HDCPSRM_IMAGE
+# 01/15/13   cz      removed the drmprov image
+# 12/18/10   cap     initial version
+# 04/05/12   jl      Added QSEE libs to the Security Test App
+# 07/25/12   cz      Added qsee_custom to tzapps
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/libs/oem/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SOURCES = [
+   '${BUILDPATH}/src/qsee_oem_utils.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibrary('CTZL_IMAGE', '${BUILDPATH}/qsee_custom',SOURCES)
+env.AddLibrary('SECURITYTEST_IMAGE', '${BUILDPATH}/qsee_custom',SOURCES)
+env.AddLibrary('PLAYREADY_IMAGE', '${BUILDPATH}/qsee_custom',SOURCES)
+env.AddLibrary('WIDEVINE_IMAGE', '${BUILDPATH}/qsee_custom',SOURCES)
+env.AddLibrary('DXHDCP2_IMAGE', '${BUILDPATH}/qsee_custom',SOURCES)
+env.AddLibrary('DXHDCP2DBG_IMAGE', '${BUILDPATH}/qsee_custom',SOURCES)
+env.AddLibrary('HDCPSRM_IMAGE', '${BUILDPATH}/qsee_custom',SOURCES)
+env.AddLibrary('SECUREUISAMPLE_IMAGE', '${BUILDPATH}/qsee_custom',SOURCES)
+env.AddLibrary('TQS_IMAGE', '${BUILDPATH}/qsee_custom',SOURCES)

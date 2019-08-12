@@ -1,0 +1,95 @@
+#===============================================================================
+#
+# KERNEL SYSCALL Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/scmm/main/latest/kernel/arch/build/SConscript#1 $
+#  $DateTime: 2009/07/14 16:54:19 $
+#  $Author: vjunnuth $
+#  $Change: 967294 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/kernel/arch/src/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DEBUGTOOLS',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'MPROC',
+   'SECUREMSM',
+   'DAL',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireRestrictedApi('KERNEL')
+
+env.PublishPrivateApi('KERNEL_ARCH_SYS', "${INC_ROOT}/core/kernel/arch/src/arm11")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+if env['MSM_ID'] in ['8916','8936']:
+    KERNEL_ARCH_SYS_SOURCES =  [
+	     '${BUILDPATH}/qdsp6/cache_mmu.c',
+         '${BUILDPATH}/qdsp6/kernel_init.c'
+	    ]	    
+else:
+    KERNEL_ARCH_SYS_SOURCES =  [
+	 '${BUILDPATH}/qdsp6/cache_mmu.c'
+	]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(
+   ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+   'APPS_IMAGE', 'CBSP_APPS_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+   '${BUILDPATH}/kernelsys', KERNEL_ARCH_SYS_SOURCES)
+
+#if env['MSM_ID'] in ['8916','8936']:
+##-------------------------------------------------------------------------------
+## RC INIT
+##-------------------------------------------------------------------------------
+#	if 'USES_RCINIT' in env:
+#		RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+#		env.AddRCInitFunc(           # Code Fragment in TMC: YES
+#		RCINIT_IMG,                 # define TMC_RCINIT_INIT_DALSYS_INIT
+#		{
+#			'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+#			'init_name'                  : 'kernel_msa_init',                  # required
+#			'init_function'              : 'qurt_kernel_init',                 # required
+#			#'dependencies'               : ['',]
+#		})
+#

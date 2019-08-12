@@ -1,0 +1,37 @@
+#===============================================================================
+#
+# TCXOMGR Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/rcs/build/rcs.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/21/10    ae     Initial version.
+#===============================================================================
+Import('env')
+
+if 'USES_IMS_RCS' not in env:
+	Return()
+	
+env = env.Clone()
+env.Replace(HEXAGONCC_OPT = "${HEXAGON_OPT_2}")
+
+#-------------------------------------------------------------------------------
+# Continue loading software units
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+

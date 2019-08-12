@@ -1,0 +1,22 @@
+RAM 0x08000000
+{
+    CODE 0x08000000 
+    {
+      nand_start.o (StartHere, +FIRST)
+      nand_entry.o (+RO)
+      nand_core.o (+RO)
+      * (+RO)
+    }
+    APP_RAM +0x0
+    {
+      * (+RW, +ZI)
+    }
+    ZI_RAM  0x00210000
+    {
+      * (FLASH_TOOLS_HEAP_ZONE)
+    }
+    PARAM 0x0801E000
+    {
+      nand_param.o (+ZI)
+    }
+}

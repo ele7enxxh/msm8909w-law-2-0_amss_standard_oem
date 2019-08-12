@@ -1,0 +1,213 @@
+# =========================================================
+# =========================================================
+# ==========================================================
+#
+#			 R B C P R   B U I L D   S C R I P T
+# 
+# $Header: //components/rel/core.mpss/3.5.c12.3/power/cpr/build/SConscript#1 $
+# $Author: mplcsds1 $
+# $Date  : $
+# $Change: 11985146 $
+#
+# ==========================================================
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Target Checks
+#-------------------------------------------------------------------------------
+
+# This check is used to build correct version of the new cpr driver depending
+# on targets. Once we have PW that has all targets which supports same cpr
+# implementation, this check can be skipped.
+
+new_cpr_targets = ['9x45','8996','9x55','8976', '8937']
+if env['MSM_ID'] not in new_cpr_targets:
+  Return()  
+
+CPR_ROOT = "${BUILD_ROOT}/core/power/cpr"
+#env.Append(CCFLAGS = " -DRPM_CPR_BUILD")
+env.Append(CCFLAGS = " -DMPSS_CPR_BUILD")
+
+#-------------------------------------------------------------------------------
+# Run Sleep LPR tool to create a LPRM definition for CPR.
+#-------------------------------------------------------------------------------
+if env['HAL_PLATFORM'] in ['8937']:
+  if 'USES_CORESLEEP_TOOL' in env:
+    xml_file = CPR_ROOT + '/image/mpss/src/lpr_definition_cpr.xml'
+    env.AddCoreSleepLPR('CBSP_QDSP6_SW_IMAGE', {'sleep_lpr_xml' : [xml_file]})
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'BUSES',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+
+RBCPRROOT = "${BUILD_ROOT}/core/power/cpr"
+INCPATH = RBCPRROOT + '/mpss/inc'
+COMMONINCPATH = RBCPRROOT + '/common/inc'
+
+
+
+if env['HAL_PLATFORM'] in ['8994','9x45','8976','8937']:
+  CPR_VERSION_HAL = 'v2'
+elif env['HAL_PLATFORM'] in ['8996','9x55']:
+  CPR_VERSION_HAL = 'v3'
+
+HALINCPATH = RBCPRROOT + '/common/hal/inc'
+HALVERSIONINCPATH = RBCPRROOT + '/common/hal/' + CPR_VERSION_HAL + '/inc'
+TARGET_SPECIFIC_INC_PATH = RBCPRROOT + '/common/target/${MSM_ID}'  
+IMAGE_SPECIFIC_INC_PATH = RBCPRROOT + '/image/mpss/inc'  
+HAL_TARGET_SPECIFIC_INC_PATH = RBCPRROOT + '/common/hal/' + CPR_VERSION_HAL + '/target/${MSM_ID}'
+
+  
+env.VariantDir('${BUILDPATH}', RBCPRROOT, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DEBUGTRACE',
+   'MPROC',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequirePublicApi(['RFA'], 'pmic')
+env.PublishPrivateApi('RBCPR',[INCPATH, COMMONINCPATH, HALINCPATH, HALVERSIONINCPATH, TARGET_SPECIFIC_INC_PATH, HAL_TARGET_SPECIFIC_INC_PATH, IMAGE_SPECIFIC_INC_PATH ])
+
+if env.has_key('HWIO_IMAGE'):
+    env.AddHWIOFile('HWIO', [
+        {
+            'filename': '${INC_ROOT}/core/power/cpr/common/hal/' + CPR_VERSION_HAL + '/target/${MSM_ID}/HAL_cpr_hwio.h',
+            'modules': ['rbcpr_wrapper'],
+            'output-offsets': True,
+            'explicit-addressing': True,
+            'header':
+                '/*\n'
+                ' * HWIO base definitions\n'
+                ' */\n'
+                '#include "msmhwiobase.h"\n\n'
+        },
+    ])
+
+    env.AddHWIOFile('HWIO', [
+        {
+            'filename': '${INC_ROOT}/core/power/cpr/common/src/target/${MSM_ID}/rbcpr_qfprom.h',
+            'modules': ['security_control_core', 'tlmm_csr'],
+            'output-offsets': True,
+            'header':
+                '#include "msmhwiobase.h"\n\n'
+        },
+    ])
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8994']:
+    env.Append(CPPDEFINES = 'SMEM_64BIT_ALIGNMENT')
+
+#enable code needed for 8996 CPR on MSS
+if env['MSM_ID'] in ['8996']:    
+    env.Append(CPPDEFINES = 'CPR3_8996')
+    
+if env['MSM_ID'] in ['9x45']:    
+    env.Append(CPPDEFINES = 'CPR2_9x45')
+    
+if env['MSM_ID'] in ['8976']:    
+    env.Append(CPPDEFINES = 'CPR2_8976')
+
+if env['MSM_ID'] in ['8953']:    
+    env.Append(CPPDEFINES = 'CPR2_8953')
+	
+if env['MSM_ID'] in ['8937']:    
+    env.Append(CPPDEFINES = 'CPR2_8937')	
+
+RBCPR_C_SOURCES = [
+    '${BUILDPATH}/image/mpss/src/cpr_image.c',
+    '${BUILDPATH}/common/src/cpr_fuses.c',
+    '${BUILDPATH}/common/src/cpr_voltage_ranges.c',
+    '${BUILDPATH}/common/src/cpr_target_quotients.c',
+    '${BUILDPATH}/common/src/cpr_device_hw_version.c',
+    '${BUILDPATH}/common/src/cpr_enablement.c',
+    '${BUILDPATH}/common/src/cpr_closed_loop.c',
+    '${BUILDPATH}/common/src/cpr_open_loop.c',    
+    '${BUILDPATH}/common/src/cpr.c',
+    '${BUILDPATH}/common/src/cpr_logging.c',    
+    '${BUILDPATH}/common/src/cpr_smem.c',
+    '${BUILDPATH}/common/target/${MSM_ID}/cpr_fuses_bsp.c',
+    '${BUILDPATH}/common/target/${MSM_ID}/cpr_voltage_ranges_bsp.c',
+    '${BUILDPATH}/common/target/${MSM_ID}/cpr_enablement_bsp.c',
+    '${BUILDPATH}/common/target/${MSM_ID}/cpr_target_quotients_bsp.c',
+    '${BUILDPATH}/common/target/${MSM_ID}/cpr_closed_loop_bsp.c',
+    '${BUILDPATH}/common/hal/' + CPR_VERSION_HAL + '/src/HAL_cpr_closed_loop.c',        
+    '${BUILDPATH}/common/hal/' + CPR_VERSION_HAL + '/src/HAL_cpr.c',
+
+]
+
+#------------------------------------------------------------------------------
+# Adding device config data
+#------------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   # Select appropriate xml config file based on target. May not change on
+   # single core targets
+   env.AddDevCfgInfo(
+      DEVCFG_IMG,
+      {
+         '8937_xml' : ['${BUILD_ROOT}/core/power/cpr/config/CprDevCfg.xml'],	
+      }
+   )
+
+   
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+c_env = env.Clone()
+c_env.Append(CCFLAGS = " --c99")
+c_env.Append(ARMCC_OPT = "${ARM_OPT_SIZE} ${ARM_OPT_2}")
+
+
+#-----------------------------------------------------------------------------
+# Add Libraries to image
+#-----------------------------------------------------------------------------
+env.AddLibrary(
+  ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+  '${BUILDPATH}/cpr', RBCPR_C_SOURCES)
+  
+
+#-----------------------------------------------------------------------------
+# Register with RCINIT framework so that it can call our init function.
+#-----------------------------------------------------------------------------
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+  env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',
+      'init_name'                  : 'CPR',
+      'init_function'              : 'rbcpr_init',
+      'dependencies'               : ['clk_regime','dalsys'],
+      'policy_optin'               : ['default', 'ftm', ],
+    })

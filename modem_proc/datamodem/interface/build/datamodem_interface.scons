@@ -1,0 +1,85 @@
+#===============================================================================
+#
+# Modem wrapper script
+#
+# GENERAL DESCRIPTION
+#    build script to load modem data software units
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/data/1x/build/rel/10.02.02/data_1x.scons#1 $
+#  $DateTime: 2010/10/05 13:12:17 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/31/10   ack     Initial revision
+#
+#===============================================================================
+Import('env')
+
+env = env.Clone()
+
+#env.Replace(MSVC_WARN = '/W3 /WX /wd4013 /wd4005')
+if 'USES_MOB' not in env:
+  env.Append(CCFLAGS = ' -Werror-high -Werror-medium')
+  env.Append(CXXFLAGS = ' -Werror-high -Werror-medium')
+
+
+#Enable internal flags!
+env.Replace(USES_DATAMODEM_DSS_PING = True)
+env.Replace(USES_QMI_SERVICE_SPLIT = True)
+env.Replace(USES_DATAMODEM_NETIFACE = True)
+env.Replace(USES_DATAMODEM_NETIFACE_SOCK_REARCH = True)
+env.Replace(USES_DATAMODEM_QMI = True)
+env.Replace(USES_DATAMODEM_QMI_QOS = True)
+env.Replace(USES_DATAMODEM_RMIFACECTLS = True)
+env.Replace(USES_MODEM_DATAMODEM_IPV6 = True)
+#env.Replace(USES_DATAMODEM_RMIFACECTLS_SLIP = True)
+env.Replace(USES_DATAMODEM_TASKS = True)
+env.Replace(USES_DATAMODEM_UTILS = True)
+env.Replace(USES_DATAMODEM_DSNET = True)
+env.Replace(USES_DATAMODEM_DSSVC = True)
+env.Replace(USES_DATAMODEM_DSSOCK = True)
+env.Replace(USES_DATAMODEM_DSS = True)
+env.Replace(USES_DATAMODEM_UTILS_SOCK_REARCH = True)
+env.Replace(USES_DATAMODEM_IFACECTLS_NAT = True)
+env.Replace(USES_DATAMODEM_QMI_NAT = True)
+
+if 'USES_DATAMODEM_SGLTE_FUSION' in env:
+  env.Replace(USES_DATA_MUX = True)
+  env.Replace(USES_DATA_QMI_QMUX = True)
+
+if ('USES_GSM' in env) or ('USES_UMTS' in env):
+    env.Replace(USES_DATAMODEM_QMI_UMTS = True)
+
+if 'USES_LTE' in env:
+    env.Replace(USES_DATAMODEM_QMI_LTE = True)
+
+import copy
+orig_env = env
+env = env.Clone()
+env['CFLAGS'] = copy.deepcopy(orig_env['CFLAGS'])
+
+# Eliminate all LLVM warnings!
+if env['CFLAGS'].count('-Wno-low') > 0:
+  env['CFLAGS'].remove('-Wno-low')
+
+if env['CFLAGS'].count('-Wno-medium') > 0:
+  env['CFLAGS'].remove('-Wno-medium')
+
+if env['CFLAGS'].count('-Wno-high') > 0:
+  env['CFLAGS'].remove('-Wno-high')
+
+if env['CFLAGS'].count('-Wno-error') > 0:
+  env['CFLAGS'].remove('-Wno-error')
+	
+env.LoadSoftwareUnits()

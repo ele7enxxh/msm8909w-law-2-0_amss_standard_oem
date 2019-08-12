@@ -1,0 +1,476 @@
+/*****************************************************************************
+  @FILE     sns_sam_tilt_w_detector_v01.idl
+
+  @BRIEF    Message definition for the Tilt Wrist Detector service
+
+  @DESCRIPTION
+  This file defines messages used by Tilt Wrist Detector service.
+
+  As prerequisite, the sensor algorithm must use the common interface
+  defined in the Sensor Algorithm Framework (SAM)
+
+  @COPYRIGHT
+  Copyright (c) 2015 Qualcomm Technologies, Inc. All Rights Reserved.
+  Qualcomm Technologies Proprietary and Confidential.
+*****************************************************************************/
+include "sns_sam_common_v01.idl";
+
+revision 0;
+
+const SNS_SAM_TILT_W_DETECTOR_SUID = 0xc6515fb9a67b9040;
+
+const SNS_SAM_TILT_W_DETECTOR_MAX_ITEMS_IN_BATCH = 100;
+/**< Max number of reports in a batch indication -
+     set based on max payload size supported by transport framework
+*/
+
+const SNS_SAM_TILT_W_DETECTOR_MAX_TILT_ANGLE_THRESH = 60;
+/**< Maximum allowable threshold angle for a tilt_w event.
+*/
+
+/* Following are message definitions shared by all Tilt Wrist Detector related services */
+
+//============================================================================
+/** @COMMAND SNS_SAM_TILT_W_DETECTOR_CANCEL
+    @BRIEF Cancels all requests to the algorithm service from this client.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//============================================================================
+/** @COMMAND SNS_SAM_TILT_W_DETECTOR_VERSION
+    @BRIEF This command requests algorithm service version.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//============================================================================
+/** @COMMAND SNS_SAM_TILT_W_DETECTOR_ENABLE
+    @BRIEF This command enables the tilt wrist detector service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @COMMAND_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_TILT_W_DETECTOR_ENABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Control Point
+//----------------------------------------------------------------------------
+message {
+  //! Tilt Wrist Angle Threshold
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint32 angle_thresh;
+  /**< The minimum tilt-angle threshold in which a tilt event is detected, in degrees.
+
+       Specifies the minimum final angle on SAE X axis from flat that the device
+       must reach for a valid tilt_w event to have occurred.
+
+       If this value is ommitted, the Tilt Detector will use the default tilt-angle
+       threshold. If this value exceeds SNS_SAM_TILT_DETECTOR_MAX_TILT_W_ANGLE_THRESH,
+       then this enable request will return the error "SENSOR1_EBAD_PARAM".
+   */
+
+  //! Notify Suspend
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional sns_suspend_notification_s notify_suspend;
+  /**< Identifies if indications for this request should be sent
+       when the processor is in suspend state.
+
+       If this field is not specified, default value will be set to
+       notify_suspend->proc_type = SNS_PROC_APPS
+       notify_suspend->send_indications_during_suspend = FALSE
+
+       This field does not have any bearing on error indication
+       messages, which will be sent even during suspend.
+    */
+
+} sns_sam_tilt_w_detector_enable_req_msg;
+
+//! @MSG     SNS_SAM_TILT_W_DETECTOR_ENABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+message {
+  //! Result Code
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_common_resp_s resp = 2;
+
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint8 instance_id;
+  /**<
+    Algorithm instance ID maintained/assigned by SAM.
+    The client shall use this instance ID for future messages associated with
+    current algorithm instance.
+    */
+} sns_sam_tilt_w_detector_enable_resp_msg;
+
+/** @ERROR
+    -QMI_ERR_NONE           No error in the request
+    -QMI_ERR_INTERNAL       Unexpected error occurred during processing
+    -QMI_ERR_INSUFFICIENT_RESOURCES  Insufficient resources to support request
+*/
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_TILT_W_DETECTOR_DISABLE
+    @BRIEF This command disables the Tilt Wrist Detector service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @COMMAND_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_TILT_W_DETECTOR_DISABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Control Point
+//----------------------------------------------------------------------------
+message {
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< To identify the algorithm instance to be disabled.  */
+} sns_sam_tilt_w_detector_disable_req_msg;
+
+//! @MSG     SNS_SAM_TILT_W_DETECTOR_DISABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+message {
+  //! Result Code
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_common_resp_s resp = 2;
+
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_sam_tilt_w_detector_disable_resp_msg;
+
+
+/****************************************************************************
+ *  @BRIEF  struct
+ ****************************************************************************/
+struct {
+  float   accel[3];
+  /**< accel sample at time of tilt event x/y/z; units: m/s/s; SAE coordinate frame. */
+} sns_sam_tilt_w_accel_sample_t;
+
+typedef uint32 sns_sam_tilt_w_timestamp_t;
+  /**< timestamp of the tilt wrist event in SSC ticks */
+
+//============================================================================
+/** @COMMAND SNS_SAM_TILT_W_DETECTOR_REPORT
+    @BRIEF Report from the Tilt Wrist Detector service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @COMMAND_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_TILT_W_DETECTOR_REPORT_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+message {
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  //! Tilt Wrist event accel sample
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_sam_tilt_w_accel_sample_t accel_sample;
+  /**< accel sample at time of tilt event x/y/z; units: m/s/s; SAE coordinate frame. */
+
+  //! Tilt Wrist event timestamp
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_sam_tilt_w_timestamp_t  timestamp;
+  /**< Timestamp of the tilt event; in SSC ticks */
+
+} sns_sam_tilt_w_detector_report_ind_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_TILT_W_DETECTOR_ERROR
+    @BRIEF Asynchronous error report from the Tilt Wrist Detector service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_TILT_W_DETECTOR_ERROR_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//============================================================================
+
+message {
+  //! Error
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 error;
+  /**< sensors error code */
+
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  //! Timestamp
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint32 timestamp;
+  /**< Timestamp of when the error was detected; in SSC ticks */
+} sns_sam_tilt_w_detector_error_ind_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_TILT_W_DETECTOR_RESET
+    @BRIEF This command resets Reference Gravity Vector to the Current Gravity
+           Vector Estimation within the Tilt Wrist Detector service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_TILT_W_DETECTOR_RESET_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_sam_tilt_w_detector_reset_req_msg;
+
+//! @MSG     SNS_SAM_TILT_W_DETECTOR_RESET_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  //! Response
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_common_resp_s resp = 2;
+
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_sam_tilt_w_detector_reset_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_TILT_W_DETECTOR_BATCH
+    @BRIEF This command handles batch mode for the Tilt Wrist Detector service.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @DESCRIPTION Set the batch period for an active algorithm stream.
+                 A subsequent request may update or disable the batch period;
+                 all batched output will be sent prior to the response message.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_TILT_W_DETECTOR_BATCH_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  //! Batch Period
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory int32 batch_period;
+  /**< Specifies the interval over which reports are to be batched, in seconds;
+       Q16 format. If AP is in suspend and notify_suspend is FALSE, undelivered
+       reports will be batched in circular FIFO and delivered upon wakeup.
+       P = 0 to disable batching.
+       P > 0 to enable batching.
+    */
+
+} sns_sam_tilt_w_detector_batch_req_msg;
+
+//! @MSG     SNS_SAM_TILT_W_DETECTOR_BATCH_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  //! Response
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_common_resp_s resp = 2;
+
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint8 instance_id;
+  /**< Algorithm instance ID maintained/assigned by SAM */
+
+  //! Max Batch Size
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint32 max_batch_size;
+  /**< Max supported batch size */
+
+  //! Timestamp
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint32 timestamp;
+  /**< Timestamp when the batch request was processed in SSC ticks */
+} sns_sam_tilt_w_detector_batch_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_TILT_W_DETECTOR_BATCH_REPORT
+    @BRIEF Report containing a batch of Tilt Wrist Detector outputs
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_TILT_W_DETECTOR_BATCH_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  //! Instance ID
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance */
+
+  //! Tilt Wrist events accel data
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_sam_tilt_w_accel_sample_t  accel_samples<SNS_SAM_TILT_W_DETECTOR_MAX_ITEMS_IN_BATCH>;
+  /**< accel sample at time of tilt event x/y/z; units: m/s/s; SAE coordinate frame. */
+
+  //! Tilt Wrist events timestamp
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory sns_sam_tilt_w_timestamp_t  timestamps<SNS_SAM_TILT_W_DETECTOR_MAX_ITEMS_IN_BATCH>;
+  /**< Timestamp of the tilt events; in SSC ticks */
+
+  //! Indication Type
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  optional uint8 ind_type;
+  /**< Optional batch indication type
+       SNS_BATCH_ONLY_IND - Standalone batch indication. Not part of a back to back indication stream
+       SNS_BATCH_FIRST_IND - First indication in stream of back to back indications
+       SNS_BATCH_INTERMEDIATE_IND - Intermediate indication in stream of back to back indications
+       SNS_BATCH_LAST_IND - Last indication in stream of back to back indications
+    */
+
+} sns_sam_tilt_w_detector_batch_ind_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_TILT_W_DETECTOR_UPDATE_BATCH_PERIOD
+    @BRIEF This command updates active batch period for a Tilt Wrist Detector
+           algorithm when batching is ongoing.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @DESCRIPTION Messages deprecated and no longer supported in version 3 and
+                 later.  Functionality can be approximated using two clients and
+                 the notify_suspend flag in the ENABLE_REQ message.
+*/
+//============================================================================
+// Service definition
+//============================================================================
+service SNS_SAM_TILT_W_DETECTOR_SVC {
+  //! @ID SNS_SAM_TILT_W_DETECTOR_CANCEL
+  sns_common_cancel_req_msg                  SNS_SAM_TILT_W_DETECTOR_CANCEL_REQ,
+  sns_common_cancel_resp_msg                 SNS_SAM_TILT_W_DETECTOR_CANCEL_RESP
+    = 0x00;
+
+  //! @ID SNS_SAM_TILT_W_DETECTOR_VERSION
+  sns_common_version_req_msg                 SNS_SAM_TILT_W_DETECTOR_VERSION_REQ,
+  sns_common_version_resp_msg                SNS_SAM_TILT_W_DETECTOR_VERSION_RESP
+    = 0x01;
+
+  //! @ID SNS_SAM_TILT_W_DETECTOR_ENABLE
+  sns_sam_tilt_w_detector_enable_req_msg       SNS_SAM_TILT_W_DETECTOR_ENABLE_REQ,
+  sns_sam_tilt_w_detector_enable_resp_msg      SNS_SAM_TILT_W_DETECTOR_ENABLE_RESP
+    = 0x02;
+
+  //! @ID SNS_SAM_TILT_W_DETECTOR_DISABLE
+  sns_sam_tilt_w_detector_disable_req_msg      SNS_SAM_TILT_W_DETECTOR_DISABLE_REQ,
+  sns_sam_tilt_w_detector_disable_resp_msg     SNS_SAM_TILT_W_DETECTOR_DISABLE_RESP
+    = 0x03;
+
+  //! @ID SNS_SAM_TILT_W_DETECTOR_REPORT
+  sns_sam_tilt_w_detector_report_ind_msg       SNS_SAM_TILT_W_DETECTOR_REPORT_IND
+    = 0x05;
+
+  //! @ID SNS_SAM_TILT_W_DETECTOR_ERROR
+  sns_sam_tilt_w_detector_error_ind_msg        SNS_SAM_TILT_W_DETECTOR_ERROR_IND
+    = 0x06;
+
+  //! @ID SNS_SAM_TILT_W_DETECTOR_RESET
+  sns_sam_tilt_w_detector_reset_req_msg        SNS_SAM_TILT_W_DETECTOR_RESET_REQ,
+  sns_sam_tilt_w_detector_reset_resp_msg       SNS_SAM_TILT_W_DETECTOR_RESET_RESP
+    = 0x20;
+
+  //! @ID SNS_SAM_TILT_W_DETECTOR_BATCH
+  sns_sam_tilt_w_detector_batch_req_msg        SNS_SAM_TILT_W_DETECTOR_BATCH_REQ,
+  sns_sam_tilt_w_detector_batch_resp_msg       SNS_SAM_TILT_W_DETECTOR_BATCH_RESP
+    = 0x21;
+
+  //! @ID SNS_SAM_TILT_W_DETECTOR_BATCH_REPORT
+  sns_sam_tilt_w_detector_batch_ind_msg        SNS_SAM_TILT_W_DETECTOR_BATCH_IND
+    = 0x22;
+
+  //! @ID SNS_SAM_GET_ALGO_ATTRIBUTES
+  sns_sam_get_algo_attrib_req_msg            SNS_SAM_TILT_W_DETECTOR_GET_ATTRIBUTES_REQ,
+  sns_sam_get_algo_attrib_resp_msg           SNS_SAM_TILT_W_DETECTOR_GET_ATTRIBUTES_RESP
+    = 0x24;
+
+} = SNS_QMI_SVC_ID_53;
+
+//============================================================================
+// File footer
+//============================================================================
+/**
+@FOOTER
+*/
+
+//============================================================================
+// End of Module
+//============================================================================

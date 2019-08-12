@@ -1,0 +1,264 @@
+#===============================================================================
+#
+# Diag Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: 2010/02/25 18:33:40 $
+#  $Author: sgownipa $
+#  $Change: 1194317 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 11/25/14     ph      Mainlined the feature DIAG_CONSUMER_API.
+# 07/17/2014   xy      Utilized optimized time get API
+# 12/20/2013   rs      Ported LLVM warning fix.
+# 09/20/13     tbg     Added support for Diag over STM
+# 08/31/2013   is      Support for peripheral buffering mode
+# 05/16/2013   sm      Removed diagreset.c
+# 02/08/2013   sr      Fixed compiler and Klockwork warnings
+# 15/10/2012   ph      Removed the feature FEATURE_DIAG_DISALLOW_MEM_OPS.
+# 09/28/2012   rh      Changed rcinit group to group 1
+# 09/04/2012   ra      Removed diag_bringup_stub.c
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/services/diag/"
+
+if not env.PathExists(SRCPATH):
+   SRCPATH = "${BUILD_ROOT}/services/diag"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_DIAG'])
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'CS',
+   'DSM',
+   'MODEM',
+   'MODEM_MCS',
+   'MODEM_API',
+   'MODEM_1X',
+   'MODEM_ADIE',
+   'MODEM_DATA',
+   'MODEM_FTM',
+   'MODEM_GERAN',
+   'MODEM_GPS',
+   'MODEM_HDR',
+   'MODEM_MDSP',
+   'MODEM_NAS',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+   'MODEM_UIM',
+   'MODEM_WCDMA',
+   'MULTIMEDIA_AUDIO',
+   'MULTIMEDIA',
+   'MULTIMEDIA_DISPLAY',
+   'MULTIMEDIA_CORE',
+   'WCONNECT',
+   'BREW',
+   'MODEM_MMODE',
+   'ASIC',
+])
+
+#-------------------------------------------------------------------------------
+# External Modem dependencies
+#-------------------------------------------------------------------------------
+MODEM_API = [
+   'WCDMA',
+   'MMODE',
+   'UIM',
+   'ONEX',
+   'MCS',
+   'API',
+   '1X',
+   'ADIE',
+   'DATA',
+   'FTM',
+   'GERAN',
+   'GPS',
+   'HDR',
+   'MDSP',
+   'NAS',
+   'PMIC',
+   'RF',
+   'SERVICES',
+]
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   'HAL',
+   'HWENGINES',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(MODEM_API, 'modem')
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+
+if "USES_DIAG_UART" in env:
+   env.Append(CPPDEFINES=["DIAG_SIO_UART"])
+   env.Append(CPPDEFINES=["DIAG_FRAMING"])
+   env.Append(CPPDEFINES=["DIAG_MAX_REQ_LEN_RSP_SEND"])
+else:
+   env.Append(CPPDEFINES=["DIAG_SMD_SUPPORT"])
+   env.Append(CPPDEFINES=["DIAG_MP"])
+   env.Append(CPPDEFINES=["DIAG_IGNORE_RESET"])
+   env.Append(CPPDEFINES=["DIAG_SMDL_SUPPORT"])
+
+env.Append(CPPDEFINES=["FEATURE_SSM"])
+env.Append(CPPDEFINES=["DIAG_BUFFERING_SUPPORT"])
+env.Append(CPPDEFINES=["DIAG_SSM_WHITELIST"])
+env.Append(CPPDEFINES=["DIAG_GET_OPTIMIZED_TS"])
+
+# Set this flag to True to compile in Diag over STM support
+# If False, diag_stm.c file will not be compiled and the feature will be disabled
+diag_stm_support=True
+
+if diag_stm_support==True:
+   env.Append(CPPDEFINES=["FEATURE_DIAG_STM"])
+
+# dynamic_heap.c from utils is not compiled if QMI is not supported
+if 'QMIMSGS_MPSS' in env:
+   env.Append(CPPDEFINES=["FEATURE_DIAG_DYNAMIC_HEAP"])
+
+# FEATURE_DIAG_STRESS_PROFILE is for dev testing
+# Do not leave enabled in CRM image
+#env.Append(CPPDEFINES=["FEATURE_DIAG_STRESS_PROFILE"])
+
+#-------------------------------------------------------------------------------
+# RCINIT
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.Append(CPPDEFINES=["FEATURE_RCINIT"])
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitTask(           # DIAG
+    RCINIT_IMG,                 # define TMC_RCINIT_REXTASK_DIAG
+    {
+      'sequence_group'             : 'RCINIT_GROUP_1',                  # required
+      'thread_name'                : 'diag',                            # required
+      'stack_size_bytes'           : '16384',                           # 0x4000
+#      'priority_amss_order'        : 'SHARED_FOREGROUND_PRI_ORDER',
+      'priority_amss_order'        : 'DIAG_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+if env.has_key('USES_DIAG_API_STUB'):
+   DIAG_SOURCES = [
+      '${BUILDPATH}/diag_api_stub/src/diag_api_stub.c',
+   ]
+else:
+   DIAG_SOURCES = [
+      '${BUILDPATH}/DCM/rtos/src/log_api.c',
+      '${BUILDPATH}/DCM/rtos/src/diagcomm.c',
+      '${BUILDPATH}/DCM/rtos/src/diagpkt.c',
+      '${BUILDPATH}/DCM/rtos/src/event_api.c',
+      '${BUILDPATH}/DCM/rtos/src/msg_api.c',
+      '${BUILDPATH}/DCM/rtos/src/diagdiag.c',
+      '${BUILDPATH}/DCM/rtos/src/paramsdiag.c',
+      '${BUILDPATH}/DCM/rtos/src/rbq.c',
+      '${BUILDPATH}/diag_mask_tbl/src/msg_arrays_i.c',
+      '${BUILDPATH}/diag_mask_tbl/src/log_arrays_i.c',
+      '${BUILDPATH}/DCM/common/src/diag.c',
+      '${BUILDPATH}/DCM/common/src/diagbuf.c',
+      '${BUILDPATH}/DCM/common/src/diagdiag_common.c',
+      '${BUILDPATH}/DCM/common/src/diaglog.c',
+      '${BUILDPATH}/DCM/common/src/msg.c',
+      '${BUILDPATH}/DCM/common/src/event.c',
+      '${BUILDPATH}/DCM/common/src/feature.c',
+      '${BUILDPATH}/DCM/common/src/toolsdiag.c',
+      '${BUILDPATH}/DCM/common/src/diagmm.c',
+      '${BUILDPATH}/DCM/common/src/diagdsm.c',
+      '${BUILDPATH}/DCM/common/src/diagcomm_cmd.c',
+      '${BUILDPATH}/DCM/common/src/diagcomm_sio.c',
+      '${BUILDPATH}/DCM/common/src/diagcomm_io.c',
+      '${BUILDPATH}/DCM/common/src/diagcomm_io_smdl.c',
+      '${BUILDPATH}/DCM/common/src/diagcomm_io_sio.c',
+      '${BUILDPATH}/DCM/common/src/diagcomm_ctrl.c',
+      '${BUILDPATH}/platform/bmp/src/diagcomm_cfg.c',
+      '${BUILDPATH}/DCM/common/src/diag_dci_auth.c',
+      '${BUILDPATH}/DCM/common/src/diag_mode.c',
+      '${BUILDPATH}/DCM/common/src/diagcomm_cmd_perm.c',
+      '${BUILDPATH}/DCM/common/src/diagcomm_log_perm.c',
+      '${BUILDPATH}/DCM/common/src/diagcomm_event_perm.c',
+   ]
+
+   if diag_stm_support==True:
+      DIAG_SOURCES += [
+         '${BUILDPATH}/DCM/common/src/diag_stm.c'
+   ]
+
+   if env.has_key('USES_DIAG_FUSION'):
+      DIAG_SOURCES += [
+         '${BUILDPATH}/DCM/common/src/diag_fusion.c'
+   ]
+
+   if env.has_key('USES_DIAG_SMD_SUPPORT'):
+      DIAG_SOURCES += [
+         '${BUILDPATH}/DCM/common/src/diagcomm_smd.c',
+         '${BUILDPATH}/DCM/common/src/diag_fwd.c',
+      ]
+
+   if env.has_key('USES_DIAG_NV_SUPPORT'):
+      DIAG_SOURCES += [
+         '${BUILDPATH}/DCM/rtos/src/diagnv.c',
+      ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary([
+   'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+   'APPS_IMAGE', 'CBSP_APPS_IMAGE',
+   'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+   'WCN_IMAGE',
+   'CORE_GSS'],
+   '${BUILDPATH}/diag',DIAG_SOURCES)
+
+#--------------------------------------------------------------------------------
+# Enable this to remove compile optimizations (for debugging)
+# DO NOT leave enabled when checking in file
+#--------------------------------------------------------------------------------
+#env.Replace(HEXAGONCC_OPT = "-O0")

@@ -1,0 +1,435 @@
+# -------------------------------------------------------------------------------- #
+#                       T D S C D M A _ L 1. S C O N S                                      
+#
+# DESCRIPTION                                                                      
+#       Scons file for the WL1 subsytem. Defines the existence of WL1 
+#                                                                                  
+#                                                                                  
+# INITIALIZATION AND SEQUENCING REQUIREMENTS                                       
+#       None.                                                                      
+#                                                                                  
+#
+# Copyright (c) 2011 Qualcomm Technologies Incorporated.                                        
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary                       
+# Export of this technology or software is regulated by the U.S. Government.       
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //source/qcom/qct/modem/tdscdma/l1/offline/main/latest/build/wcdma_l1_offline.scons#3 $
+# $DateTime: 2010/10/21 09:37:09 $
+# 
+#  when        who     what, where, why
+# ---------    ---     ------------------------------------------------------------
+# 03/10/10     owen    Initial Cut.
+# 
+#===================================================================================#
+
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------------
+# USES_FLAG :: Do not compile WCDMA_L1 subsystem if 
+#               USES_TDSCDMA are not defined.
+#------------------------------------------------------------------------------------
+if 'USES_TDSCDMA' not in env :
+   Return()
+
+if env['PRODUCT_LINE'] == 'MPSS.BO.2.5':
+  env.Append(CPPDEFINES = ["FEATURE_TDSCDMA_HSUPA_DSDA_PWR_BACKOFF"])
+
+#-------------------------------------------------------------------------------
+# added CFLAG due to compilor bug, can be removed once it is fixed
+#-------------------------------------------------------------------------------
+#env.Append(CCFLAGS = '-mno-memops')
+
+#-------------------------------------------------------------------------------
+# VIOLATIONS
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('VIOLATIONS',["${INC_ROOT}/core/systemdrivers/clk/inc",
+                           "${INC_ROOT}/core/services/utils",
+                           "${INC_ROOT}/core/api/systemdrivers", #temporally put here
+                           "${INC_ROOT}/core/services/utils/src",
+                                   ])
+
+#-------------------------------------------------------------------------------
+# QDSS Tracer definitions
+#-------------------------------------------------------------------------------
+if 'USES_QDSS_SWE' in env:
+  env.Append(CCFLAGS = " -DTDS_TRACER_SW_EVT")
+  QDSS_IMG = ['QDSS_EN_IMG']
+  events = [    ['TDSCDMA_MCPM_CFG_START','TDSCDMA_MCPM_CFG_START'],
+                ['TDSCDMA_MCPM_CFG_END','TDSCDMA_MCPM_CFG_END'],
+                ['TDSCDMA_RF_WAKEUP_START','TDSCDMA_RF_WAKEUP_START'],
+                ['TDSCDMA_RF_WAKEUP_END','TDSCDMA_RF_WAKEUP_END'],
+                ['TDSCDMA_RF_SLEEP_START','TDSCDMA_RF_SLEEP_START'],
+                ['TDSCDMA_RF_SLEEP_END','TDSCDMA_RF_SLEEP_END'],
+                ['TDSCDMA_MCPM_DECFG_START','TDSCDMA_MCPM_DECFG_START'],
+                ['TDSCDMA_MCPM_DECFG_END','TDSCDMA_MCPM_DECFG_END'],
+                ['TDSCDMA_MWU_ISR_START','TDSCDMA_MWU_ISR_START'],
+                ['TDSCDMA_MWU_ISR_END','TDSCDMA_MWU_ISR_END'],
+                ['TDSCDMA_OLS_ISR_START','TDSCDMA_MWU_OLS_START'],
+                ['TDSCDMA_OLS_ISR_END','TDSCDMA_MWU_OLS_END'],
+                ['TDSCDMA_TS0_BOUNDARY','TDSCDMA_TS0_BOUNDARY'],]
+  env.AddSWEInfo(QDSS_IMG,events)
+
+###########
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'BUSES',
+    'DEBUGTOOLS',
+    'DAL',
+    'POWER',
+    'STORAGE',
+    'SECUREMSM',
+    'SYSTEMDRIVERS',
+    'SERVICES',
+    'MPROC',
+    'HWENGINES',
+    # needs to be last also contains wrong comdef.h
+    'DEBUGTRACE',
+    'KERNEL',
+    ]
+
+MULTIMEDIA_APIS = [
+    'AUDIO',
+    ]
+
+#----------------------------------------------------------------------------#
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#----------------------------------------------------------------------------#
+REQUIRED_NON_SCONS_APIS = [
+    'BREW',
+    'MODEM_SERVICES',
+    'MULTIMEDIA_AUDIO',
+    'BASE_PATHS', #mdsp/cdma/inc
+    ]
+
+
+MODEM_PUBLIC_APIS = [
+    'TDSCDMA',
+    'ONEX',
+    'GPS',
+    'RFA',
+    'GERAN',
+    'NAS',
+    'WCDMA',
+    'MMODE',
+    'MCS',
+    'UTILS',
+    'UIM',
+    'HDR',
+    'MPROC',
+    ]
+
+MODEM_RESTRICTED_APIS =[
+    'ONEX',
+    'MMODE',
+    'GPS',
+    'HDR',
+    'MCS',
+    'NAS',
+    'MDSP',
+    'UIM',
+    'GERAN',
+    'UTILS',
+    'RFA',
+    'QCHAT',
+    'WCDMA',
+    'TDSCDMA'
+    'LTE',
+    'FW',
+    ]
+
+MODEM_PROTECTED_APIS =[
+    'UTILS',
+    ]
+
+MULTIMEDIA_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+]
+
+#-------------------------------------------------------------------------------
+# We need the Multimedia API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MULTIMEDIA_PUBLIC_APIS, area="MULTIMEDIA")
+
+#-------------------------------------------------------------------------------
+# Add modem protected API
+#-------------------------------------------------------------------------------
+env.RequireProtectedApi(MODEM_PROTECTED_APIS)
+
+#-------------------------------------------------------------------------------
+# We need the Core BSP API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+#-------------------------------------------------------------------------------
+# We need MODEM PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need different restricted API's within MODEM
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Images that this VU is added .
+#-------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM', 'MOB_TDSCDMA']
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+TDSCDMA_PRIVATE_SOURCES=[
+                 '${BUILDPATH}/tdsdechs.c',
+                 '${BUILDPATH}/tdsdlpccpch.c',
+                 #'${BUILDPATH}/tdsdlbtfd.c',
+                 '${BUILDPATH}/tdsdlchmgr.c',
+                 '${BUILDPATH}/tdsdlinklist.c',
+                 '${BUILDPATH}/tdsdldpch.c',
+                 '${BUILDPATH}/tdsdlolpc.c',
+                 '${BUILDPATH}/tdsdlphch.c',
+                 '${BUILDPATH}/tdsdlpich.c',
+                 #'${BUILDPATH}/tdsdlshed.c',
+                 #'${BUILDPATH}/tdsdlrm.c',
+                 '${BUILDPATH}/tdsdlsccpch.c',
+                 #'${BUILDPATH}/tdsdlshmgr.c',
+                 '${BUILDPATH}/tdsdlstates.c',
+                 '${BUILDPATH}/tdsdltrchmeas.c',
+                 #'${BUILDPATH}/tdsdlutil.c',
+                 #'${BUILDPATH}/tdsdlwpltdrv.c',
+                 '${BUILDPATH}/tdsl1msetup.c',
+                 '${BUILDPATH}/tdsl1trm.c',
+                 '${BUILDPATH}/tdsl1dsds.c',
+                 '${BUILDPATH}/tdsdrx.c',
+                 '${BUILDPATH}/tdsedl.c',
+                 '${BUILDPATH}/tdsenchs.c',
+                 '${BUILDPATH}/tdseulcfg.c',
+                 '${BUILDPATH}/tdseuledpch.c',
+                 '${BUILDPATH}/tdseulsg.c',
+                 '${BUILDPATH}/tdshscfg.c',
+                 #'${BUILDPATH}/tdscmmeas.c',
+                 '${BUILDPATH}/tdsintmeas.c',
+                 '${BUILDPATH}/tdsmathutil.c',
+                 '${BUILDPATH}/tdsl1mcmd.c',
+                 '${BUILDPATH}/tdsl1pos.c',
+                 '${BUILDPATH}/tdsl1m_rcinit.c', 
+                 '${BUILDPATH}/tdsqualmeas.c',
+                 '${BUILDPATH}/tdsl1sapcommon.c',
+                 '${BUILDPATH}/tdsl1ulcfg.c',
+                 '${BUILDPATH}/tdsl1util.c',
+                 '${BUILDPATH}/tdslogod.c',
+                # '${BUILDPATH}/mcaltds_cm.c',
+                 '${BUILDPATH}/mcaltds_dec.c',
+                 '${BUILDPATH}/mcaltds_decdata.c',
+                 '${BUILDPATH}/mcaltds_mcvsctrl.c',
+                # '${BUILDPATH}/mcaltds_demod.c',
+                 '${BUILDPATH}/mcaltds_dl.c',
+                 '${BUILDPATH}/mcaltds_edl.c',
+                 '${BUILDPATH}/mcaltds_stmr_evt.c',
+                 '${BUILDPATH}/mcaltds_tfw_evt.c',
+                 '${BUILDPATH}/mcaltds_mgr.c',
+                 '${BUILDPATH}/mcaltds_srch.c',
+                 '${BUILDPATH}/mcaltds_hscfg.c',
+                 '${BUILDPATH}/mcaltds_rm.c',
+                 '${BUILDPATH}/mcaltds_eul.c',
+                 '${BUILDPATH}/mcaltds_dsdx.c',
+                 #'${BUILDPATH}/tdsmdspasync.c',
+                 #'${BUILDPATH}/tdsmdspsync.c',
+                 #'${BUILDPATH}/tdsmdsputil.c',
+                 '${BUILDPATH}/tdsrxdiv.c',
+                 '${BUILDPATH}/tdsseq.c',
+                 '${BUILDPATH}/tdssrchacq.c',
+                 '${BUILDPATH}/tdssrchbch.c',
+                 '${BUILDPATH}/tdssrchbplmn.c',
+                 #'${BUILDPATH}/tdssrchcmdrv.c',
+                 '${BUILDPATH}/tdssrchgsm.c',
+                 '${BUILDPATH}/tdssrchcr.c',
+                 #'${BUILDPATH}/tdscrgsm.c',
+                 '${BUILDPATH}/tdssrchdch.c',
+                 '${BUILDPATH}/tdssrchfach.c',
+                 '${BUILDPATH}/tdssrchfs.c',
+                 '${BUILDPATH}/tdssrchgsmdrv.c',
+                 '${BUILDPATH}/tdssrchhho.c',
+                 '${BUILDPATH}/tdssrchidle.c',
+                 '${BUILDPATH}/tdssrchinterf.c',
+                 '${BUILDPATH}/tdssrchmeas.c',
+                 '${BUILDPATH}/tdssrchpch.c',
+                 '${BUILDPATH}/tdssrchset.c',
+                 '${BUILDPATH}/tdssrchzz.c',
+                 '${BUILDPATH}/tdsstmr.c',
+                 '${BUILDPATH}/tdsulutil.c',
+                 '${BUILDPATH}/tdsulcmd.c',
+                 '${BUILDPATH}/tdsulstates.c',
+                 '${BUILDPATH}/tdsl1drxentity.c',
+                 '${BUILDPATH}/tdsdrxmgr.c',
+                 #'${BUILDPATH}/tdsl1i.c',
+                 '${BUILDPATH}/tdsl1m.c',
+                 '${BUILDPATH}/tdsl1sleep.c',
+                 #'${BUILDPATH}/tdssrchdc.c',
+                 '${BUILDPATH}/tdstrm.c',
+                 '${BUILDPATH}/tdssrch.c',
+                 '${BUILDPATH}/tdssrchmobileview.c',
+                 '${BUILDPATH}/tdssrchlte.c',
+                 '${BUILDPATH}/tdssrchltedrv.c',
+                 '${BUILDPATH}/tdssrchsglte.c',
+                 '${BUILDPATH}/tdsrm.c', 
+                 '${BUILDPATH}/tdsulra.c',
+                 '${BUILDPATH}/tdsgapmgr.c',
+                 '${BUILDPATH}/tdsl1cmmeas.c',
+                 '${BUILDPATH}/tdsuldpchctrl.c',
+                 '${BUILDPATH}/tdsdldecdata.c',
+                 '${BUILDPATH}/tdsdlcctrch.c',
+                 '${BUILDPATH}/tdssrchsync.c',
+                 '${BUILDPATH}/mcaltds_mcpmdrv.c',
+                 '${BUILDPATH}/tdsrf.c',
+                 '${BUILDPATH}/tdsrf_lm.c',
+                 '${BUILDPATH}/tdsirat.c',
+                 '${BUILDPATH}/tdsullogpkt.c',
+                 '${BUILDPATH}/tdsthermbackoff.c',
+                 '${BUILDPATH}/tdsl1_nv.c',
+                 '${BUILDPATH}/tdsl1_ftm.c',
+                 '${BUILDPATH}/tdsl1_api.c',
+                 '${BUILDPATH}/tdsl1trace.c',
+                 '${BUILDPATH}/tdsl1wlancoex.c',
+                 '${BUILDPATH}/tdsl1profillog.c',
+]
+
+                 
+if 'USES_TDSCDMA_VSTMR' in env:
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/bolt/tdshal_stmr.c')
+else:
+  # Hardware STMR
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/dime/tdshal_stmr.c')
+
+if ('USES_TDSCDMA_BOLT' in env) or ('USES_TDSCDMA_THOR' in env) :
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/mkBasedEnc/tdsenc.c')
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/mkBasedEnc/tdsenc_test.c')
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/mkBasedEnc/tdsenc_common.c')
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/mkBasedEnc/tdseulenc.c')
+elif ('USES_TDSCDMA_JOLOKIA' in env):
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/jolokia/tdsenc.c')
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/jolokia/tdsenc_test.c')
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/jolokia/tdseulenc.c')
+else:
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/dime/tdsenc.c')
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/dime/tdsenc_test.c')
+  TDSCDMA_PRIVATE_SOURCES.append('${BUILDPATH}/hal/dime/tdseulenc.c')
+
+#-------------------------------------------------------------------------------
+# Compile the private source files 
+#-------------------------------------------------------------------------------
+if TDSCDMA_PRIVATE_SOURCES != []:
+  env_private = env.Clone()
+  env_private.Append(CPPDEFINES = [
+    'FEATURE_LIBRARY_ONLY'
+  ])
+  
+  env_private.AddBinaryLibrary(IMAGES,'${BUILDPATH}/lib_tdscdma_l1',TDSCDMA_PRIVATE_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS','USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS','USES_CUSTOMER_GENERATE_AB_PROTECTED_LIBS'])
+
+  env.AddUMID('${BUILDPATH}/tdsiratif.umid', ['../../api/tdsiratif.h'])
+################################################################
+
+# Use AddRcInitFunc to add init functions to rcinit
+#  Required fields:
+#              'sequence_group'
+#              'init_function'
+#  Optional fields:
+#              'dependencies'
+
+# Use AddRcInitTask to add a task to rcinit
+#  Required fields:
+#              'thread_name'
+#              'sequence_group'
+#              'stack_size_bytes'
+#              'priority_amss_order'
+#  Optional fields:
+#              'stack_name'
+#              'thread_entry'
+#              'tcb_name'
+# Note that the optional fields default to 'thread_name'_{stack, entry, task}
+################################################################
+
+#-------------------------------------------------------------------------------
+# Create tds l1 and tds_fwsw_event  task
+#-------------------------------------------------------------------------------
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM', 'MOB_TDSCDMA']
+   env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+     'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                  
+     'init_name'                  : 'tds_l1_init',                           
+     'init_function'              : 'tds_l1_task_init',
+     'policy_optin'               : ['default', 'ftm', ],        
+    })
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM', 'MOB_TDSCDMA']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                  
+      'thread_name'                : 'tds_l1',                     
+      'thread_entry'               : 'tds_l1_task',                
+      'stack_size_bytes'           : '4608',
+      'priority_amss_order'        : 'TDSCDMA_L1_PRI_ORDER',
+      'tcb_name'                   : 'tds_l1_tcb',
+      'cpu_affinity'	           : env.subst('$MODEM_TDSCDMA_CPU_AFFINITY'),
+      'policy_optin'               : ['default', 'ftm', ],
+    })
+
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                  
+      'thread_name'                : 'tds_fwsw_evt',                        
+      'thread_entry'               : 'tds_fwsw_event_task',                   
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'SHARED_IST_PRI_ORDER',
+      'tcb_name'                   : 'tds_fwsw_event_tcb',
+      'cpu_affinity'	           : env.subst('$MODEM_CPU_AFFINITY'),
+      'policy_optin'               : ['default', 'ftm', ],
+    })
+
+
+# Load test units
+env.LoadSoftwareUnits()

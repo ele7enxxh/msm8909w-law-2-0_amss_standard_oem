@@ -1,0 +1,82 @@
+#===============================================================================
+#
+# DSM TEST Scons
+#
+# GENERAL DESCRIPTION
+#    build script for test files
+#
+# Copyright (c) 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/mcs/msgr/main/latest/build/msgr.scons#10 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/22/11   awj     Initial version.
+#===============================================================================
+from glob import glob
+from os.path import join, basename
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+TESTPATH = "modem/mcs/dsm/test"
+SRCPATH = "${BUILD_ROOT}/" + TESTPATH
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPDEFINES = 'COMPONENT_PATH=\\"'+TESTPATH+'/\\"')
+
+#-------------------------------------------------------------------------------
+# Necessary Public & Restricted API's
+#-------------------------------------------------------------------------------
+#env.AddUMID('${BUILDPATH}/msgr_test.umid', ['${INC_ROOT}/modem/mcs/msgr/test/msgr_test_msg.h'])
+
+env.RequirePublicApi([
+               'MPROC',
+#               'DAL',
+#               'DEBUGTOOLS',
+#               'MPROC',
+#               'SERVICES',
+#               'SYSTEMDRIVERS',
+#               'KERNEL',          # needs to be last
+               ], area='core')
+
+# Need to get access to Modem Public headers
+env.RequirePublicApi(['MCS'])
+
+# Need to get access to Modem Restricted headers
+env.RequireRestrictedApi(['MCS', 'QTF', 'MCS_OFFTARGET'])
+
+# Need to get access to MCS Protected headers
+env.RequireProtectedApi(['MCS'])
+
+env.PublishPrivateApi('DSM', '${INC_ROOT}/modem/mcs/dsm/src')
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(['BREW'])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+DSM_UT_SRC  = ['${BUILDPATH}/' + basename(fname)
+               for fname in glob(join(env.subst(SRCPATH), '*.cpp'))]
+DSM_UT_SRC += ['${BUILDPATH}/smd/' + basename(fname)
+               for fname in glob(join(env.subst(SRCPATH) + 'smd/', '*.cpp'))]
+
+# UT's must be added as objects
+env.AddObject(['MOB_MCS_UT'], DSM_UT_SRC)
+

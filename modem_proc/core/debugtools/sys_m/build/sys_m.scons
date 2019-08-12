@@ -1,0 +1,281 @@
+#===============================================================================
+#
+# System Monitor Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2016 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/debugtools/sys_m/main/latest/default/build/sys_m.scons#1 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/18/14   din     Added changes for ADSP island mode.
+# 05/06/09   wd      Create
+#
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+# HARDCODE TO ${platform}, TMS TEAM CONFIGURES PER DELIVERABLE
+# CONFIGURATION
+
+# OPTIONAL MANUAL TUNING (SMALL RESOURCE TARGETS)
+
+if env.IsTargetEnable([ 'CORE_EOS', 'CNSS_IMAGE', ]):
+   env.Append(CPPDEFINES = ["SYS_M_EXCLUDE_MSG_SWEVT"])          # EXCLUDE USE MSG MACRO
+   env.Append(CPPDEFINES = ["SYS_M_EXCLUDE_TRACER_SWEVT"])       # EXCLUDE USE QDSS TRACER
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/debugtools/sys_m/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'TMS',
+   'DEBUGTOOLS',
+   'HWENGINES',
+   'DEBUGTRACE',
+   'HAL',
+   'MPROC',
+   'POWER',    # added to include sleep apis for ADSP island mode
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h   
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequirePublicApi(['SSREQ','SSCTL'], area='QMIMSGS')
+
+platform = 'junk'
+SYS_M_SOURCES = [ ]
+SYS_M_IMGS = [ ]
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+if env['HAL_PLATFORM'] in ['9x35','9x45','9609','9635', '9607']:
+    env.Append(CPPDEFINES = ["SYSM_CHIP_ID=1"])
+elif env['HAL_PLATFORM'] in ['8909','8952','8953','8956','8936','8994','8996','8976','8937']:
+    env.Append(CPPDEFINES = ["SYSM_CHIP_ID=0"])
+
+#Target independent system monitor sources
+
+
+
+if env.IsTargetEnable(['CORE_MODEM']):
+   env.Append(CPPDEFINES = ["SYS_M_PREFIX= SYS_M_PREFIX_MPSS "])
+   env.Append(CPPDEFINES = ["SSCTL_SVC = 0x12"])    #SSCTL_QMI_SERVICE_INSTANCE_MPSS_V02
+   env.Append(CPPDEFINES = ["SYS_M_SMEM_SSR_RES=SMEM_SSR_REASON_MSS0 "])
+   platform = 'mpss'
+
+if env.IsTargetEnable(['CORE_ADSP_ROOT']):
+   env.Append(CPPDEFINES = ["SYS_M_PREFIX= SYS_M_PREFIX_LPASS "])
+   env.Append(CPPDEFINES = ["SSCTL_SVC = 0x14"])    #SSCTL_QMI_SERVICE_INSTANCE_ADSP_V02
+   env.Append(CPPDEFINES = ["SYS_M_SMEM_SSR_RES= SYS_M_SMEM_SSR_REASON_LPASS0 "])
+   platform = 'non_mpss'
+
+
+if env.IsTargetEnable(['CORE_SLPI_ROOT']):
+   env.Append(CPPDEFINES = ["SYS_M_PREFIX= SYS_M_PREFIX_SLPI"])
+   env.Append(CPPDEFINES = ["SSCTL_SVC = 0x16"])    #SSCTL_QMI_SERVICE_INSTANCE_SLPI_V02
+   env.Append(CPPDEFINES = ["SYS_M_SMEM_SSR_RES= SYS_M_SMEM_SSR_REASON_DSPS0 "])
+   platform = 'non_mpss'
+
+
+SYS_M_SOURCES = [
+   '${BUILDPATH}/sys_m.c',
+   '${BUILDPATH}/sys_m_smsm_' + platform + '.c',
+   '${BUILDPATH}/qmi_ssctl_ser_v02.c',
+   '${BUILDPATH}/sys_m_qmi_' + platform + '.c',
+   '${BUILDPATH}/sys_m_reset_' + platform + '.c',
+
+]
+
+#-------------------------------------------------------------------------------
+# Add MPSS sources
+#-------------------------------------------------------------------------------
+if env.IsTargetEnable(['CORE_MODEM']):
+   SYS_M_SOURCES += ['${BUILDPATH}/qmi_ssreq_client.c']
+   SYS_M_SOURCES += ['${BUILDPATH}/ssreq_svc_poll_client.c']
+  
+   SYS_M_IMGS = [
+    'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE','CORE_ROOT_PD','CORE_MODEM'
+   ]
+
+#-------------------------------------------------------------------------------
+# Add NON MPSS ( ADSP/SLPI ) root sources
+#-------------------------------------------------------------------------------
+else : 
+  SYS_M_IMGS = [
+      'CORE_QDSP6_SW', 'CORE_SLPI_ROOT'
+  ]
+
+#-------------------------------------------------------------------------------
+island_section = ['.text.uSysm']
+
+sys_m_libs = env.AddLibrary(SYS_M_IMGS, '${BUILDPATH}/sys_m', SYS_M_SOURCES)
+
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary(['CORE_QDSP6_SW'], sys_m_libs, island_section )
+   env.Append(CFLAGS = "-DSYS_M_ISLAND_MODE ") 
+
+env.AddLibrary([ 'CORE_ROOT_PD', ], '${BUILDPATH}/sys_m_root', # Drivers Domain (Root)
+   [
+      '${BUILDPATH}/sys_m_listen_root.c',
+   ])
+
+env.AddLibrary([ 'CORE_ROOT_PD', 'CORE_USER_PD'], '${BUILDPATH}/sys_m_user', # Drivers Domain (User)
+   [
+      '${BUILDPATH}/sys_m_listen_user.c',
+   ])
+#-------------------------------------------------------------------------------
+# Task Provisioning Information
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+
+    env.AddRCInitTask(
+            SYS_M_IMGS,
+            {
+                'sequence_group'             : 'RCINIT_GROUP_0',
+                'thread_name'                : 'sys_m_smsm',
+                'stack_size_bytes'           : '4096',
+                'priority_amss_order'        : 'SYS_M_PRI_ORDER',
+                'thread_type'                : 'RCINIT_TASK_DALTASK'
+            }
+        )
+
+    env.AddRCInitFunc(
+            SYS_M_IMGS,
+            {
+                'sequence_group'            : 'RCINIT_GROUP_0',
+                'init_name'                 : 'sys_m_init',
+                'init_function'             : 'sys_m_init'
+            }
+        )
+
+    env.AddRCInitFunc(
+            SYS_M_IMGS,
+            {
+                'sequence_group'            : 'RCINIT_GROUP_0',
+                'init_name'                 : 'sys_m_smsm_init',
+                'init_function'             : 'sys_m_smsm_init',
+                'dependencies'              : ['smp2p']
+            }
+        )
+
+    if env.IsTargetEnable(['CORE_ADSP_ROOT']):
+        env.AddRCInitTask(
+            SYS_M_IMGS,
+                {
+                    'sequence_group'             : 'RCINIT_GROUP_0',
+                    'thread_name'                : 'sys_m_qmi',
+                    'stack_size_bytes'           : '4096',
+                    'priority_amss_order'        : 'SYS_M_PRI_ORDER',
+                    'thread_type'                : 'RCINIT_TASK_DALTASK'
+                }
+        )
+
+    if env.IsTargetEnable(['CORE_SLPI_ROOT']):
+        env.AddRCInitTask(
+            SYS_M_IMGS,
+                {
+                    'sequence_group'             : 'RCINIT_GROUP_0',
+                    'thread_name'                : 'sys_m_qmi',
+                    'stack_size_bytes'           : '4096',
+                    'priority_amss_order'        : 'SYS_M_PRI_ORDER',
+                    'thread_type'                : 'RCINIT_TASK_DALTASK'
+                }
+        )
+    if env.IsTargetEnable(['CORE_MODEM']):
+        env.AddRCInitTask(
+            SYS_M_IMGS,
+            {
+                'sequence_group'             : 'RCINIT_GROUP_0',
+                'thread_name'                : 'ssreq_svc_poll',
+                'stack_size_bytes'           : '4096',
+                'priority_amss_order'        : 'SYS_M_PRI_ORDER',
+            }
+        )
+        env.AddRCInitTask(
+            SYS_M_IMGS,
+            {
+                'sequence_group'             : 'RCINIT_GROUP_0',
+                'thread_name'                : 'sys_m_qmi',
+                'stack_size_bytes'           : '4096',
+                'priority_amss_order'        : 'SYS_M_PRI_ORDER',
+            }
+        )
+
+    env.AddRCInitFunc([ 'CORE_ROOT_PD'],
+        {
+            'sequence_group'            : 'RCINIT_GROUP_1',
+            'init_name'                 : 'sys_m_root',
+            'init_function'             : 'sys_m_listen_root_init',
+            'dependencies'              : [ 'sys_m_init', ],
+        })
+
+    env.AddRCInitFunc([ 'CORE_USER_PD'],
+        {
+            'sequence_group'            : 'RCINIT_GROUP_1',
+            'init_name'                 : 'sys_m_user',
+            'init_function'             : 'sys_m_listen_user_init',
+            'dependencies'              : [ 'sys_m_init', 'sys_m_root', ],
+        })
+
+   # Register dynamic thread
+    env.AddRCInitTask([ 'CORE_ROOT_PD', 'CORE_USER_PD' ],
+        {
+            'sequence_group'             : 'RCINIT_GROUP_7',
+            'thread_name'                : 'smlworker',
+            'thread_type'                : 'RCINIT_TASK_QURTTASK',
+            'thread_entry'               : 'RCINIT_NULL',
+            'stack_size_bytes'           : '2048',
+            'priority_amss_order'        : 'SYS_M_PRI_ORDER',
+        })
+
+#-------------------------------------------------------------------------------
+# Tracer Software Events
+#-------------------------------------------------------------------------------
+
+SYS_M_SWE_EVENTS = [
+   ['SYS_M_SWE_EVENT',         'Dummy Event          %x %x', 'F'],
+]
+
+if 'USES_QDSS_SWE' in env and len(SYS_M_SWE_EVENTS) != 0:
+   env.Append(CPPPATH = ['${BUILD_ROOT}/core/debugtools/sys_m/build/${BUILDPATH}/'])
+   env.SWEBuilder(['${BUILD_ROOT}/core/debugtools/sys_m/build/${BUILDPATH}/sys_m_tracer_swe.h'], None)
+   env.AddSWEInfo(['CORE_QDSP6_SW', 'CORE_MODEM', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'CBSP_SINGLE_IMAGE', 'CORE_APPS', 'CORE_SINGLE', 'CORE_SPS', 'CORE_GSS', 'CORE_WCN'], SYS_M_SWE_EVENTS)
+else:
+   env.Append(CPPDEFINES = ["SYS_M_EXCLUDE_TRACER_SWEVT"])
+
+#-------------------------------------------------------------------------------
+# DALCFG Image "Static" Configuration Items
+#-------------------------------------------------------------------------------
+
+# NONE

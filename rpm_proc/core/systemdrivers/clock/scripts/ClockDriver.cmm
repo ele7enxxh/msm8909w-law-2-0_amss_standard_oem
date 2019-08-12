@@ -1,0 +1,300 @@
+;=============================================================================
+;
+; ClockTree.cmm 
+;  
+; Script to parse out information from the Clock Driver.
+;
+; ============================================================================
+;
+; Copyright (c) 2011 Qualcomm Technologies Incorporated.  All Rights Reserved.  
+; QUALCOMM Proprietary and Confidential. 
+;
+; ============================================================================
+; $Header: //components/rel/rpm.bf/2.1.1/core/systemdrivers/clock/scripts/ClockDriver.cmm#1 $
+; $DateTime: 2015/02/25 02:53:43 $
+; $Author: pwbldsvc $
+; ============================================================================
+
+local &idx
+local &choice
+local &subscript
+
+
+;-----------------------------------------------------------------------------
+; Print welcome
+;-----------------------------------------------------------------------------
+&subscript=0
+
+ENTRY &subscript
+
+if "&subscript"==""
+(
+  AREA.RESet
+  WINPOS 0. 0. 100% 100%
+  AREA.Create CLOCK
+  AREA.view CLOCK
+)
+
+AREA.Select CLOCK
+AREA.Clear CLOCK
+
+print ""
+print ""
+print "[----------------------------------------------- CLOCK DRIVER TOOL -----------------------------------------------]"
+print ""
+
+Help:
+
+print "1: Show enabled clocks"
+print "2: Show enabled sources"
+print "3: List sleep voters"
+print "4: List voltage voters"
+print "5: Display clocks as table"
+print "6: Display sources as table"
+print "x: Exit"
+print ""
+
+;-----------------------------------------------------------------------------
+; Main Menu
+;-----------------------------------------------------------------------------
+
+MainMenu:
+
+print "Enter option (? for help):"
+enter &choice
+print "&choice"
+
+if "&choice"=="?"
+(
+  goto Help
+)
+else if "&choice"=="x"
+(
+  if "&subscript"==""
+  (
+    AREA.CLEAR CLOCK
+    AREA.RESET
+    WINCLEAR
+    term.close 
+  )
+  
+  enddo (0==0)
+)
+else if "&choice"=="1"
+(
+  gosub DisplayEnabledClocks
+)
+else if "&choice"=="2"
+(
+  gosub DisplayEnabledSources
+)
+else if "&choice"=="3"
+(
+  gosub DisplaySleepVoters
+)
+else if "&choice"=="4"
+(
+  gosub DisplayVoltageVoters
+)
+else if "&choice"=="5"
+(
+  gosub DisplayClockTable
+)
+else if "&choice"=="6"
+(
+  gosub DisplaySourceTable
+)
+
+goto MainMenu
+
+
+;-----------------------------------------------------------------------------
+; DisplayEnabledClocks
+;-----------------------------------------------------------------------------
+
+DisplayEnabledClocks:
+  print "[--- Enabled Clocks ---]"
+  &idx=0.
+  &clks=v.value(pDrvCtxt.nNumClocks)
+  while &idx<&clks
+  (
+    &ref=v.value(pDrvCtxt.aClocks[&idx].nReferenceCount)
+    if &ref>0
+    (
+      &domain=v.value(pDrvCtxt.aClocks[&idx].pDomain)
+      if &domain!=0
+      (
+        &src=v.value(pDrvCtxt.aClocks[&idx].pDomain->pSource)
+        if &src!=0
+        (
+          ;var.print "(&idx)  " %string pDrvCtxt.aClocks[&idx].szName "  [" pDrvCtxt.aClocks[&idx].pDomain->pSource->eSource ", " pDrvCtxt.aClocks[&idx].pDomain->eVRegLevel "]"
+          var.print "(&idx)  " %string pDrvCtxt.aClocks[&idx].szName "  [" pDrvCtxt.aClocks[&idx].pDomain->pSource->pBSPConfig->eSource ", " pDrvCtxt.aClocks[&idx].pDomain->eVRegLevel "]"
+        )
+        else
+        (
+          ; Check for the "XO_VOTE" flag which indicates that this clock
+          ; always votes for LPXO even if it has no source.
+          &flags=v.value(pDrvCtxt.aClocks[&idx].nFlags)
+          if (&flags&(0x2000))==0x2000
+          (
+            var.print "(&idx)  " %string pDrvCtxt.aClocks[&idx].szName "  [HAL_CLK_SOURCE_LPXO, " pDrvCtxt.aClocks[&idx].pDomain->eVRegLevel "]"
+          )
+          else
+          (
+            var.print "(&idx)  " %string pDrvCtxt.aClocks[&idx].szName "  [" pDrvCtxt.aClocks[&idx].pDomain->eVRegLevel "]"
+          )
+        )
+      )
+      else
+      (
+        var.print "(&idx)  " %string pDrvCtxt.aClocks[&idx].szName "  [No Domain]"
+      )
+    )
+    &idx=&idx+1.
+  )
+  print ""
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplayEnabledSources
+;-----------------------------------------------------------------------------
+
+DisplayEnabledSources:
+  print "[--- Enabled Sources ---]"
+  &idx=0.
+  &srcs=v.value(pDrvCtxt.nNumSources)
+  while &idx<&srcs
+  (
+    &ref=v.value(pDrvCtxt.aSources[&idx].nReferenceCount)
+    &refcpu=v.value(pDrvCtxt.aSources[&idx].nReferenceCountCPU)
+    if &ref>0||&refcpu>0
+    (
+      ;var.print "(&idx)  " pDrvCtxt.aSources[&idx].eSource "  [RefCount=" %decimal pDrvCtxt.aSources[&idx].nReferenceCount+pDrvCtxt.aSources[&idx].nReferenceCountCPU " (CPU=" pDrvCtxt.aSources[&idx].nReferenceCountCPU ")]" 
+      var.print "(&idx)  " pDrvCtxt.aSources[&idx].pBSPConfig->eSource "  [RefCount=" %decimal pDrvCtxt.aSources[&idx].nReferenceCount+pDrvCtxt.aSources[&idx].nReferenceCountCPU " (CPU=" pDrvCtxt.aSources[&idx].nReferenceCountCPU ")]" 
+    )
+    &idx=&idx+1.
+  )
+  print ""
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplaySleepVoters
+;-----------------------------------------------------------------------------
+
+DisplaySleepVoters:
+  print "[--- Sleep Voters ---]"
+  &idx=0.
+  &clks=v.value(pDrvCtxt.nNumClocks)
+  while &idx<&clks
+  (
+    &voter=0
+    &ref=v.value(pDrvCtxt.aClocks[&idx].nReferenceCount)
+    if &ref>0
+    (
+      ; Check for the "XO_VOTE" flag which indicates that this clock
+      ; always votes for LPXO even if it has no source.
+      &flags=v.value(pDrvCtxt.aClocks[&idx].nFlags)
+      if (&flags&(0x2000))==0x2000
+      (
+        &voter=1
+      )
+      else
+      (
+        &domain=v.value(pDrvCtxt.aClocks[&idx].pDomain)
+        if &domain!=0
+        (
+          &dflags=v.value(pDrvCtxt.aClocks[&idx].pDomain->nFlags)
+          &src=v.value(pDrvCtxt.aClocks[&idx].pDomain->pSource)
+          ;if (&src!=0)&&((&dflags)&(0x200)==0)
+          ;if (&dflags)&(0x200)==0
+          if (&src!=0)&&(&dflags&(0x200))==0
+          (
+            &voter=1
+          )
+        )
+      )
+    )
+
+    if &voter==1
+    (
+      var.print "(&idx)  " %string pDrvCtxt.aClocks[&idx].szName
+    )
+    &idx=&idx+1.
+  )
+  print ""
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplayVoltageVoters
+;-----------------------------------------------------------------------------
+
+DisplayVoltageVoters:
+  print "[--- Voltage Voters ---]"
+  print "HIGH:"
+  &idx=0.
+  &clks=v.value(pDrvCtxt.nNumClocks)
+  while &idx<&clks
+  (
+    &ref=v.value(pDrvCtxt.aClocks[&idx].nReferenceCount)
+    if &ref>0
+    (
+      &domain=v.value(pDrvCtxt.aClocks[&idx].pDomain)
+      if &domain!=0
+      (
+        &vreg=v.value(pDrvCtxt.aClocks[&idx].pDomain->eVRegLevel)
+        if &vreg==2
+        (
+          var.print "(&idx)  " %string pDrvCtxt.aClocks[&idx].szName
+        )
+      )
+    )
+    &idx=&idx+1.
+  )
+
+  print "NOMINAL:"
+  &idx=0.
+  &clks=v.value(pDrvCtxt.nNumClocks)
+  while &idx<&clks
+  (
+    &ref=v.value(pDrvCtxt.aClocks[&idx].nReferenceCount)
+    if &ref>0
+    (
+      &domain=v.value(pDrvCtxt.aClocks[&idx].pDomain)
+      if &domain!=0
+      (
+        &vreg=v.value(pDrvCtxt.aClocks[&idx].pDomain->eVRegLevel)
+        if &vreg==1
+        (
+          var.print "(&idx)  " %string pDrvCtxt.aClocks[&idx].szName
+        )
+      )
+    )
+    &idx=&idx+1.
+  )
+  print ""
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplayClockTable
+;-----------------------------------------------------------------------------
+
+DisplayClockTable:
+  &clks=v.value(pDrvCtxt.nNumClocks)-1
+  var.tab %string pDrvCtxt.aClocks[0..&clks]
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplaySourceTable
+;-----------------------------------------------------------------------------
+
+DisplaySourceTable:
+  &srcs=v.value(pDrvCtxt.nNumSources)-1
+  var.tab pDrvCtxt.aSources[0..&srcs]
+  return
+
+

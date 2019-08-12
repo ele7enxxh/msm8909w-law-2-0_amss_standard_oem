@@ -1,0 +1,46 @@
+#===============================================================================
+#
+# QSEE Arch APIs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsee/arch/build/arch.api#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+if env['CHIPSET'] == "msm8909w":
+   env.PublishRestrictedApi('TZCHIPSET', [
+   '${INC_ROOT}/core/securemsm/trustzone/qsee/arch/msm8909/cfg/mmu',
+   '${INC_ROOT}/core/securemsm/trustzone/qsee/arch/msm8909/src',
+   ])
+else:
+    env.PublishRestrictedApi('TZCHIPSET', [
+      '${INC_ROOT}/core/securemsm/trustzone/qsee/arch/${CHIPSET}/cfg/mmu',
+      '${INC_ROOT}/core/securemsm/trustzone/qsee/arch/${CHIPSET}/src',
+   ])
+
+if env['CHIPSET'] != "msm8916":
+   env.PublishRestrictedApi('TZCHIPSET', [
+      '${INC_ROOT}/core/securemsm/trustzone/qsee/arch/common/inc',
+   ])
+
+
+env.LoadAPIUnits()

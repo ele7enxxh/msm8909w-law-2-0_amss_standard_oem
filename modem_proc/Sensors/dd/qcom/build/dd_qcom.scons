@@ -1,0 +1,365 @@
+#===============================================================================
+#
+# Build script for sensors device drivers.
+#
+# Copyright (c) 2009-2015 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/Sensors/dd/qcom/build/dd_qcom.scons#1 $
+#  $DateTime: 2016/12/13 08:00:23 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+#  when        who  what, where, why
+#  ----------  ---  ---------------------------------------------------------
+#  2016-08-08  kl   pah8011 reg file add
+#  2016-04-25  kl   Added PAH8011
+#  2015-08-18  rt   Moved BM280 pressure driver into uImage     
+#  2015-07-13  dk   Ported DAF playback accel driver over SLPI
+#  2015-06-15  AH   Enable APDS9960 uImage support for 8996v2
+#  2015-04-03  AH   Added DTS201A
+#  2015-04-01  PS   Enabled AKM9915 uImage support for 8996v2
+#  2015-03-12  AH   Added ADPD142
+#  2015-03-10  MW   Added HSVDD002A
+#  2015-01-28  PS   Added AKM099xx
+#  2015-01-14  MW   Added APDS9960, BMP280
+#  2014-12-10  MW   Update for HD22
+#  2014-10-30  MW   Added BMI160
+#  2014-10-08  DK   Add ZPA2326
+#  2014-08-05  DK   Remove TMG399x and LPS25H DDs from uImage.
+#  2014-07-31  MW   Fixed TMG399x uImage support
+#  2014-07-25  ps   Support for 8996 images
+#  2014-07-29  pn   Removed LPS25H and HSCDTD008 DD from uImage
+#  2014-07-09  vy   Refactored BMG160 Gyro DD for uImage
+#  2014-07-09  vy   Refactored BMA2x2 and ALSPRX_TMG399x for uImage
+#  2014-06-25  MW   Added ISL29033
+#  2014-06-06  vy   Reduced uimage components
+#  2014-05-29  pn   Restructured to fix libraries with overlapping objects
+#  2014-05-28  MW   Added HSPPAD038A
+#  2014-05-12  MW   Removed AMS libs and added sharable sources
+#  2014-04-16  MW   Updated TMD399x
+#  2014-04-08  MW   Added LPS25H
+#  2014-04-04  MW   Added SENSORS_DD_DEV_FLAG for HD22
+#  2013-12-18  MW   Added BU52061NVX
+#  2013-10-11  yh   Added AK09911C
+#  2013-11-29  yh   Added MC3410
+#  2013-12-17  ps   Added 8994 platform id
+#  2013-12-11  MW   Added MAX44006
+#  2013-11-06  sd   Added BMG160
+#  2013-11-04  MW   Added LSM303D
+#  2013-10-23  MW   Added AD7146
+#  2013-09-23  yh   Added AL3320B
+#  2013-09-09  yh   Added CM36283
+#  2013-09-05  yh   Added KXTIK
+#  2013-10-09  RS   Added Memsic M34160PJ Mag with BSD license
+#  2013-09-16  MW   Removed MAX88120, moved to dd/vendor
+#  2013-09-12  MW   Moved MAX88120 back to dd/qcom, Added
+#				maxim_gesture.lib to image, Added BH1721
+#  2013-09-04  MW   Added YAS530/YAS532
+#  2013-09-03  yh   Added ISL29044A
+#  2013-09-02  cj   Added ISL29147
+#  2013-08-09  yh   Added AP3216C
+#  2013-08-09  yh   Added MMA8452
+#  2013-07-25  yh   Added KXCJK
+#  2013-08-15  MW   Removed MAX88120, moved to dd/vendor
+#  2013-08-05  sc   Added AMS TMG399X
+#  2013-07-31  MW   Added APDS9950 and MAX88120
+#  2013-07-15  dc   Support for humidity sensor type
+#  2013-07-12  lka  Added BMP280 (BSD License)
+#  2013-06-25  ps   update require method for Public APIs
+#  2013-06-17  pf   Added LTR55x
+#  2013-06-11  ae   Added QDSP SIM playback support
+#  2013-05-01  lka  Added LIS3DSH support (BSD License)
+#  2013-04-03  sc   Added MAXIM44009
+#  2013-03-25  rs   TMD277X with BSD license added
+#  2013-03-22  ps   HSCDTD008 with BSD license added
+#  2013-03-22  sc   Added AKM8963
+#  2013-03-19  ag   BMA2x2 with BSD license added
+#  2013-03-05  ag   Support 8x26
+#  2013-03-02  sc   Added LPS331AP
+#  2013-02-15  sc   Added APDS99XX.
+#  2012-12-02  ag   Add multi PD support
+#  2012-08-14  sc   Added sensor configuration for 8974 target bringup.
+#  2012-07-05  sc   Build with LIS3DH accel sensor driver
+#  2012-05-10  vh   Added latest sensors (AK8975, ISL29028) source
+#  2011-07-05  ag   enable moving init and get_attrib for alsprx outside TCM
+#  2011-06-20  jh   Added AKM8975 support for 8960
+#  2011-06-09  ag   added driver for isl29028, another als/prx sensor
+#  2011-04-29  jh   Enabled compilation of ST accel and mag drivers
+#  2011-04-17  jh   Updated SMGR include paths required by device driver
+#  2011-04-06  ag   add path to smgr internal header files
+#  2011-04-04  as   Add ADXL Unit-Test.
+#  2011-03-17  jh   Compile calibration and BMP085 code only for unit test
+#  2011-02-22  ky   BMA150 / ADXL calibration
+#  2011-02-22  as   Add BMP085 Pressure and Temperature sensor.
+#  2011-01-24  of   Added AKM8975 magnetometer support
+#  12/22/2010  pg   Update for accessing UCOS header files from DALSYS.
+#  2011-01-18  as   Added ADXL 350/346 accelerometer driver.
+#  2010-10-26  ag   Added ALSPRX. Also added MPROC in CBSP_API for IDL related
+#                   headers needed for debug strings
+#  2010-08-27  yk   Initial release.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+if env.has_key('ACCEL_SDD_TEST'):
+   env.Append(CPPDEFINES = ["ACCEL_SDD_TEST"])
+#   env.Append(CPPDEFINES = ["ALSPRX_SDD_TEST"])
+
+#   env.Append(CPPDEFINES = ["CONFIG_USE_ADXL"])
+#   env.Append(CPPDEFINES = ["CONFIG_ADXL_UNIT_TEST"])
+
+#   env.Append(CPPDEFINES = ["CONFIG_USE_AKM8975"])
+
+#   env.Append(CPPDEFINES = ["CONFIG_USE_BMP085"])
+#   env.Append(CPPDEFINES = ["CONFIG_BMP085_UNIT_TEST"])
+
+#   env.Append(CPPDEFINES = ["CONFIG_USE_BMA150_CALIB"])
+#   env.Append(CPPDEFINES = ["CONFIG_USE_ADXL_CALIB"])
+
+# Disable Optimization for debugger single-step.
+# env.Append(CCFLAGS = " -O0")
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/dd/qcom/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# External depends outside module (added to be removed post PIL driver update)
+#-------------------------------------------------------------------------------
+CBSP_API = [
+    'BUSES',
+    'DAL',
+    'SYSTEMDRIVERS',
+    'MPROC',
+    'SERVICES',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+]
+
+env.RequireExternalApi(CBSP_API)
+env.RequirePublicApi(CBSP_API, area='core')
+env.RequirePrivateApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_SMR',
+   'SNS_QUEUE',
+   'SNS_MEMMGR',
+   'SNS_EVMGR',
+   'SNS_COMMON',
+   'SNS_DEBUG_DSPS',
+]
+env.RequireRestrictedApi(SENSORS_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/ddf/inc",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/playback/inc/",
+   "${BUILD_ROOT}/Sensors/dd/qcom/inc",
+   "${BUILD_ROOT}/Sensors/sam/algo/common/inc",
+   "${BUILD_ROOT}/Sensors/smgr/src/common",
+   "${BUILD_ROOT}/Sensors/scm/algo/inc",
+])
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+if env.has_key('SNS_QDSP_SIM'):
+   DD_SOURCES = [
+      "${BUILDPATH}/sns_dd_qdsp_playback.c",
+   ]
+else:
+   DD_SOURCES = [
+     "${BUILDPATH}/sns_dd_daf_playback_accel.c",
+     "${BUILDPATH}/sns_dd_mpu6050.c",
+     "${BUILDPATH}/sns_dd_mpu6050_ext.c",
+     "${BUILDPATH}/sns_dd_mpu6050_selftest.c",
+     "${BUILDPATH}/sns_dd_mpu6515.c",
+     "${BUILDPATH}/sns_dd_mpu6515_ext.c",
+     "${BUILDPATH}/sns_dd_mpu6515_selftest.c",
+     "${BUILDPATH}/sns_dd_alt_bmp085.c",
+     "${BUILDPATH}/sns_dd_alt_bmp280.c",
+     "${BUILDPATH}/sns_dd_alt_bmp280_uimg.c",
+     "${BUILDPATH}/sns_dd_inertial_test.c",
+     "${BUILDPATH}/sns_dd_mag_akm8975.c",
+     "${BUILDPATH}/sns_dd_uimg_mag_akm8975.c",
+     "${BUILDPATH}/sns_dd_mag_akm8963.c",
+     "${BUILDPATH}/sns_dd_accel_adxl350.c",
+     "${BUILDPATH}/sns_dd_uimg_accel_adxl350.c",
+     "${BUILDPATH}/sns_dd_accel_lis3dh.c",
+     "${BUILDPATH}/sns_dd_uimg_accel_lis3dh.c",
+     "${BUILDPATH}/sns_dd_accel_lis3dh_ext.c",
+     "${BUILDPATH}/sns_dd_accel_lis3dsh.c",
+     "${BUILDPATH}/sns_dd_uimg_accel_lis3dsh.c",
+     "${BUILDPATH}/sns_dd_accel_lis3dsh_ext.c",
+     "${BUILDPATH}/sns_dd_accel_lis3dsh_sm.c",
+     "${BUILDPATH}/sns_dd_gyro.c",
+     "${BUILDPATH}/sns_dd_gyro_ext.c",
+     "${BUILDPATH}/sns_dd_gyro_l3g4200d.c",
+     "${BUILDPATH}/sns_dd_gyro_l3gd20.c",
+     "${BUILDPATH}/sns_dd_uimg_gyro_l3gd20.c",
+     "${BUILDPATH}/sns_dd_mag_lsm303dlhc.c",
+     "${BUILDPATH}/sns_dd_alsprx_isl29028.c",
+     "${BUILDPATH}/sns_dd_alsprx_isl29028_ext.c",
+     "${BUILDPATH}/sns_dd_alsprx_isl29147.c",
+     "${BUILDPATH}/sns_dd_alsprx_isl29147_ext.c",
+     "${BUILDPATH}/sns_dd_apds99xx.c",
+     "${BUILDPATH}/sns_dd_press_lps331ap.c",
+     "${BUILDPATH}/sns_dd_als_max44009.c",
+     "${BUILDPATH}/sns_dd_bma2x2.c",
+     "${BUILDPATH}/sns_dd_uimg_bma2x2.c",
+     "${BUILDPATH}/sns_dd_bmg160.c",
+     "${BUILDPATH}/sns_dd_uimg_bmg160.c",
+     "${BUILDPATH}/sns_dd_mag_hscdtd008.c",
+     "${BUILDPATH}/sns_dd_uimg_mag_hscdtd008.c",
+     "${BUILDPATH}/sns_dd_alsprx_tmd277x.c",
+     "${BUILDPATH}/sns_dd_alsprx_tmd277x_ext.c",
+     "${BUILDPATH}/sns_dd_alsprx_ltr55x.c",
+     "${BUILDPATH}/sns_dd_alsprx_ltr55x_ext.c",
+     "${BUILDPATH}/sns_dd_rht_shtc1.c",
+     "${BUILDPATH}/sns_dd_uimg_rht_shtc1.c",
+     "${BUILDPATH}/sns_dd_apds9950.c",
+     "${BUILDPATH}/sns_dd_ams_tmg399x.c",
+     "${BUILDPATH}/sns_dd_ams_tmg399x_ext.c",
+     "${BUILDPATH}/ams_tmg399x.c",
+     "${BUILDPATH}/ams_i2c.c",
+     "${BUILDPATH}/sns_dd_kxcjk.c",
+     "${BUILDPATH}/sns_dd_accel_mma8452.c",
+     "${BUILDPATH}/sns_dd_accel_mma8452_ext.c",
+     "${BUILDPATH}/sns_dd_alsprx_ap3216c_ap3220.c",
+     "${BUILDPATH}/sns_dd_alsprx_ap3216c_ap3220_ext.c",
+     "${BUILDPATH}/sns_dd_alsprx_isl29044a.c",
+     "${BUILDPATH}/sns_dd_alsprx_isl29044a_ext.c",
+     "${BUILDPATH}/sns_dd_mag_yas.c",
+     "${BUILDPATH}/sns_dd_als_bh1721.c",
+     "${BUILDPATH}/sns_dd_mag_mmc3xxx.c",
+     "${BUILDPATH}/sns_dd_alsprx_al3320.c",
+     "${BUILDPATH}/sns_dd_alsprx_al3320_ext.c",
+     "${BUILDPATH}/sns_dd_alsprx_cm36283.c",
+     "${BUILDPATH}/sns_dd_alsprx_cm36283_ext.c",
+     "${BUILDPATH}/sns_dd_kxtik.c",
+     "${BUILDPATH}/sns_dd_sar_ad7146.c",
+     "${BUILDPATH}/sns_dd_lsm303d.c",
+     "${BUILDPATH}/sns_dd_rgb_als_max44006.c",
+     "${BUILDPATH}/sns_dd_accel_mc3410.c",
+     "${BUILDPATH}/sns_dd_accel_mc3410_ext.c",
+     "${BUILDPATH}/sns_dd_mag_akm099xx.c",
+     "${BUILDPATH}/sns_dd_hall_bu52061nvx.c",
+     "${BUILDPATH}/sns_dd_press_lps25h.c",
+     "${BUILDPATH}/sns_dd_uimg_press_lps25h.c",
+     "${BUILDPATH}/sns_dd_prs_hsppad038.c",
+     "${BUILDPATH}/sns_dd_als_isl29033.c",
+     "${BUILDPATH}/sns_dd_press_ZPA2326.c",
+     "${BUILDPATH}/sns_dd_press_ZPA2326_core.c",
+     "${BUILDPATH}/sns_dd_press_ZPA2326_ifi2c.c",
+     "${BUILDPATH}/sns_dd_press_ZPA2326_ifsys.c",
+     "${BUILDPATH}/sns_dd_bmi160.c",
+     "${BUILDPATH}/sns_dd_bmi160_uimg.c",
+     "${BUILDPATH}/sns_dd_apds9960.c",
+     "${BUILDPATH}/sns_dd_apds9960_uimg.c",
+     "${BUILDPATH}/sns_dd_mag_fifo_akm099xx.c",
+     "${BUILDPATH}/sns_dd_mag_fifo_akm099xx_uimg.c",
+     "${BUILDPATH}/sns_dd_uva_amb_hsvddd002a.c",
+     "${BUILDPATH}/sns_dd_adpddrv.c",
+     "${BUILDPATH}/sns_dd_adpddrv_uimg.c",
+     "${BUILDPATH}/sns_dd_dts201a.c",
+     "${BUILDPATH}/sns_dd_dts201a_uimg.c",
+     "${BUILDPATH}/sns_dd_pah8002.c",
+     "${BUILDPATH}/sns_dd_lsm6ds3.c",
+     "${BUILDPATH}/sns_dd_lsm6ds3_esp.c",
+     "${BUILDPATH}/sns_dd_lsm6ds3_fifo.c",
+     "${BUILDPATH}/sns_dd_lsm6ds3_fifo_uimg.c",
+     "${BUILDPATH}/sns_dd_lsm6ds3_selftest.c",
+     "${BUILDPATH}/sns_dd_lsm6ds3_uimg.c",	 
+     "${BUILDPATH}/sns_dd_pah_comm_i2c.c",
+     "${BUILDPATH}/sns_dd_pah_i2c.c",
+     "${BUILDPATH}/sns_dd_pah_driver_8011.c",
+     "${BUILDPATH}/sns_dd_pah_api_8011.c",
+     "${BUILDPATH}/sns_dd_pah_driver_8011_reg_array.c",
+     "${BUILDPATH}/sns_dd_pah_system_clock.c",
+   ]
+   if env.has_key('BRINGUP_8996_V2'):
+     DD_UIMG_SOURCES = [
+       "${BUILDPATH}/sns_dd_mag_fifo_akm099xx_uimg.c",
+       "${BUILDPATH}/sns_dd_bmi160_uimg.c",
+       "${BUILDPATH}/sns_dd_apds9960_uimg.c",
+       "${BUILDPATH}/sns_dd_alt_bmp280_uimg.c",
+     ]
+   else:
+     DD_UIMG_SOURCES = [
+       "${BUILDPATH}/sns_dd_bmi160_uimg.c",
+   ]
+
+if 'DD_UIMG_SOURCES' in globals():
+   [DD_SOURCES.remove(f) for f in DD_UIMG_SOURCES if f in DD_SOURCES]
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   DD_QCOM_CLEAN_SOURCES = env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/dd/qcom/src')
+   DD_QCOM_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/dd/qcom/inc')
+
+   # Rebuild DD sources for HD22
+   DD_SOURCES = [
+     "${BUILDPATH}/sns_dd_inertial_test.c",
+     "${BUILDPATH}/sns_dd_gyro_l3gd20.c",
+     "${BUILDPATH}/sns_dd_uimg_gyro_l3gd20.c",
+	 "${BUILDPATH}/sns_dd_lsm303d.c",
+	 "${BUILDPATH}/sns_dd_press_lps25h.c",
+	 "${BUILDPATH}/sns_dd_uimg_press_lps25h.c",
+   ]
+   
+   DD_UIMG_SOURCES = [
+   ]
+
+   # add as binary library
+   dd_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   "${BUILDPATH}/dd", DD_SOURCES)
+
+   if 'DD_UIMG_SOURCES' in globals():
+      dd_uimg_lib = env.AddBinaryLibrary(
+         ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+         '${BUILDPATH}/dd_uimg', DD_UIMG_SOURCES)
+
+   # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   DD_QCOM_CLEAN_SOURCES)
+else:
+   dd_lib = env.AddLibrary(
+      ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+      '${BUILDPATH}/dd', DD_SOURCES)
+   if 'DD_UIMG_SOURCES' in globals():
+      dd_uimg_lib = env.AddLibrary(
+         ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+         '${BUILDPATH}/dd_uimg', DD_UIMG_SOURCES)
+      
+# Common clause for regular build and HD22	  
+      if 'USES_ISLAND' in env:
+         env.AddIslandLibrary(['CORE_QDSP6_SENSOR_SW'], dd_uimg_lib)

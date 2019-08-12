@@ -1,0 +1,168 @@
+#===============================================================================
+#
+# SME SSL CHIPSET Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+#  Copyright (c) 2013 Qualcomm Technologies, Inc.  All Rights Reserved.
+#  Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:$
+#  $DateTime:$
+#  $Author:$
+#  $Change:$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/13/10   yh      SSL chipset lib scon
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+#-------------------------------------------------------------------------------
+# Check Debug Status
+#-------------------------------------------------------------------------------
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+#-------------------------------------------------------------------------------
+# Set Paths
+#-------------------------------------------------------------------------------
+#if env.has_key('IMAGE_NAME'):
+#   SECUREMSMLIBPATH = '${IMAGE_NAME}/${PROC}/${ARMTOOLS}'
+##   SECUREMSMLIBPATH = '${IMAGE_NAME}/${PROC}/${ARMTOOLS}/${DBUG_MODE}'
+#else:
+#   SECUREMSMLIBPATH = 'unknown/${PROC}/${ARMTOOLS}'
+#   SECUREMSMLIBPATH = 'unknown/${PROC}/${ARMTOOLS}/${DBUG_MODE}'
+SECUREMSMLIBPATH = '${BUILDPATH}'
+
+env.Replace(SECUREMSMLIBPATH = SECUREMSMLIBPATH)
+env.VariantDir('${SECUREMSMLIBPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_SEC_SSL'])
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+   'MODEM_API',
+   'MULTIMEDIA_CORE',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API, 'core')
+
+env.RequireRestrictedApi([
+    'MMODE',
+    'NAS',
+    'RFA',
+    'MDSP',
+    'MDSPSVC',
+    'GERAN',
+    'GPS',
+    'ONEX',
+    'HDR',
+    'MCS',
+    'LTE',
+    'UTILS',
+    ])
+
+#env.RequireRestrictedApi(CBSP_API)
+
+MODEM_API = [
+   'DATA',
+   'HDR',
+   'DATACOMMON',
+   'SSL',
+   'DSM',
+   'MCS',
+   'GPS',
+]
+
+env.RequirePublicApi(MODEM_API, 'modem')
+env.RequireRestrictedApi('SSL')
+
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------
+# Secure Sockets Layer (SSL) Chipset Library
+#----------------------------------------------------------------------------
+SME_SSL_CHIPSET_LIB_SOURCES = [
+        '${SECUREMSMLIBPATH}/src/secssl.c',
+        '${SECUREMSMLIBPATH}/src/secssli.c', 
+        '${SECUREMSMLIBPATH}/src/secssltask.c', 
+]
+
+sme_ssl_chipset_lib = '${SECUREMSMLIBPATH}/sme_ssl_chipset'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if env.has_key('USES_SEC'):
+    env.AddBinaryLibrary(
+        ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+         'MODEM_IMAGE',  'CBSP_MODEM_IMAGE',
+         'APPS_IMAGE',   'CBSP_APPS_IMAGE',
+         'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+        sme_ssl_chipset_lib,[SME_SSL_CHIPSET_LIB_SOURCES], pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+
+#-------------------------------------------------------------------------------
+# Setup RCINIT so we start ssl tasks
+#------------------------------------------------------------------------------- 
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_6',                  # required
+      'thread_name'                : 'secssl',                          # required
+      'stack_size_bytes'           : '16384',
+      'priority_amss_order'        : 'SECSSL_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_CPU_AFFINITY_MASK',
+      'tcb_name'                   : 'secssl_tcb',
+      'policy_optin'        : ['default', 'ftm', ],
+    })
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

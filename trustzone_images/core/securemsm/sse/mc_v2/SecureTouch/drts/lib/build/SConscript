@@ -1,0 +1,54 @@
+#===============================================================================
+#
+# SSE Touch Screen Driver
+#
+# GENERAL DESCRIPTION
+#    SSE Touch Screen Driver - TL User Module
+#
+# Copyright (c) 2012 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/sse/mc_v2/SecureTouch/drts/lib/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.RequireProtectedApi(['MCDR_API'])
+env.RequireProtectedApi(['SSE_TS_TLAPI'])
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/mc_v2/SecureTouch/drts/drv/inc")
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SSE_TS_API_SRC = "${COREBSP_ROOT}/securemsm/sse/mc_v2/SecureTouch/drts/lib/src"
+
+env.VariantDir('${BUILDPATH}', SSE_TS_API_SRC, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SOURCES = [ '${BUILDPATH}/TlApiTs.c',]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+IMAGES = [
+  'TLTSSAMPLE_IMAGE',
+  'TLSECURETOUCH_IMAGE',
+]
+env.AddBinaryLibrary(IMAGES, '${BUILDPATH}/TlApiTs', SOURCES)

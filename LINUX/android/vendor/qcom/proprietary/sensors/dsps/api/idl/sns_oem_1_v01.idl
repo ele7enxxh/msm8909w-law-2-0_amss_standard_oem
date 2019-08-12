@@ -1,0 +1,313 @@
+/*****************************************************************************
+  @FILE     sns_oem_1_v01.idl
+
+  @BRIEF    Message definition for sample OEM Algorithm service 1.
+
+  @DESCRIPTION
+
+  This file defines QMI messages provided to clients interested in
+  the sample OEM algorithm services.
+
+  @COPYRIGHT
+  Copyright (c) 2013-2016 Qualcomm Technologies, Inc. All Rights Reserved.
+  Qualcomm Technologies Proprietary and Confidential
+*****************************************************************************/
+include "sns_common_v01.idl";
+
+revision 2;
+
+const SNS_OEM_1_SUID = 0x78518008917553;
+
+const SNS_SAM_OEM_1_MAX_ITEMS_IN_BATCH = 100;
+/**< Maximum number of reports in a batch indication. This is set
+     based on the maximum payload size supported by the transport framework.
+*/
+const SNS_OEM_1_MAX_ITEMS_PER_OUTPUT_DATA = 3;
+/**< Maximum number of sensor values in one report */
+
+//! @STRUCT   SNS_OEM_1_OUTPUT_STRUCT
+struct{
+  /** This structure shall have the output data */
+ uint32 data<SNS_OEM_1_MAX_ITEMS_PER_OUTPUT_DATA>;
+}sns_oem_1_output_s;
+//============================================================================
+/** @COMMAND SNS_OEM_1_ENABLE
+    @BRIEF This command enables the OEM_1 algorithm.
+*/
+//============================================================================
+
+//! @MSG     SNS_OEM_1_ENABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint32  report_period;
+  /**< unit of seconds, Q16; determines algorithm output report rate
+   specify 0 to report at sampling rate
+
+   Note: This is a sample request parameter, the OEM may replace
+   it with an appropriate parameter
+  */
+  optional uint32   sample_rate;
+  /**< sample rate in Hz, Q16;
+   if sample rate is less than report rate, it is set to report rate
+
+   Note: This is a sample request parameter, the OEM may replace
+   it with an appropriate parameter
+  */
+} sns_oem_1_enable_req_msg;
+
+//! @MSG     SNS_OEM_1_ENABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s                resp = 2;
+  optional uint8                            instance_id;
+  /**<
+    Instance ID is assigned by SAM.
+    The client shall use this instance ID for future messages associated with
+    this algorithm instance.
+  */
+} sns_oem_1_enable_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_OEM_1_DISABLE
+    @BRIEF This command disables a OEM_1 algorithm.
+*/
+//============================================================================
+
+//! @MSG     SNS_OEM_1_DISABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8                            instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_oem_1_disable_req_msg;
+
+//! @MSG     SNS_OEM_1_DISABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s                resp = 2;
+  optional uint8                            instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_oem_1_disable_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_OEM_1_REPORT
+    @BRIEF Report containing OEM_1 algorithm output
+*/
+//============================================================================
+
+//! @MSG     SNS_OEM_1_REPORT_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8                            instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+  mandatory uint32                           timestamp;
+  /**< Timestamp of input used to generate the algorithm output  */
+  mandatory sns_oem_1_output_s               output;
+  /**< output of OEM_1 algorithm instance.  */
+} sns_oem_1_report_ind_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_OEM_1_GET_REPORT
+    @BRIEF This command fetches latest report output of OEM_1 algorithm.
+*/
+//============================================================================
+
+//! @MSG     SNS_OEM_1_GET_REPORT_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8                            instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_oem_1_get_report_req_msg;
+
+//! @MSG     SNS_OEM_1_GET_REPORT_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s                resp = 2;
+  optional uint8                            instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+  optional uint32                           timestamp;
+  /**< Timestamp of input used to generate the algorithm output  */
+  optional sns_oem_1_output_s           output;
+  /**<  output of OEM_1 algorithm instance.  */
+} sns_oem_1_get_report_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_OEM_1_ERROR
+    @BRIEF Asynchronous error indication for a OEM_1 algorithm.
+*/
+//============================================================================
+
+//! @MSG     SNS_OEM_1_ERROR_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//============================================================================
+
+message {
+  mandatory uint8                            error;
+  /**< Sensor1 error code.  */
+  mandatory uint8                            instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_oem_1_error_ind_msg;
+
+//! @VERSION 1.2
+//============================================================================
+/** @COMMAND SNS_SAM_OEM_1_BATCH
+    @BRIEF This command handles batch mode for the oem_1 algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @DESCRIPTION Set the batch period for an active algorithm stream.
+                 A subsequent request may update or disable the batch period;
+                 all batched output will be sent prior to the response message.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_OEM_1_BATCH_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8 instance_id;
+  /**< Identifies the algorithm instance.  */
+
+  mandatory int32 batch_period;
+  /**< Specifies the interval over which reports are to be batched, in seconds;
+       Q16 format. If AP is in suspend and notify_suspend is FALSE, undelivered
+       reports will be batched in circular FIFO and delivered upon wakeup.
+       - P = 0 -- Disable batching
+       - P > 0 -- Enable batching
+       - P < 0 -- See sns_sam_batch_config_e
+    */
+
+} sns_sam_oem_1_batch_req_msg;
+
+//! @MSG     SNS_SAM_OEM_1_BATCH_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp = 2;
+  /**< Common response message. */
+
+  optional uint8 instance_id;
+  /**< Identifies the algorithm instance.  */
+
+  optional uint32 max_batch_size;
+  /**< Maximum supported batch size. */
+
+  optional uint32 timestamp;
+  /**< Timestamp when the batch request was processed, in SSC ticks. */
+} sns_sam_oem_1_batch_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_OEM_1_BATCH_REPORT
+    @BRIEF Report containing a batch of algorithm outputs.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_OEM_1_BATCH_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8 instance_id;
+  /**< Identifies the algorithm instance.  */
+
+  mandatory uint32 first_report_timestamp;
+  /**< Timestamp of the input used to generate the first algorithm output in the
+       batch, in SSC ticks. */
+
+  mandatory uint16 timestamp_offsets<SNS_SAM_OEM_1_MAX_ITEMS_IN_BATCH>;
+  /**< Offsets from the timestamp of the previous report in the batch. */
+
+  mandatory sns_oem_1_output_s reports<SNS_SAM_OEM_1_MAX_ITEMS_IN_BATCH>;
+  /**< OEM1 algorithm output reports. */
+
+  optional uint8 ind_type;
+  /**< Optional batch indication type:
+       - SNS_BATCH_ONLY_IND -- Standalone batch indication, not part of a back-to-back indication stream
+       - SNS_BATCH_FIRST_IND -- First indication in a stream of back-to-back indications
+       - SNS_BATCH_INTERMEDIATE_IND -- Intermediate indication in a stream of back-to-back indications
+       - SNS_BATCH_LAST_IND -- Last indication in a stream of back-to-back indications
+    */
+
+} sns_sam_oem_1_batch_ind_msg;
+
+//============================================================================
+// Service definition
+//============================================================================
+service SNS_OEM_1_SVC {
+  //! @ID SNS_COMMON_CANCEL
+  sns_common_cancel_req_msg        SNS_OEM_1_CANCEL_REQ,
+  sns_common_cancel_resp_msg       SNS_OEM_1_CANCEL_RESP
+    = 0x00;
+
+  //! @ID SNS_COMMON_VERSION
+  sns_common_version_req_msg       SNS_OEM_1_VERSION_REQ,
+  sns_common_version_resp_msg      SNS_OEM_1_VERSION_RESP
+    = 0x01;
+
+  //! @ID SNS_OEM_1_ENABLE
+  sns_oem_1_enable_req_msg       SNS_OEM_1_ENABLE_REQ,
+  sns_oem_1_enable_resp_msg      SNS_OEM_1_ENABLE_RESP
+    = 0x02;
+
+  //! @ID SNS_OEM_1_DISABLE
+  sns_oem_1_disable_req_msg      SNS_OEM_1_DISABLE_REQ,
+  sns_oem_1_disable_resp_msg     SNS_OEM_1_DISABLE_RESP
+    = 0x03;
+
+  //! @ID SNS_OEM_1_GET_REPORT
+  sns_oem_1_get_report_req_msg   SNS_OEM_1_GET_REPORT_REQ,
+  sns_oem_1_get_report_resp_msg  SNS_OEM_1_GET_REPORT_RESP
+    = 0x04;
+
+  //! @ID SNS_OEM_1_REPORT
+  sns_oem_1_report_ind_msg       SNS_OEM_1_REPORT_IND
+    = 0x05;
+
+  //! @ID SNS_OEM_1_ERROR
+  sns_oem_1_error_ind_msg        SNS_OEM_1_ERROR_IND
+    = 0x06;
+
+  //! @ID SNS_SAM_OEM_1_BATCH
+  sns_sam_oem_1_batch_req_msg       SNS_SAM_OEM_1_BATCH_REQ,
+  sns_sam_oem_1_batch_resp_msg      SNS_SAM_OEM_1_BATCH_RESP
+    = 0x21;
+
+  //! @ID SNS_SAM_OEM_1_BATCH_REPORT
+  sns_sam_oem_1_batch_ind_msg       SNS_SAM_OEM_1_BATCH_IND
+    = 0x22;
+
+} = SNS_QMI_SVC_ID_31;

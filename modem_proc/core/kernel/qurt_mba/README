@@ -1,0 +1,89 @@
+##############################
+# BLAST build instructions
+#############################
+
+#
+# BLAST build for supported TARGETs
+#
+
+BLAST build supports a set or TARGETs to build. The set of TARGETs
+supported are:
+    9x00 8660 9x00_v3 modemFWv4 modemSWv4 MMv4
+
+To build a specific TARGET, e.g. 9x00
+
+    make  TARGET=9x00 - Build all supported TARGETs. Object files are created
+                        under "build/9x00" directory. Release is generated under
+                        "install/9x00" directory
+
+    make clean TARGET=9x00 - Removes object files and release.e.g. build/9x00
+                             and install/9x00
+
+    make install TARGET=9x00 - Serves as make clean TARGET=9x00; make TARGET=9x00
+
+Each TARGET has a defined set of parameters
+    Q6VERSION           - Hexagon processor Version
+    CONFIG_DIR          - Path for sched_config.h. Contains information
+                          about MAX_HTHREADS, RESCHED_INT, IPI_BASE.
+                          sched_config.h is empty for Hexagon ver. V4
+    BUILD_CONFIG_FLAGS  - Build flags required to customize BLAST build
+    Q6_TOOLS_ROOT       - Path to Hexagon Tools
+
+Creating "build/<target>" and "install/<target>" can be avoided by specifying path
+for object directory and install directory by env. variables through make command
+BUILD_DIR and INSTALL_DIR respectively.
+
+If "TARGET" env. variable is omitted, all supported TARGETs are built
+
+#
+# BLAST build for unknown TARGETs
+#
+
+BLAST build allows building unknown TARGETs. The following are the steps
+
+    Create a directory with the following files. Follow the example of
+    config/<target>/ directory. Let the say directory is <target_config>
+        sched_config.h
+        build_config.def
+
+    Generate BLAST build flags using
+        BUILD_FLAGS=python <BLAST top>/kernel/scripts/build_flags.py <target_config>
+
+    
+    make install TARGET=<Mtarget> Q6_TOOLS_ROOT=<Hexagon Tools dir> Q6VERSION=<Hexagon procesor version> CONFIG_DIR=<target_config>  BUILD_CONFIG_FLAGS="$BUILD_FLAGS"
+
+
+    BLAST release is prepared at install/<target>. Object files are built at build/<target>
+
+
+#
+# Scons based build system
+#
+
+Instruction for setting up Scons build system environemnt on Windows:
+    - Install Python 2.5.2 or above
+    - Install Scons 2.1 or above for Windows
+    - Make sure <python path> and <python scripts path> are in the ENVIRONMENT
+        -eg: C:\Python26 and C:\Python26\scripts
+
+Instruction for setting up Scons build system environemnt on Unix:
+    - Make sure Python 2.5.2 or above are in the path
+    - Under Unix, download and unzip the .zip Scons library from the internet on your mapped Linux Disk
+  	- "cd" into the downloaded scons folder
+    - Run "python setup.py install --prefix=$HOME" and make sure to attach the path in the Environment PATH variable.
+
+Command for kernel installation
+    For Usage details:
+    scons --help
+    
+    Usage:
+    scons qurt [TARGET] [OPTIONS]
+    
+    [TARGET]
+                --target=<TARGET>                            #Target
+    
+    [OPTIONS]
+                --install_dir=<INSTALL DIRECTORY>            #Install Directory
+                --build_dir=<BUILD_DIRECTORY>                #Build Directory
+                --q6_tools_root=<Q6_TOOLS_ROOT>              #Q6 tools directory                   
+                -c                                           #Cleaning the installatio

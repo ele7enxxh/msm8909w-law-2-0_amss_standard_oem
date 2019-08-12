@@ -1,0 +1,91 @@
+#===============================================================================
+#
+# NPA Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/rpm/rel/1.0/core/power/npa/build/SConscript#4 $
+#  $DateTime: 2010/12/21 17:03:48 $
+#  $Author: coresvc $
+#  $Change: 1561873 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/13/09   taw     Initial version.
+#
+#===============================================================================
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Utility functions - these are not NPA-specific and could be made
+# more widely available
+# -------------------------------------------------------------------------------
+
+import os
+
+#-------------------------------------------------------------------------------
+# SRC PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+]
+
+#-------------------------------------------------------------------------------
+# Private depends within NPA
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('NPA_API', [
+    os.path.join(SRCPATH, "src"),
+    os.path.join(SRCPATH, "remote")
+    ])
+    
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['POWER_UTILS'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+NPA_FWK_SOURCES = [
+   '${BUILDPATH}/src/npa.c',
+   '${BUILDPATH}/src/npa_plugins.c',
+   '${BUILDPATH}/src/target/default/npa_target_init.c',
+   '${BUILDPATH}/src/target/bf/rpm/npa_target_config.c',
+   ]
+
+env.Append(CPPDEFINES=['NPA_NO_LOG_CREATE',
+                       'NPA_NO_LOG_REQUEST',
+                       'FEATURE_CORE_LOW_MEM',
+                       'FEATURE_SYNC_EVENTS_ONLY',
+                       'FEATURE_SYNC_REQUESTS_ONLY'])
+
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/npa', NPA_FWK_SOURCES)
+

@@ -1,0 +1,115 @@
+#===========================================================================
+#  Copyright (c) 2011-2014 QUALCOMM Incorporated.
+#  All Rights Reserved.
+#  Qualcomm Confidential and Proprietary
+#===========================================================================
+#
+# App Core
+#
+# GENERAL DESCRIPTION
+#    build script
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains schedulerents describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/13/14    wt     Created
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+if env.has_key('USES_NO_CP'):
+	env.Append(CCFLAGS = ' -DUSES_NO_CP ')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/sampleapp/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+#env.Append(ARMCC_OPT = ' --arm')
+
+env.Append(CPPPATH = "${INC_ROOT}/core/api/boot/qfprom/")
+
+env.Append(CPPPATH = "${INC_ROOT}/core/securemsm/trustzone/qsapps/sampleapp/inc/${CHIPSET}")
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+   "${INC_ROOT}/core/api/kernel/libstd/stringl",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/sampleapp/src",
+   "${INC_ROOT}/core/securemsm/secrsa/shared/inc",
+   "${INC_ROOT}/core/securemsm/secmath/shared/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/core/ecc/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/ecc/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/aes/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/core/aes/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/sha/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/core/sha/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/services/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/storage/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/sampleapp/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/arch/${CHIPSET}/cfg/common",
+   "${INC_ROOT}/core/api/systemdrivers/hwio/${CHIPSET}/phys",
+])
+
+#----------------------------------------------------------------------------
+# App core Objects
+#----------------------------------------------------------------------------   
+if env.has_key('USES_NO_CP'):
+	APP_CORE_ENTRY_SOURCES = [      
+        '${BUILDPATH}/app_main.c',
+        '${BUILDPATH}/app_crypto.c',
+        '${BUILDPATH}/app_sfs.c',
+        '${BUILDPATH}/app_rsa.c',
+        '${BUILDPATH}/qsee_api_tests.c',
+        '${BUILDPATH}/app_cmnlib.c',
+        '${BUILDPATH}/app_message_passing.c',
+        '${BUILDPATH}/app_fuses.c',
+        '${BUILDPATH}/app_stor.c',
+        '${BUILDPATH}/app_handle.c',
+        '${BUILDPATH}/app_content_protection.c',
+        '${BUILDPATH}/app_content_protection_noship.c',
+	'${BUILDPATH}/app_gpPersistObj.c',
+]
+
+else:
+  APP_CORE_ENTRY_SOURCES = [      
+        '${BUILDPATH}/app_main.c',
+        '${BUILDPATH}/app_crypto.c',
+        '${BUILDPATH}/app_sfs.c',
+        '${BUILDPATH}/app_rsa.c',
+        '${BUILDPATH}/qsee_api_tests.c',
+        '${BUILDPATH}/app_cmnlib.c',
+        '${BUILDPATH}/app_message_passing.c',
+        '${BUILDPATH}/app_fuses.c',
+        '${BUILDPATH}/app_stor.c',
+        '${BUILDPATH}/app_handle.c',
+        '${BUILDPATH}/app_content_protection.c',
+        '${BUILDPATH}/app_gpPersistObj.c',
+]
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddObject('SAMPLEAPP_IMAGE', APP_CORE_ENTRY_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+NOSHIP_SOURCES = SRCPATH + "/app_content_protection_noship.c"
+env.CleanPack('SAMPLEAPP_IMAGE', NOSHIP_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

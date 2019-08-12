@@ -1,0 +1,192 @@
+#===============================================================================
+#
+# SME CRYPTO ENV Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:$
+#  $DateTime:$
+#  $Author:$
+#  $Change:$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/23/10   nk      Initial Revision
+# 02/23/11   jl	     Removed debug/nodebug from build path.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/crypto/environment"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+        'BREW',
+        'CS',
+        'DSM',
+        'MODEM_DATA',
+        'MODEM_HDR',
+        'MULTIMEDIA',
+        'MULTIMEDIA_CORE',
+        'MULTIMEDIA_AUDIO',
+	'MODEM_API',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+        'BOOT',
+	'DAL',
+	'DEBUGTOOLS',
+	'BUSES',
+	'HAL',
+	'MPROC',
+	'SECUREMSM',
+	'SERVICES',
+	'STORAGE',
+	'SYSTEMDRIVERS',
+        'HWENGINES',
+	'POWER',
+
+   # needs to be last also contains wrong comdef.h
+	'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within SecureMSM
+#-------------------------------------------------------------------------------
+SME_PROTECTED_API = [
+                      'SME_DRMCOM',
+                      'SME_DRMOMA',
+                      'SME_SMECOM',
+                      'SME_CHDLRCOM',
+                      'SME_CHDLR',
+                      'SME_SMESQL',
+                      'CRYPTODRIVERS',
+                      'CRYPTO',
+                      'STATICEXT',
+]
+env.RequireProtectedApi(SME_PROTECTED_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------
+# Crypto ENV Library
+#----------------------------------------------------------------------------
+SME_CRYPTO_ENV_LIB_SOURCES = [
+   '${BUILDPATH}/src/seccrypti.c',
+   '${BUILDPATH}/src/secutil.c',
+   '${BUILDPATH}/src/sectask.c',
+   '${BUILDPATH}/src/secapi_util.c',
+   '${BUILDPATH}/src/secrndtask.c',
+   '${BUILDPATH}/src/secapi_clk.c',
+]
+
+SME_CRYPTO_ENV_LIB_SOURCES_OPEN = [
+   '${BUILDPATH}/src/secapi_remotefs.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if env.has_key('USES_SEC'):
+   env.AddBinaryLibrary(
+     ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+      'MODEM_IMAGE',  'CBSP_MODEM_IMAGE',
+      'APPS_IMAGE',   'CBSP_APPS_IMAGE',
+      'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], 
+      '${BUILDPATH}/sme_crypto_env',  
+      SME_CRYPTO_ENV_LIB_SOURCES)
+
+if 'USES_SEC' in env:
+  if 'USES_DIME_EFS_FEATURE' in env:
+   env.AddLibrary(
+     ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+      'MODEM_IMAGE',  'CBSP_MODEM_IMAGE',
+      'APPS_IMAGE',   'CBSP_APPS_IMAGE',
+      'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], 
+      '${BUILDPATH}/sme_crypto_env_open',  
+      SME_CRYPTO_ENV_LIB_SOURCES_OPEN)
+
+if 'USES_SEC' in env:
+  if not 'USES_DIME_EFS_FEATURE' in env:
+    env.AddBinaryLibrary(
+     ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+      'MODEM_IMAGE',  'CBSP_MODEM_IMAGE',
+      'APPS_IMAGE',   'CBSP_APPS_IMAGE',
+      'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], 
+      '${BUILDPATH}/sme_crypto_env_strip',  
+      SME_CRYPTO_ENV_LIB_SOURCES_OPEN)
+     
+     
+#-------------------------------------------------------------------------------
+# Setup RCINIT so we start Sec and Secrnd tasks
+#------------------------------------------------------------------------------- 
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_1',                  # required
+      'thread_name'                : 'sec',                             # required
+      'stack_size_bytes'           : '16384',
+      'priority_amss_order'        : 'SEC_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_CPU_AFFINITY_MASK',
+    })
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_1',                  # required
+      'thread_name'                : 'secrnd',                          # required
+      'stack_size_bytes'           : '16384',
+      'priority_amss_order'        : 'SECRND_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_CPU_AFFINITY_MASK',
+    })
+
+
+#-------------------------------------------------------------------------------
+# Setup RCINIT so we call Random Number Init Function
+#------------------------------------------------------------------------------- 
+if env['MSM_ID'] in ['8926']:
+   if 'USES_RCINIT' in env:
+      RCINIT_IMG = ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+                    'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+      env.AddRCInitFunc( RCINIT_IMG,
+      {
+        'sequence_group'             : 'RCINIT_GROUP_0',                 # required
+        'init_name'                  : 'crypto_random_init',             # required
+        'init_function'              : 'secrnd_generate_random_data',    # required
+      })
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

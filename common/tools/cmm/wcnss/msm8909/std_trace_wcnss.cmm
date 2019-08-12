@@ -1,0 +1,147 @@
+//============================================================================
+//  Name:                                                                     
+//    std_trace_wcnss.cmm 
+//
+//  Description:                                                              
+//    Trace setup script for WCNSS
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 09/28/2012 jbilling           Created for B-family.
+
+// Following arguments are supported. 
+// ARG0 - Processor to debug. 
+// ARG1 - Tracing Type . Currently supports TPIU, ETB, SDcard
+// ARG2 - Trace width - supports 4, 8, 16 bit wide
+// ARGn - n > 1 - Any other arguments to be passed to the script 
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+
+
+MAIN:
+
+    do std_utils CHECKARGS FATALEXIT &ARG1 TPIU tpiu SDCARD SDcard sdcard ETB etb SAVEETB saveetb
+    
+	IF (("&ARG1"=="TPIU")||("&ARG1"=="tpiu")||("&ARG1"=="SDCARD")||("&ARG1"=="SDcard")||("&ARG1"=="sdcard"))
+	(
+		SYStem.CONFIG.ETM.BASE DAP:0x8004C000
+		SYStem.CONFIG.STM1.BASE DAP:0x80021000
+		SYStem.CONFIG.STM1.TYPE ARM
+		SYStem.CONFIG.STM1.MODE STPV2
+
+		SYStem.CONFIG.FUNNEL2.BASE DAP:0x80019000
+		SYStem.CONFIG.FUNNEL3.BASE DAP:0x8001A000
+		SYStem.CONFIG.FUNNEL4.BASE DAP:0x8001B000
+
+		SYStem.CONFIG.ETB.BASE DAP:0x80007000
+		SYStem.CONFIG.ETF.BASE DAP:0x80007000
+		SYStem.CONFIG.TPIU.BASE DAP:0x80018000
+
+		SYStem.CONFIG.FUNNEL3.ATBSOURCE ETM 2
+		SYStem.CONFIG.FUNNEL4.ATBSOURCE FUNNEL3 1
+		SYStem.CONFIG.ETF.ATBSOURCE FUNNEL4
+		SYStem.CONFIG.TPIU.ATBSOURCE ETF
+
+
+		// Reset ETM
+		ETM.RESET
+        
+		IF ("&ARG2"=="4bit")       
+        (
+            ETM.PORTSIZE 4.
+            print "Configurtion Portsize to 4"
+        )
+        ELSE IF ("&ARG2"=="8bit")  
+        (
+            ETM.PORTSIZE 8.
+            print "Configurtion Portsize to 8"
+        )
+        ELSE IF ("&ARG2"=="16bit") 
+        (
+            ETM.PORTSIZE 16.
+            print "Configurtion Portsize to 16"
+        )
+        ELSE                       
+        (
+            ETM.PORTSIZE 8.
+            print "Configurtion Portsize to 8"
+        )
+        
+		etm.traceid 4.
+		etm.portmode continuous
+		;etm.timestamps ON
+		etm.stall OFF
+		etm.on
+		etm.clear
+		trace.method ANALYZER
+		trace.init 
+		trace.list
+		TRACE.AUTOFOCUS
+		print "TPIU configuration done!"	
+		GOTO EXIT
+	)
+	ELSE IF (("&ARG1"=="ETB")||("&ARG1"=="etb"))
+	(
+		SYStem.CONFIG.ETM.BASE DAP:0x8004C000
+		SYStem.CONFIG.STM1.BASE DAP:0x80021000
+		SYStem.CONFIG.STM1.TYPE ARM
+		SYStem.CONFIG.STM1.MODE STPV2
+
+
+		SYStem.CONFIG.FUNNEL2.BASE DAP:0x80019000
+		SYStem.CONFIG.FUNNEL3.BASE DAP:0x8001A000
+		SYStem.CONFIG.FUNNEL4.BASE DAP:0x8001B000
+		SYStem.CONFIG.ETB.BASE DAP:0x80007000
+		SYStem.CONFIG.ETF.BASE DAP:0x80007000
+		SYStem.CONFIG.TPIU.BASE DAP:0x80018000
+
+
+		SYStem.CONFIG.FUNNEL2.ATBSOURCE STM1 7
+		SYStem.CONFIG.FUNNEL3.ATBSOURCE ETM 2
+		SYStem.CONFIG.FUNNEL4.ATBSOURCE FUNNEL2 0 FUNNEL3 1
+		SYStem.CONFIG.ETB.ATBSOURCE FUNNEL4
+
+
+		etm.reset
+		etm.traceid 8.
+		;etm.timestamps ON
+		etm.stall OFF
+		etm.on
+		etm.clear
+		trace.method OnChip
+		trace.clock 100MHz
+		trace.init 
+		trace.list
+
+		print "DONE"
+		GOTO EXIT
+
+	)
+	ElSE
+	(
+		GOTO FATALEXIT
+	)
+
+
+
+
+	GOTO EXIT
+
+
+FATALEXIT:
+        mmu.on
+	END
+
+EXIT:
+        mmu.on
+	ENDDO
+

@@ -1,0 +1,109 @@
+#===============================================================================
+#                    Copyright 2012 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/trustzone/rel/1.4/trustzone_images/core/power/dcvs/build/SConscript#3 $
+#  $DateTime: 2012/03/12 17:37:16 $
+#
+#===============================================================================
+
+#===============================================================================
+# DCVS Libs
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Determine target information
+#-------------------------------------------------------------------------------
+env['DCVS_TARG_CHIP'] = env['MSM_ID']
+env['DCVS_TARG_PROC'] = env.DetermineProcessorName()
+
+# Add test and slave services if build with test service is requested.
+if ARGUMENTS.get('with_test_svc'):
+    env.Append(CCFLAGS = " -DTZBSP_WITH_TEST_SVC ")
+
+#-------------------------------------------------------------------------------
+# Determine which os specific files to use.
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/power/dcvs/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL', 
+   'POWER', 
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+if ARGUMENTS.get('with_test_svc'):
+   env.PublishProtectedApi('DCVS_INC', [
+      "${INC_ROOT}/core/power/dcvs/inc",
+      "${INC_ROOT}/core/power/dcvs/config/test",
+      "${INC_ROOT}/core/power/dcvs/config/${MSM_ID}",
+      ])
+else:
+   env.PublishProtectedApi('DCVS_INC', [
+      "${INC_ROOT}/core/power/dcvs/inc",
+      "${INC_ROOT}/core/power/dcvs/config/${MSM_ID}",
+      ])
+
+env.PublishPrivateApi('DCVS_SECUREMSM', [
+        "${INC_ROOT}/core/securemsm/trustzone/qsee/include",
+        "${INC_ROOT}/core/securemsm/trustzone/qsee/arch/armv7/include",
+        "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/inc",
+	])
+
+env.RequireProtectedApi(['DCVS_INC'])
+env.RequireProtectedApi(['DCVS_SECUREMSM'])
+
+#-------------------------------------------------------------------------------
+# Generate pack list.
+# We do not want to ship ANY DCVS source files.
+#-------------------------------------------------------------------------------
+
+cleanupList = env.FindFiles(file_name_patterns=['*.h', '*.c'],
+                            root_dir="${INC_ROOT}/core/power/dcvs")
+
+env.CleanPack('TZOS_IMAGE', cleanupList)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+DCVS_LIB_SOURCES = [
+   '${BUILDPATH}/dcvs_em.c',
+   '${BUILDPATH}/dcvs_intf.c',
+   '${BUILDPATH}/dcvs_log.c',
+   '${BUILDPATH}/dcvs_ss.c',
+   '${BUILDPATH}/dcvs_utils.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+if 'tzbsp_with_msmdcvs' in env and env['tzbsp_with_msmdcvs'] == 1:
+  env.AddBinaryLibrary('TZOS_IMAGE', '${BUILDPATH}/dcvs', DCVS_LIB_SOURCES);
+

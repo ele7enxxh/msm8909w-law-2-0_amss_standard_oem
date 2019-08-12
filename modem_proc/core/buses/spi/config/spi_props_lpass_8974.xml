@@ -1,0 +1,428 @@
+//===========================================================================
+//
+// FILE:         spi_props_lpass_8974.xml
+//
+// DESCRIPTION:  This file contains the DAL XML properties for the QUPI2CPD
+//               Device Access Library.
+//
+//===========================================================================
+//
+//                             Edit History
+//
+// $Header: //components/rel/core.mpss/3.5.c12.3/buses/spi/config/spi_props_lpass_8974.xml#1 $
+//
+// when       who     what, where, why
+// --------   ---     -------------------------------------------------------
+// 05/30/12   ddk     Updated GPIO settings.
+// 04/19/12   ddk     Updated LPASS QUP IRQ numbers.
+// 04/16/12   ddk     Enabling BAM mode support and added pipe pair number.
+// 03/27/12   ddk     Added SPI BAM requirements.
+// 04/21/10   ps      Updated GSBI1 GPIO config
+// 03/26/10   ur      Added SW_DISABLE_PM property to disable power management
+// 02/16/10   ps      Increased GPIO drive strength to 6mA
+// 01/20/09   dl      created
+//
+//===========================================================================
+//             Copyright c 2012 QUALCOMM Incorporated.
+//                    All Rights Reserved.
+//                  QUALCOMM Proprietary/GTDR
+//===========================================================================
+
+//Defined in DDIInterruptController.h
+#define DALINTRCTRL_ENABLE_DEFAULT_SETTINGS        0x00000001
+#define DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER      0x00000002
+#define DALINTRCTRL_ENABLE_LEVEL_LOW_TRIGGER       0x00000003
+#define DALINTRCTRL_ENABLE_RISING_EDGE_TRIGGER     0x00000004
+#define DALINTRCTRL_ENABLE_FALLING_EDGE_TRIGGER    0x00000005
+
+<driver name="Spi">
+   <global_def>
+      /* GPIO configuration values below should be calculated as the outcome of
+         DAL_GPIO_CFG macro:
+         #define DAL_GPIO_CFG(gpio, func, dir, pull, drive) \
+         (((gpio) & 0x3FF)<< 4 | \
+              ((func) &0xF)       |  \
+          ((dir)  & 0x1) << 14|  \
+          ((pull) & 0x3) << 15|  \
+          ((drive)& 0xF) << 17| DAL_GPIO_VERSION)
+      */
+      <var_seq name="spiqup1_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C021,end 
+      </var_seq>
+      <var_seq name="spiqup2_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C061, end 
+      </var_seq>
+      <var_seq name="spiqup3_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C0A1, end 
+      </var_seq>
+      <var_seq name="spiqup4_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C152, end 
+      </var_seq>
+      <var_seq name="spiqup5_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C192, end 
+      </var_seq>
+      <var_seq name="spiqup6_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C1D1, end 
+      </var_seq>
+      <var_seq name="spiqup7_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C2B2, end 
+      </var_seq>
+      <var_seq name="spiqup8_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C2F1, end 
+      </var_seq>
+      <var_seq name="spiqup9_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C332, end 
+      </var_seq>
+      <var_seq name="spiqup10_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C371, end 
+      </var_seq>
+      <var_seq name="spiqup11_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C531, end 
+      </var_seq>
+      <var_seq name="spiqup12_gpio_config_arr" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+         0x2006C571, end 
+      </var_seq>
+	 <var_seq name="periph_ss_block_name" type=DALPROP_DATA_TYPE_STRING>PERIPH_SS</var_seq> 
+     
+     <var_seq name="spiqup1_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_qup1_spi_apps_clk</var_seq>
+     <var_seq name="spiqup2_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_qup2_spi_apps_clk</var_seq>
+     <var_seq name="spiqup3_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_qup3_spi_apps_clk</var_seq>
+     <var_seq name="spiqup4_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_qup4_spi_apps_clk</var_seq>
+     <var_seq name="spiqup5_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_qup5_spi_apps_clk</var_seq>
+     <var_seq name="spiqup6_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_qup6_spi_apps_clk</var_seq>
+     <var_seq name="spiqup7_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_qup1_spi_apps_clk</var_seq>
+     <var_seq name="spiqup8_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_qup2_spi_apps_clk</var_seq>
+     <var_seq name="spiqup9_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_qup3_spi_apps_clk</var_seq>
+     <var_seq name="spiqup10_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_qup4_spi_apps_clk</var_seq>
+     <var_seq name="spiqup11_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_qup5_spi_apps_clk</var_seq>
+     <var_seq name="spiqup12_appclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_qup6_spi_apps_clk</var_seq>
+     
+     <var_seq name="spiqup1_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_ahb_clk</var_seq>
+     <var_seq name="spiqup2_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_ahb_clk</var_seq>
+     <var_seq name="spiqup3_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_ahb_clk</var_seq>
+     <var_seq name="spiqup4_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_ahb_clk</var_seq>
+     <var_seq name="spiqup5_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_ahb_clk</var_seq>
+     <var_seq name="spiqup6_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp1_ahb_clk</var_seq>
+     <var_seq name="spiqup7_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_ahb_clk</var_seq>
+     <var_seq name="spiqup8_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_ahb_clk</var_seq>
+     <var_seq name="spiqup9_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_ahb_clk</var_seq>
+     <var_seq name="spiqup10_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_ahb_clk</var_seq>
+     <var_seq name="spiqup11_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_ahb_clk</var_seq>
+     <var_seq name="spiqup12_hclk_name" type=DALPROP_DATA_TYPE_STRING>gcc_blsp2_ahb_clk</var_seq>
+   </global_def>
+
+
+   <device id=DALDEVICEID_SPI_DEVICE_1>
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>               12   </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            0    </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               64  </props>
+     <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup1_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup1_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x123000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>              0x2006C031      </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup1_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C001     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C011   </props>
+
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               1    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x104000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         55  </props>    
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         12  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         13  </props>    
+   </device>
+   
+   <device id=DALDEVICEID_SPI_DEVICE_2>
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>              12   </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            1    </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               65  </props>
+	 <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup2_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup2_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x124000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>              0x2006C071      </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup2_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C041     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C051   </props>
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0      </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1        </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               1    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x104000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         55  </props>    
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>    
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         14  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         15  </props>
+   </device>
+   
+   <device id=DALDEVICEID_SPI_DEVICE_3>
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>               12  </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            2   </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               66  </props>
+	 <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup3_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup3_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x125000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>              0x2006C0B1      </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup3_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C081     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C091   </props>
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               1    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x104000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         55  </props>    
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>    
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         16  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         17  </props>
+    </device>
+	
+   <device id=DALDEVICEID_SPI_DEVICE_4>
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>               12   </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            3    </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               67   </props>
+	 <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup4_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup4_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x126000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>              0x2006C162     </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup4_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C132     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C142   </props>
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1                  </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               1    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x104000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         55  </props>    
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>    
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         18  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         19  </props>
+   </device>
+   
+   <device id=DALDEVICEID_SPI_DEVICE_5>
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>               12   </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            4    </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               68   </props>
+	 <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup5_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup5_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x127000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>              0x2006C1A3      </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup5_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C172     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C182   </props>
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1                  </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               1    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x104000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         55  </props>    
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>    
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         20  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         21  </props>
+   </device>
+   
+   <device id=DALDEVICEID_SPI_DEVICE_6>
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>               12   </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            5    </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               69   </props>
+	 <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup6_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup6_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x128000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>              0x2006C1E1      </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup6_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C1B3     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C1C2    </props>
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1                  </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               1    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x104000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         55  </props>    
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>    
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         22  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         23  </props>
+   </device>
+   
+   <device id=DALDEVICEID_SPI_DEVICE_7>
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>               12   </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            6   </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               80  </props>
+	 <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup7_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup7_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x163000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>                     0x2006C2C2      </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup7_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>                  0x2006C292     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C2A2   </props>
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1                  </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               2    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x144000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         56  </props>    
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>    
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         12  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         13  </props>
+   </device>
+   
+   <device id=DALDEVICEID_SPI_DEVICE_8>
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>               12   </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            7    </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               81   </props>
+	 <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup8_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup8_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x164000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>              0x2006C301      </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup8_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C2D1     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C2E1   </props>
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1                  </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               2    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x144000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         56  </props>    
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>    
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         14  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         15  </props>
+   </device>
+   
+   <device id=DALDEVICEID_SPI_DEVICE_9>
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>               12   </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>             8   </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               82   </props>
+	 <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup9_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup9_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x165000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>              0x2006C342     </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup9_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C312     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C322   </props>
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1                  </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               2    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x144000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         56  </props>    
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>    
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         16  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         17  </props>
+   </device>
+   
+   <device id=DALDEVICEID_SPI_DEVICE_10>                                 
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>               12   </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            9    </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               83   </props>
+	 <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup10_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup10_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x166000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>              0x2006C381      </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup10_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C351     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C361   </props>
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1                  </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               2    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x144000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         56  </props>    
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>    
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         18  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         19  </props>
+   </device>
+   
+   <device id=DALDEVICEID_SPI_DEVICE_11>
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>               12   </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            10   </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               84   </props>
+	 <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup11_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup11_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x167000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>              0x2006C541      </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup11_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C512     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C522   </props>
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1                  </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               2    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x144000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         56  </props>     
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>   
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         20  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         21  </props>
+   </device>
+   
+   <device id=DALDEVICEID_SPI_DEVICE_12>
+     <props name="num_devices" type=DALPROP_ATTR_TYPE_UINT32>               12     </props>
+     <props name="CHIP_BUS_INDEX" type=DALPROP_ATTR_TYPE_UINT32>            11     </props>
+     <props name="CHIP_IRQ_ID" type=DALPROP_ATTR_TYPE_UINT32>               85     </props>
+	 <props name="CHIP_IRQ_TRIGGER_CFG" type=DALPROP_ATTR_TYPE_UINT32>      DALINTRCTRL_ENABLE_LEVEL_HIGH_TRIGGER </props>
+     <props name="CHIP_APP_CLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>     spiqup12_appclk_name </props>
+     <props name="CHIP_HCLK_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>        spiqup12_hclk_name   </props>
+     <props name="CHIP_PERIPH_SS_BASE_NAME" type=DALPROP_ATTR_TYPE_STRING_PTR>  periph_ss_block_name </props>
+     <props name="CHIP_PERIPH_SS_BASE" type=DALPROP_ATTR_TYPE_UINT32>           0xF9800000    </props>
+     <props name="CHIP_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>             0x168000 </props>
+     <props name="gpio_sig_spi_clk" type=DALPROP_ATTR_TYPE_UINT32>              0x2006C581      </props>
+     <props name="gpio_sig_spi_cs" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>       spiqup12_gpio_config_arr  </props>
+     <props name="gpio_sig_spi_mosi" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C551     </props>
+     <props name="gpio_sig_spi_miso" type=DALPROP_ATTR_TYPE_UINT32>             0x2006C561   </props>
+	 /* Software settings */
+	 <props name="SW_USE_POLLING_MODE" type=DALPROP_ATTR_TYPE_UINT32>       0x0                </props>
+	 <props name="SW_DISABLE_PM" type=DALPROP_ATTR_TYPE_UINT32>             1                  </props>
+	 <props name="SW_ENABLE_BAM" type=DALPROP_ATTR_TYPE_UINT32>             1    </props>
+	 <props name="BAM_BLSP_ID" type=DALPROP_ATTR_TYPE_UINT32>               2    </props>
+	 <props name="BAM_BLOCK_OFFSET" type=DALPROP_ATTR_TYPE_UINT32>          0x144000  </props>
+	 <props name="BAM_INTRERRUPT_ID" type=DALPROP_ATTR_TYPE_UINT32>         56  </props>     
+	 <props name="BAM_MAX_PIPE_PAIR" type=DALPROP_ATTR_TYPE_UINT32>         6    </props>   
+	 <props name="BAM_TX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         22  </props>    
+	 <props name="BAM_RX_PIPE_NUM" type=DALPROP_ATTR_TYPE_UINT32>         23  </props>
+   </device>
+</driver>
+ 

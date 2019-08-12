@@ -1,0 +1,87 @@
+;============================================================================
+;  Name:
+;    JINIT_7600.CMM - JTAG CMM script with the required initialization
+;    steps for 7600, 7625 and 7x27 specific configuration
+;
+;  Description:
+;    Mainly target specific configurations
+;
+;
+; Copyright (c) 2010 Qualcomm Technologies Incorporated.
+; All Rights Reserved.
+; Qualcomm Confidential and Proprietary
+;
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+;  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/tools/jsdcc/bsp/jinit_7600.cmm#1 $ 
+;  $DateTime: 2015/09/01 00:30:35 $ 
+;  $Author: pwbldsvc $
+;
+;when         who     what, where, why
+;----------   ---     ----------------------------------------------------------
+;2010-03-03   vj      Fixed Syntax errors
+;2010-02-22   rh      Initial Creation
+;
+;
+;============================================================================;
+
+;============================================================================
+; Declare variables used
+;============================================================================
+
+;-------------------------------------------------------------------------------
+; Turbo mode of debug state accesses - CPU makes no checks of memory access in
+; debug mode
+;-------------------------------------------------------------------------------
+ sys.o.TURBO off
+ sys.o.ResBreak on
+ sys.o.EnReset on
+ sys.o.TRST on
+ sys.o.CFLUSH on
+
+;-------------------------------------------------------------------------------
+; Disassembler selection - Automatically selects correct one.
+;-------------------------------------------------------------------------------
+ sys.o.DisMode Auto
+
+;-------------------------------------------------------------------------------
+; select CPU type
+;-------------------------------------------------------------------------------
+ sys.CPU ARM926EJ
+
+;-------------------------------------------------------------------------------
+; restart CPU with debug mode
+;-------------------------------------------------------------------------------
+  system.down
+  SYSTEM.JTAGCLOCK RTCK
+  SYSTEM.POLLING SLOW
+  SYSTEM.OPTION RESBREAK OFF
+  System.Option TURBO off
+  SYSTEM.OPTION ENRESET ON
+  system.up
+
+;============================================================================
+; bit mask
+;============================================================================
+
+; set CLK_SEL bit and IMEM_CLK_BRANCH_ENA bit 
+&HWIO_GRP_NS_REG_IMEM_CLK_BRANCH_ENA_BMSK=0x4200
+
+;============================================================================
+; Setup MSM/ABS registers and configure IMEM
+;============================================================================
+
+  ; Setup the clock to synchronous mode and enable IMEM.
+  &HWIO_GRP_NS_REG_ADDR=0xa8600084
+  data.set &HWIO_GRP_NS_REG_ADDR %LONG &HWIO_GRP_NS_REG_IMEM_CLK_BRANCH_ENA_BMSK
+
+  ; Configure IMEM bank 1,2 and 3 for AXI
+  &HWIO_IMEM_CONFIG_ADDR=0xa8500000
+  data.set &HWIO_IMEM_CONFIG_ADDR %LONG 0x2
+
+enddo
+ 
+

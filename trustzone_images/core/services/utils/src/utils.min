@@ -1,0 +1,42 @@
+#-------------------------------------------------------------------------------
+# Common Utilities
+#-------------------------------------------------------------------------------
+UTILS_SOURCES =\
+	bit.c \
+	cmd.c \
+	crc.c \
+   list.c \
+   intconv.c \
+   md5c.c \
+   memheap.c \
+   misc.c \
+   queue.c \
+   qw.c \
+   ran.c \
+   timetest.c \
+
+ifeq ($(USES_L4),yes)
+UTILS_SOURCES +=\
+	qmalloc.c
+endif
+
+UTILS_CPP_SOURCES =\
+        memutils.cpp
+
+UTILS_A_SOURCES=\
+	miscasm.s 
+        
+vpath %.cpp $(UTILS)
+vpath %.c $(UTILS)
+vpath %.s $(UTILS)
+
+ifeq ($(BIG),yes)
+        UTILS_OBJS := $(TARGETDIR)/utils.lib
+else
+        UTILS_OBJS :=  $(addprefix $(TARGETDIR)/, $(UTILS_SOURCES:%.c=%.o)) $(UTILS_OBJS)
+        UTILS_OBJS :=  $(addprefix $(TARGETDIR)/, $(UTILS_CPP_SOURCES:%.cpp=%.o)) $(UTILS_OBJS)
+        UTILS_OBJS :=  $(addprefix $(TARGETDIR)/, $(UTILS_A_SOURCES:%.s=%.o)) $(UTILS_OBJS)
+endif
+
+$(TARGETDIR)/utils.lib : $(UTILS_OBJS)
+	$(group_c_compile)

@@ -1,0 +1,32 @@
+#-------------------------------------------------------------------------------
+# NVRUIM
+#-------------------------------------------------------------------------------
+NVIM_RUIM_SOURCES=\
+	nvruim.c \
+	nvsim.c \
+	nvruimsms.c
+
+NVIM_RUIM_OBJS :=  $(addprefix $(TARGETDIR)/, $(NVIM_RUIM_SOURCES:%.c=%.o))
+
+vpath %.c $(NVRUIM_SRC)
+
+ifeq ($(BIG),yes)
+  NVIM_RUIM_OBJS := $(TARGETDIR)/nvim_ruim.lib
+else
+  NVIM_RUIM_OBJS :=  $(addprefix $(TARGETDIR)/, $(NVIM_RUIM_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/nvim_ruim.lib : $(NVIM_RUIM_SOURCES)
+	$(group_c_compile)
+
+
+### Start Lint block ###
+ifeq ($(DO_LINT),yes)
+
+NVRUIM_LINT_OBJS := $(addprefix $(LINTDIR)/, $(NVIM_RUIM_SOURCES:%.c=%.lint))
+
+# Specify group target for linting NVRUIM unit
+$(LINTDIR)/uim_lint : $(NVRUIM_LINT_OBJS)
+
+endif
+### End Lint block ###

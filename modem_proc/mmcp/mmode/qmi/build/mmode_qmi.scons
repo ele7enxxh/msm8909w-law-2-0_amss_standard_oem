@@ -1,0 +1,219 @@
+#===============================================================================
+#
+# Multimode QMI SCons 
+#
+# GENERAL DESCRIPTION
+#    SCons build script
+#
+# Copyright (c) 2010-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/mmode/qmi/build/mmode_qmi.scons#1 $
+#  $DateTime: 2016/12/13 08:00:05 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/05/12   ns      Added ECALL in PUBLIC APIs
+# 09/15/10   pm      Initial file
+#
+#===============================================================================
+#from glob import glob
+#from os.path import join, basename
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+  'MSG_BT_SSID_DFLT=MSG_SSID_MMODE_QMI',
+])
+
+#-------------------------------------------------------------------------------
+# Publish our Private API
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('MMODE', ["${INC_ROOT}/mmcp/mmode/qmi/inc"])
+
+#-------------------------------------------------------------------------------
+# Necessary Public API's
+#-------------------------------------------------------------------------------
+REQUIRED_PUBLIC_APIS = [
+    'CNE',
+    'DATA',
+    'DATACOMMON',
+    'GERAN',
+    'GPS',
+    'HDR',
+    'MCS',
+    'MMODE',
+    'NAS',
+    'PBM',
+    'ONEX',
+    'RFA',
+    'UIM',
+    'UTILS',
+    'WMS',
+    'WCDMA',
+    'ECALL',
+    'MCFG',
+    ]
+
+REQUIRED_RESTRICTED_APIS = [
+    'CNE',
+    'DATA',
+    'DATACOMMON',
+    'FW',
+    'GERAN',
+    'GPS',
+    'HDR',
+    'LTE',
+    'MCS',
+    'MDSP',
+    'MMODE',
+    'NAS',
+    'ONEX',
+    'PBM',
+    'RFA',
+    'UIM',
+    'UTILS',
+    'WCDMA',
+    'WMS',
+    'TDSCDMA',
+    'MCFG',
+    ]
+
+CORE_APIS = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'MPROC',
+    'POWER',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+MULTIMEDIA_APIS = [
+    'MVS',
+    ]
+
+QMI_PUBLIC_APIS = [
+    'NAS',
+    'VOICE',
+    'NAS_EXT',
+    ]
+
+env.RequirePublicApi(['MCFG'], area='MCFG')
+env.RequirePublicApi(CORE_APIS, area='core')
+env.RequirePublicApi(['AUDIO'], area='MULTIMEDIA') 
+env.RequirePublicApi(MULTIMEDIA_APIS, area='MULTIMEDIA')
+env.RequirePublicApi(QMI_PUBLIC_APIS, area='API')
+env.RequirePublicApi(QMI_PUBLIC_APIS, area='QMIMSGS') 
+
+env.RequirePublicApi(REQUIRED_PUBLIC_APIS) 
+env.RequireRestrictedApi(REQUIRED_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+    'BREW',
+    'MULTIMEDIA_AUDIO',
+])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+#MMODE_QMI_C_SOURCES = ['${BUILDPATH}/' + basename(fname)
+#                 for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+MMODE_QMI_C_SOURCES = [
+	'${BUILDPATH}/qmi_nas.c',
+    '${BUILDPATH}/qmi_nas_hdr.c',
+    '${BUILDPATH}/qmi_nas_mmgsdi.c',
+	'${BUILDPATH}/qmi_nas_msg.c',
+    '${BUILDPATH}/qmi_nas_nw_name.c',
+    '${BUILDPATH}/qmi_nas_utils.c',
+    '${BUILDPATH}/qmi_voice.c',
+    '${BUILDPATH}/qmi_voice_call_list.c',
+    '${BUILDPATH}/qmi_voice_cm_if.c',
+    '${BUILDPATH}/qmi_voice_cm_sups.c',
+    '${BUILDPATH}/qmi_voice_cm_util.c',
+    '${BUILDPATH}/qmi_voice_cmd_list.c',
+    '${BUILDPATH}/qmi_mmode_crit_sect_rex.c',
+    '${BUILDPATH}/qmi_mmode_task.c',
+    '${BUILDPATH}/qmi_mmode_task_svc.c',
+    '${BUILDPATH}/qmi_mmode_taski.c',
+    '${BUILDPATH}/qmi_mmode_svc.c',
+    '${BUILDPATH}/voice_service_impl_v02.c',
+    '${BUILDPATH}/network_access_service_impl_v01.c',
+    '${BUILDPATH}/qm_cbpq.c',
+    '${BUILDPATH}/qm_nv.c',
+    '${BUILDPATH}/qm_nas_clnt.c',
+    '${BUILDPATH}/qmi_voice_msgr_if.c',
+    '${BUILDPATH}/qm_si.c',
+    '${BUILDPATH}/qm_meas.c',
+    '${BUILDPATH}/qm_util.c',
+    '${BUILDPATH}/qm_tib.c',
+    '${BUILDPATH}/qm_mstats.c',
+    '${BUILDPATH}/qm_timer.c',
+    '${BUILDPATH}/qm_efs.c'
+]
+
+# Add our library to the ModemApps image
+env.AddLibrary( ['MODEM_MODEM'], '${BUILDPATH}/mmode_qmi', [MMODE_QMI_C_SOURCES] )
+# Add IMS EXTN library
+env.AddBinaryLibrary( ['MODEM_MODEM'], '${BUILDPATH}/mmode_qmi_ims_extn', ['${BUILDPATH}/qmi_nas_ims_extn.c', '${BUILDPATH}/qmi_voice_ims_extn.c'], pack_exception=['USES_COMPILE_IMS_EXT_PROTECTED_LIBS'] )
+
+
+# Build image for which this task belongs
+RCINIT_QMI_MMODE = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_QMI_MMODE = {
+     'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+     'init_name'           : 'qmi_mmode_init',
+     'init_function'       : 'qmi_mmode_init_before_task_start'
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_QMI_MMODE = {
+            'thread_name'          : 'qmi_mmode',
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'stack_size_bytes'     : env.subst('$QMI_MMODE_STKSZ'),
+            'priority_amss_order'  : 'CM_PRI_ORDER',
+            'stack_name'     : 'qmi_mmode_stack',
+            'thread_entry'   : 'qmi_mmode_task',
+            'tcb_name'     : 'qmi_mmode_tcb'
+    }
+    
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+            env.AddRCInitFunc(RCINIT_QMI_MMODE, RCINIT_INIT_QMI_MMODE)
+            env.AddRCInitTask(RCINIT_QMI_MMODE, RCINIT_TASK_QMI_MMODE)
+
+
+if 'USES_MSGR' in env:
+        env.AddUMID('${BUILDPATH}/qmi_mmode_msgr.umid', ['../../../api/qmi_mmode_msgr_msg.h'])

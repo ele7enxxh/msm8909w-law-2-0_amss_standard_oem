@@ -1,0 +1,44 @@
+import os
+
+Import('env')
+env = env.Clone()
+
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CFLAGS = '--c99')
+env.Append(CPPPATH = '../src')
+
+CBSP_API = [
+   'POWER',
+   'SYSTEMDRIVERS',
+   'SERVICES',
+   'BOOT',
+   'POWER_UTILS',
+   'DAL',
+
+   # needs to be last as it may contain wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['POWER_UTILS'])
+
+RAILWAY_SOURCES = [
+	'${BUILDPATH}/railway.c',
+    '${BUILDPATH}/railway_aggregator.c',
+    '${BUILDPATH}/railway_internal.c',
+    '${BUILDPATH}/railway_checksum.c',
+    '${BUILDPATH}/8909/railway_config.c',
+]
+
+RAILWAY_STUB_SOURCES = [
+	'${BUILDPATH}/railway_stub.c',
+]
+
+env.AddLibrary(['RAILWAY_BOOT_DRIVER'], '${BUILDPATH}/railway.lib', RAILWAY_SOURCES)
+env.AddLibrary(['RAILWAY_BOOT_DRIVER_STUB'], '${BUILDPATH}/railway_stub.lib', RAILWAY_STUB_SOURCES)
+
+railway_stub = env.Library('${BUILDPATH}/railway_stub', RAILWAY_STUB_SOURCES)
+env.AddLibsToImage(['JSDCC_TOOL_IMAGE', 'EMMCBLD_IMAGE'], railway_stub)

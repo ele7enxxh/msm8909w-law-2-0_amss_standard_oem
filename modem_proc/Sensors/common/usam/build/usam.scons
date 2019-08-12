@@ -1,0 +1,34 @@
+#===============================================================================
+#
+# SAM common Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+#  Copyright (c) 2014-2015 Qualcomm Technologies, Inc.
+#  All Rights Reserved.
+#  Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Special test configurations
+#-------------------------------------------------------------------------------
+if 'SNS_SAM_TEST_ALGO_GPIO_RMD' in env:
+  env.Append(CPPDEFINES = ["FEATURE_TEST_ALGO_GPIO_RMD"])
+
+if 'SNS_SAM_TEST_ALGO_GPIO_AMD' in env:
+  env.Append(CPPDEFINES = ["FEATURE_TEST_ALGO_GPIO_AMD"])
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_SMR',
+]
+env.RequireRestrictedApi(SENSORS_API)
+
+env.LoadSoftwareUnits()

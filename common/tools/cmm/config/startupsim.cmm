@@ -1,0 +1,50 @@
+//============================================================================
+//  Name:                                                                     
+//    startupsim.cmm 
+//
+//  Description:                                                              
+//    Common simulator startup script that calls the processor specific init scripts 
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/10/2012 AJCheriyan    Created for B-family
+//
+
+// Supports three input arguments 
+// ARG0 - T32 connection property (SIM)
+// ARG1 - Chipset Name 
+// ARG2 - Sub-system Name
+// ARG3 - Core Number
+
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3
+
+// Global variables for the args passed in
+GLOBAL &T32PROP &CHIPSET &SUBSYS &CORENUM
+
+// Save the arguments 
+&T32PROP=STR.LWR("&ARG0")
+&CHIPSET=STR.LWR("&ARG1")
+&SUBSYS=STR.LWR("&ARG2")
+&CORENUM=STR.LWR("&ARG3")
+
+// Locals used
+LOCAL &SUBSYSCRIPT &SESSIONSCRIPT
+
+// Now setup the scripts information first
+PRINT "Calling script: std_toolsconfig with args: &ARG1"
+do std_toolsconfig &CHIPSET &SUBSYS
+
+// Now perform the debug session specific setup
+PRINT "Calling script to load logs: std_loadsim.cmm"
+do std_loadsim &CHIPSET
+
+ENDDO

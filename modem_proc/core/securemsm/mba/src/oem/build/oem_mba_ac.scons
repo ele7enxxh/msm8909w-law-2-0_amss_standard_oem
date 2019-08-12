@@ -1,0 +1,79 @@
+#===============================================================================
+#
+# MBA CORE Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/securemsm/mba/src/oem/build/oem_mba_ac.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/23/12   mm      First cut of Scons
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/inc")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/src/oem}")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/src/common")
+#env.Append(CCFLAGS = " --restrict ")
+
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+MSA_SRC = "${COREBSP_ROOT}/securemsm/mba/src/oem"
+
+env.VariantDir('${BUILDPATH}', MSA_SRC, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['SECUREMSM'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+MSA_SOURCES = [ '${BUILDPATH}/oem_mba_ac.c' ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddObject(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+	       'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'MBA_CORE_SW'], MSA_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

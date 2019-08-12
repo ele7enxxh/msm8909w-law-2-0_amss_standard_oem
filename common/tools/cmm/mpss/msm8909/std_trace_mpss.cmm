@@ -1,0 +1,135 @@
+//============================================================================
+//  Name:                                                                     
+//    std_trace_mpss.cmm 
+//
+//  Description:                                                              
+//    Trace setup script for MPSS
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 09/28/2012 jbilling           Created for B-family.
+
+// Following arguments are supported. 
+// ARG0 - Processor to debug. 
+// ARG1 - Tracing Type . Currently supports TPIU 
+// ARGn - n > 1 - Any other arguments to be passed to the script 
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+MAIN:
+
+	IF (("&ARG1"=="TPIU")||("&ARG1"=="tpiu")||("&ARG1"=="SDCARD")||("&ARG1"=="SDcard")||("&ARG1"=="sdcard"))
+	(
+
+		SYStem.CONFIG.FUNNEL1.BASE DAP:0x80019000
+		SYStem.CONFIG.FUNNEL1.ATBSource ETM 1
+		SYStem.CONFIG.FUNNEL3.BASE DAP:0x8001B000
+		SYStem.CONFIG.FUNNEL3.ATBSource FUNNEL1 0 
+		SYStem.CONFIG.ETF.BASE DAP:0x80007000
+		SYStem.CONFIG.ETF.ATBSource FUNNEL3
+		SYStem.CONFIG.TPIU.BASE DAP:0x80018000
+		SYStem.CONFIG.TPIU.ATBSource ETF
+
+		//Reset ETM
+		etm.reset
+        //set portsize. 
+        
+		IF (("&ARG2"=="4bit")||("&ARG3"=="4bit"))
+        (
+            ETM.PORTSIZE 8.
+            area
+            print " "
+            print "Portsize of 4 only supported for Oct2012, Dec2012, and April2012"
+
+	    print "Please re-run script using TPIU command, as SDcard did not configure TLMM (needed for TPIU port)"
+            print "Setting Portsize to 8"
+        )
+        ELSE IF (("&ARG2"=="8bit")||("&ARG3"=="8bit")) 
+        (
+            ETM.PORTSIZE 8.
+            print "Configurtion Portsize to 8"
+        )
+        ELSE IF (("&ARG2"=="16bit")||("&ARG3"=="16bit"))
+        (
+            ETM.PORTSIZE 16.
+            print "Configurtion Portsize to 16"
+        )
+        ELSE                       
+        (
+            ETM.PORTSIZE 8.
+            print "Configurtion Portsize to 8"
+        )
+        
+        
+        IF (("&ARG2"=="CYCLEACCURATE")||("&ARG2"=="cycleaccurate")||("&ARG3"=="cycleaccurate")||("&ARG3"=="cycleaccurate"))
+        (
+            etm.cycleaccurate on
+        )
+        
+		etm.traceid 10.
+		etm.portmode bypass
+		ETM.ON
+		ETM.CLEAR
+        etm.cycleaccurate on
+		trace.init 
+		trace.list
+		
+				
+		TRACE.METHOD ANALYZER
+		TRACE.AUTOFOCUS
+	)	
+	ELSE (("&ARG1"=="ETB")||("&ARG1"=="etb"))
+	(
+		print "ETB not functional for July 2012 version of T32 on Q6"
+		
+		SYStem.CONFIG MEMORYACCESSPORT 0.
+		SYStem.CONFIG DEBUGACCESSPORT  1.
+		SYStem.CONFIG JTAGACCESSPORT   2.
+		SYStem.CONFIG COREJTAGPORT     0.		
+        
+		
+		SYStem.CONFIG.FUNNEL1.BASE DAP:0x80019000
+		SYStem.CONFIG.FUNNEL3.BASE DAP:0x8001B000
+		SYStem.CONFIG.ETF.BASE DAP:0x80007000
+		SYStem.CONFIG.TPIU.BASE DAP:0x80018000
+
+		
+		SYStem.CONFIG.FUNNEL1.ATBSource ETM 1
+		SYStem.CONFIG.FUNNEL3.ATBSource FUNNEL1 0 
+		SYStem.CONFIG.ETB.ATBSource FUNNEL3
+
+		
+		etm.reset
+		etm.traceid 10.
+		etm.portmode continuous
+		etm.stall OFF
+		etm.on
+		etm.clear
+		trace.method ONCHIP
+		trace.init 
+		trace.list
+
+	)
+
+	
+
+
+	GOTO EXIT
+
+
+FATALEXIT:
+        mmu.on
+	END
+
+EXIT:
+        mmu.on
+	ENDDO
+

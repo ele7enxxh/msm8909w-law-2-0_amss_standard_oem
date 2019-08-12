@@ -1,0 +1,681 @@
+# *****************************************************************************
+#
+# PURPOSE:
+#    Makefile script with compiler/assembler include header
+#    search path information
+#
+# DESCRIPTION:
+#    This file contains information about the optimal header search paths
+#    for each sub-build
+#
+# SERVICES:
+#    This file provides the following general services.
+#        1. Setting exported include paths for use by sub-builds
+#
+# PRE-REQUISITES:
+#    To utilise all the facilities provided by this file, certain special tools
+#    and software programmes may be needed depending on the host system in use.
+#        1. On UNIX    : GNU tools, normally available on most workstations.
+#        2. On Windows : GNU tools for Windows, e.g., Cygnus, and Perl 5+.
+#
+#    Note also that every makefile script that is included - either directly or
+#    indirectly - must be available and readable.
+#
+# Copyright (c) 2009 by Qualcomm, Inc.  All Rights Reserved.
+# *****************************************************************************
+#============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/bsp/build/incpaths.min#1 $ 
+# $DateTime: 2016/06/17 14:31:11 $
+#
+# when       who     what, where, why
+# --------   ---     --------------------------------------------------------
+# 06/02/09   cjb     Created
+#============================================================================
+
+ifeq ($(USES_HW6500),yes)
+    BOOT = $(SRCROOT)/drivers/boot
+
+else
+    ifeq ($(IMAGE), APPS_PROC)
+        BOOT = $(SRCROOT)/core/api/boot/appsproc/
+        APPSBL = $(BOOT)
+    else
+        BOOT=$(SRCROOT)/core/api/boot/
+	BOOT +=$(SRCROOT)/core/api/boot/amssboot/
+    endif
+
+endif
+
+    export HW = $(SRCROOT)/drivers/hw
+        HW_INC = $(HW)/inc
+        HW_SRC = $(HW)/src
+HWIO=$(SRCROOT)/core/systemdrivers/hwio
+include $(HWIO)/common/build/hwio_incpaths.min
+
+
+export HW_PLTFRM = $(SRCROOT)/drivers/hw
+
+# Include the HWIO paths to get HWIO_PATHS variable
+-include $(HW)/hwio_incpaths.min
+
+# Paths relative to ROOT for each subdir
+#
+COREAPI=     $(SRCROOT)/core/api
+CORERAPI=    $(SRCROOT)/core/api/rapi
+AU_CORE_API= $(COREAPI)
+AU_CORE_RAPI=$(AU_CORE_API)/rapi
+ADC=         $(SRCROOT)/core/hwengines/adc/wrapper/inc
+INO= 		 $(SRCROOT)/core/hwengines/ino/inc $(SRCROOT)/core/hwengines/ino/src
+BUSES=       $(SRCROOT)/core/buses
+SBI=         $(BUSES)/sbi
+ANSIC=       $(SRCROOT)/services/ansic
+BIO=         $(SRCROOT)/core/systemdrivers/bio
+CLK=         $(SRCROOT)/core/systemdrivers/clk
+CLK_INC=     $(CLK)/inc
+CLKREGIM=    $(SRCROOT)/drivers/clkregim
+DEM=         $(SRCROOT)/core/power/dem
+DIAG=        $(SRCROOT)/core/services/diag/src
+DLOAD=       $(SRCROOT)/core/boot/dload/shared/src
+HALROOT=     $(SRCROOT)/hal
+HALROOT_INC= $(HALROOT)/common/include
+KERNEL=      $(SRCROOT)/core/api/kernel
+DMOV=        $(SRCROOT)/core/hwengines/dmov_wrapper
+BUSPERF=     $(SRCROOT)/drivers/busperf
+BUSPERF_EXT= $(SRCROOT)/core/api/buses
+BUSPERF_RAPI=$(SRCROOT)/core/api/rapi/buses/inc
+EFUSE=       $(SRCROOT)/core/boot/efuse
+ifeq ($(USES_ERR_SERVICES), yes)
+    ERR=         $(SRCROOT)/core/api/debugtools
+    ERR_LOG=     $(SRCROOT)/core/debugtools/err/src
+endif
+FLASH=       $(SRCROOT)/core/storage/flash
+
+#DAL Framework
+#include DAL paths unconditionally for external dependencies 
+	DALAPI = $(SRCROOT)/core/api/dal
+   DALROOT = $(SRCROOT)/core/dal
+   DAL_INC = $(DALROOT)/inc  
+   DALFW_INC = $(DALROOT)/framework/inc
+   DALSYS_INC = $(DALROOT)/framework/sys/inc
+
+
+HS=          $(SRCROOT)/core/iodevices/hs/inc
+I2C=         $(SRCROOT)/drivers/i2c
+JOYST=       $(SRCROOT)/services/joyst
+KPD=         $(SRCROOT)/core/api/iodevices
+MAO=         $(SRCROOT)/drivers/mao
+NV=          $(SRCROOT)/services/nv
+#++cjb - TODO 
+NVIM=        $(SRCROOT)/services/nv
+OSAL=		 $(SRCROOT)/core/services/osal/inc
+OSAL_OS= 	 $(SRCROOT)/core/services/osal/rex/inc
+
+
+#
+# Multiprocessor related paths
+#
+MPROC= $(SRCROOT)/core/mproc
+OEM_RAPI= $(MPROC)/oem_rapi
+ONCRPC= $(MPROC)/oncrpc
+PING_MDM= $(MPROC)/ping_mdm
+SMEM= $(MPROC)/smem
+SMD= $(MPROC)/smd
+
+#++cjb- TODO
+PROFILING=   $(SRCROOT)/tools/profiling
+
+ifeq ($(USES_L4LINUX), yes)
+QDIAG=       $(SRCROOT)/services/qdiag
+endif
+PMEM= 	     $(SRCROOT)/core/api/kernel/pmem
+REX=         $(SRCROOT)/core/api/kernel/rex
+REXL4=       $(SRCROOT)/core/api/kernel/rex
+REX_DEFS=    $(SRCROOT)/core/api/kernel/rex/arm
+REXL4INC=    $(SRCROOT)/core/kernel/rexl4/arch/arm/inc
+RTE=         $(SRCROOT)/core/api/kernel/rte
+REX_ARCH=    $(SRCROOT)/core/api/kernel/l4/cust
+CACHE_MMU=   $(SRCROOT)/core/api/kernel/cache_mmu_l4/arm11
+
+SME_APIS = $(SRCROOT)/core/api/securemsm
+SME_AKAALGO_API= $(SME_APIS)/akaalgo
+SME_CRYPTO_API= $(SME_APIS)/crypto
+SME_SSL_API= $(SME_APIS)/ssl
+SME_SFS_API= $(SME_APIS)/sfs
+SME_SMECOM_API= $(SME_APIS)/smecom
+SME_IPSEC_API= $(SME_APIS)/ipsec
+
+SME_API= \
+  $(SME_APIS) \
+  $(SME_AKAALGO_API) \
+  $(SME_CRYPTO_API) \
+  $(SME_SSL_API) \
+  $(SME_SFS_API) \
+  $(SME_SMECOM_API) \
+  $(SME_IPSEC_API) 
+
+SME= $(SRCROOT)/core/securemsm
+SME_CRYPTO_INC= $(SME)/crypto/inc
+SME_CRYPTO_SRC= $(SME)/crypto/src
+SME_IPSEC_INC=  $(SME)/ipsec/inc
+SME_IPSEC_SRC=  $(SME)/ipsec/src
+SME_SSL_INC= $(SME)/ssl/inc
+SME_SSL_SRC= $(SME)/ssl/src
+SME_SFS_INC= $(SME)/sfs/inc
+SME_SFS_SRC= $(SME)/sfs/src
+SME_SMETEST = $(SME)/smetest
+SME_SMETEST_TEST_CRYPTO_SRC= $(SME_SMETEST)/test_crypto/src
+
+SME_SMECOM_COM= $(SME)/smecom
+SME_SMECOM_COM_INC= $(SME_SMECOM_COM)/com/inc
+SME_SMECOM_COM_SRC= $(SME_SMECOM_COM)/com/src
+SME_SMECOM_IXHTTP_INC= $(SME_SMECOM_COM)/ixhttp/inc
+SME_SMECOM_IXHTTP_SRC= $(SME_SMECOM_COM)/ixhttp/src
+
+SEC_RAPI_INC= $(SRCROOT)/core/api/rapi/securemsm/inc
+
+ifeq ($(USES_DRM_MS), yes)
+SME_DRMMS= $(SME)/drmms
+SME_DRMMS_INC= $(SME_DRMMS)/drmms/inc
+SME_DRMMS_SRC= $(SME_DRMMS)/drmms/src
+SME_DRMMS_PROTECTED= $(SME_DRMMS)/drmms/protected
+SME_DRMMS_DRMMS_CHDLR_SRC= $(SME_DRMMS)/drmms_chdlr/src
+SME_DRMMS_WMDRMPORT= $(SME_DRMMS)/wmdrm_port
+SME_DRMMS_WMDRMPORT_DEBUG= $(SME_DRMMS_WMDRMPORT)/debug
+SME_DRMMS_WMDRMPORT_INTGR= $(SME_DRMMS_WMDRMPORT)/intgr
+SME_DRMMS_WMDRMPORT_WMDRM= $(SME_DRMMS_WMDRMPORT)/wmdrm
+SME_DRMMS_WMDRMPORT_WMDRM_CONFIG= $(SME_DRMMS_WMDRMPORT_WMDRM)/config
+SME_DRMMS_WMDRMPORT_WMDRM_CRYPTO_BIGNUM= $(SME_DRMMS_WMDRMPORT_WMDRM)/crypto/bignum
+SME_DRMMS_WMDRMPORT_WMDRM_INC= $(SME_DRMMS_WMDRMPORT_WMDRM)/inc
+SME_DRMMS_WMDRMPORT_WMDRM_INTERFACE= $(SME_DRMMS_WMDRMPORT_WMDRM)/interface
+SME_DRMMS_MCS=  $(SME_DRMMS)/mcs_brew
+SME_DRMMS_MCS_SRC= $(SME_DRMMS_MCS)/src
+SME_DRMMS_MCS_SRC_MAKE= $(SME_DRMMS_MCS_SRC)/Makefile
+SME_DRMMS_MCS_INC= $(SME_DRMMS_MCS)/inc
+SME_DRMMS_MCS_INS= $(SME_DRMMS_MCS)/Ins
+SME_DRMMS_MCS_MCF= $(SME_DRMMS_MCS)/Mcf
+SME_DRMMS_MCS_MCSCOM= $(SME_DRMMS_MCS)/McsCom
+SME_DRMMS_MCS_PROTECTED= $(SME_DRMMS_MCS)/protected
+SME_DRMMS_MCS_INS_INC= $(SME_DRMMS_MCS_INS)/inc
+SME_DRMMS_MCS_INS_SRC= $(SME_DRMMS_MCS_INS)/src
+SME_DRMMS_MCS_MCF_INC= $(SME_DRMMS_MCS_MCF)/inc
+SME_DRMMS_MCS_MCF_MCFCOM= $(SME_DRMMS_MCS_MCF)/McfCom
+SME_DRMMS_MCS_MCF_SRC= $(SME_DRMMS_MCS_MCF)/src
+SME_DRMMS_MCS_MCF_MCFCOM_SRC= $(SME_DRMMS_MCS_MCF_MCFCOM)/src
+SME_DRMMS_MCS_SRC_MAKE= $(SME_DRMMS_MCS_SRC)/Makefile
+SME_DRMMS_MCS_MCSCOM_SRC= $(SME_DRMMS_MCS_MCSCOM)/src
+SME_DRMMS_MTPH_APP=    $(SME_DRMMS)/mtph_app
+SME_DRMMS_MTPH_APP_INC= $(SME_DRMMS_MTPH_APP)/inc
+SME_DRMMS_MTPH_APP_SRC= $(SME_DRMMS_MTPH_APP)/src
+
+SME_DRMMS_ALL_PATHS= \
+        $(SME_DRMMS_INC) $(SME_DRMMS_SRC) \
+        $(SME_DRMMS_PROTECTED) $(SME_DRMMS_WMDRMPORT) \
+        $(SME_DRMMS_WMDRMPORT_DEBUG) $(SME_DRMMS_WMDRMPORT_INTGR) \
+        $(SME_DRMMS_WMDRMPORT_WMDRM) $(SME_DRMMS_WMDRMPORT_WMDRM_CONFIG) \
+        $(SME_DRMMS_WMDRMPORT_WMDRM_CRYPTO_BIGNUM) \
+        $(SME_DRMMS_WMDRMPORT_WMDRM_INC) $(SME_DRMMS_WMDRMPORT_WMDRM_INTERFACE) \
+        $(SME_DRMMS_DRMMS_CHDLR_SRC) $(SME_DRMMS_MTPH_APP_INC) \
+        $(SME_DRMMS_MCS) $(SME_DRMMS_MCS_SRC) \
+        $(SME_DRMMS_MCS_SRC_MAKE) $(SME_DRMMS_MCS_INC) \
+        $(SME_DRMMS_MCS_INS) $(SME_DRMMS_MCS_MCF) \
+        $(SME_DRMMS_MCS_MCSCOM) $(SME_DRMMS_MCS_PROTECTED) \
+        $(SME_DRMMS_MCS_INS_INC) $(SME_DRMMS_MCS_INS_SRC) \
+        $(SME_DRMMS_MCS_MCF_INC) $(SME_DRMMS_MCS_MCF_MCFCOM) \
+        $(SME_DRMMS_MCS_MCF_SRC) $(SME_DRMMS_MCS_MCF_MCFCOM_SRC) \
+        $(SME_DRMMS_MCS_SRC_MAKE) $(SME_DRMMS_MCS_MCSCOM_SRC) \
+        $(SME_DRMMS_MTPH_APP) 
+endif #USES_DRM_MS
+
+
+SME_DRMOMA= $(SME)/drmoma
+SME_DRMOMA_SRC= $(SME_DRMOMA)/drmoma/src
+SME_DRMOMA_INC= $(SME_DRMOMA)/drmoma/inc
+SME_DRMOMA_DRMOMA_CHDLR_SRC = $(SME_DRMOMA)/drmoma_chdlr/src
+SME_DRMOMA_ALL_PATHS= \
+        $(SME_DRMOMA_SRC) $(SME_DRMOMA_INC) $(SME_DRMOMA_DRMOMA_CHDLR_SRC)
+
+SME_DRMCOM= $(SME)/drmcom
+SME_DRMCOM_DCF_SRC= $(SME_DRMCOM)/drmcom_dcf/src
+SME_DRMCOM_DCF_INC= $(SME_DRMCOM)/drmcom_dcf/inc
+SME_DRMCOM_DRM_SRC= $(SME_DRMCOM)/drmcom_drm/src
+SME_CMGMT= $(SME)/cmgmt
+SME_CMGMT_SRC= $(SME_CMGMT)/cmgmt/src
+SME_CHDLRCOM= $(SME)/chdlrcom
+SME_CHDLRCOM_SRC= $(SME_CHDLRCOM)/chdlrcom/src
+SME_CHDLRCOM_INC= $(SME_CHDLRCOM)/chdlrcom/inc
+SME_CHDLR= $(SME)/chdlr
+SME_CHDLR_SRC= $(SME_CHDLR)/chdlr/src
+SME_CHDLR_INC= $(SME_CHDLR)/chdlr/inc
+SME_SMESQL= $(SME)/smesql
+SME_SMESQL_IXSQL_SRC= $(SME_SMESQL)/ixsql/src
+SME_SMESQL_IXSQL_INC= $(SME_SMESQL)/ixsql/inc
+SME_SMESQL_SQLITE_SRC= $(SME_SMESQL)/sqlite/src
+SME_SMESQL_SQLITE_INC= $(SME_SMESQL)/sqlite/inc
+
+ICONTENTTEST=      $(SRCROOT)/apps/IContentTest
+CONTENTEVTMGRTEST= $(SRCROOT)/apps/contentevtmgrtest
+SECSERVICES_TESTAPP= $(SRCROOT)/apps/securityservices
+
+SME_ALL_PATHS= \
+       $(SME_API) \
+       $(SME_CRYPTO_INC) \
+       $(SME_CRYPTO_SRC) \
+       $(SME_IPSEC_INC) \
+       $(SME_IPSEC_SRC) \
+       $(SME_SSL_INC) \
+       $(SME_SSL_SRC) \
+       $(SME_SFS_INC) \
+       $(SME_SFS_SRC) \
+       $(SME_SMETEST_TEST_CRYPTO_SRC) \
+       $(SME_SMECOM_COM_INC) \
+       $(SME_SMECOM_COM_SRC) \
+       $(SME_SMECOM_IXHTTP_INC) \
+       $(SME_SMECOM_IXHTTP_SRC) \
+       $(SME_DRMCOM_DCF_INC) \
+       $(SME_DRMCOM_DCF_SRC) \
+       $(SME_DRMCOM_DRM_SRC) \
+       $(SME_CMGMT_SRC) \
+       $(SME_CHDLR_INC) \
+       $(SME_CHDLR_SRC) \
+       $(SME_CHDLRCOM_INC) \
+       $(SME_CHDLRCOM_SRC) \
+       $(SME_SMESQL_IXSQL_INC) \
+       $(SME_SMESQL_IXSQL_SRC) \
+       $(SME_SMESQL_SQLITE_INC) \
+       $(SME_SMESQL_SQLITE_SRC) \
+       $(SME_DRMMS_ALL_PATHS) \
+       $(SME_DRMOMA_ALL_PATHS) \
+       $(ICONTENTTEST) \
+       $(CONTENTEVTMGRTEST) \
+       $(SECSERVICES_TESTAPP)
+
+SME_EXTERNAL_PATHS= \
+       $(SME_API) \
+       $(SME_CRYPTO_INC) \
+       $(SME_CRYPTO_SRC) \
+       $(SME_IPSEC_INC) \
+       $(SME_IPSEC_SRC) \
+       $(SME_SSL_INC) \
+       $(SME_SSL_SRC) \
+       $(SME_SFS_INC) \
+       $(SME_SFS_SRC) \
+       $(SME_SMETEST_TEST_CRYPTO_SRC) \
+       $(SME_SMECOM_COM_INC) \
+       $(SME_SMECOM_COM_SRC) \
+       $(SME_CHDLR_INC) \
+       $(SME_CHDLRCOM_INC) \
+       $(SME_DRMCOM_DRM_SRC) \
+       $(SME_DRMMS_ALL_PATHS) \
+       $(ICONTENTTEST) \
+       $(SECSERVICES_TESTAPP)
+
+ifeq ($(USES_IPSEC), yes)
+SME_EXTERNAL_PATHS+= \
+       $(SME_IPSEC_INC) \
+       $(SME_IPSEC_SRC)
+endif
+SME_ALL_INCLUDES = $(addprefix $(INCLUDE_PREFIX), $(SME_ALL_PATHS))
+
+export SBI=  $(BUSES)/sbi
+SDCC=        $(SRCROOT)/drivers/sdcc
+SIO=         $(SRCROOT)/services/sio
+SLEEP_SRC=   $(SRCROOT)/services/sleep
+MIBIB=       $(SRCROOT)/core/boot/mibib/shared/src
+
+#++cjb - TODO
+#SLEEPCTL_SRC=$(SRCROOT)/drivers/sleepctl
+
+TASK=        $(SRCROOT)/services/task
+THERM=       $(SRCROOT)/core/hwengines/therm
+TIME=        $(SRCROOT)/services/time
+export TLMM= $(SRCROOT)/core/systemdrivers/tlmm
+include $(TLMM)/src/tlmm_incpaths.min
+
+TMC=         $(SRCROOT)/services/tmc
+TOUCH=       $(SRCROOT)/drivers/touch
+TRAMP=       $(SRCROOT)/drivers/tramp
+HSU=         $(SRCROOT)/core/wiredconnectivity/hsusb
+HSU_API=         $(SRCROOT)/core/api/wiredconnectivity
+HSU_RAPI=        $(SRCROOT)/core/api/rapi/wiredconnectivity/inc
+HSU_DRIVER_INC=  $(HSU)/driver/inc
+HSU_CORE_INC=    $(HSU)/core/inc
+HSU_CLASSES_INC= $(HSU)/classes/inc
+
+HSU_DRIVER_SRC=  $(HSU)/driver/src
+HSU_DRIVER_SRC_CONFIG = $(HSU_DRIVER_SRC)/common
+HSU_DRIVER_SRC_CORECONFIG = $(HSU_DRIVER_SRC)/core_config
+HSU_CORE_SRC=    $(HSU)/core/src
+HSU_CLASSES_SRC= $(HSU)/classes/src
+HSU_CLASSES_SRC_PORT_HOST = $(HSU_CLASSES_SRC)/port/include/host
+
+HSU_PATH = $(HSU_API) $(HSU_RAPI) $(HSU_DRIVER_INC) $(HSU_CORE_INC) $(HSU_CLASSES_INC)
+
+UTILS=       $(SRCROOT)/services/utils
+OEMSBL        = $(SRCROOT)/secboot/oemsbl
+QCSBL         = $(SRCROOT)/secboot/qcsbl
+ifeq ($(TARGET_ID), 7500)
+    ifeq ($(ASIC),7500B)
+        export CFG_DATA      = $(SRCROOT)/secboot/cfg_data/asic20
+    else
+        export CFG_DATA      = $(SRCROOT)/secboot/cfg_data/asic10
+    endif
+endif
+ifneq ($(TARGET_ID), 7500)
+    export CFG_DATA_BASE = $(SRCROOT)/secboot/cfg_data
+    export CFG_DATA      = $(CFG_DATA_BASE)
+endif
+
+#
+# Binary image and headers
+#
+HEADERGEN     = $(SRCROOT)/core/boot/tools/headergen/shared/src
+
+ifeq ($(USES_SENSORS), yes)
+SENSORS=          $(SRCROOT)/core/sensors
+SENSORS_INC=      $(SENSORS)/inc
+SENSORS_SRV_INC=  $(SENSORS)/services/inc
+SENSORS_DRIVERS_INC= $(SENSORS)/drivers/inc
+SENSORS_API_INC=  $(COREAPI)/sensors
+SENSORS_RAPI_INC= $(CORERAPI)/sensors/inc
+endif
+
+#----------------------------------------------------------------------
+#    Directories that are not part products/7500 or products/7200
+#----------------------------------------------------------------------
+ifeq ($(USES_IGUANA),yes)
+    L4=      $(SRCROOT)/core/kernel/build_$(BUILD_KCFG)/amss/include
+    QUARTZ=  $(SRCROOT)/core/kernel/build_$(BUILD_KCFG)/amss/include/quartz
+    L4INCLUDES=  $(SRCROOT)/core/kernel/build_$(BUILD_KCFG)/amss/include/l4/cust
+
+endif
+
+
+HALHWIO += $(HW)/hwio/hal
+PLATHWIO += $(HW)/hwio/plat/l4/user
+
+UART=        $(SRCROOT)/drivers/uart
+RDEVMAP=     $(SRCROOT)/services/rdevmap
+COREAPI=     $(SRCROOT)/core/api
+REMOTEFS=    $(SRCROOT)/services/remotefs
+STORAGE_RAPI=$(SRCROOT)/core/api/rapi/storage/inc
+
+
+#-----------------------------------------------------------------------------------
+# Set value of FLASH_PATHS 
+  include $(FLASH)/src/flash_incpaths.min
+
+COREBSP_BASE_PATHS =
+
+#-----------------------------------------------------------------------------------
+# Set value of COREBSP_BASE_PATHS - Non recursive set - static paths should be set here
+#-----------------------------------------------------------------------------------
+COREBSP_BASE_PATHS:=\
+                $(ADC) \
+                $(ANSIC) \
+                $(BIO) \
+                $(BOOT) \
+                $(BUSPERF) \
+                $(BUSPERF_EXT) \
+                $(BUSPERF_RAPI) \
+                $(CLK_INC) \
+                $(COREAPI)/power \
+                $(COREAPI)/systemdrivers \
+                $(COREAPI)/wiredconnectivity \
+                $(COREAPI)/hwengines \
+                $(COREAPI)/services \
+                $(CORERAPI)/services/inc \
+                $(CORERAPI)/iodevices/inc \
+                $(COREAPI)/storage \
+                $(COREAPI)/mproc \
+                $(CORERAPI)/mproc/inc \
+		$(COREAPI)/debugtools \
+                $(DEM)/inc \
+                $(DIAG) \
+                $(DLOAD) \
+                $(DMOV) \
+                $(EFUSE) \
+                $(ERR) \
+                $(ERR_LOG) \
+                $(FLASH_PATHS) \
+                $(HS) \
+                $(COREAPI)/iodevices \
+                $(HW_INC) \
+                $(HWIO_PATHS) \
+                $(HW_RPC) \
+				$(INO) \
+                $(JOYST) \
+		$(KERNEL) \
+                $(KPD) \
+                $(L4) \
+                $(QUARTZ) \
+                $(MIBIB) \
+					 $(MAO) \
+                $(MSMSUPPORT)/inc \
+                $(NV) \
+                $(ONCRPC) \
+					 $(OEM_RAPI) \
+                $(PING_MDM) \
+                $(RDEVMAP) \
+                $(REMOTEFS) \
+					 $(STORAGE_RAPI) \
+		$(PMEM) \
+                $(REX) \
+                $(REXL4) \
+		$(REX_DEFS) \
+		$(REXL4INC) \
+		$(REX_ARCH) \
+                $(CACHE_MMU)\
+                $(RTE) \
+                $(SEC_RAPI_INC) \
+                $(SDCC) \
+                $(SENSORS_API_INC) \
+                $(SENSORS_INC) \
+                $(SENSORS_RAPI_INC) \
+                $(SENSORS_SRV_INC) \
+                $(SENSORS_DRIVERS_INC) \
+                $(SIO) \
+                $(SLEEP_SRC) \
+                $(CLKREGIM) \
+                $(CLKREGIM)/inc \
+                $(CLKREGIM)/src/rpc \
+                $(SMEM) \
+                $(SMD) \
+                $(TASK) \
+				$(THERM)/inc \
+                $(TIME) \
+                $(TLMM_PATHS) \
+                $(TMC) \
+                $(TRAMP) \
+                $(TRAMP)/inc \
+                $(HSU_PATH) \
+                $(HSU_DRIVER_SRC_CONFIG) \
+                $(HSU_DRIVER_SRC_CORECONFIG) \
+                $(HSU_CLASSES_SRC_PORT_HOST) \
+				$(OSAL) \
+				$(OSAL_OS) \
+                $(UART) \
+                $(UTILS) \
+                $(USB) \
+                $(L4INCLUDES) \
+                $(A1SECINC) \
+                $(SME_EXTERNAL_PATHS) \
+                
+
+COREBSP_ALL_PATHS=
+#-----------------------------------------------------------------------------------
+# Set value of ALL_PATHS - Recursive set - dynamically altered paths go here
+#-----------------------------------------------------------------------------------
+COREBSP_ALL_PATHS=\
+                $(HWIO_PATHS) \
+
+
+BASE_PATHS += \
+                $(DALAPI) \
+                $(DAL_INC) \
+                $(DALFW_INC) \
+                $(DALSYS_INC) \
+                $(HALROOT_INC) \
+                $(SRCROOT)/drivers/hw/inc 
+
+
+#DAL Framework
+ifeq ($(USES_DAL),yes)
+   ALL_PATHS += \
+                $(DALAPI) \
+                $(DAL_INC) \
+                $(DALFW_INC) \
+                $(DALSYS_INC)
+endif
+
+# Buses include paths
+ALL_PATHS += $(BUSES_PATHS)
+
+#---------------------------------------------------------------------------------
+# Add apps proc only paths
+#---------------------------------------------------------------------------------
+
+ifeq ($(IMAGE), APPS_PROC)
+  ALL_PATHS += \
+                $(TOUCH)
+    ifeq ($(USES_L4LINUX), yes)
+      ALL_PATHS += \
+                    $(QDIAG)
+    endif
+endif
+
+COREBSP_REDUCED_PATHS=
+#---------------------------------------------------------------------------------
+# Set value of REDUCED_PATHS
+#---------------------------------------------------------------------------------
+COREBSP_REDUCED_PATHS = \
+                $(COMPONENT_SERVICES) \
+                $(ADC) \
+                $(ANSIC) \
+                $(BIO) \
+                $(BOOT) \
+                $(BUSPERF) \
+                $(BUSPERF_EXT) \
+                $(BUSPERF_RAPI) \
+                $(CLK_INC) \
+                $(COREAPI)/debugtools \
+                $(COREAPI)/power \
+                $(COREAPI)/systemdrivers \
+                $(COREAPI)/wiredconnectivity \
+                $(COREAPI)/services \
+                $(CORERAPI)/services/inc \
+                $(CORERAPI)/iodevices/inc \
+                $(COREAPI)/storage \
+                $(COREAPI)/mproc \
+                $(CORERAPI)/mproc/inc \
+                $(DEM)/inc \
+                $(DIAG) \
+                $(DLOAD) \
+                $(DMOV) \
+                $(ERR) \
+                $(ERR_LOG) \
+                $(FLASH_PATHS) \
+                $(HS) \
+                $(COREAPI)/iodevices \
+                $(HW_PLTFRM) \
+                $(HWIO_PATHS) \
+				$(INO) \
+                $(JOYST) \
+		$(KERNEL) \
+                $(KPD) \
+                $(MIBIB) \
+                $(NV) \
+                $(NVIM) \
+                $(ONCRPC) \
+                $(PING_MDM) \
+		$(PMEM) \
+                $(REX) \
+                $(REXL4) \
+		$(REX_DEFS) \
+		$(REXL4INC) \
+		$(REX_ARCH) \
+                $(CACHE_MMU)\
+                $(RTE) \
+                $(SEC_RAPI_INC) \
+                $(SDCC) \
+                $(SIO) \
+                $(SLEEP_SRC) \
+                $(SMEM) \
+                $(SMD) \
+                $(TASK) \
+                $(TIME) \
+                $(TLMM_PATHS) \
+                $(TMC) \
+                $(TRAMP) \
+                $(TRAMP)/inc \
+                $(USB) \
+                $(UTILS) \
+                $(A1SECINC) \
+                $(SME_EXTERNAL_PATHS)
+
+
+#DNNifeq ($(USES_UMTS), yes)
+    COREBSP_REDUCED_PATHS += \
+                $(CLKREGIM) \
+                $(CLKREGIM)/inc \
+                $(CLKREGIM)/src/rpc \
+#DNNendif
+
+   COREBSP_REDUCED_PATHS += \
+                $(DALAPI) \
+                $(DAL_INC) \
+                $(DALSYS_INC) \
+                $(DALFW_INC) \
+                $(HALROOT_INC) \
+				$(THERM)/inc \
+                $(RDEVMAP) \
+                $(HSU_PATH) \
+                $(COREAPI)/wiredconnectivity \
+                $(COREAPI)/hwengines \
+                $(TASK)  \
+                $(I2C) \
+                $(SRCROOT)/drivers/hw/inc 
+
+
+
+
+#-----------------------------------------------------------------
+# set value of TOOLS_PATHS and INCLUDE_PREFIX
+#-----------------------------------------------------------------
+TOOLS_PATHS += \
+   $(MIBIB)
+
+ifneq ($(BUILD_UNIX), yes)
+   TOOLS_PATHS += $(UTILS)
+endif
+
+INCLUDE_PREFIX = -I
+
+# Lint tool uses lowercase -i
+ifeq ($(DO_LINT),yes)
+INCLUDE_PREFIX = -i
+endif
+ifeq ($(DO_TARGET_LINT),yes)
+INCLUDE_PREFIX = -i
+endif
+
+REDUCED_PATHS += COREBSP_REDUCED_PATHS
+
+COREBSP_BASE_INCLUDES = $(addprefix $(INCLUDE_PREFIX), $(COREBSP_BASE_PATHS))
+COREBSP_XALL_INCLUDES = $(addprefix $(INCLUDE_PREFIX), $(COREBSP_ALL_PATHS))
+
+export COREBSP_INCPATHS_FILE = $(SRCROOT)/build/ms/corebsp.inc
+
+define COREBSP_CREATE_INCPATHS_FILE
+   @echo ------------------------------------------------------------------
+   @echo COREBSP Creating include paths file
+   @echo $(wordlist    1,  5000, $(COREBSP_BASE_INCLUDES)) | perl -p -e 'y/ /\n/'  > $(COREBSP_INCPATHS_FILE)
+   @echo $(wordlist 5001, 10000, $(COREBSP_BASE_INCLUDES)) | perl -p -e 'y/ /\n/' >> $(COREBSP_INCPATHS_FILE)
+   @echo $(wordlist    1,  5000, $(COREBSP_XALL_INCLUDES)) | perl -p -e 'y/ /\n/' >> $(COREBSP_INCPATHS_FILE)
+   @echo ------------------------------------------------------------------
+endef
+
+
+

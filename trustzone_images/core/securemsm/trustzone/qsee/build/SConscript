@@ -1,0 +1,361 @@
+#===============================================================================
+#
+# Trustzone QSEE Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:$
+#  $DateTime:$
+#  $Author:$
+#  $Change:$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/08/11           Initial Version
+#===============================================================================
+import os
+import string
+
+Import('env')
+env = env.Clone()
+vars = Variables()
+
+# set defaults for values if they're not in the .cfg file
+if 'tzbsp_with_pil' not in env:
+  vars.Add(BoolVariable('tzbsp_with_pil',        'pil',           1))
+if 'tzbsp_with_secboot' not in env:
+  vars.Add(BoolVariable('tzbsp_with_secboot',    'secboot',       1))
+if 'tzbsp_with_mmu' not in env:
+  vars.Add(BoolVariable('tzbsp_with_mmu',        'mmu',           1))
+if 'tzbsp_with_ce' not in env:
+  vars.Add(BoolVariable('tzbsp_with_ce',         'crypto',        1))
+if 'tzbsp_with_ssd' not in env:
+  vars.Add(BoolVariable('tzbsp_with_ssd',        'ssd',           1))
+
+if 'tzbsp_no_xpu' not in env:
+  vars.Add(BoolVariable('tzbsp_no_xpu',          'no pil xpus',   0))
+if 'tzbsp_with_pil_timing' not in env:
+  vars.Add(BoolVariable('tzbsp_with_pil_timing', 'pil profiling', 0))
+if 'tzbsp_with_test_svc' not in env:
+  vars.Add(BoolVariable('tzbsp_with_test_svc',   'unit tests',    1))
+if 'tzbsp_no_abt' not in env:
+  vars.Add(BoolVariable('tzbsp_no_abt',          'ABT enable',    0))
+vars.Update(env)
+
+if env['tzbsp_with_secboot'] == 1:
+  env.Append(CCFLAGS = " -DTZBSP_WITH_SECBOOT ")
+  env.Append(CPPDEFINES = "TZBSP_WITH_SECBOOT")
+  env.Append(AFLAGS = " -DTZBSP_WITH_SECBOOT ")
+
+if env['tzbsp_with_mmu'] == 1:
+  env.Append(CCFLAGS = " -DTZBSP_WITH_MMU ")
+  env.Append(CPPDEFINES = "TZBSP_WITH_MMU")
+  env.Append(AFLAGS = " -DTZBSP_WITH_MMU ")
+
+if env['tzbsp_with_ce'] == 1:
+  env.Append(CCFLAGS = " -DTZBSP_WITH_CRYPTO_ENGINE ")
+  env.Append(CPPDEFINES = "TZBSP_WITH_CRYPTO_ENGINE")
+  env.Append(AFLAGS = " -DTZBSP_WITH_CRYPTO_ENGINE ")
+
+if env['tzbsp_with_ssd'] == 1:
+  env.Append(CCFLAGS = " -DTZBSP_WITH_SSD ")
+  env.Append(CPPDEFINES = "TZBSP_WITH_SSD")
+  env.Append(AFLAGS = " -DTZBSP_WITH_SSD ")
+
+if env['tzbsp_no_abt'] == 1:
+  env.Append(CCFLAGS = " -DTZBSP_NO_ABT")
+  env.Append(CPPDEFINES = "TZBSP_NO_ABT")
+  env.Append(AFLAGS = " -DTZBSP_NO_ABT")
+
+if env['tzbsp_with_mmu'] == 1:
+   env.Replace(TZBSP_TARG_PATH = "mmu")
+else:
+   env.Replace(TZBSP_TARG_PATH = "no_mmu")
+
+env.Append(CCFLAGS = " --restrict ")
+# SYSINI has FMXR/FMRX instrutions that require VFP/Neon support. Enabling
+# VFP/Neon isn't possible for C code at this point, because TZ is not
+# saving/restoring VFP/Neon registers on a context switch.
+env.Replace(ARM_CPU_SCORPION = 'QSP')
+env.Append(CCFLAGS = " --fpu SoftVFP ")
+env.Append(ASFLAGS = " --fpu SoftVFP ")
+
+# Test version of TZ compiles with no optimizations.
+if 'tzbsp_with_test_svc' in env:
+  if env['tzbsp_with_test_svc'] == 1:
+      print "With Test is turned on"
+      env.Append(CCFLAGS = " -DTZBSP_WITH_TEST_SVC ")
+
+# PIL timing must be enabled compile time (use with_pil_timing=1).
+if env['tzbsp_with_pil_timing'] == 1:
+    env.Append(CCFLAGS = " -DTZBSP_WITH_PIL_TIMING ")
+
+
+if env['CHIPSET'] == "msm8974":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_8974 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "mdm9x25":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_9X25 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "mdm9x35":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_9X35 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "msm8x26":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_8X26 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "msm8x10":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_8X10 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "apq8084":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_8084 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "mpq8092":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_8092 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")   
+elif env['CHIPSET'] == "msm8962":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_8962 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "msm8916":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_8916 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "msm8936":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_8936 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "msm8909":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_8909 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "msm8909w":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_8909w ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "mdm9x07":
+    env.Append(CCFLAGS = " -DTZBSP_TARGET_9x07 ")
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+QSEE_SRC = "${COREBSP_ROOT}/securemsm/trustzone/qsee"
+
+env.VariantDir('${BUILDPATH}', QSEE_SRC, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+   'RFA'
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi('SECBOOT')
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# HWIO
+#-------------------------------------------------------------------------------
+
+if env.has_key('HWIO_IMAGE'):
+  # Modules depend on which CHIPSET is being build
+   modules = []
+   if env['CHIPSET'] == "msm8916":
+      modules = [
+         'BIMC.*',
+         'APCS_.*',
+         'TLMM_.*',
+         'SECURITY_CONTROL_CORE',
+        'CRYPTO0_CRYPTO',
+         'WCSS_A_PMU.*',
+#         'LPASS_QDSP6SS.*',
+         'MSS_QDSP6SS.*',
+         'GCC_CLK_CTL_REG',
+#         'PERIPH_SS_BAM_DMA_BAM',
+         'PRNG_PRNG',
+         'MPM2_WDOG',
+		 'MPM2_PSHOLD',
+		 'MPM2_SLP_CNTR',
+         'QDSS_ETR.*',
+         'QDSS_ETFETB.*',
+         'TCSR_TCSR_.*',
+         'DEHR_BIMC',
+#         'LPASS_LPASS_CC_REG',
+#         'MMSS_VENUS0_VENUS_WRAPPER_TOP',
+#         'MMSS_CC',
+#         'MMSS_OCMEM.*',
+         'VENUS.*',
+#         'MMSS.*',
+          'APPS_MMU500_SMMU_APP_SECURE_APPS.*',
+		  '.*XPU.*',
+         '.*RPU.*',
+         '.*APU.*',
+         '.*MPU.*',
+		 
+      ]
+   if env['CHIPSET'] == "msm8936":
+      modules = [
+         'BIMC.*',
+         'APCS_.*',
+         'APCLUS.*',
+         'CCI_.*',
+         'TLMM_.*',
+         'SECURITY_CONTROL_CORE',
+        'CRYPTO0_CRYPTO',
+         'WCSS_A_PMU.*',
+#         'LPASS_QDSP6SS.*',
+         'MSS_QDSP6SS.*',
+         'GCC_CLK_CTL_REG',
+#         'PERIPH_SS_BAM_DMA_BAM',
+         'PRNG_PRNG',
+         'MPM2_WDOG',
+         'QDSS_ETR.*',
+         'QDSS_ETFETB.*',
+         'TCSR_TCSR_.*',
+         'DEHR_BIMC',
+#         'LPASS_LPASS_CC_REG',
+#         'MMSS_VENUS0_VENUS_WRAPPER_TOP',
+#         'MMSS_CC',
+#         'MMSS_OCMEM.*',
+         'VENUS.*',
+#         'MMSS.*',
+        '.*XPU.*',
+        '.*RPU.*',
+        '.*APU.*',
+        '.*MPU.*',  
+      ]
+   if env['CHIPSET'] in ["msm8909","msm8909w"]:
+      modules = [
+         'BIMC.*',
+         'APCS_.*',
+         'TLMM_.*',
+         'SECURITY_CONTROL_CORE',
+         'CRYPTO0_CRYPTO',
+         'WCSS_A_PMU.*',
+#         'LPASS_QDSP6SS.*',
+         'MSS_QDSP6SS.*',
+         'GCC_CLK_CTL_REG',
+#         'PERIPH_SS_BAM_DMA_BAM',
+         'PRNG_PRNG',
+         'MPM2_PSHOLD',
+         'MPM2_SLP_CNTR',
+         'MPM2_WDOG',
+         'QDSS_ETR.*',
+         'QDSS_ETFETB.*',
+         'TCSR_TCSR_.*',
+         'DEHR_BIMC',
+#         'LPASS_LPASS_CC_REG',
+#         'MMSS_VENUS0_VENUS_WRAPPER_TOP',
+#         'MMSS_CC',
+#         'MMSS_OCMEM.*',
+         'VENUS.*',
+#         'MMSS.*',
+          'APPS_MMU500_SMMU_APP_APPS.*',
+		 '.*XPU.*',
+        '.*RPU.*',
+        '.*APU.*',
+        '.*MPU.*',  
+		
+      ]
+   if env['CHIPSET'] == "mdm9x07":
+      modules = [
+         'BIMC.*',
+         'APCS_.*',
+         'TLMM_.*',
+         'SECURITY_CONTROL_CORE',
+         'CRYPTO0_CRYPTO',
+         'MSS_QDSP6SS.*',
+         'GCC_CLK_CTL_REG',
+         'PRNG_PRNG',
+         'MPM2_PSHOLD',
+         'MPM2_SLP_CNTR',
+         'MPM2_WDOG',
+         'QDSS_ETR.*',
+         'QDSS_ETFETB.*',
+         'TCSR_TCSR_.*',
+         'DEHR_BIMC',
+         'APPS_MMU500_SMMU_APP_APPS.*',
+         'QTMR_AC.*',
+         '.*XPU.*',
+         '.*RPU.*',
+         '.*APU.*',
+         '.*MPU.*',  
+		
+      ]
+   if env['CHIPSET'] == "msm8909w":
+      env.AddHWIOFile('HWIO', [
+         {
+            'filename': '${INC_ROOT}/core/securemsm/trustzone/qsee/arch/msm8909/cfg/common/tzbsp_hwio.h',
+            'output-phys': True,
+            'modules': modules,
+            'header': '#include "msmhwiobase.h"'
+         }
+      ])
+   else:
+      env.AddHWIOFile('HWIO', [
+         {
+            'filename': '${INC_ROOT}/core/securemsm/trustzone/qsee/arch/${CHIPSET}/cfg/common/tzbsp_hwio.h',
+            'output-phys': True,
+            'modules': modules,
+            'header': '#include "msmhwiobase.h"'
+         }
+      ])
+   
+CLEAN_SOURCES = [
+    '${BUILDPATH}/include/qsee_interface.h',
+    '${BUILDPATH}/include/tzbsp_sw_fuse.h',
+    '${BUILDPATH}/include/tzbsp_syscall_test.h',
+]
+
+#if env['CHIPSET'] == "msm8936":
+#    CLEAN_SOURCES += env.FindFiles("*", "${BUILDPATH}/chipset/msm8909/")
+
+#if env['CHIPSET'] == "msm8916":
+#    CLEAN_SOURCES += env.FindFiles("*", "${BUILDPATH}/chipset/msm8909/")
+	
+#if env['CHIPSET'] == "msm8909":
+#    CLEAN_SOURCES += env.FindFiles("*", "${BUILDPATH}/chipset/msm8936/")
+#    CLEAN_SOURCES += env.FindFiles("*", "${BUILDPATH}/chipset/msm8916/")
+
+#if env['CHIPSET'] == "mdm9x07":
+#    CLEAN_SOURCES += env.FindFiles("*", "${BUILDPATH}/chipset/msm8936/")
+#    CLEAN_SOURCES += env.FindFiles("*", "${BUILDPATH}/chipset/msm8916/")
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+env.CleanPack('TZOS_IMAGE', CLEAN_SOURCES)
+

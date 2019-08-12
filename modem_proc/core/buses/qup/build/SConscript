@@ -1,0 +1,116 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Public build script for QUP BUS driver.
+#
+# Copyright (c) 2009-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/buses/qup/build/SConscript#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/08/14   pc      Added 8952 Support 
+# 08/18/14   ms      Added 8909 Support 
+# 01/21/12   ag      Initial release
+#
+#===============================================================================
+Import('env')
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+env = env.Clone()
+#print env
+# Additional defines
+env.Append(CPPDEFINES = ["FEATURE_LIBRARY_ONLY"])   
+
+SRCPATH = "../src"
+CBSP_APIS = []
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+IMAGES = []
+
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('BUSES_QUP_DEVICE', [
+   '${INC_ROOT}/core/buses/qup/hw',
+   '${INC_ROOT}/core/buses/qup/inc',
+   '${INC_ROOT}/core/buses/qup/src/hal/inc',
+   '${INC_ROOT}/core/buses/qup/src/logs/inc',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS += [
+   'BUSES',
+   'HAL',
+   'SYSTEMDRIVERS',
+   'DAL',
+   'SERVICES',
+   'HWENGINES',
+   'POWER'
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+if env['MSM_ID'] in ['8974']:
+   if env.has_key('ADSP_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+elif env['MSM_ID'] in ['8x26']:
+   if env.has_key('ADSP_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+elif env['MSM_ID'] in ['9x25']:
+   if env.has_key('ADSP_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+   elif env.has_key('MODEM_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+   elif env.has_key('APPS_PROC'):
+      IMAGES = ['APPS_IMAGE',      'CBSP_APPS_IMAGE']
+elif env['MSM_ID'] in ['8909','8952','8937']:
+   if env.has_key('ADSP_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+   elif env.has_key('MODEM_PROC'):
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+   elif env.has_key('APPS_PROC'):
+      IMAGES = ['APPS_IMAGE',      'CBSP_APPS_IMAGE']            
+else:
+   Return();   
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+QUP_DEVICE_GLOB_FILES = env.GlobFiles('../src/*/*.c', posix=True)
+
+
+
+#GLOB returns the relative path name, it needs to replaced with correct build location
+QUP_DEVICE_SOURCES = [path.replace(SRCPATH, '${BUILDPATH}') for path in QUP_DEVICE_GLOB_FILES]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+# env.AddLibrary is a new API, only if the IMAGES is valid in the build env
+# the objects will built and added to the image.
+#-------------------------------------------------------------------------------
+env.AddLibrary(IMAGES, '${BUILDPATH}/QupDevice', QUP_DEVICE_SOURCES)

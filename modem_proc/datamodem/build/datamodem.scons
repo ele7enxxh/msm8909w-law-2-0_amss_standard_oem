@@ -1,0 +1,270 @@
+#===============================================================================
+#
+# Modem wrapper script
+#
+# GENERAL DESCRIPTION
+#    build script to load modem data software units
+#
+# Copyright (c) 2010-2016 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/data.mpss/2.1/build/datamodem.scons #7 $
+#  $DateTime: 2010/10/05 13:12:17 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/05/16   ds      Enabled XLAT only for 9607 target.
+# 10/09/15   vls     Disabled IWLAN_S2B feature for 9607 chipset
+# 08/31/10   ack     Initial revision
+#
+#===============================================================================
+import os
+
+Import('env')
+
+if env.PathExists('${BUILD_ROOT}/datamodem'):
+  env.Replace(DATAMODEM_ROOT = '${INC_ROOT}/datamodem')
+   
+else:    
+  env.Replace(DATAMODEM_ROOT = '${INC_ROOT}/modem/datamodem')
+
+
+env.RequirePublicApi(['PUBLIC','DATAMODEM'], area='DATAMODEM')
+env.RequirePublicApi(['PUBLIC','MMCP'], area='MMCP')
+env.RequirePublicApi(['PUBLIC','ONEX'], area='ONEX')
+env.RequirePublicApi(['PUBLIC','HDR'], area='HDR')
+env.RequirePublicApi(['PUBLIC','UIM'], area='UIM')
+env.RequirePublicApi(['MCS'], area='MCS')
+env.RequirePublicApi(['LTE'], area='LTE')
+env.RequirePublicApi(['OSYS','A2','PUBLIC','COMMON','FC','PUBLIC','QSH'], area='UTILS')
+env.RequirePublicApi(['MVS'], area='AVS')
+env.RequirePublicApi(['WCDMA'], area='FW')
+env.RequirePublicApi(['PUBLIC','WCDMA'], area='WCDMA')
+env.RequirePublicApi(['IPSEC'], area='SEC')
+env.RequirePublicApi(['PUBLIC','GERAN'], area='GERAN')
+env.RequirePublicApi(['PUBLIC','TDSCDMA'], area='TDSCDMA')
+env.RequirePublicApi(['COMMON'], area='RFA')
+env.RequirePublicApi(['WCDMA'], area='RFA')
+env.RequirePublicApi(['NAS','AUTH','CSVT','DMS','WDA','WDS','OTDT'], area='QMIMSGS')
+env.RequirePublicApi(['MYPS'], area='MYPS')
+env.RequirePublicApi(['COMPRESSED_HEAP'], area='PERF')
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+env.PublishProtectedApi('DATAMODEM', [
+        '${DATAMODEM_ROOT}/interface/dsnet/inc',
+        '${DATAMODEM_ROOT}/interface/utils/inc',
+        '${DATAMODEM_ROOT}/3gpp/dsprofile/inc',
+        '${DATAMODEM_ROOT}/3gpp2/ds707/inc',
+        '${DATAMODEM_ROOT}/protocols/api',
+        '${DATAMODEM_ROOT}/3gpp2/dsmgr/inc',
+        '${DATAMODEM_ROOT}/interface/atcop/inc',
+        '${DATAMODEM_ROOT}/cust/inc',
+        '${DATAMODEM_ROOT}/variation/inc',
+        '${DATAMODEM_ROOT}/interface/dssock/inc',
+        '${DATAMODEM_ROOT}/interface/sysapi/inc',
+        '${DATAMODEM_ROOT}/protocols/mip/inc',
+        '${DATAMODEM_ROOT}/interface/netiface/inc',
+        '${DATAMODEM_ROOT}/interface/pssock/inc',
+        '${DATAMODEM_ROOT}/3gpp2/hdrdata/inc',
+        '${DATAMODEM_ROOT}/3gpp2/1xrlp/inc',
+        '${DATAMODEM_ROOT}/interface/api',
+        '${DATAMODEM_ROOT}/3gpp/ps/inc',
+        '${DATAMODEM_ROOT}/protocols/inet/inc',
+        '${DATAMODEM_ROOT}/3gpp2/doqos/inc',
+        '${DATAMODEM_ROOT}/3gpp2/bcmcs/inc',
+        '${DATAMODEM_ROOT}/3gpp2/api',
+        '${DATAMODEM_ROOT}/interface/qmidata/inc',
+        '${DATAMODEM_ROOT}/protocols/linklayer/inc',
+        '${DATAMODEM_ROOT}/interface/qmicore/inc',
+        '${DATAMODEM_ROOT}/3gpp/csd/inc',
+        '${DATAMODEM_ROOT}/interface/tasks/inc',
+        '${DATAMODEM_ROOT}/interface/rmifacectls/inc',
+	'${DATAMODEM_ROOT}/interface/mux/inc',
+        '${DATAMODEM_ROOT}/interface/dss/inc',
+        '${DATAMODEM_ROOT}/3gpp2/epchandoff/inc',
+        '${DATAMODEM_ROOT}/3gpp2/jcdma/inc',
+        '${DATAMODEM_ROOT}/3gpp2/dsd/inc',
+        '${DATAMODEM_ROOT}/3gpp/lteps/inc',
+        '${DATAMODEM_ROOT}/interface/dsprofile/inc',
+	'${DATAMODEM_ROOT}/interface/dsprofiledb/inc',
+        '${DATAMODEM_ROOT}/interface/mux/src',
+        '${DATAMODEM_ROOT}/3gpp/umts/src',
+        '${DATAMODEM_ROOT}/3gpp/umtsps/inc',
+        '${DATAMODEM_ROOT}/interface/dssvc/inc',
+        '${DATAMODEM_ROOT}/3gpp/pdcp/inc',
+        '${DATAMODEM_ROOT}/protocols/hc/inc',
+        '${DATAMODEM_ROOT}/protocols/hc/inc',
+        '${DATAMODEM_ROOT}/3gpp/comptask/inc',
+        '${DATAMODEM_ROOT}/3gpp/embms/inc',
+        '${DATAMODEM_ROOT}/3gpp/api',
+        '${DATAMODEM_ROOT}/3gpp/msgr/inc',
+        '${DATAMODEM_ROOT}/interface/ifacectls/inc',
+        '${DATAMODEM_ROOT}/tools/met/interface/dss/inc',
+        '${DATAMODEM_ROOT}/3gpp/rmsm/inc',
+   ])
+
+env.RequireProtectedApi(['DATAMODEM'])
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_DS",
+   "AEEINTERFACE_CPLUSPLUS",
+])
+	
+#env.PublishPrivateApi('VIOLATIONS',[
+#     '${INC_ROOT}/mob/qtf/inc',
+#	    '${INC_ROOT}/mob/efs/inc',
+#     '${INC_ROOT}/mob/time/inc',
+#   ])
+	
+#env.RequirePrivateApi('VIOLATIONS')
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+    'DAL',
+    'MPROC',
+    'POWER',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+env.RequirePublicApi(['WDS'], area='API')
+
+MODEM_RESTRICTED_APIS = [
+    'LTE',
+    ]
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+
+env.RequirePublicApi(['DATAMODEM'], area='DATAMODEM')
+
+env.RequireRestrictedApi(['DATAMODEM'])
+
+# Only supported for MOB builds
+if 'USES_MOB' in env:
+  env.RequirePublicApi(['QTF'], area ='MOB')
+  env.RequireRestrictedApi(['MOB'])
+
+env.RequirePublicApi(['QCHAT'], area='QCHAT')
+
+#-------------------------------------------------------------------------------
+# Load cleanpack script for pack process to kick in!
+#-------------------------------------------------------------------------------
+if os.path.exists('datamodem_cleanpack.py'):
+   env.LoadToolScript('datamodem_cleanpack.py')
+   
+#-------------------------------------------------------------------------------
+# Enable RmNet Port Configs Based on Chipset Variant!
+# Chipset => MSM (8960, 8974, 8x26, 8x10), Chipset => MDM (9x15, 9x25, 9x35) etc.,
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8974', '8960', '8x26', '8x10']:
+   env.Append(CPPDEFINES = ['FEATURE_DATA_MPSS_MSM'])
+
+if env['MSM_ID'] in ['9x25', '9x15', '9x35']:
+   env.Append(CPPDEFINES = ['FEATURE_DATA_MPSS_MDM'])
+
+#-------------------------------------------------------------------------------
+# 8x10 - DataModem Ultra Low Tier COnfiguration
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8x26', '8x10']:
+   env.Append(CPPDEFINES = ['FEATURE_DATA_MPSS_ULT'])
+   env.Replace(USES_DATAMODEM_ULT = True)
+
+#-------------------------------------------------------------------------------
+# JO Pre-Sil (only)
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8916']:
+  if env['PRODUCT_LINE'] in ['MPSS.DPM.2.0']:
+    env.Append(CPPDEFINES = ['FEATURE_DATA_JO_PRESIL'])
+    env.Replace(USES_DATAMODEM_JO_PRESIL = True) 
+   
+#-------------------------------------------------------------------------------
+# An Attempt to make datamodem software Compiler-Warnings free
+# Override CCFLAGS for this Module. Make all Warnings to Errors!
+#-------------------------------------------------------------------------------
+env.Append(HEXAGONCC_WARN = ' -Werror')
+env.Append(HEXAGONCXX_WARN = ' -Werror')
+env.Append(HEXAGONCXX_WARN = ' -Werror-high -Werror-medium')
+env.Append(HEXAGONC_WARN = ' -Werror-high -Werror-medium')
+
+# Set -Wdeclaration-after-statement to disallow C99 style variable declarations
+env.Append(HEXAGONCC_WARN = ' -Wdeclaration-after-statement ')
+
+#----------------------------------------------------------------------------#
+# Free from all LLVM Medium, Low warnings! 
+#----------------------------------------------------------------------------#
+env.Replace(DATA_COMPILER_WARNING_GATE = True)
+if 'DATA_COMPILER_WARNING_GATE' in env:
+  import copy
+  orig_env = env
+  env = env.Clone()
+  env['CFLAGS'] = copy.deepcopy(orig_env['CFLAGS'])
+
+  # Set -Werror compiler flag to treat warnings as errors
+  if env['CFLAGS'].count('-Wno-low') > 0:
+    env['CFLAGS'].remove('-Wno-low')
+
+  if env['CFLAGS'].count('-Wno-medium') > 0:
+    env['CFLAGS'].remove('-Wno-medium')
+
+  if env['CFLAGS'].count('-Wno-high') > 0:
+    env['CFLAGS'].remove('-Wno-high')
+
+  if env['CFLAGS'].count('-Wno-error') > 0:
+    env['CFLAGS'].remove('-Wno-error')
+
+  if env['CFLAGS'].count('-Wno-error-medium') > 0:
+    env['CFLAGS'].remove('-Wno-error-medium')
+  
+#----------------------------------------------------------------------------#
+# LLVM Static Analyzer! 
+#----------------------------------------------------------------------------#
+if 'DATA_ENABLE_LLVM_STATIC_ANALYZER' in env:
+  env.Replace(DATAMODEM_SA_DIR = '${INC_ROOT}/datamodem/sa/')
+  env.Append(CFLAGS = '--compile-and-analyze ${DATAMODEM_SA_DIR}')
+
+#-------------------------------------------------------------------------------
+# Bear Arch chipsets doesn't have dedicated LPASS!
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] not in ['9x45', '8909', '8916', '8936', '9607']:
+   env.Append(CPPDEFINES = ['FEATURE_DATA_AUDIO_OFFLOAD'])
+
+if env['MSM_ID'] not in ['9607', '9628' ]:
+  env.Append(CPPDEFINES = ['FEATURE_DATA_IWLAN_S2B'])
+  env.Replace(USES_DATAMODEM_IWLAN_S2B = True)
+  env.Append(CPPDEFINES = ['FEATURE_DATA_ATP'])
+  env.Replace(USES_DATAMODEM_ATP = True)
+
+if env['MSM_ID'] in ['9607']:
+  env.Append(CPPDEFINES = ['FEATURE_DATA_PS_464XLAT'])
+
+#-------------------------------------------------------------------------------
+# Pack Exception Flag. Include the below flag in AddBinayLibrary if certain
+# Restricted Sources need to be included in external releases.
+#-------------------------------------------------------------------------------
+env.Replace(DATA_SOURCE_PACK_EXCEPTION = ['USES_CUSTOMER_GENERATE_AA_PROTECTED_LIBS',
+                              'USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'])
+
+env.LoadSoftwareUnits()

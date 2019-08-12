@@ -1,0 +1,128 @@
+#===============================================================================
+#
+# cryptoLibs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/22/14   nk      Scon cleanup 
+# 02/23/11   jl	     Removed debug/nodebug from build path.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/shared"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'BOOT',
+   'HWENGINES',
+   'POWER',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within SecureMSM
+#-------------------------------------------------------------------------------
+SME_PROTECTED_API = [
+                      'SME_SMECOM',
+]
+env.RequireProtectedApi(SME_PROTECTED_API)
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('CEML_API', [
+   "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/shared/inc",
+])
+
+env.PublishPrivateApi('CEML', [
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/shared/inc', 
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/chipset/${CHIPSET}/inc',
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/environment/inc', 
+   '${INC_ROOT}/core/securemsm/cryptodrivers/ce/environment/src', 
+   ])
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+env.Append(ARMCC_CODE = " ${ARM_SPLIT_SECTIONS}")
+env.Replace(ARMLD_NOREMOVE_CMD = "")
+
+env.Append(CPPDEFINES = ['_ARM_', '__arm', 'ARM', 'ARM_BREW_BUILD'])
+env.Append(ARMCC_OPT = ' -EC --loose_implicit_cast ')
+env.Append(ARMCPP_OPT = ' -EC --loose_implicit_cast ')
+if env.has_key('BUILD_BOOT_CHAIN'):
+   env.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+CEML_LIB_SOURCES = [
+        '${BUILDPATH}/src/CeML.c',
+        '${BUILDPATH}/src/CeML_kdf.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary(
+     ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+      'MODEM_IMAGE',  'CBSP_MODEM_IMAGE',
+      'APPS_IMAGE',   'CBSP_APPS_IMAGE',
+      'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+      'MBA_CORE_SW'
+     ],
+      '${BUILDPATH}/CeML',
+      CEML_LIB_SOURCES
+     )
+

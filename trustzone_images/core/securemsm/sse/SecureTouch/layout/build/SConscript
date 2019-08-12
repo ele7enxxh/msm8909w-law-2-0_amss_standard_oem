@@ -1,0 +1,61 @@
+#===============================================================================
+#
+# SSE Secure Touch Trustlet
+#
+# GENERAL DESCRIPTION
+#    SSE Secure Touch TrustLet
+#
+# Copyright (c) 2012 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/sse/SecureTouch/layout/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/SecureTouch/layout/include")
+
+env.RequireProtectedApi(['SSE_LOG_API'])
+env.RequireProtectedApi(['SSE_COMMON_API'])
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRC = "${COREBSP_ROOT}/securemsm/sse/SecureTouch/layout/src"
+
+env.VariantDir('${BUILDPATH}', SRC, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SOURCES = [ '${BUILDPATH}/layoutUtils.c',
+            ]
+
+HEADERS = env.FindFiles(['*.h'], SRC + '/include')
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary([
+  'TLSECURETOUCH_IMAGE',
+  'SECURETOUCH_IMAGE',
+  ],
+  '${BUILDPATH}/sklayout',
+  SOURCES,
+  HEADERS)

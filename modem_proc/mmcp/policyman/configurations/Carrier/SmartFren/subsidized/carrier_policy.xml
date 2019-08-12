@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Carrier Policy file for SRLTE+G DSDS with CHGWL roaming 
+$Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/policyman/configurations/Carrier/SmartFren/subsidized/carrier_policy.xml#1 $
+-->
+<policy name        = "generic"
+        changelist  = "$Change: 11985193 $" 
+        enabled     = "true"
+        schema_ver  = "1"
+        policy_ver  = "71.1.1"
+>
+
+  <initial>
+    <actions>
+
+      <!-- List of the MCCs in which SRLTE is allowed -->
+      <mcc_list name="sxlte_mccs"> 510 </mcc_list>
+
+      <!-- These are the serving system PLMNs for which SRLTE will be allowed 
+       -->
+      <!-- NOTE: Proper functioning of the SXLTE policy requires that there
+           be an PLMN list named "sxlte_plmns". Do NOT rename this list.
+      -->
+      <plmn_list name = "sxlte_plmns">
+        510-09 510-28
+      </plmn_list>
+
+      <!-- Define an RF band list that excludes TDS bands -->
+      <rf_band_list name="rf_bands_gwl">
+        <gw_bands base="hardware" />
+        <lte_bands base="hardware" />
+        <tds_bands base="none" />
+      </rf_band_list>
+
+      <!-- Define device configuration as DSDS -->
+      <device_configuration num_sims="2" max_active="1" specialization="dsds_roam">
+        <config>
+          <subs id="1" feature="srlte">
+            <rat_capability base="none" >
+              <include> CDMA HDR GSM WCDMA LTE </include>
+            </rat_capability>
+          </subs>
+          <subs id="2">
+            <rat_capability base="none">
+              <include> GSM </include>
+            </rat_capability>
+          </subs>
+        </config>
+      </device_configuration>
+
+      <!-- Define initial RAT capability as CHGWL for SUBS1-->
+      <rat_capability subs="1"  base = "none">
+        <include> CDMA HDR GSM WCDMA LTE TDSCDMA </include>
+      </rat_capability>
+      <!-- Define Intial UE mode as 1X_CSFB_PREF -->
+      <ue_mode_if subs="1"> 1X_CSFB_PREF </ue_mode_if>
+      
+      <!-- On first boot, enable all GWL bands for SUBS1 -->
+      <rf_bands subs="1" list="rf_bands_gwl" />
+
+      <!-- Boolean: Is the device at home? -->
+      <boolean_define name="home" initial="true" />
+      <boolean_set name="home">
+        <ue_mode_is> 1X_CSFB_PREF </ue_mode_is>
+      </boolean_set>
+
+    </actions>
+  </initial>
+
+<!--
+  ====================================================================
+    Rules to handle OOS situations and timers.
+  ====================================================================
+  -->
+
+  <!-- RULE #1 -->
+  <!-- This rule only runs when we have service on the mmode subs, and sets
+           the "home" boolean based on mmode subs MCC.
+  -->
+  <rule precond="SS">
+    <conditions>
+      <service_status_in> FULL LIMITED LIMITED-REGIONAL </service_status_in> 
+    </conditions>
+    <actions>
+      <boolean_set name="home">
+        <serving_mcc_in list="sxlte_mccs" />
+      </boolean_set>
+      <continue />
+    </actions>
+  </rule>
+
+  <!-- RULE #2 -->
+  <!-- If we have no service on the multimode subscription and we are ONLINE 
+           do not continue to other rules.
+  -->
+  <rule precond="none">
+    <conditions>
+      <phone_operating_mode> ONLINE </phone_operating_mode>
+      <not> <service_status_in subs="mmode"> FULL LIMITED LIMITED-REGIONAL </service_status_in> </not>
+    </conditions>
+    <actions/>
+  </rule>
+
+ <!--
+  ====================================================================
+    Rules to implement SRLTE
+  ====================================================================
+  -->
+
+  <!-- RULE #3 -->
+  <!-- If conditions allow, operate as SRLTE with CHGWL.
+  -->
+  <rule>
+    <conditions>
+      <boolean_test name="home" />
+      <sim_type> 3G </sim_type>
+    </conditions>
+    
+    <actions>
+      <ue_mode subs="1"> 1X_CSFB_PREF </ue_mode>
+    </actions>
+  </rule>
+
+  <!-- RULE #4 -->
+  <!-- Anything else is CSFB with CHGWL.
+  -->
+  <rule>
+    <conditions>
+      <true />
+    </conditions>
+    <actions>
+      <ue_mode subs="1"> CSFB </ue_mode>
+    </actions>
+  </rule>
+       
+</policy>

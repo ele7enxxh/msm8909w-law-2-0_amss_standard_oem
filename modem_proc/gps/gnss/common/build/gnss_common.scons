@@ -1,0 +1,153 @@
+# -------------------------------------------------------------------------------- #
+#                     G N S S _ C O M M O N . S C O N S
+#
+# DESCRIPTION
+#   SCons file for the GNSS Common subsystem.
+#
+#
+# INITIALIZATION AND SEQUENCING REQUIREMENTS
+#   None.
+#
+# Copyright (c) 2010 - 2012 Qualcomm Technologies Incorporated.
+# Qualcomm Confidential and Proprietary. All Rights Reserved.
+# Copyright (c) 2013 - 2014 Qualcomm Atheros, Inc.
+# Qualcomm Atheros Confidential and Proprietary. All Rights Reserved. 
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------------- #
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/gps/gnss/common/build/gnss_common.scons#1 $
+# $DateTime: 2016/12/13 07:59:45 $
+# $Author: mplcsds1 $ 
+# 
+# when         who     what, where, why
+# ---------    ---     ------------------------------------------------------------
+# 10/06/10     ah      Initial Version
+#
+# --------------------------------------------------------------------------------- #
+
+#--------------------------------------------------------------------------------
+# Import the SCons environment
+#--------------------------------------------------------------------------------
+Import('env')
+from glob import glob
+from os.path import join, basename
+
+#--------------------------------------------------------------------------------
+# Check USES flags and return if library isn't needed
+#--------------------------------------------------------------------------------
+if 'USES_CGPS' not in env:
+    Return()
+
+#--------------------------------------------------------------------------------
+# Use Legacy NV API for certain product lines
+#--------------------------------------------------------------------------------
+if ( 'USES_GNSS_SA' in env or
+     env['PRODUCT_LINE'] in [ 'MPSS.BO.2.5',
+                              'MPSS.BO.2.6',
+                            ]
+   ):
+    env.PrintInfo("Use Legacy NV API")
+    env.Append(CPPDEFINES = " FEATURE_CGPS_LEGACY_NV_API")
+
+
+#--------------------------------------------------------------------------------
+# Setup source PATH
+#--------------------------------------------------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#--------------------------------------------------------------------------------
+# Name of the subsystem to which this unit belongs
+#--------------------------------------------------------------------------------
+LIB_TARGET = '${BUILDPATH}/' + 'gnss_common'
+
+#--------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros by removing previous version and adding new
+# Definition
+#--------------------------------------------------------------------------------
+env.Replace(CPPDEFINES = [x for x in env['CPPDEFINES'] if not x.startswith("MSG_BT_SSID_DFLT=")] +
+                                         ["MSG_BT_SSID_DFLT=MSG_SSID_GPS"]) 
+
+#--------------------------------------------------------------------------------
+# Images that this VU is added
+#--------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM']
+
+#--------------------------------------------------------------------------------
+# Generate the library and add to an image
+#--------------------------------------------------------------------------------
+# Most source files in gnss\common are not to be shipped
+# Put all source files into no-ship list
+BINARY_LIB_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                      for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+BINARY_LIB_SOURCES = [b for b in BINARY_LIB_SOURCES if b not in ['${BUILDPATH}/gps_nv_efs_upos.c']]
+
+# Make the list of ok-to-ship source files (per wiki page)
+LIB_SOURCES = ['${BUILDPATH}/gnss_dm_log.c',
+               '${BUILDPATH}/gnss_persistent_cfg.c',
+               '${BUILDPATH}/gnss_serdes.c',
+               '${BUILDPATH}/gps_fs_task.c',
+               '${BUILDPATH}/gps_nv_efs.c',
+               '${BUILDPATH}/gps_nv_loader.c',
+               '${BUILDPATH}/gps_rom_almanac.c',
+               '${BUILDPATH}/gnss_common_nv.c',
+              ]
+
+# Now update list of no-ship files
+BINARY_LIB_SOURCES = [b for b in BINARY_LIB_SOURCES if b not in LIB_SOURCES]
+
+#--------------------------------------------------------------------------------
+# Add our library to the Modem image
+#--------------------------------------------------------------------------------
+env.AddLibrary(IMAGES, LIB_TARGET, LIB_SOURCES)
+
+#--------------------------------------------------------------------------------
+# Ship our code as binary library and add it to the Modem image
+#--------------------------------------------------------------------------------
+env.AddBinaryLibrary(IMAGES, (LIB_TARGET + '_pvt'), BINARY_LIB_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+
+#--------------------------------------------------------------------------------
+# APQ targets has different RC init parameters than MPSS targets.   
+#--------------------------------------------------------------------------------
+if 'USES_GPSAPQ' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', 'CORE_GSS']
+   env.AddRCInitTask(           # NV
+   RCINIT_IMG,                 # define TMC_RCINIT_REXTASK_NV 
+    {
+      'sequence_group'             : 'RCINIT_GROUP_3',                  # required
+      'thread_name'                : 'gps_fs',                              # required
+      'stack_size_bytes'           : '16384',
+      'priority_amss_order'        : 'SHARED_BACKGROUND_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+else:
+    RCINIT_TASK_FN = {
+        'thread_name'         : 'gps_fs',
+        'thread_entry'        : 'gps_fs_task',
+        'stack_size_bytes'    : env.subst('$GPS_FS_STKSZ'),
+        'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+        'priority_amss_order' : 'GPS_FS_PRI_ORDER',
+        'cpu_affinity'        : 'REX_ANY_CPU_AFFINITY_MASK',
+        'policy_optin'        : ['default', 'ftm', ],
+    }
+    env.AddRCInitTask (IMAGES, RCINIT_TASK_FN)
+

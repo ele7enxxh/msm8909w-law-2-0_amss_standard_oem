@@ -1,0 +1,150 @@
+#===============================================================================
+#
+# Bam Libs
+#
+# GENERAL DESCRIPTION
+#    BAM Libs build script
+#
+# Copyright (c) 2011-2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/hwengines/bam/build/build.scons#3 $
+#  $DateTime: 2015/09/16 02:13:13 $
+#  $Author: pwbldsvc $
+#  $Change: 9037121 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/16/15   PR      Add 8909w support
+# 09/16/14   SS      Cleaned up for 9x45
+# 07/03/14   PR      Added 8909 support
+# 06/07/13   SS      Updated for 9x35
+# 09/13/11   MK      Created
+#===============================================================================
+Import('env')
+env = env.Clone()
+if env['MSM_ID'] in ['8909w']:
+   env['MSM_ID'] = '8909'
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['9x45','8909']:
+   env.PublishPrivateApi('HWENGINES_BAM', [
+       "${INC_ROOT}/core/hwengines/bam/core4",
+       "${INC_ROOT}/core/hwengines/bam"
+])
+
+
+#-------------------------------------------------------------------------------
+# Features
+#-------------------------------------------------------------------------------
+BAM_FEATURES= { 
+                'FEATURE_BAM_BAM2BAM':lambda :False,                  # enable bam2bam capability
+                'FEATURE_BAM_TIMER_CTRL':lambda :False,               #enable bam timer control api
+                'FEATURE_BAM_XML_PROPS':lambda : not (env.has_key('BUILD_TOOL_CHAIN') or
+                                                      env.has_key('BUILD_BOOT_CHAIN')),
+              }
+
+
+
+#-------------------------------------------------------------------------------
+# Defines
+#-------------------------------------------------------------------------------
+for k,val in BAM_FEATURES.iteritems():
+    if val():
+      env.Append(CPPDEFINES=[k])
+
+if env.has_key('MBA_CORE_SW'):
+    env.Append(CPPDEFINES = [ 'BAM_MBA' ])
+
+#To enable debug messages uncomment the line below:
+if not (env.has_key('BUILD_TOOL_CHAIN') or env.has_key('BUILD_BOOT_CHAIN')):
+    env.Append(CPPDEFINES = ['BAM_OSAL_DEBUG'])
+    env.Append(CPPDEFINES = [ 'BAM_OSAL_MSG_LEVEL=MSG_HIGH' ])
+
+if env['MSM_ID'] in ['9x45']:
+    env.Append(CPPDEFINES = [ "BAM_PIPE_MEM_CLOCK_ID=\\\"cc_pmem_aclk\\\""  ])
+else:
+    env.Append(CPPDEFINES = [ "BAM_PIPE_MEM_CLOCK_ID=NULL"  ])
+
+	
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/hwengines/bam/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'HAL',
+   'HWENGINES',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',   
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+   'POWER',
+   'DEBUGTOOLS',
+]
+
+#TZOS image
+#if env.has_key('TZOS_IMAGE'):
+    #CBSP_API += ['SECUREMSM']
+#else:
+ #   CBSP_API += ['DEBUGTOOLS']
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+if env['MSM_ID'] in ['9x45','8909']:
+   BAM_COMMON_SOURCES =  [
+      '${BUILDPATH}/bams.c',
+      '${BUILDPATH}/bamosal.c',
+      '${BUILDPATH}/core4/bamcore.c',
+      '${BUILDPATH}/debug/bam_debug.c',
+      '${BUILDPATH}/debug/bamcore_debug.c',
+]
+else:
+   BAM_COMMON_SOURCES =  [
+	   '${BUILDPATH}/stub/bam_stub.c',
+]
+
+if env['MSM_ID'] in ['9x45','8909']:
+    BAM_COMMON_SOURCES += ['${BUILDPATH}/${MSM_ID}/bamtgtcfg.c']
+else:
+    BAM_COMMON_SOURCES += ['${BUILDPATH}/bamtgtcfg.c']
+
+bam_obj = env.Object([BAM_COMMON_SOURCES])
+bam_lib = env.Library('${BUILDPATH}/bam', bam_obj)
+
+env.AddLibsToImage(['APPS_IMAGE', 'CBSP_APPS_IMAGE', 'MBA_CORE_SW','TZOS_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], [bam_lib])
+
+if env['MSM_ID'] in ['9x45','8909']:
+  env.AddLibsToImage(['DEVICEPROGRAMMER_IMAGE','NAND_TOOLS_IMAGE', 'BAM_BOOT_DRIVER','EHOSTDL_IMAGE', 'HOSTDL_IMAGE'], [bam_lib])
+
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['MODEM_IMAGE',    'CBSP_MODEM_IMAGE',  'CORE_APPS',
+                'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+  env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',
+      'init_name'                  : 'bam_drv',
+      'init_function'              : 'bam_drv_init',
+      'dependencies'               : ['clk_regime']
+    })
+

@@ -1,0 +1,276 @@
+#====include path optimized=====================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011 - 2014 Qualcomm Technologies, Inc. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies, Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies, Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rftech_lte/build/modem_rfa_lte.scons#1 $
+# $DateTime: 2016/12/13 07:59:25 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/16/14   tod     - O2 compiler optimization on hexagon 6.4.04 and greater toolchains
+# 11/19/14   stw     Make PL check generic to support TH and TA to suport 3DL CA
+# 11/14/14    pv     Support for HORxD Feature for LTE
+# 11/03/14   gvn     Make PL check more generic to support BO2.5 and above PL
+# 10/28/14   chenh   Enabled compiler warings to errors
+# 10/16/14   dej     Clean-up SCons and add support for TABASCO
+# 09/11/14   ndb     Add 'USES_JOLOKIA_MODEM' for 'FEATURE_RF_HAS_QTUNER'
+# 06/30/14   dr      Added area RFMODEM_JOLOKIA
+# 06/26/14   aa      Added support for FBRX APIs
+# 06/19/14   gvn     Fix compilation on Thor TH1.0
+# 06/19/14   svi     Enabled Feature 3DLCA on Thor : MPSS.TH.1.0
+# 06/11/14   dr      Fix for Jolokia.
+# 06/10/14    pv      Added area RFMODEM_DIMEPM for RFLM APIs
+# 06/02/14   dr      Export NLIC to JOLOKIA
+# 04/28/14   gvn     Add 'FEATURE_RF_3DL_CA' for BO 2.0
+# 03/19/14   php     Expose NLIC to DimePM
+# 03/10/14   bsh     Exposing NLIC APIs
+# 02/27/14   kg      Added werror
+# 01/06/14   adk     Added support for antenna tuners
+# 10/31/13   svi     Edited Scons to publish LTE FED Shim Layer
+# 10/06/13   ra      Support RFLM CCS 
+# 09/30/13   npi     Add 'FEATURE_RFA_D3925' for D3925; needs to be cleaned up
+# 07/29/13   pl      Add FEATURE_RF_ASDIV depending on if MODEM_ANTENNA_SWITCH_DIVERSITY is defined
+# 07/10/13   aro     Published RF Factory API
+# 06/20/13   ra      Disable QTuner for Bolt
+# 05/29/13   apu     Added CDMA path to fix compile error for lte meas file.
+# 02/15/13   aca     Tuner support
+# 02/07/13   dyc     Added TP Card and XPT to DI.1.1
+# 02/05/13   cri     Mainline XPT feature
+# 01/30/13   sar     Added Pack script changes.
+# 01/14/12   jf      Add XPT feature
+# 10/30/12   sar     Created
+#===============================================================================
+
+Import('env')
+import re
+env = env.Clone()
+
+import os
+
+if ( 'USES_LTE' not in env ):
+  Return()
+
+#usage:  ENV_UPDATE_RFA=CHIPSET,=mdm9x15,USES_NO_DEBUG,delete,USES_HI_SPEED,add
+if ARGUMENTS.get('ENV_UPDATE_RFA'):
+   
+   env_update_string    = ARGUMENTS.get('ENV_UPDATE_RFA')
+   env_update_list      = env_update_string.split(',')
+   item_total           = len(env_update_list)
+   list_index           = 0
+   
+   #note if list is not even number of items, last odd item is ignored
+   while list_index < item_total-1:
+                 
+      item            = env_update_list[list_index]  
+      value           = env_update_list[list_index+1]
+      list_index      += 2
+                                              
+      if(value == 'add'):
+         env[str(item)] = 'yes'
+         print "adding",item,"to env"                                          
+                
+      elif(value == 'delete'):
+         del env[str(item)]
+         print "deleting",item,"from env"
+      
+      else:
+         if(value[0] != '='):
+            print "missing leading = in",value
+            print "not updating ",item
+                 
+         else:
+            value2 = value[1:len(value)]
+            env[str(item)] = value2
+            print "now setting",item,value
+
+
+if ( 'USES_LTE' not in env ):
+  Return()
+
+env.Replace(RF_ROOT = '${INC_ROOT}/rfa')
+env.Replace(RFTECH_LTE_ROOT = '${INC_ROOT}/rftech_lte')
+
+#-------------------------------------------------------------------------------
+# Enable warnings -> errors
+#if 'USES_INTERNAL_BUILD' in env:
+#   env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror", 
+#                   HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")
+#-------------------------------------------------------------------------------
+# Remove this line and if statement once 6.4.04 toolchain has been released
+if env['HEXAGON_RTOS_RELEASE'] >= '6.4.04':
+   # Enable -O2 optimization
+   env.Replace(HEXAGONCC_OPT = "${HEXAGON_OPT_2}")
+#-------------------------------------------------------------------------------
+
+#The order of APIs in the rfa_public_api_list determines the order the paths are listed on the build command line.
+#To optimize build times the API list is sorted in descending order of use.
+
+rfa_public_api_list = [
+        ('RFA',                 'COMMON'),
+        ('CORE',                'DAL'),
+        ('RFDEVICE_INTERFACE',  'RFDEVICE_INTERFACE'),
+        ('RFA',                 'CDMA'),
+        ('MCS',                 'MCS'),
+        ('LTE',                 'LTE'),
+        ('MMCP',                'MMCP'),
+        ('FW',                  'RF'),
+        ('FW',                  'WCDMA'),
+        ('FW',                  'C2K'),
+        ('FW_CCS',              'FW_CCS'),
+        ('FW_COMMON',           'FW_COMMON'),
+        ('FW_WCDMA',            'FW_WCDMA'),
+        ('FW_C2K',              'FW_C2K'),
+        ('RFA',                 'MEAS'),
+        ('CORE',                'DEBUGTOOLS'),
+        ('GERAN',               'GERAN'),
+        ('RFA',                 'GSM'),
+        ('RFA',                 'LM'),
+        ('RFA',                 'LTE'),
+        ('FW',                  'TARGET'),
+        ('FW',                  'GERAN'),
+        ('FW_GERAN',            'FW_GERAN'),
+        ('CORE',                'MPROC'),
+        ('CORE',                'MEMORY'),
+        ('CORE',                'SERVICES'),
+        ('RFA',                 'WCDMA'),
+        ('CORE',                'POWER'),
+        ('ONEX',                'PUBLIC'),
+        ('RFNV',                'RFNV'),
+        ('RFFACTORY',           'RFFACTORY'),
+        ('FW',                  'LTE'),
+        ('FW_LTE',              'FW_LTE'),
+        ('WCDMA',               'WCDMA'),
+        ('FW',                  'TDSCDMA'),
+        ('FW_TDSCDMA',          'FW_TDSCDMA'),
+        ('RFA',                 'GNSS'),
+        ('UTILS',               'OSYS'),
+        ('AVS',                 'MVS'),
+        ('HDR',                 'HDR'),
+        ('TDSCDMA',             'TDSCDMA'),
+        ('RFA',                 'TDSCDMA'),
+        ('ONEX',                'ONEX'),
+        ('CORE',                'BUSES'),
+        ('WCDMA',               'PUBLIC'),
+        ('UIM',                 'UIM'),
+        ('UTILS',               'A2'),
+        ('UIM',                 'PUBLIC'),
+        ('GPS',                 'GPS'),
+        ('MCS',                 'PUBLIC'),
+        ('HDR',                 'PUBLIC'),
+        ('MPOWER',              'MPOWER'),
+        ('TDSCDMA',             'PUBLIC'),
+        ('UTILS',               'COMMON'),
+        ('UTILS',               'QSH'),
+        ]
+
+for api_area,api_name in rfa_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+env.RequirePublicApi([
+        'RFA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'RFTECH_LTE',
+        ],
+        area='RFTECH_LTE')
+
+env.RequirePublicApi([
+        'RFA_GSM',
+        ],
+        area='RFA_GSM')
+
+env.RequirePublicApi(['RFMODEM','RFMODEM_NLIC','FBRX','HAL'], area=env.get('RF_GLOBALS')['RFMODEM_AREA'])
+
+env.RequirePublicApi(['RFLM'],area='RFLM')
+
+if ('USES_DIME_1_0' in env or 'USES_FEATURE_XPT' in env or 'USES_DIME_1_1' in env or 'USES_DIME_2_0' in env ):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_XPT_SUPPORT'])
+
+if ('USES_FEATURE_RFA_TP_CARDS' in env or 'USES_DIME_1_1' in env):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_TP_CARDS'])
+
+if 'USES_FEATURE_QTUNER' in env :
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+		
+if ( 'USES_DIME_1_0' in env ) or ('USES_BOLT_1_0' in env) or ('USES_JOLOKIA_MODEM' in env) or ('USES_TABASCO_MODEM' in env):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+		
+if ( 'USES_DIME_1_1' in env ):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+
+if ( 'USES_DIME_2_1' in env ):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+		
+if ('USES_MODEM_ANTENNA_SWITCH_DIVERSITY' in env ):
+        env.Append(CPPDEFINES = ['FEATURE_RF_ASDIV'])
+
+if re.search('MPSS\.BO\.[^1]\..*',  env['PRODUCT_LINE']):
+        env.Append(CPPDEFINES = ['FEATURE_RF_3DL_CA'])
+
+if re.search('MPSS\.TH\..*',  env['PRODUCT_LINE']):
+        env.Append(CPPDEFINES = ['FEATURE_RF_3DL_CA'])
+
+if re.search('MPSS\.TA\..*',  env['PRODUCT_LINE']):
+        env.Append(CPPDEFINES = ['FEATURE_RF_3DL_CA'])
+
+if (env['PRODUCT_LINE'] == 'MPSS.JO.1.0' ):
+        env.Append(CPPDEFINES = ['FEATURE_RF_3DL_CA_API'])
+		
+if ('USES_FEATURE_LTE_HORXD' in env ):
+        env.Append(CPPDEFINES = ['FEATURE_LTE_HORXD'])
+		
+# D3925 sepcific and needs to be cleaned up
+if ('USES_RFA_D3925' in env):
+        env.Append(CPPDEFINES = ['FEATURE_RFA_D3925'])
+
+#----------------------------------------------------------------------------#
+# Export Protected API to RFA folder. This will be visible only within
+# RFA folder
+#----------------------------------------------------------------------------#
+
+env.PublishProtectedApi( 'RFTECH_LTE_INC', [
+    '${RFTECH_LTE_ROOT}/rf/core/inc',
+    '${RFTECH_LTE_ROOT}/dm_lte/inc',
+    ])
+
+#-----------------------------------------#
+# Exporting FED Prototypes to Core        #
+# This env variable is not be be included #
+# anywhere outside rftech lte             #
+#-----------------------------------------#	
+
+env.PublishProtectedApi( 'RFTECH_LTE_MC_PROTECTED_INC', [
+    '${RFTECH_LTE_ROOT}/rf/mc/protected',
+    ])
+	
+env.RequireProtectedApi(['RFTECH_LTE_INC'])
+
+env.RequireRestrictedApi(['RFTECH_LTE_VIOLATIONS'])
+
+env.LoadSoftwareUnits( ) 

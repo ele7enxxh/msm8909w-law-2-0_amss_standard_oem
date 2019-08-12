@@ -1,0 +1,55 @@
+#===============================================================================
+#
+# RPM build rules
+#
+# Copyright 2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#===============================================================================
+# $Header: $
+
+import os, glob
+
+print("------------------------------------------------------------------------------")
+print("   Loading RPM build system")
+print("------------------------------------------------------------------------------")
+
+#------------------------------------------------------------------------------
+# Start with a basic construction environment, without searching for compilers.
+#------------------------------------------------------------------------------
+env = DefaultEnvironment(ENV = os.environ)
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Set global variables and defaults
+#------------------------------------------------------------------------------
+Decider('MD5-timestamp')
+env.Replace(PRINT_BUILD_BANNER = 'yes')
+env.Replace(BUILD_ROOT = '..')
+env.Replace(TARGET_ROOT = '../..')
+env.Tool('defaults', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+
+#------------------------------------------------------------------------------
+# Load TARGET scripts
+#------------------------------------------------------------------------------
+image_scripts = glob.glob('*/*/build/SConscript')
+SConscript(image_scripts, exports='env')
+
+print "\n"
+print "------------------------------------------------------------------------------"
+
+# set default target if none is given, print actual targets
+env.Default('all')
+print "BUILD_TARGETS are", map(str, BUILD_TARGETS)
+
+print "\n"
+print "=============================================================================="
+
+# check for unknown command line variables
+vars = Variables()
+unknown_var = vars.UnknownVariables()
+if unknown_var:
+   print "Unknown variables:", unknown_var.keys()
+   Exit(1)
+

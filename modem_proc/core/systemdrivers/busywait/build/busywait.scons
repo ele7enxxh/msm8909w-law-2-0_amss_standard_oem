@@ -1,0 +1,105 @@
+#===============================================================================
+#
+# BUSYWAIT
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/busywait/build/busywait.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     -----------------------------------------------------------
+# 01/13/10   cmd     Added initial support for 9x15.
+# 11/15/10   cmd     Added timer support for RPM.
+# 11/15/10   cmd     Added remaining support for 8960.
+# 10/08/10   cmd     Added AHB pause timer support.
+# 09/22/10   cmd     Added NOR tools support for 6615/6695 and 8660/8672.
+# 09/17/10   cmd     Added initial support for 8960.
+# 08/19/10   cmd     Added SPS support for 8660.
+# 08/05/10   cmd     Added 8672 support.
+# 07/20/10   cmd     Added missing images for all targets.
+# 07/10/10   cmd     Added 6615 support.
+# 06/13/10   cmd     Added 9x00 support.
+# 06/07/10   cmd     Updated 8660 apps proc images, added 8660 RPM proc images,
+#                    and added ARM7, ARM9, and QDSP6 support.
+# 06/03/10   cmd     Added 8660 apps proc support.
+# 05/27/10   cmd     Added 8660 modem proc support.
+# 05/27/10   cmd     Updated 7x30 apps proc images.
+# 05/17/10   cmd     Updated 7x30 modem proc images.
+# 12/01/09   cmd     Added HOSTDL_IMAGE and EHOSTDL_IMAGE for 6695.
+# 11/10/09   cmd     Added Scorpion support for 7x30.
+# 11/09/09   cmd     Added ARM11 support for 7x30.
+# 10/22/09   cmd     Initial version.
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/systemdrivers/busywait/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # Must be last due to comdef.h issues
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+BUSYWAIT_SOURCES =  [
+  '${BUILDPATH}/busywait_hw_qtimer.c'
+]
+
+#-------------------------------------------------------------------------------
+#  RC INIT
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['CORE_MODEM']
+  env.AddRCInitFunc(       # Code Fragment in TMC: NO
+  RCINIT_IMG,              # define TMC_RCINIT_INIT_BUSYWAIT_INIT
+  {
+    'sequence_group'             : 'RCINIT_GROUP_0',       # required
+    'init_name'                  : 'busywait',              # required
+    'init_function'              : 'busywait_init',         # required
+    'dependencies'               : ['dalsys']
+  })
+
+
+env.AddLibrary(
+   ['CORE_MODEM'],
+   '${BUILDPATH}/busywait',
+   BUSYWAIT_SOURCES)
+

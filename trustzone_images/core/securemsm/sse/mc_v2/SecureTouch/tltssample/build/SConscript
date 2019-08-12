@@ -1,0 +1,60 @@
+#===============================================================================
+#
+# SSE TS Sample Trustlet
+#
+# GENERAL DESCRIPTION
+#    SSE TS Sample TrustLet
+#
+# Copyright (c) 2012 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/sse/mc_v2/SecureTouch/tltssample/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/mc_v2/SecureTouch/tltssample/src/public/include")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/mc_v2/SecureTouch/tltssample/src/private")
+
+env.RequireProtectedApi(['MCTL_API'])
+env.RequireProtectedApi(['SSE_TS_TLAPI'])
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+TL_SRC = "${COREBSP_ROOT}/securemsm/sse/mc_v2/SecureTouch/tltssample/src"
+
+env.VariantDir('${BUILDPATH}', TL_SRC, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SOURCES = [ '${BUILDPATH}/tlMain.c',
+            '${BUILDPATH}/01_start.c',
+            '${BUILDPATH}/02_stop.c',
+            '${BUILDPATH}/03_getData.c',
+            ]
+
+HEADERS = env.FindFiles(['*.h'], TL_SRC + '/private')
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary('TLTSSAMPLE_IMAGE', '${BUILDPATH}/tltssample', SOURCES, HEADERS)
+env.CleanPack('TLTSSAMPLE_IMAGE', HEADERS)

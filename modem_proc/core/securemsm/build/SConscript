@@ -1,0 +1,461 @@
+#===============================================================================
+#
+# SecureMSM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/securemsm/build/main/latest/SConscript#9 $
+#  $DateTime: 2009/10/16 07:31:30 $
+#  $Author: cbirch $
+#  $Change: 1055693 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/18/11   jct     Added option of different build flavors, i.e. w/ PIL, w/ SecBoot
+# 01/21/11   sp      Added changes for ipsec CLF directory structure.
+# 10/11/10   nk     Removed BUILDPATH + BUILD_ID replacement 
+# 10/01/10   nk     Added compiler variant support for RVCT4.0 and RVCT4.1
+# 06/17/10   nk     Added environment variables for HLOS, Compiler, Release, Library variants
+# 09/15/10   qxu     Added changes for cryptoutil and new sfs directory stucture
+# 09/15/10   ejt     Added changes for new crypto directory stucture
+# 08/10/10   ChM     Removed addition of BUILD ID to path. This is now done in the top level Sconsscript.
+# 08/10/10   ChM     CHDLR was miss-spelled as "CHLDR" for DRMMS.
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+if(ARGUMENTS.get('build_cfg_file') == None):
+  vars = Variables([])
+  vars.Add(BoolVariable('tzbsp_with_pil', 'include PIL in TZBSP', 1))
+  vars.Add(BoolVariable('tzbsp_with_secboot', 'include SECBOOT in TZBSP', 1))
+  vars.Add(BoolVariable('tzbsp_with_mobicore', 'compile with MobiCore', 0))
+  vars.Add(BoolVariable('tzbsp_with_mmu', 'include MMU in TZBSP', 0))
+  vars.Add(BoolVariable('tzbsp_with_ce', 'include crypto engine in TZBSP', 1))
+  vars.Add(BoolVariable('tzbsp_with_ssd', 'include secure software download in TZBSP', 1))
+else:
+  path = env['BUILD_ROOT']+'/core/securemsm/tzbsp/build/'+ARGUMENTS.get('build_cfg_file')
+  vars = Variables([path])
+  if not os.path.isfile(path):
+    die("Path %s must be a file" % path)
+  file = open(path)
+  try:
+    lines = file.readlines()
+    for line in lines:
+      ay = line.split()
+      if(len(ay) == 3):
+        vars.Add(BoolVariable(ay[0], '', int(ay[2])))
+  finally:
+    file.close()
+
+vars.Update(env)
+
+if env['tzbsp_with_secboot'] == 1:
+  env.Append(CCFLAGS = " -DTZBSP_WITH_SECBOOT ")
+  env.Append(CPPDEFINES = "TZBSP_WITH_SECBOOT")
+  env.Append(AFLAGS = " -DTZBSP_WITH_SECBOOT ")
+
+if env['tzbsp_with_mobicore'] == 1:
+  env.Append(CCFLAGS = " -DTZBSP_WITH_MOBICORE ")
+  env.Append(CPPDEFINES = "TZBSP_WITH_MOBICORE")
+  env.Append(AFLAGS = " -DTZBSP_WITH_MOBICORE ")
+
+if env['tzbsp_with_mmu'] == 1:
+  env.Append(CCFLAGS = " -DTZBSP_WITH_MMU ")
+  env.Append(CPPDEFINES = "TZBSP_WITH_MMU")
+  env.Append(AFLAGS = " -DTZBSP_WITH_MMU ")
+
+if env['tzbsp_with_ce'] == 1:
+  env.Append(CCFLAGS = " -DTZBSP_WITH_CRYPTO_ENGINE ")
+  env.Append(CPPDEFINES = "TZBSP_WITH_CRYPTO_ENGINE")
+  env.Append(AFLAGS = " -DTZBSP_WITH_CRYPTO_ENGINE ")
+
+if env['tzbsp_with_ssd'] == 1:
+  env.Append(CCFLAGS = " -DTZBSP_WITH_SSD ")
+  env.Append(CPPDEFINES = "TZBSP_WITH_SSD")
+  env.Append(AFLAGS = " -DTZBSP_WITH_SSD ")
+
+#(we can add 8936 once bringup is done)
+
+if env['MSM_ID'] in ['8916','8936','8926','8909','8937','9607']:
+  env.Append(CCFLAGS = " -DFEATURE_SEC_HW_CRYPTO ")
+  env.Append(CPPDEFINES = "FEATURE_SEC_HW_CRYPTO")
+  env.Append(AFLAGS = " -DFEATURE_SEC_HW_CRYPTO ")
+
+#-------------------------------------------------------------------------------
+# HLOS Variant (Default BMP)
+#-------------------------------------------------------------------------------
+if env.has_key('USES_BREW'):
+  env.Replace(OS_TYPE = env.subst('bmp'))
+elif env.has_key('USES_BREWMP'):
+  env.Replace(OS_TYPE = env.subst('bmp'))
+elif env.has_key('USES_NATIVELINUX'):
+  env.Replace(OS_TYPE = env.subst('la'))
+elif env.has_key('USES_L4LINUX'):
+  env.Replace(OS_TYPE = env.subst('la'))
+elif env.has_key('USES_WINCE'):
+  env.Replace(OS_TYPE = env.subst('wm'))
+else:
+  env.Replace(OS_TYPE = env.subst('bmp'))
+
+#-------------------------------------------------------------------------------
+# Compiler Variant - Armtools (Default QDSP6GCC)
+#-------------------------------------------------------------------------------
+if os.environ['ARMTOOLS'] in ['RVCT221']:
+  env.Replace(COMPILER = env.subst('RVCT22'))
+elif os.environ['ARMTOOLS'] in ['RVCT40']:
+  env.Replace(COMPILER = env.subst('RVCT40'))
+elif os.environ['ARMTOOLS'] in ['RVCT41']:
+  env.Replace(COMPILER = env.subst('RVCT41'))  
+else:
+  env.Replace(COMPILER = env.subst('QDSP6GCC'))
+
+#-------------------------------------------------------------------------------
+# Release Variant (Default Debug)
+#-------------------------------------------------------------------------------
+if env.has_key('USES_NO_DEBUG'):
+  env.Replace(LIBRARY_TYPE = env.subst('Release')) 
+else:
+  env.Replace(LIBRARY_TYPE = env.subst('Debug'))
+
+#-------------------------------------------------------------------------------
+# MSMID VARIANT
+#-------------------------------------------------------------------------------
+env.Replace(MSM_VARIANT = env.subst('8974'))
+
+#-------------------------------------------------------------------------------
+# Library Variant 
+#-------------------------------------------------------------------------------
+#env.Replace(LIBRARY_VARIANT = env.subst('${COMPILER}_${PROC}_${LIBRARY_TYPE}'))
+
+#-------------------------------------------------------------
+# Protected APIs: These are accessable only within SecureMSM
+#-------------------------------------------------------------
+
+env.PublishProtectedApi('AKAALGO', [
+   "${BUILD_ROOT}/core/securemsm/akaalgo/inc",
+   "${BUILD_ROOT}/core/securemsm/akaalgo/src",
+])
+
+env.PublishProtectedApi('CHDLR', [
+   "${BUILD_ROOT}/core/securemsm/chdlr/chdlr/inc",
+   "${BUILD_ROOT}/core/securemsm/chdlr/chdlr/src",
+])
+
+env.PublishProtectedApi('CHDLRCOM', [
+   "${BUILD_ROOT}/core/securemsm/chdlrcom/chdlrcom/inc",
+   "${BUILD_ROOT}/core/securemsm/chdlrcom/chdlrcom/src",
+])
+
+env.PublishProtectedApi('CRYPTO', [
+   "${BUILD_ROOT}/core/securemsm/crypto/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/crypto/shared/src",
+   "${BUILD_ROOT}/core/securemsm/crypto/environment/inc",
+   "${BUILD_ROOT}/core/securemsm/crypto/environment/src",
+   "${BUILD_ROOT}/core/securemsm/crypto/custom/inc",
+   "${BUILD_ROOT}/core/securemsm/crypto/custom/src",
+   "${BUILD_ROOT}/core/securemsm/crypto/inc",
+   "${BUILD_ROOT}/core/securemsm/crypto/src",
+   "${BUILD_ROOT}/core/securemsm/crypto/target",
+   "${BUILD_ROOT}/core/securemsm/crypto/secremapi/inc",
+])
+
+env.PublishProtectedApi('CRYPTOUTIL', [
+   "${BUILD_ROOT}/core/securemsm/cryptoutil/inc",
+])
+
+env.PublishProtectedApi('CRYPTODRIVERS', [
+   "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/stub/inc",
+])
+
+env.PublishProtectedApi('DRMCOM', [
+   "${BUILD_ROOT}/core/securemsm/drmcom/drmcom_drm/inc",
+   "${BUILD_ROOT}/core/securemsm/drmcom/drmcom_drm/src",
+   "${BUILD_ROOT}/core/securemsm/drmcom/drmcom_dcf/inc",
+   "${BUILD_ROOT}/core/securemsm/drmcom/drmcom_dcf/src",
+])
+
+env.PublishProtectedApi('DRMMS', [
+   "${BUILD_ROOT}/core/securemsm/drmms/drmms/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/drmms/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/drmms/protected",
+   "${BUILD_ROOT}/core/securemsm/drmms/drmms_chdlr/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/ins/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/ins/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/mcf/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/mcf/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/mcf/mcfcom/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/protected",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/mcscom/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mtph_app/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/mtph_app/src",
+])
+
+env.PublishProtectedApi('DRMOMA', [
+   "${BUILD_ROOT}/core/securemsm/drmoma/drmoma/inc",
+   "${BUILD_ROOT}/core/securemsm/drmoma/drmoma/src",
+   "${BUILD_ROOT}/core/securemsm/drmoma/drmoma_chdlr/src",
+])
+
+env.PublishProtectedApi('ICONTENTTEST', [
+   "${BUILD_ROOT}/core/securemsm/smetest/icontenttest/src",
+   "${BUILD_ROOT}/asic/apps/icontenttest",
+   "${BUILD_ROOT}/apps/icontenttest",
+])
+
+env.PublishProtectedApi('IPSEC', [
+   "${BUILD_ROOT}/core/securemsm/ipsec/shared/src",
+   "${BUILD_ROOT}/core/securemsm/ipsec/chipset/src",
+   "${BUILD_ROOT}/core/securemsm/ipsec/environment/env/brew/src",
+   "${BUILD_ROOT}/core/securemsm/ipsec/environment/env/brew/inc",
+   "${BUILD_ROOT}/core/securemsm/ipsec/src",
+   "${BUILD_ROOT}/core/securemsm/ipsec/test",
+   "${BUILD_ROOT}/core/securemsm/ipsec/test/sta",
+])
+
+env.PublishProtectedApi('SECBOOT_AUTH', [
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/inc",
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/src",
+])
+
+env.PublishProtectedApi('SECBOOT', [
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/inc",
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/src",
+   "${BUILD_ROOT}/core/securemsm/secboot/crypto/src",
+   "${BUILD_ROOT}/core/securemsm/secboot/crypto/inc",
+])
+
+env.PublishProtectedApi('SECMATH', [
+   "${BUILD_ROOT}/core/securemsm/secmath/env/inc",
+   "${BUILD_ROOT}/core/securemsm/secmath/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/secmath/shared/src",
+])
+
+env.PublishProtectedApi('SECRSA', [
+   "${BUILD_ROOT}/core/securemsm/secrsa/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/secrsa/shared/src",
+])
+
+env.PublishProtectedApi('SFS', [
+   '${BUILD_ROOT}/core/securemsm/sfs/environment/env/amss/inc',
+   '${BUILD_ROOT}/core/securemsm/sfs/environment/env/sbl/inc',
+   '${BUILD_ROOT}/core/securemsm/sfs/shared/inc',
+])
+
+env.PublishProtectedApi('SFP', [
+   "${BUILD_ROOT}/core/securemsm/sfp/src",
+   "${BUILD_ROOT}/core/securemsm/sfp/shared/src", 
+   "${BUILD_ROOT}/core/securemsm/sfp/environment/inc", 
+   "${BUILD_ROOT}/core/securemsm/sfp/chipset/nand/src",
+])
+
+env.PublishProtectedApi('SMECOM', [
+   "${BUILD_ROOT}/core/securemsm/smecom/com/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/com/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixhttp/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixhttp/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixfile/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixfile/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixfile/environment/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixfile/environment/amss/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixhttp/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixhttp/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixstream/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixstream/environment/amss/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixtime/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixtime/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixutil/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixutil/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixutil/environment/amss/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixutil/environment/amss/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixosal/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixosal/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixosal/environment/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixosal/environment/env/blast/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixosal/environment/env/rex/src",
+])
+
+env.PublishProtectedApi('SMESQL', [
+   "${BUILD_ROOT}/core/securemsm/smesql/ixsql/inc",
+   "${BUILD_ROOT}/core/securemsm/smesql/sqlite/inc",
+])
+
+env.PublishProtectedApi('SECBOOT_AUTH', [
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/inc",
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/src",
+])
+
+env.PublishProtectedApi('SECBOOT', [
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/inc",
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/src",
+   "${BUILD_ROOT}/core/securemsm/secboot/crypto/src",
+   "${BUILD_ROOT}/core/securemsm/secboot/crypto/inc",
+])
+
+env.PublishProtectedApi('SSD', [
+   "${BUILD_ROOT}/core/securemsm/ssd/inc",
+   "${BUILD_ROOT}/core/securemsm/ssd/src",
+])
+
+env.PublishProtectedApi('X509', [
+   "${BUILD_ROOT}/core/securemsm/x509/src",
+   "${BUILD_ROOT}/core/securemsm/x509/shared/src", 
+])
+
+
+env.PublishProtectedApi('STATICEXT', [
+   "${BUILD_ROOT}/apps/staticextensions/inc",
+   "${BUILD_ROOT}/apps/staticextensions/OEM/inc",
+   "${BUILD_ROOT}/apps/staticextensions/OEM/src",
+   "${BUILD_ROOT}/asic/apps/staticextensions/inc",
+   "${BUILD_ROOT}/asic/apps/staticextensions/OEM/inc",
+   "${BUILD_ROOT}/asic/apps/staticextensions/OEM/src",
+])
+
+env.PublishProtectedApi('TRUSTZONE', [
+   "${BUILD_ROOT}/core/securemsm/tzbsp/core/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/core/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/include",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/core/target/msm8660/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/services/core/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/services/dmov/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/monitor/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/monitor/target/msm8660/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/services/recho/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/core/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/tzos/core/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/core/target/msm8660/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/services/core/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/services/dmov/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/monitor/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/monitor/target/msm8660/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/services/recho/shared/src",
+])
+
+env.PublishProtectedApi('UIE', [
+   "${BUILD_ROOT}/core/securemsm/uie/inc",
+])
+
+env.PublishProtectedApi('WMDRM', [
+   "${BUILD_ROOT}/core/securemsm/drmms/wmdrm_port/intgr",
+   "${BUILD_ROOT}/core/securemsm/drmms/wmdrm_port/wmdrm/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/wmdrm_port/wmdrm/interface",
+   "${BUILD_ROOT}/core/securemsm/drmms/wmdrm_port/wmdrm/config",
+   "${BUILD_ROOT}/core/securemsm/drmms/wmdrm_port/wmdrm/crypto/bignum",
+])
+
+
+#-------------------------------------------------------------------------------
+# Legacy Protected APIs (Should be removed when safe to do so) 
+#-------------------------------------------------------------------------------
+env.PublishProtectedApi('SME_CHDLR', [
+   "${BUILD_ROOT}/core/securemsm/chdlr/chdlr/inc",
+   "${BUILD_ROOT}/core/securemsm/chdlr/chdlr/src",
+])
+
+env.PublishProtectedApi('SME_CHDLRCOM', [
+   "${BUILD_ROOT}/core/securemsm/chdlrcom/chdlrcom/inc",
+   "${BUILD_ROOT}/core/securemsm/chdlrcom/chdlrcom/src",
+])
+
+env.PublishProtectedApi('SME_DRMCOM', [
+   "${BUILD_ROOT}/core/securemsm/drmcom/drmcom_drm/inc",
+   "${BUILD_ROOT}/core/securemsm/drmcom/drmcom_drm/src",
+   "${BUILD_ROOT}/core/securemsm/drmcom/drmcom_dcf/inc",
+   "${BUILD_ROOT}/core/securemsm/drmcom/drmcom_dcf/src",
+])
+
+env.PublishProtectedApi('SME_DRMMS', [
+   "${BUILD_ROOT}/core/securemsm/drmms/drmms/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/drmms/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/drmms/protected",
+   "${BUILD_ROOT}/core/securemsm/drmms/drmms_chdlr/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/ins/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/ins/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/mcf/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/mcf/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/mcf/mcfcom/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/protected",
+   "${BUILD_ROOT}/core/securemsm/drmms/mcs_brew/mcscom/src",
+   "${BUILD_ROOT}/core/securemsm/drmms/mtph_app/inc",
+   "${BUILD_ROOT}/core/securemsm/drmms/mtph_app/src",
+])
+
+env.PublishProtectedApi('SME_DRMOMA', [
+   "${BUILD_ROOT}/core/securemsm/drmoma/drmoma/inc",
+   "${BUILD_ROOT}/core/securemsm/drmoma/drmoma/src",
+   "${BUILD_ROOT}/core/securemsm/drmoma/drmoma_chdlr/src",
+])
+
+env.PublishProtectedApi('SME_SMECOM', [
+   "${BUILD_ROOT}/core/securemsm/smecom/com/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/com/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixhttp/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixhttp/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixfile/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixfile/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixfile/environment/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixfile/environment/amss/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixhttp/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixhttp/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixstream/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixstream/environment/amss/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixtime/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixtime/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixutil/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixutil/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixutil/environment/amss/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixutil/environment/amss/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixosal/shared/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixosal/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixosal/environment/inc",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixosal/environment/env/blast/src",
+   "${BUILD_ROOT}/core/securemsm/smecom/ixosal/environment/env/rex/src",
+])
+
+env.PublishProtectedApi('SME_SMESQL', [
+   "${BUILD_ROOT}/core/securemsm/smesql/ixsql/inc",
+   "${BUILD_ROOT}/core/securemsm/smesql/sqlite/inc",
+])
+
+env.PublishProtectedApi('SME_SSL', [
+   "${BUILD_ROOT}/core/securemsm/ssl/src",
+   "${BUILD_ROOT}/core/securemsm/ssl/inc",
+   "${BUILD_ROOT}/core/securemsm/ssl/shared/src",
+   "${BUILD_ROOT}/core/securemsm/ssl/chipset/src",
+])
+
+
+#-------------------------------------------------------------------------------
+# Convert warnings to errors in all system drivers components
+#-------------------------------------------------------------------------------
+# Enable warnings -> errors for all, except LLVM toolchain (6.x.x) during migration
+hextool_ver = str(os.environ.get('HEXAGON_RTOS_RELEASE', '0'))[0]
+if int(hextool_ver)<6:
+  env.Append(CFLAGS = "-Werror ")
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

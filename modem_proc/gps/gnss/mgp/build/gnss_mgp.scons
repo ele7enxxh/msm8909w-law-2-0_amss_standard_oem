@@ -1,0 +1,82 @@
+# -------------------------------------------------------------------------------- #
+#                         G N S S _ M G P . S C O N S
+#
+# DESCRIPTION
+#   SCons file for the whole MGP subsystem. Defines the existence of MGP subsystem.
+#
+#
+# INITIALIZATION AND SEQUENCING REQUIREMENTS
+#   None.
+#
+#
+#  Copyright (c) 2010 - 2012 Qualcomm Technologies Incorporated.
+#  Qualcomm Confidential and Proprietary. All Rights Reserved.
+#  Copyright (c) 2013 - 2015 Qualcomm Atheros, Inc.
+#  Qualcomm Atheros Confidential and Proprietary. All Rights Reserved. 
+#  Copyright (c) 2015 Qualcomm Technologies, Inc. 
+#  All Rights Reserved.
+#  Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+# $Header: //source/qcom/qct/modem/wcdma/main/latest/build/qscons/wcdma.scons#1 $
+# $DateTime: 2010/04/06 13:31:09 $
+# --------------------------------------------------------------------------------- #
+
+#--------------------------------------------------------------------------------
+# Import the SCons environment
+#--------------------------------------------------------------------------------
+Import('env')
+
+#--------------------------------------------------------------------------------
+# Publish Protected Include Paths for just MGP
+#--------------------------------------------------------------------------------
+# Only part of this should be visible, at PE level - none here - but this is an
+# improvement over where it was previously - 2 levels up
+# TODO next - move /nf/src only (rest 'later') to be visible only to PE, then NF
+env.PublishProtectedApi('GPS_MGPPE', ['${GPS_ROOT}/gnss/mgp/pe/common/inc',
+                                      '${GPS_ROOT}/gnss/mgp/pe/cd/inc',
+                                      '${GPS_ROOT}/gnss/mgp/pe/cd/src',
+                                      '${GPS_ROOT}/gnss/mgp/pe/inc',
+                                      '${GPS_ROOT}/gnss/mgp/pe/nf/inc',
+                                      '${GPS_ROOT}/gnss/mgp/pe/nf/src',
+                                     ])
+
+#--------------------------------------------------------------------------------
+# Require Protected Include Paths for just MGP
+#--------------------------------------------------------------------------------
+env.RequireProtectedApi(['GPS_MGPPE',
+                        ])
+
+#--------------------------------------------------------------------------------
+# Find all of the .c and .h files in MGP and Clean them from being packed
+#--------------------------------------------------------------------------------
+GNSS_MGP_SHIP_FILES = ['mgp_nv.c',
+                       'loc_wwan_me_api.h',
+                       'mgp_api.h',
+                       'mgp_nv.h',
+                       'mgp_pe_sensors_api.h',
+                       'navhw_api.h',
+                       'cgps_ext.c',
+                      ]
+
+# Parse the files to find the shipped and non-shipped files
+black_list = env.FindFiles(['*.h', '*.c'], '..')
+white_list = env.FindFiles(GNSS_MGP_SHIP_FILES, '..')
+  
+# This code does "filtered = black_list - white_list"
+filtered = [x for x in black_list if x not in white_list]
+env.CleanPack("CLEANPACK_TARGET", filtered, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+
+env.LoadSoftwareUnits()

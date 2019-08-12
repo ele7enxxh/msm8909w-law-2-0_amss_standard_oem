@@ -1,0 +1,231 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*
+    2 00000000         ;
+    3 00000000         ;                 T R U S T Z O N E      S Y S
+    4 00000000         ;
+    5 00000000         ;
+    6 00000000         ; GENERAL DESCRIPTION
+    7 00000000         ;   Convenience functions for armv7.
+    8 00000000         ;
+    9 00000000         ; Copyright (c) 2014 by Qualcomm Technologies, Incorpora
+                       ted.All Rights Reserved.
+   10 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*
+   11 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*
+   12 00000000         ;
+   13 00000000         ;                           EDIT HISTORY FOR FILE
+   14 00000000         ;
+   15 00000000         ; This section contains comments describing changes made
+                        to the module.
+   16 00000000         ; Notice that changes are listed in reverse chronologica
+                       l order.
+   17 00000000         ;
+   18 00000000         ; $Header: 
+   19 00000000         ;
+   20 00000000         ; when       who     what, where, why
+   21 00000000         ; --------   ---     -----------------------------------
+                       ----------------
+   22 00000000         ; 02/18/14   sg      Initial version.
+   23 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*
+   24 00000000                 GET              tzbsp_asm_common.inc
+    1 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+    2 00000000         ;
+    3 00000000         ;                 T R U S T Z O N E      A S S E M B L Y
+                       
+    4 00000000         ;
+    5 00000000         ;
+    6 00000000         ; GENERAL DESCRIPTION
+    7 00000000         ;   Assembly macros and definitions common to TZ monitor
+                        and TZBSP.
+    8 00000000         ;
+    9 00000000         ; EXTERNALIZED SYMBOLS
+   10 00000000         ;   None.
+   11 00000000         ;
+   12 00000000         ; INITIALIZATION AND SEQUENCING REQUIREMENTS
+   13 00000000         ;   None.
+   14 00000000         ;
+   15 00000000         ; Copyright (c) 2014 by QUALCOMM, Incorporated. All Righ
+                       ts Reserved.
+   16 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   17 00000000         
+   18 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   19 00000000         ;
+   20 00000000         ;                           EDIT HISTORY FOR FILE
+   21 00000000         ;
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   22 00000000         ; This section contains comments describing changes made
+                        to the module.
+   23 00000000         ; Notice that changes are listed in reverse chronologica
+                       l order.
+   24 00000000         ;
+   25 00000000         ;
+   26 00000000         ; $Header:  $
+   27 00000000         ; when       who     what, where, why
+   28 00000000         ; --------   ---     -----------------------------------
+                       ---------------------
+   29 00000000         ; 02/18/14   sg      Initial revision.
+   30 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   31 00000000         
+   32 00000000         ; ------------------------------------------------------
+                       -----------------------
+   33 00000000         ; MACRO: GetCurrentCpuNum
+   34 00000000         ; ------------------------------------------------------
+                       -----------------------
+   35 00000000                 MACRO
+   36 00000000                 GetCurrentCpuNum
+   37 00000000                 ldr              r1, =tzbsp_cpu_count_per_cluste
+r
+   38 00000000                 ldr              r1, [r1]
+   39 00000000                 GetCurrentClusterNum
+   40 00000000                 mul              r0, r0, r1
+   41 00000000                 mrc              p15, 0, r1, c0, c0, 5 ; Determi
+                                                            ne the current CPU,
+                                                            
+   42 00000000                 and              r1, r1, #0xFF ; LSB is the AFFL
+                                                            0, which is the CPU
+                                                             number.
+   43 00000000                 add              r0, r1, r0
+   44 00000000                 MEND
+   45 00000000         
+   46 00000000         ; ------------------------------------------------------
+                       -----------------------
+   47 00000000         ; MACRO: GetCurrentClusterNum
+   48 00000000         ; ------------------------------------------------------
+                       -----------------------
+   49 00000000                 MACRO
+   50 00000000                 GetCurrentClusterNum
+   51 00000000                 mrc              p15, 0, r0, c0, c0, 5
+   52 00000000                 and              r0, r0, #0xFF00 ; AFFL1 is the 
+                                                            cluster number.
+   53 00000000                 asr              r0, r0, #8
+   54 00000000                 MEND
+   55 00000000         
+   56 00000000         ; ------------------------------------------------------
+                       -----------------------
+   57 00000000         ; MACRO: GetCurrentCpuNumInCluster
+   58 00000000         ; ------------------------------------------------------
+                       -----------------------
+   59 00000000                 MACRO
+   60 00000000                 GetCurrentCpuNumInCluster
+   61 00000000                 mrc              p15, 0, r0, c0, c0, 5 ; Determi
+                                                            ne the current CPU,
+                                                            
+   62 00000000                 and              r0, r0, #0xFF ; LSB is the AFFL
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+                                                            0, which is the CPU
+                                                             number.
+   63 00000000                 MEND
+   64 00000000         
+   65 00000000                 END
+   25 00000000                 EXPORT           tzbsp_cur_cpu_num
+   26 00000000                 EXPORT           tzbsp_cur_cluster_num
+   27 00000000                 EXPORT           tzbsp_cur_cpu_num_in_cluster
+   28 00000000                 IMPORT           tzbsp_cpu_count_per_cluster
+   29 00000000                 CODE32
+   30 00000000                 PRESERVE8
+   31 00000000                 AREA             TZBSP_SYS_ASM_COMMON, align=4, 
+CODE, READONLY
+   32 00000000         ; uint32 tzbsp_cur_cluster_num(void)
+   33 00000000         tzbsp_cur_cluster_num
+                               FUNCTION
+   34 00000000                 GetCurrentClusterNum
+   51 00000000 EE100FB0        mrc              p15, 0, r0, c0, c0, 5
+   52 00000004 E2000CFF        and              r0, r0, #0xFF00 ; AFFL1 is the 
+                                                            cluster number.
+   53 00000008 E1A00440        asr              r0, r0, #8
+   35 0000000C E12FFF1E        bx               lr
+   36 00000010                 ENDFUNC
+   37 00000010         ; uint32 tzbsp_cur_cpu_num_in_cluster(void)
+   38 00000010         tzbsp_cur_cpu_num_in_cluster
+                               FUNCTION
+   39 00000010                 GetCurrentCpuNumInCluster
+   61 00000010 EE100FB0        mrc              p15, 0, r0, c0, c0, 5 ; Determi
+                                                            ne the current CPU,
+                                                            
+   62 00000014 E20000FF        and              r0, r0, #0xFF ; LSB is the AFFL
+                                                            0, which is the CPU
+                                                             number.
+   40 00000018 E12FFF1E        bx               lr
+   41 0000001C                 ENDFUNC
+   42 0000001C         ; uint32 tzbsp_cur_cpu_num(void)
+   43 0000001C         tzbsp_cur_cpu_num
+                               FUNCTION
+   44 0000001C                 GetCurrentCpuNum
+   37 0000001C E59F1020        ldr              r1, =tzbsp_cpu_count_per_cluste
+r
+   38 00000020 E5911000        ldr              r1, [r1]
+   39 00000024                 GetCurrentClusterNum
+   51 00000024 EE100FB0        mrc              p15, 0, r0, c0, c0, 5
+   52 00000028 E2000CFF        and              r0, r0, #0xFF00 ; AFFL1 is the 
+                                                            cluster number.
+   53 0000002C E1A00440        asr              r0, r0, #8
+   40 00000030 E0000190        mul              r0, r0, r1
+   41 00000034 EE101FB0        mrc              p15, 0, r1, c0, c0, 5 ; Determi
+                                                            ne the current CPU,
+                                                            
+   42 00000038 E20110FF        and              r1, r1, #0xFF ; LSB is the AFFL
+                                                            0, which is the CPU
+                                                             number.
+   43 0000003C E0810000        add              r0, r1, r0
+   45 00000040 E12FFF1E        bx               lr
+   46 00000044                 ENDFUNC
+   47 00000044                 END
+              00000000 
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+Command Line: --debug --dwarf2 --diag_suppress=1480,1786,2523 --cpu=Cortex-A7 -
+-fpu=SoftVFP --apcs=/noswst/interwork -o/local/mnt/workspace/CRMBuilds/TZ.BF.2.
+5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/
+trustzone/qsee/arch/armv7/build/tzbsp_no_xpu/cortexA7/MATAANAA/tzbsp_sys_asm_co
+mmon.o -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20
+161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/arch/armv7/build
+ -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130
+_222454/b/trustzone_images/build/cust -I. -I/local/mnt/workspace/CRMBuilds/TZ.B
+F.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/secure
+msm/trustzone/qsee/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004
+-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/dal -I/local/mnt/
+workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trus
+tzone_images/core/securemsm/trustzone/qsee/arch/msm8909/cfg/mmu -I/local/mnt/wo
+rkspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustz
+one_images/core/securemsm/trustzone/qsee/arch/msm8909/src -I/local/mnt/workspac
+e/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_im
+ages/core/securemsm/trustzone/qsee/arch/common/inc -I/local/mnt/workspace/CRMBu
+ilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/co
+re/securemsm/trustzone/qsee/arch/armv7/include -I/local/mnt/workspace/CRMBuilds
+/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/s
+ecuremsm/trustzone/qsee/arch/msm8909w/src -I/local/mnt/workspace/CRMBuilds/TZ.B
+F.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/se
+rvices -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20
+161130_222454/b/trustzone_images/core/api/rapi/services/inc --list=/local/mnt/w
+orkspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trust
+zone_images/core/securemsm/trustzone/qsee/arch/armv7/build/tzbsp_no_xpu/cortexA
+7/MATAANAA/tzbsp_sys_asm_common.o.lst --sitelicense /local/mnt/workspace/CRMBui
+lds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/cor
+e/securemsm/trustzone/qsee/arch/armv7/build/tzbsp_no_xpu/cortexA7/MATAANAA/tzbs
+p_sys_asm_common.o.i

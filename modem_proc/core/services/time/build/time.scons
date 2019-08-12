@@ -1,0 +1,541 @@
+#===============================================================================
+#
+# Time Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/mdm9x00/main/latest/services/time/build/SConscript#5 $
+#  $DateTime: 2010/01/07 18:48:44 $
+#  $Author: nthompso $
+#  $Change: 1130987 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/20/13   c_skikug Adding the CMM script to the T32 menu
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# Source PATH
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/services/time"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# External depends within CoreBSP
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+env.RequirePublicApi([
+   'RFA',
+],area='MODEM')
+
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+env.RequirePublicApi([
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'STORAGE',
+   'MEMORY',
+   'KERNEL',
+], area='CORE')
+
+env.RequireRestrictedApi([
+   'SERVICES',
+   'MPROC',
+   'POWER',
+])
+
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# Common Global Defines
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+if "USES_ATS_API_STUB" in env:
+   env.Append(CPPDEFINES=["ATS_API_STUB"])
+if "USES_FEATURE_NO_MPM" in env:
+   env.Append(CPPDEFINES=["FEATURE_NO_MPM"])
+
+#---------------------------------------
+# Common Time Sources
+#---------------------------------------
+
+TIME_COMMON_C_SOURCES = [
+   '${BUILDPATH}/src/time_jul.c',
+   '${BUILDPATH}/src/time_conv.c',
+   '${BUILDPATH}/src/timetick_sclk64.c',
+]
+
+
+#---------------------------------------
+# Full Image of Time Sources
+#---------------------------------------
+
+TIME_FULL_C_SOURCES = [
+   '${BUILDPATH}/src/time.c',
+   '${BUILDPATH}/src/ats_bases.c',
+   '${BUILDPATH}/src/ats_rtc.c',
+   '${BUILDPATH}/src/time_genoff.c',
+   '${BUILDPATH}/src/time_dal.c',
+   '${BUILDPATH}/src/time_fn_map.c',
+   '${BUILDPATH}/src/time_efs.c',
+   '${BUILDPATH}/src/time_ipc.c',
+]
+
+#-----------------------------
+# Feature Definitions for
+# TIME_FULL_C_SOURCES
+#-----------------------------
+
+TIME_FULL_C_SOURCES_DEFINES = []
+TIME_FULL_C_SOURCES_DEFINES.append('FEATURE_NO_DB')
+TIME_FULL_C_SOURCES_DEFINES.append('FEATURE_TIME_NO_RPC')
+TIME_FULL_C_SOURCES_DEFINES.append('FEATURE_TIME_SINGLE_MULTI_SERVER_PROC')
+TIME_FULL_C_SOURCES_DEFINES.append('FEATURE_TIME_IPC_TASK')
+TIME_FULL_C_SOURCES_DEFINES.append('FEATURE_TIME_DEBUG')
+TIME_FULL_C_SOURCES_DEFINES.append('FEATURE_PMIC_RTC')
+
+# Add internal feature if QMI framework is available
+if env.IsTargetEnable(['QMIMSGS_MPSS']):
+  TIME_FULL_C_SOURCES_DEFINES.append('FEATURE_QMI_TIME_REMOTE')
+
+
+#---------------------------------------
+# Time-Services Lite Sources
+#---------------------------------------
+
+TIME_LITE_C_SOURCES = [
+   '${BUILDPATH}/src/time_tod_stubs.c',
+]
+
+
+#---------------------------------------
+# Common Timer Sources
+#---------------------------------------
+
+TIMER_COMMON_C_SOURCES = [
+   '${BUILDPATH}/src/timer.c',
+   '${BUILDPATH}/src/timer_fn_map.c',
+   '${BUILDPATH}/src/ats_log.c',
+]
+
+#-----------------------------
+# Feature Definitions for
+# TIMER_COMMON_C_SOURCES
+#-----------------------------
+
+TIMER_COMMON_C_SOURCES_DEFINES = []
+TIMER_COMMON_C_SOURCES_DEFINES.append('TIMER_ERROR_FATAL_THRESHOLD_ZEROED_OUT')
+
+
+#---------------------------------------
+# Full Image of Timer Sources
+#---------------------------------------
+
+TIMER_FULL_C_SOURCES = [
+   '${BUILDPATH}/src/timer_slaves.c',
+]
+
+#-----------------------------
+# Feature Definitions for
+# TIMER_FULL_C_SOURCES
+#-----------------------------
+
+TIMER_FULL_C_SOURCES_DEFINES = []
+TIMER_FULL_C_SOURCES_DEFINES.append('FEATURE_TIMER_SLAVE1')
+TIMER_FULL_C_SOURCES_DEFINES.append('FEATURE_TIMER_SLAVE2')
+TIMER_FULL_C_SOURCES_DEFINES.append('FEATURE_TIMER_SLAVE3')
+
+
+#---------------------------------------
+# QDSP6 Specific Time Sources
+#---------------------------------------
+
+TIME_QDSP6_SOURCES = [
+   '${BUILDPATH}/src/time_diag.c',
+   '${BUILDPATH}/src/time_blast.c',
+ ]
+
+#-----------------------------
+# Feature Definitions for
+# TIME_QDSP6_SOURCES
+#-----------------------------
+
+TIME_QDSP6_SOURCES_DEFINES = []
+TIME_QDSP6_SOURCES_DEFINES.append('FEATURE_TIME_QDSP6')
+TIME_QDSP6_SOURCES_DEFINES.append('FEATURE_TIMER_REX_IS_AVAILABLE')
+TIME_QDSP6_SOURCES_DEFINES.append('FEATURE_BLAST')
+TIME_QDSP6_SOURCES_DEFINES.append('FEATURE_TIMER_QURT')
+TIME_QDSP6_SOURCES_DEFINES.append('T_MDM9X00')
+
+
+#---------------------------------------
+# Rex Specific Time Sources
+#---------------------------------------
+
+TIME_REX_SOURCES = [
+   '${BUILDPATH}/src/time_rex.c',
+]
+
+
+#---------------------------------------
+# Remote Time Sources
+#---------------------------------------
+
+TIME_DUAL_PROC_MODEM_QMI_C_SOURCES = [
+   '${BUILDPATH}/src/time_remote_modem_qmi.c'
+]
+
+
+#---------------------------------------
+# uBSP Timer Sources
+#---------------------------------------
+
+TIMER_UBSP_SOURCES = [
+   '${BUILDPATH}/ubsp/ubsp_timers.c',
+]
+
+
+#-----------------------------
+# Feature Definitions for
+# Logging
+#-----------------------------
+
+ATS_LOG_DEFINES = []
+ATS_LOG_DEFINES.append('FEATURE_TIMER_TRACE')
+ATS_LOG_DEFINES.append('FEATURE_TIMER_API_LOG')
+ATS_LOG_DEFINES.append('FEATURE_LOG_RECORD_MATCH_VAL')
+ATS_LOG_DEFINES.append('FEATURE_LOG_TIMER_SETS')
+ATS_LOG_DEFINES.append('FEATURE_LOG_TIMER_CLR_LOG')
+ATS_LOG_DEFINES.append('FEATURE_LOG_TIMER_EXPIRED_DEBUG')
+ATS_LOG_DEFINES.append('FEATURE_LOG_TIMER_MULTI_NOTIFY')
+ATS_LOG_DEFINES.append('FEATURE_LOG_TIMER_SET_PARAMS_LOG')
+ATS_LOG_DEFINES.append('FEATURE_LOG_TIMER_DEFER_UNDEFER')
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# Add Libraries to image
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+## For time_init and time_init_config calls
+TIME_RCINIT_IMAGE = []
+
+## For Main Timer
+TIMER_RCINIT_IMAGE = []
+
+## For Timer Slaves
+TIMER_FULL_RCINIT_IMAGE = []
+
+#-------------------------------------------------------------------------------
+# Q6 Modem Image
+#-------------------------------------------------------------------------------
+## Compile Libraries
+env.AddLibrary(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/src/time_common', [TIME_COMMON_C_SOURCES])
+env.AddLibrary(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/src/time_full', [TIME_FULL_C_SOURCES])
+env.AddLibrary(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/src/time_qdsp6', [TIME_QDSP6_SOURCES])
+env.AddLibrary(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/src/time_remote_modem_qmi',[TIME_DUAL_PROC_MODEM_QMI_C_SOURCES])
+env.AddLibrary(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/src/timer', [TIMER_COMMON_C_SOURCES])
+env.AddLibrary(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/src/timer_full', [TIMER_FULL_C_SOURCES])
+
+if env.IsTargetEnable(['CORE_QDSP6_SW']):
+  env.Append(CPPDEFINES=TIMER_COMMON_C_SOURCES_DEFINES)
+  env.Append(CPPDEFINES=TIMER_FULL_C_SOURCES_DEFINES)
+  env.Append(CPPDEFINES=TIME_FULL_C_SOURCES_DEFINES)
+  env.Append(CPPDEFINES=TIME_QDSP6_SOURCES_DEFINES)
+  env.Append(CPPDEFINES=ATS_LOG_DEFINES)
+  
+## Add to RCINIT
+TIME_RCINIT_IMAGE.extend(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'])
+TIMER_RCINIT_IMAGE.extend(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'])
+TIMER_FULL_RCINIT_IMAGE.extend(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'])
+
+
+#-------------------------------------------------------------------------------
+# WCNSS Image
+#-------------------------------------------------------------------------------
+## Compile Libraries
+env.AddLibrary(['WCN_IMAGE','CBSP_WCN_IMAGE','CORE_WCN'],'${BUILDPATH}/src/time_common', [TIME_COMMON_C_SOURCES])
+env.AddLibrary(['WCN_IMAGE','CBSP_WCN_IMAGE','CORE_WCN'],'${BUILDPATH}/src/time_lite', [TIME_LITE_C_SOURCES])
+env.AddLibrary(['WCN_IMAGE','CBSP_WCN_IMAGE','CORE_WCN'],'${BUILDPATH}/src/timer', [TIMER_COMMON_C_SOURCES])
+env.AddLibrary(['WCN_IMAGE','CBSP_WCN_IMAGE','CORE_WCN'],'${BUILDPATH}/src/timer_ubsp', [TIMER_UBSP_SOURCES])
+
+env.AddLibrary(['CORE_UBSP'],'${BUILDPATH}/ubsp/timer_ubsp', [TIMER_UBSP_SOURCES])
+
+if env.IsTargetEnable(['CORE_WCN']):
+  env.Append(CPPDEFINES=TIMER_COMMON_C_SOURCES_DEFINES)
+  
+## Add to RCINIT
+TIMER_RCINIT_IMAGE.extend(['WCN_IMAGE','CBSP_WCN_IMAGE','CORE_WCN'])
+
+
+#-------------------------------------------------------------------------------
+# Rex/L4 Apps Image
+#-------------------------------------------------------------------------------
+## Compile Libraries
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'],'${BUILDPATH}/src/time_common', [TIME_COMMON_C_SOURCES])
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'],'${BUILDPATH}/src/time_full', [TIME_FULL_C_SOURCES])
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'],'${BUILDPATH}/src/time_rex', [TIME_REX_SOURCES])
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'],'${BUILDPATH}/src/time_remote_modem_qmi',[TIME_DUAL_PROC_MODEM_QMI_C_SOURCES])
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'],'${BUILDPATH}/src/timer', [TIMER_COMMON_C_SOURCES])
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'],'${BUILDPATH}/src/timer_full', [TIMER_FULL_C_SOURCES])
+
+if env.IsTargetEnable(['CBSP_APPS_IMAGE']):
+  env.Append(CPPDEFINES=TIMER_COMMON_C_SOURCES_DEFINES)
+  env.Append(CPPDEFINES=TIMER_FULL_C_SOURCES_DEFINES)
+  env.Append(CPPDEFINES=TIME_FULL_C_SOURCES_DEFINES)
+  env.Append(CPPDEFINES=TIME_QDSP6_SOURCES_DEFINES)
+  env.Append(CPPDEFINES=ATS_LOG_DEFINES)
+  
+## Add to RCINIT
+TIME_RCINIT_IMAGE.extend(['APPS_IMAGE', 'CBSP_APPS_IMAGE'])
+TIMER_RCINIT_IMAGE.extend(['APPS_IMAGE', 'CBSP_APPS_IMAGE'])
+TIMER_FULL_RCINIT_IMAGE.extend(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'])
+
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# RCINIT Initializations and Task Entries
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(           # Code Fragment in TMC: NO
+    TIME_RCINIT_IMAGE,          # define TMC_RCINIT_INIT_TIME_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+     'init_name'                  : 'time',                             # required
+     'init_function'              : 'time_init',                        # required
+     'dependencies'               : ['dalsys']
+    })
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(           # Code Fragment in TMC: YES
+    TIMER_RCINIT_IMAGE,         # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',              # required
+     'init_name'                  : 'timer_init',                  # required
+     'init_function'              : 'timer_init',                  # required
+     'dependencies'               : ['time','rlc']
+    })
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(           # Code Fragment in TMC: YES
+    TIMER_FULL_RCINIT_IMAGE,    # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+     'init_name'                  : 'timer_slave1_task',                # required
+     'init_function'              : 'timer_slave_task1_init',           # required
+     'dependencies'               : ['time','timer_init']
+    })
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(           # Code Fragment in TMC: YES
+    TIMER_FULL_RCINIT_IMAGE,    # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+     'init_name'                  : 'timer_slave2_task',                # required
+     'init_function'              : 'timer_slave_task2_init',           # required
+     'dependencies'               : ['time','timer_init']
+    })
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(           # Code Fragment in TMC: YES
+    TIMER_FULL_RCINIT_IMAGE,    # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+     'init_name'                  : 'timer_slave3_task',                # required
+     'init_function'              : 'timer_slave_task3_init',           # required
+     'dependencies'               : ['time','timer_init']
+    })
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(           # Code Fragment in TMC: YES
+    TIMER_RCINIT_IMAGE,         # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+     'init_name'                  : 'timer_task',                       # required
+     'init_function'              : 'timer_task_init',                  # required
+     'dependencies'               : ['time','timer_init','timer_slave1_task','timer_slave2_task','timer_slave3_task',]
+    })
+
+#-------------------------------------------------------------------------------
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(           # Code Fragment in TMC: YES
+    TIME_RCINIT_IMAGE,          # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_2',                   # required
+     'init_name'                  : 'time_init_config_function',        # required
+     'init_function'              : 'time_init_config',                 # required
+     'dependencies'               : ['time','pm',]
+    })
+
+#-------------------------------------------------------------------------------
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(           # Code Fragment in TMC: YES
+    TIMER_RCINIT_IMAGE,         # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+     'sequence_group'             : 'RCINIT_GROUP_2',         # required
+     'init_name'                  : 'timer_post_init',        # required
+     'init_function'              : 'timer_post_init',        # required
+     'dependencies'               : ['timer_init','timer_task']
+    })
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitTask(           # STUB FOR DATA STRUCTURES; NEEDS CREATED EARLY
+    TIMER_RCINIT_IMAGE,         # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',                  # required
+      'thread_name'                : 'timer',                           # required
+      'thread_entry'               : 'RCINIT_NULL',                     # NOT AVAILABLE
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'TIMER_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitTask(           # STUB FOR DATA STRUCTURES; NEEDS CREATED EARLY
+    TIMER_FULL_RCINIT_IMAGE,    # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',                  # required
+      'thread_name'                : 'tmr_slave1',                      # required
+      'thread_entry'               : 'RCINIT_NULL',                     # NOT AVAILABLE
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'TIMER_SLAVE1_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitTask(           # STUB FOR DATA STRUCTURES; NEEDS CREATED EARLY
+    TIMER_FULL_RCINIT_IMAGE,    # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',                  # required
+      'thread_name'                : 'tmr_slave2',                      # required
+      'thread_entry'               : 'RCINIT_NULL',                     # NOT AVAILABLE
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'TIMER_SLAVE2_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitTask(           # STUB FOR DATA STRUCTURES; NEEDS CREATED EARLY
+    TIMER_FULL_RCINIT_IMAGE,    # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',                  # required
+      'thread_name'                : 'tmr_slave3',                      # required
+      'thread_entry'               : 'RCINIT_NULL',                     # NOT AVAILABLE
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'TIMER_SLAVE3_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINITx' in env:
+   env.AddRCInitTask(           # STUB FOR DATA STRUCTURES; NEEDS CREATED EARLY
+    TIMER_FULL_RCINIT_IMAGE,    # define TMC_RCINIT_INIT_TIMER_TASK_INIT
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',                 # required
+      'thread_name'                : 'timer_dbg',                      # required
+      'thread_entry'               : 'timer_dbg_task',                 # NOT AVAILABLE
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'TIME_IPC_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+      'dependencies'               : ['timer_slave1_task','timer_slave2_task','timer_slave3_task','timer_task','time_init_config_function',]
+    })
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitTask(           # TIME_IPC
+    TIME_RCINIT_IMAGE,          # define TMC_RCINIT_REXTASK_TIME_IPC 
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',                  # required
+      'thread_name'                : 'time_ipc',                        # required
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'TIME_IPC_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+
+#-------------------------------------------------------------------------------	
+
+XMLCONFIGFILE= '${BUILD_ROOT}/core/services/time/config/time_config_props_modem.xml'
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      'soc_xml' : [XMLCONFIGFILE]
+   })
+   
+#-------------------------------------------------------------------------------
+# Add CMM Scripts to T32 Menu
+#-------------------------------------------------------------------------------
+SRCPATHSCRIPTS = env['BUILD_ROOT'] + '/core/services/time/scripts'
+
+try:
+  env.AddCMMScripts ('MPSS', [SRCPATHSCRIPTS], { 'timer_script.cmm' : 'Timer'}, 'Services')
+except:
+  pass

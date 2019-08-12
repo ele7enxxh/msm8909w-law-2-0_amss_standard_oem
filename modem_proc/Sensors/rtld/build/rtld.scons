@@ -1,0 +1,103 @@
+#===============================================================================
+#
+# Build script for the sensors dynamic loader instance.
+#
+# Copyright (c) 2015 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#------------------------------------------------------------------------------
+
+Import('env')
+import os
+from glob import glob
+from os.path import join, basename
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Exports
+#-------------------------------------------------------------------------------
+if 'USES_FEATURE_DYNAMIC_LOADING' in env and env['IMAGE_NAME'] == 'SENSOR_IMG':
+    env.DLExposeFile('${BUILD_ROOT}/Sensors/rtld/build/sns_base_symbols.lst')
+    env.DLExposeFile('${BUILD_ROOT}/Sensors/rtld/build/sns_symbols.lst')
+
+#-------------------------------------------------------------------------------
+# Dependencies
+#-------------------------------------------------------------------------------
+PLATFORM_API = [
+     'HAPSDK',
+     'RTLD',
+     'SECURITY',
+]
+
+env.RequirePublicApi(PLATFORM_API, area='platform')
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_MEMMGR',
+   'SNS_COMMON',
+]
+# TODO remove?
+env.RequireRestrictedApi(SENSORS_API)
+
+SENSORS_API = [
+   'SNS_MEMMGR',
+   'SNS_COMMON',
+]
+env.RequireProtectedApi(SENSORS_API)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/rtld/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+BIG_IMG_SRC  = ['${BUILDPATH}/' + basename(fname)
+                for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+  
+#print "\nRTLD BIG_IMG:"
+#print '\n'.join(["%s" % i for i in BIG_IMG_SRC])  #for debugging
+#print "\n"
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+
+  BIG_IMG_LIB = env.AddBinaryLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+    '${BUILDPATH}/rtld', BIG_IMG_SRC)
+
+else:
+  BIG_IMG_LIB = env.AddLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+    '${BUILDPATH}/rtld', BIG_IMG_SRC)
+
+#-------------------------------------------------------------------------------
+# Add Library to rcinit
+#-------------------------------------------------------------------------------
+#To disable feature use SENSORS_DISABLE_DL_FLAG flag option in build command.
+
+if 'USES_FEATURE_DYNAMIC_LOADING_SENSORS' in env and 'SENSORS_DISABLE_DL_FLAG' not in env:
+  if 'USES_RCINIT' in env:
+    env.AddRCInitFunc(
+        ['CORE_QDSP6_SENSOR_SW'],
+        {
+          'sequence_group' : 'RCINIT_GROUP_0',  # required
+          'init_name' : 'sns_rtld',
+          'init_function' : 'sns_rtld_init',
+          'dependencies' : ['platform']
+        })
+
+if 'SENSORS_DD_DEV_FLAG' in env:
+   RTLD_CLEAN_SOURCES = env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/rtld/src')
+   RTLD_CLEAN_SOURCES += env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/rtld/stubs')
+   
+   # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], RTLD_CLEAN_SOURCES)

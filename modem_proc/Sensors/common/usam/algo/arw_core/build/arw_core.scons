@@ -1,0 +1,86 @@
+#===============================================================================
+#
+# ARW_CORE Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2016 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/Sensors/common/usam/algo/arw_core/build/arw_core.scons#1 $
+#  $DateTime: 2016/12/13 08:00:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985213 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 2016-04-14  MB     refactored into arw_core, altchg, added jogging support.
+#
+#===============================================================================
+Import('env')
+from glob import glob
+from os.path import join, basename
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/usam/algo/arw_core/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/framework/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/util/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/algo/arw_core/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/dl/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+ARW_CORE_SOURCES = [
+      '${BUILDPATH}/arw_core.c',
+      '${BUILDPATH}/arw_core_msg.c',
+      '${BUILDPATH}/arw_core_heuristics.c',
+      '${BUILDPATH}/arw_core_hysteresis.c',
+      '${BUILDPATH}/arw_core_lr_probability_computation.c',
+      '${BUILDPATH}/arw_core_motion_feature.c',
+      '${BUILDPATH}/arw_core_gmm_probability_computation.c',
+      '${BUILDPATH}/arw_core_probability_filter.c',
+      '${BUILDPATH}/arw_core_stats_model.c',
+      '${BUILDPATH}/arw_core_unfiltered_probability_combiner.c',
+   ]
+
+algo_arw_core_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+                                    '${BUILDPATH}/sam_algo_arw_core', ARW_CORE_SOURCES)
+
+# Sources and headers that should not be shared
+ARW_CORE_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/common/usam/algo/arw_core/src')
+ARW_CORE_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/usam/algo/arw_core/inc')
+
+# Clean sources
+env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], ARW_CORE_CLEAN_SOURCES)

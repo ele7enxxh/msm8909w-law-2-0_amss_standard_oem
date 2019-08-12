@@ -1,0 +1,38 @@
+//-----------------------------------------------------------------------------
+//      Shared Memory Synchronization Mechanism MSM Device Configuration
+//-----------------------------------------------------------------------------
+//
+// FILE:        smsm_msm.xml
+//
+// DESCRIPTION: This file contains DAL XML config properties for the SMSM 
+//              module, for images on MSM targets.
+//
+//=============================================================================
+// Copyright (c) 2012 by QUALCOMM, Incorporated.
+// All Rights Reserved.
+// Qualcomm Confidential and Proprietary.
+//=============================================================================
+//
+//                          EDIT HISTORY FOR FILE
+//
+// $Header:  $
+//
+// when       who     what, where, why
+// --------   ---     ---------------------------------------------------------
+// 11/05/12   bt      Initial revision for MSM and APQ targets.
+// ----------------------------------------------------------------------------
+
+<driver name="NULL">
+  <global_def></global_def>
+  <device id="/core/mproc/smsm">
+    <props name="smsm_intr_enabled" type= DALPROP_ATTR_TYPE_BYTE_SEQ>
+      // Disable interrupts on edges where remote endpoint is not present.
+      0x1, // Apps
+      0x1, // MPSS/GSS
+      0x1, // ADSP
+      0x0, // DSPS
+      0x1, // WCNSS
+      end
+    </props>
+  </device>
+</driver>

@@ -1,0 +1,466 @@
+/*****************************************************************************
+  @FILE     sns_sam_iod_v01.idl
+
+  @BRIEF    Message definition for the Indoor Outdoor Detector (IOD) algorithm service
+
+  @DESCRIPTION
+  This file defines messages used by Indoor Outdoor Detector algorithm service.
+
+  As prerequisite, the sensor algorithm must use the common Interface
+  defined in the Sensor algorithm framework.
+
+  The messages defined herein will be passed to the Sensor framework using
+  the sensor1_write() API.
+
+  @COPYRIGHT
+  Copyright (c) 2015 Qualcomm Technologies, Inc.  All Rights Reserved
+  Qualcomm Technologies Proprietary and Confidential.
+
+*****************************************************************************/
+
+include "sns_sam_common_v01.idl";
+
+revision 0;
+
+const SNS_SAM_IOD_SUID = 0xb9b65987126198b2;
+
+//============================================================================
+// Global definitions
+//============================================================================
+
+//============================================================================
+// Enums and Bitmasks
+//============================================================================
+
+//! @ENUM SNS_SAM_IOD_OUTPUT_CLASS_ENUM
+enum /* enum of output class types */
+{
+ SNS_SAM_IOD_OUTPUT_CLASS_UNKNOWN = 0,
+ /**< Unknown output class */
+ SNS_SAM_IOD_OUTPUT_CLASS_INDOOR  = 1,
+ /**< Indoor output class */
+ SNS_SAM_IOD_OUTPUT_CLASS_OUTDOOR = 2
+ /**< Outdoor output class */
+} sns_sam_iod_output_class_e;
+/**< Enum to define each output class to be reported in
+  *  SNS_SAM_IOD_GET_REPORT_RESP and SNS_SAM_IOD_REPORT_IND messages
+*/
+
+//! @MASK SNS_SAM_IOD_REASON_UNKNOWN_MASK
+mask /* bitmask of reason types when unknown output class is reported */
+{
+ SNS_SAM_IOD_REASON_UNKNOWN_LOW_CONFIDENCE_MASK =       0x001,
+ /**< Unknown output class is reported due to low confidence */
+ SNS_SAM_IOD_REASON_UNKNOWN_NIGHT_MASK =          0x002,
+ /**< Unknown output class is reported due to night condition */
+ SNS_SAM_IOD_REASON_UNKNOWN_CONCEALED_MASK =         0x004,
+ /**< Unknown output class is reported because the device is concealed */
+ SNS_SAM_IOD_REASON_UNKNOWN_ALS_LOW_MASK =         0x008,
+ /**< Unknown output class is reported due to low light from ALS sensor */
+ SNS_SAM_IOD_REASON_PARAMETERS_NOT_INITIALIZED =     0x010
+ /**< Unknown output class is reported due to uninitialized parameters such
+   *  as autocalibration value. This unknown reason will be set regardless
+   *  of time of day  */
+} sns_sam_iod_reason_unknown_m;
+/**< Bits to define possible reasons for reporting
+ *  SNS_SAM_IOD_OUTPUT_CLASS_UNKNOWN output class in SNS_SAM_IOD_GET_REPORT_RESP
+ *   and SNS_SAM_IOD_REPORT_IND messages.
+*/
+
+//============================================================================
+// Structures
+//============================================================================
+
+//! @STRUCT sns_sam_iod_sunset_sunrise_ts_s
+struct {
+ uint32 sunset_ts;
+ /**< UTC timestamp for sunset in secs from Unix epoch */
+ uint32 sunrise_ts;
+ /**< UTC timestamp for sunrise in secs from Unix epoch */
+} sns_sam_iod_sunset_sunrise_ts_s;
+/**< Struct defining sunrise/sunset timestamps for IOD algorithm. */
+
+//! @STRUCT sns_sam_iod_report_data_s
+struct {
+ //! Report Timestamp
+ //! @VERSION_INTRODUCED 1.0
+ //! @VERSION 1.0
+    uint32 timestamp;
+ /**<
+  * UTC timestamp in secs since Unix epoch
+ */
+
+ //! Output Class
+ //! @VERSION_INTRODUCED 1.0
+ //! @VERSION 1.0
+ sns_sam_iod_output_class_e output_class;
+ /**<
+   * IOD output class, can be either SNS_SAM_IOD_OUTPUT_CLASS_UNKNOWN or
+   * SNS_SAM_IOD_OUTPUT_CLASS_INDOOR/SNS_SAM_IOD_OUTPUT_CLASS_OUTDOOR
+   * @ENUM ()
+  */
+
+ //! Reasons for Unknown Class
+ //! @VERSION_INTRODUCED 1.0
+ //! @VERSION 1.0
+ sns_sam_iod_reason_unknown_m reason_unknown;
+ /**<
+   * Bitmask to identify reasons for SNS_SAM_IOD_OUTPUT_CLASS_UNKNOWN
+   * output class. This is valid only if the output_class is
+   * SNS_SAM_IOD_OUTPUT_CLASS_UNKNOWN and should be ignored otherwise
+   * @MASK ()
+  */
+
+ //! Confidence
+ //! @VERSION_INTRODUCED 1.0
+ //! @VERSION 1.0
+ float confidence;
+ /**<
+  * Confidence with which a reported output class was detected, that is
+  * for indoor or outdoor reported output class this field would mean
+  * confidence of detection of indoor or outdoor class respectively.
+  * For the unknown reported output class this field would mean confidence
+  * of detection of indoor class. Range is from 0 to 1.
+ */
+} sns_sam_iod_report_data_s;
+
+//============================================================================
+// Requests and Responses
+//============================================================================
+
+//============================================================================
+/** @COMMAND SNS_SAM_IOD_ENABLE
+    @BRIEF This command enables the IOD algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @CMD_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_IOD_ENABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+ mandatory uint32 report_period;
+ /**< Unit of seconds, Q16; value of 0 means reporting on new event only */
+
+ //! Time of Day
+ //! @VERSION_INTRODUCED 1.0
+ //! @VERSION 1.0
+ mandatory uint32 timeofday;
+ /**< UTC timestamp in secs from Unix epoch to sync the ADSP clock */
+
+ //! Sunset and Sunrise Timestamps
+ //! @VERSION_INTRODUCED 1.0
+ //! @VERSION 1.0
+ mandatory sns_sam_iod_sunset_sunrise_ts_s sunset_sunrise_ts;
+ /**< UTC sunset/sunrise timestamps in isecs from Unix epoch
+  *   Sunset/sunrise timestamps will be used by the IOD algorithm to
+  *   determine when to disable/re-enable processing sensors data for
+  *   the night and to report unknown output state with the
+  *   SNS_SAM_IOD_REASON_UNKNOWN_NIGHT reason. Number of seconds since midnight
+  *   corresponding to the sunset timestamp must be greater than number of
+  *   seconds since midnight corresponding to the sunrise timestamp.
+  */
+
+ optional sns_suspend_notification_s notify_suspend;
+ /**< Identifies if indications for this request should be sent
+   when the processor is in suspend state.
+
+   If this field is not specified, default value will be set to
+   notify_suspend->proc_type                  = SNS_PROC_APPS
+   notify_suspend->send_indications_during_suspend  = FALSE
+
+   This field does not have any bearing on error indication
+   messages, which will be sent even during suspend.
+   */
+} sns_sam_iod_enable_req_msg;
+
+//! @MSG     SNS_SAM_IOD_ENABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+ mandatory sns_common_resp_s resp = 2;
+
+ optional uint8 instance_id;
+ /**<
+   Algorithm instance ID maintained/assigned by SAM.
+   The client shall use this instance ID for future messages associated with
+   current algorithm instance.
+   */
+} sns_sam_iod_enable_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_IOD_DISABLE
+    @BRIEF This command disables the IOD algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Low Risk
+    @REQUIRED_ACTION Default
+    @CMD_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_IOD_DISABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+ mandatory uint8 instance_id;
+ /**< Identifies the algorithm instance to be disabled.  */
+} sns_sam_iod_disable_req_msg;
+
+//! @MSG     SNS_SAM_IOD_DISABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+message {
+ mandatory sns_common_resp_s resp = 2;
+
+ optional uint8 instance_id;
+ /**<
+   Algorithm instance ID maintained/assigned by SAM.
+   The client shall use this instance ID for future messages associated with
+   current algorithm instance.
+   */
+} sns_sam_iod_disable_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_IOD_GET_REPORT
+    @BRIEF This command gets report from the IOD algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Low Risk
+    @REQUIRED_ACTION Default
+    @CMD_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_IOD_GET_REPORT_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+ mandatory uint8 instance_id;
+ /**< Identifies the algorithm instance.  */
+} sns_sam_iod_get_report_req_msg;
+
+//! @MSG     SNS_SAM_IOD_GET_REPORT_RESP
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+ mandatory sns_common_resp_s resp = 2;
+
+ optional uint8 instance_id;
+ /**<
+   Algorithm instance ID maintained/assigned by SAM.
+   The client shall use this instance ID for future messages associated with
+   current algorithm instance.
+   */
+
+ optional sns_sam_iod_report_data_s report_data;
+ /**< iod algorithm output report  */
+} sns_sam_iod_get_report_resp_msg;
+
+//============================================================================
+// Indications
+//============================================================================
+
+//============================================================================
+
+/** @COMMAND SNS_SAM_IOD_REPORT
+    @BRIEF Output report from the IOD algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Low Risk
+    @REQUIRED_ACTION Default
+    @DESCRIPTION This report is sent only when the output class changes from it
+     last reported value. It will not be sent if there is a change
+     in the reason code for SNS_SAM_IOD_OUTPUT_CLASS_UNKNOWN output
+     class or in the confidence value while the reported output
+     class remains the same.
+    @CMD_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_IOD_REPORT_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+ mandatory uint8 instance_id;
+ /**< Identifies the algorithm instance.  */
+
+ mandatory uint32 timestamp;
+ /**< Timestamp at which this output is applicable, in SSC ticks */
+
+ mandatory sns_sam_iod_report_data_s report_data;
+ /**< iod algorithm output report.  */
+} sns_sam_iod_report_ind_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_IOD_ERROR
+    @BRIEF Asynchronous error report from a sensor algorithm.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_IOD_ERROR_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//============================================================================
+
+message {
+  mandatory uint8 error; /**< sensors error code */
+  mandatory uint8 instance_id;
+} sns_sam_iod_error_ind_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_IOD_UPDATE
+    @BRIEF This command configures the IOD algorithm after it has been enabled.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @CMD_VERSION 1.0
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_IOD_UPDATE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+message {
+ mandatory uint8 instance_id;
+ /**< Identifies the algorithm instance.  */
+
+ //! Sunset and Sunrise Timestamps
+ //! @VERSION_INTRODUCED 1.0
+ //! @VERSION 1.0
+ optional sns_sam_iod_sunset_sunrise_ts_s sunset_sunrise_ts;
+ /**< UTC sunset/sunrise timestamps in secs from Unix epoch
+  *   Sunset/sunrise timestamps will be used by the IOD algorithm to
+  *   determine when to disable/re-enable processing sensors data for the
+  *   night and to report unknown output state with the
+  *   SNS_SAM_IOD_REASON_UNKNOWN_NIGHT reason
+  */
+
+ //! Confidence Threshold Indoor
+ //! @VERSION_INTRODUCED 1.0
+ //! @VERSION 1.0
+ optional float confidence_threshold_indoor;
+ /**< Threshold for confidence for the indoor output class to be reported in
+  *   SNS_SAM_IOD_REPORT_IND must be above 0.5 ; 0.6 value is used by default
+  */
+
+ //! Confidence Threshold Outdoor
+ //! @VERSION_INTRODUCED 1.0
+ //! @VERSION 1.0
+ optional float confidence_threshold_outdoor;
+ /**< Threshold for confidence for the outdoor output class to be reported in
+  *   SNS_SAM_IOD_REPORT_IND must be above 0.5 ; 0.6 value is used by default
+  */
+} sns_sam_iod_update_req_msg;
+/**< Parameters are optional, but one parameter should be present or an error
+  *  response code will be sent back
+  */
+
+//! @MSG     SNS_SAM_IOD_UPDATE_RESP
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+ mandatory sns_common_resp_s resp = 2;
+
+ optional uint8 instance_id;
+ /**<
+   Algorithm instance ID maintained/assigned by SAM.
+   The client shall use this instance ID for future messages associated with
+   current algorithm instance.
+   */
+} sns_sam_iod_update_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_SAM_IOD_CANCEL
+    @BRIEF Cancels all requests to the algorithm service from this client.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//============================================================================
+/** @COMMAND SNS_SAM_IOD_VERSION
+    @BRIEF This command requests algorithm service version.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//============================================================================
+// Service definition
+//============================================================================
+
+service SNS_SAM_IOD_SVC {
+ //! @ID SNS_SAM_IOD_CANCEL
+ sns_common_cancel_req_msg        SNS_SAM_IOD_CANCEL_REQ,
+ sns_common_cancel_resp_msg       SNS_SAM_IOD_CANCEL_RESP
+   = 0x00;
+
+ //! @ID SNS_SAM_IOD_VERSION
+ sns_common_version_req_msg       SNS_SAM_IOD_VERSION_REQ,
+ sns_common_version_resp_msg      SNS_SAM_IOD_VERSION_RESP
+   = 0x01;
+
+ //! @ID SNS_SAM_IOD_ENABLE
+ sns_sam_iod_enable_req_msg       SNS_SAM_IOD_ENABLE_REQ,
+ sns_sam_iod_enable_resp_msg      SNS_SAM_IOD_ENABLE_RESP
+   = 0x02;
+
+ //! @ID SNS_SAM_IOD_DISABLE
+ sns_sam_iod_disable_req_msg      SNS_SAM_IOD_DISABLE_REQ,
+ sns_sam_iod_disable_resp_msg     SNS_SAM_IOD_DISABLE_RESP
+   = 0x03;
+
+ //! @ID SNS_SAM_IOD_GET_REPORT
+ sns_sam_iod_get_report_req_msg   SNS_SAM_IOD_GET_REPORT_REQ,
+ sns_sam_iod_get_report_resp_msg  SNS_SAM_IOD_GET_REPORT_RESP
+   = 0x04;
+
+ //! @ID SNS_SAM_IOD_REPORT
+ sns_sam_iod_report_ind_msg       SNS_SAM_IOD_REPORT_IND
+   = 0x05;
+
+ //! @ID SNS_SAM_IOD_ERROR
+ sns_sam_iod_error_ind_msg        SNS_SAM_IOD_ERROR_IND
+   = 0x06;
+
+ //! @ID SNS_SAM_IOD_UPDATE
+ sns_sam_iod_update_req_msg    SNS_SAM_IOD_UPDATE_REQ,
+ sns_sam_iod_update_resp_msg   SNS_SAM_IOD_UPDATE_RESP
+   = 0x20;
+
+ //! @ID SNS_SAM_GET_ALGO_ATTRIBUTES
+ sns_sam_get_algo_attrib_req_msg  SNS_SAM_IOD_GET_ATTRIBUTES_REQ,
+ sns_sam_get_algo_attrib_resp_msg SNS_SAM_IOD_GET_ATTRIBUTES_RESP
+   = 0x24;
+
+} = SNS_QMI_SVC_ID_54;
+
+//============================================================================
+// File footer
+//============================================================================
+/**
+@FOOTER
+*/
+
+//============================================================================
+// End of Module
+//============================================================================

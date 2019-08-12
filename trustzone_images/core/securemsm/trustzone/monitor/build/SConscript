@@ -1,0 +1,62 @@
+#===============================================================================
+#
+# Monitor lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/monitor/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who        what, where, why
+# --------   ---        ---------------------------------------------------------
+# 2/14/2010  cap        Initial
+#===============================================================================
+Import('env')
+
+
+if env['CHIPSET'] == "msm8916":
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+elif env['CHIPSET'] == "msm8936":
+    env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+    env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+
+  
+  
+  
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/monitor/common/inc")
+env.Append(CPPPATH = "${COREBSP_ROOT}/api/services")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/include")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/arch/${CHIPSET}/cfg/common")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/arch/${CHIPSET}/src")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/arch/armv7/include")
+env.Append(CPPPATH = "${COREBSP_ROOT}/api/systemdrivers")
+env.Append(CPPPATH = "${COREBSP_ROOT}/api/systemdrivers/hwio/${CHIPSET}/phys")
+env.Append(CPPPATH = "${COREBSP_ROOT}/api/dal")
+env.Append(CPPPATH = "${COREBSP_ROOT}/api/power")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/services/img_auth/inc")
+
+if env['CHIPSET'] == "msm8909w":
+   env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/arch/msm8909/cfg/common")
+   env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/arch/msm8909/src")
+   env.Append(CPPPATH = "${COREBSP_ROOT}/api/systemdrivers/hwio/msm8909/phys")
+
+env.LoadSoftwareUnits(level=1)
+
+# set default script name
+script_fname = "${CHIPSET}.sconscript"
+
+
+env.SConscript(script_fname, exports='env')

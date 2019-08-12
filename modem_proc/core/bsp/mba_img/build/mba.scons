@@ -1,0 +1,360 @@
+#===============================================================================
+#
+# Build Script for MBA
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: 2010/05/11 14:20:50 $
+#  $Change: 1295568 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/28/11   mm      Added test link flags for generating test image
+# 12/02/11   mm      Initial version
+#===============================================================================
+import sys
+import os
+Import('env')
+
+env = env.Clone()
+env1 = env.Clone(MBN_TYPE='bin')
+#
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = ['mba']
+
+# init environment variables
+env.InitImageVars(
+   alias_list=aliases,           # aliases
+   proc='qdsp6',              # proc
+   config='qdsp6_sw',                # config type, proc_name
+   plat='qurt',
+   target='MBA_CORE_IMG_${BUILD_ID}',# target (elf, image file name)
+   build_tags = ['MBA_CORE_SW'],
+   tools = ['${BUILD_ROOT}/core/securemsm/mba/tools/mba_elf_builder.py',
+            'buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/kernel_builders.py',
+			'${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/tools/build/scons/sectools/sectools_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',]
+   )
+
+env1.InitImageVars(
+   alias_list=aliases,           # aliases
+   proc='qdsp6',              # proc
+   config='qdsp6_sw',                # config type, proc_name
+   plat='qurt',
+   target='MBA_CORE_IMG_${BUILD_ID}',# target (elf, image file name)
+   build_tags = ['MBA_CORE_SW'],
+   tools = ['${BUILD_ROOT}/core/securemsm/mba/tools/mba_elf_builder.py',
+            'buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/kernel_builders.py',
+			'${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/tools/build/scons/sectools/sectools_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',]
+   )
+
+if not env.CheckAlias(alias_list=aliases):
+   Return()
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env1.InitBuildConfig()
+env.Replace(USES_MBA = 'yes') 
+env.Replace(USES_DEVCFG = 'yes')
+env.Replace(USES_MULTI_DEVCFG = 'yes')
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DEVCFG_MBA_CORE_SW')
+
+env.Append(CFLAGS='-fstack-protector')
+
+prod_files = []
+prod_files.append(env.BuildProductsFile ("${SHORT_BUILDPATH}/${TARGET_NAME}", "${BUILD_ROOT}/build/ms/bin/${SHORT_BUILDPATH}/mba.mbn")) 
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.Replace(QDSP6_LIBDIR = "${COREBSP_ROOT}/kernel/qurt_mba/install/MBAv5/lib")
+if os.path.exists(env['BUILD_ROOT'] + '/core/bsp/mba_img/cust_config_mba_' + env['MSM_ID'] +'.xml'):
+   env['CONFIG_XML'] = "${BUILD_ROOT}/core/bsp/mba_img/cust_config_mba_${MSM_ID}.xml"
+else:
+   env['CONFIG_XML'] = "${BUILD_ROOT}/core/bsp/mba_img/cust_config_mba.xml"
+env.LoadToolScript('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('qdsp6_defs', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+
+env.Replace(QDSP6OBJS3  = [
+         '${QDSP6_LIBDIR}/libqurt.a',
+         '${QDSP6_LIBDIR}/libqurtcfs.a',
+         '${QDSP6_LIBDIR}/libqurtkernel.a',
+         '${QDSP6_LIBDIR}/libqube_compat.a',
+         '${QDSP6_LIBDIR}/libtimer.a',
+         '${QDSP6_RELEASE_LIB_DIR}/libc.a',
+         '${QDSP6_RELEASE_LIB_DIR}/libqcc.a',
+         '${QDSP6_RELEASE_LIB_DIR}/libstdc++.a',
+         ])
+
+# MBA For Aragorn V1
+if ARGUMENTS.get('aragorn_v1'):
+   env.Replace(HEXAGON_IMAGE_ENTRY='0x0D101000')
+elif env['MSM_ID'] in ['8916','8936','8909','9609','8952','8976','9607','8937']:
+   env.Replace(HEXAGON_IMAGE_ENTRY='0x04417000')
+else:
+   env.Replace(HEXAGON_IMAGE_ENTRY='0xfcc08000')
+env.Replace(LINKFLAGS = "-T ${BUILD_ROOT}/core/bsp/mba_img/build/mba_link_script.txt -m${Q6VERSION} -nostdlib --section-start .start=${HEXAGON_IMAGE_ENTRY} --entry=${HEXAGON_IMAGE_ENTRY} ${LFLAGS}")
+
+#Testing LINK FLAGS below
+#env.Replace(LINKFLAGS = " -m${Q6VERSION} -nostdlib --section-start .start=${HEXAGON_IMAGE_ENTRY} --entry=${HEXAGON_IMAGE_ENTRY} ${LFLAGS}")
+env.Replace(LINKCOM = "${TEMPFILE('$LINK $LINKFLAGS $LINK_DIRS $LINKOBJGRP $HEXAGON_OUTPUT_CMD $TARGET.posix $LINKFLAGS_END')}")
+
+os.environ['CUST_CONFIG_XML']="${BUILD_ROOT}/core/bsp/mba_img/cust_config_mba.xml"
+
+# MBA For Aragorn V1
+if ARGUMENTS.get('aragorn_v1'):
+    env.Append(CCFLAGS = " -DMBA_FOR_ARAGORN_V1 ")
+
+if env['MSM_ID'] in ['8916','8936','8909','9609','8952','8976','9607','8937']:
+  env.Append(CCFLAGS = " -DTARGET_8916 ")
+  env.Append(CPPDEFINES = "TARGET_8916")
+  env.Append(AFLAGS = " -DTARGET_8916 ")
+
+if env['MSM_ID'] in ['8926','8916','8936','8909','8937','9607']:
+  env.Append(CCFLAGS = " -DSEC_PIL_WITH_CRYPTO_ENGINE ")
+  env.Append(CPPDEFINES = "SEC_PIL_WITH_CRYPTO_ENGINE")
+  env.Append(AFLAGS = " -DSEC_PIL_WITH_CRYPTO_ENGINE ")
+
+if env['MSM_ID'] in ['9x35','9607']:
+  env.Append(CCFLAGS = " -DFEATURE_MDM_MBA ")
+  env.Append(CPPDEFINES = "FEATURE_MDM_MBA ")
+  env.Append(AFLAGS = " -DFEATURE_MDM_MBA ")
+
+
+if env['MSM_ID'] in ['8937']:
+  env.Append(CCFLAGS = " -DFEATURE_TLMM_CONFIG ")
+  env.Append(CPPDEFINES = "FEATURE_TLMM_CONFIG ")
+  env.Append(AFLAGS = " -DFEATURE_TLMM_CONFIG ")
+  
+if env['MSM_ID'] in ['8937']:
+  env.Append(CCFLAGS = " -DFEATURE_MODEM_ANTI_ROLLBACK ")
+  env.Append(CPPDEFINES = "FEATURE_MODEM_ANTI_ROLLBACK ")
+  env.Append(AFLAGS = " -DFEATURE_MODEM_ANTI_ROLLBACK ")
+  
+  
+  
+env.Append(CCFLAGS = " -DSEC_PIL_WITH_SECBOOT_LIB ")
+env.Append(CPPDEFINES = "SEC_PIL_WITH_SECBOOT_LIB")
+env.Append(AFLAGS = " -DSEC_PIL_WITH_SECBOOT_LIB ")
+
+
+
+
+if env['MSM_ID'] in ['9x25']:
+  env.Append(CCFLAGS = " -DFEATURE_SEGMENTED_AUTH_DISABLE ")
+  env.Append(CPPDEFINES = "FEATURE_SEGMENTED_AUTH_DISABLE")
+  env.Append(AFLAGS = " -DFEATURE_SEGMENTED_AUTH_DISABLE ")
+
+
+if env['MSM_ID'] in ['8952','8976']:
+  env.Append(CCFLAGS = " -DFEATURE_NO_XPU ")
+  env.Append(CPPDEFINES = "FEATURE_NO_XPU")
+  env.Append(AFLAGS = " -DFEATURE_NO_XPU ")
+
+
+env.Append(CPPDEFINES=['MODEM_FW_NUM_PRIO=75'])
+
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+mba_img_libs = []
+mba_img_objs = []
+
+#----------------------------------------------------------------------------
+# Begin building MBA
+#----------------------------------------------------------------------------
+env.Replace(MBA_ROOT = '${COREBSP_ROOT}/securemsm/mba')
+env.Replace(FLASH_TYPE = 'sdcc') 
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+# load Core BSP libs/objs build rules.
+au_items = env.LoadAreaSoftwareUnits('core')
+mba_img_libs.extend(au_items['LIBS'])
+mba_img_objs.extend(au_items['OBJS'])
+
+mba_img_units = [mba_img_objs, mba_img_libs]
+
+#------------------------------------------------------------------------------
+# Decide which build steps to perform
+#------------------------------------------------------------------------------
+# Regular build steps (no filter) is build everything, once a user starts
+# using filters we have to make decisions depending on user input.
+#
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units, 
+# etc.  This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quartz, stubs, etc.
+
+do_local_files = True
+do_link = True
+do_post_link = True
+
+# Get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# Limit build processing based on filter option
+if filter_opt is not None:
+   do_link = False
+   do_post_link = False
+
+   if not env.FilterMatch(os.getcwd()):
+      do_local_files = False     
+     
+if do_link:
+   #----------------------------------------------------------------------------
+   # Generate MBA ELF
+   #---------------------------------------------------------------------------- 
+   mba_elf = env.Program('${SHORT_BUILDPATH}/${TARGET_NAME}', source=mba_img_objs, LIBS=mba_img_libs)
+	     
+   mba_map = env.SideEffect(env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.map'), mba_elf)
+   mba_sym = env.SideEffect(env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.sym'), mba_elf)
+
+   env.Clean(mba_elf, mba_map)
+   env.Clean(mba_elf, mba_sym)
+
+if do_post_link:
+   mba_img_units += prod_files
+   if env['MSM_ID'] in ['8916','8936','8909','9609','8952','8976','9607','8937']:
+      #----------------------------------------------------------------------------
+      # Generate MBA MBN
+      #----------------------------------------------------------------------------
+      mba_mbn = env.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', mba_elf,
+         IMAGE_TYPE='mba', MBN_TYPE='elf', FLASH_TYPE='sdcc', MBN_FILE="${BUILDPATH}/mba_tmp")
+
+      install_unsigned_path = os.path.join(env.SectoolGetUnsignedInstallPath(install_base_dir = '${MBN_ROOT}'), "mba.mbn") 
+      install_target_elf = env.InstallAs(install_unsigned_path, mba_mbn)
+
+      #----------------------------------------------------------------------------
+      # Sectools signing
+      #----------------------------------------------------------------------------
+      # Default mapping will be used if msm_jtag_mapping.xml does not exist
+      msm_jtag_mapping_path = env.RealPath('${BUILD_ROOT}/build/ms/msm_jtag_mapping.xml')
+      sectools_signed_mbn = env.SectoolBuilder(
+            target_base_dir = '${SHORT_BUILDPATH}', 
+            source=mba_mbn, 
+            sign_id="mba",
+            msmid = env['MSM_ID'],
+            sectools_install_base_dir = "${MBN_ROOT}",
+            install_file_name = "mba.mbn",            
+            msm_jtag_mapping_file=msm_jtag_mapping_path)
+      mba_img_units += sectools_signed_mbn
+
+      #----------------------------------------------------------------------------
+      # Build the PIL ELF 
+      #----------------------------------------------------------------------------
+    
+      if 'USES_PIL' in env:
+         #-------------------------------------------------------------------------
+         # Split mbn file for PIL
+         #-------------------------------------------------------------------------
+         env.LoadToolScript("${BUILD_ROOT}/core/bsp/build/scripts/pil_splitter_builder.py")
+   
+         split_files = env.PilSplitterBuilder("${SHORT_BUILDPATH}/SPLITBINS_${SHORT_BUILDPATH}/${PIL_SPLITTER_PREFIX}.mdt", install_target_elf)
+         install_pil = env.Install("${BUILD_ROOT}/build/ms/bin/PIL_IMAGES", split_files[0].dir)
+         mba_img_units+= install_pil   
+         split_files = env.PilSplitterBuilder('${BUILD_ROOT}/build/ms/bin/${PIL_BUILDPATH}/${PIL_SPLITTER_PREFIX}.mdt', install_target_elf)
+         mba_img_units+= split_files
+   
+      #============================================================================
+      # Define units that will be built
+      #============================================================================
+      mba_img_units += install_target_elf
+       
+   else:   
+      #----------------------------------------------------------------------------
+      # Generate MBA BIN
+      #----------------------------------------------------------------------------
+      mba_q6_bin = env.HexagonBinBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', mba_elf)
+      
+      #----------------------------------------------------------------------------
+      # Generate MBA MBN
+      #----------------------------------------------------------------------------
+      mba_mbn = env.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', mba_q6_bin,
+         IMAGE_TYPE='mba', MBN_TYPE='bin', FLASH_TYPE='sdcc', MBN_FILE="${BUILDPATH}/mba_tmp")
+
+      if env['MSM_ID'] in ['8974','8926','8962']:
+          mba_elf_wrap = env.MbaElfBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}_wrap', mba_mbn, MBA_IMAGE_ENTRY = '0x0D100000',ENABLE_RELOCATABLE=False)
+          
+          mba_elf_wrap_reloc = env.MbaElfBuilder('${SHORT_BUILDPATH}/reloc/${TARGET_NAME}_wrap', mba_mbn, MBA_IMAGE_ENTRY = '0x0D100000', ENABLE_RELOCATABLE=True)
+          
+          mba_elf_wrap_wp = env.MbaElfBuilder('${SHORT_BUILDPATH}/wp/${TARGET_NAME}_wrap', mba_mbn, MBA_IMAGE_ENTRY = '0x0C300000', ENABLE_RELOCATABLE=False)
+          
+      elif env['MSM_ID'] in ['9x25']:
+          mba_elf_wrap = env.MbaElfBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}_wrap', mba_mbn, MBA_IMAGE_ENTRY = '0x00200000')
+      elif env['MSM_ID'] in ['8x26']:
+          mba_elf_wrap = env.MbaElfBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}_wrap', mba_mbn, MBA_IMAGE_ENTRY = '0x0CE00000')
+
+      mba_pil_mbn = env1.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}_pil_elf', mba_elf_wrap, IMAGE_TYPE="mba_elf", FLASH_TYPE='sdcc', MBN_FILE="mba")
+
+
+      if env['MSM_ID'] in ['9x25']:
+        if 'USES_DIME_1_1' in env:
+          install_target_pil_elf = env1.InstallAs('${MBN_ROOT}/mba.mbn', mba_pil_mbn)
+        else:
+          install_target_elf = env.InstallAs('${MBN_ROOT}/mba.mbn', mba_elf_wrap)
+      else:
+        install_target_elf = env.InstallAs('${MBN_ROOT}/mba.mbn', mba_elf_wrap)
+        install_target_elf_reloc = env.InstallAs('${MBN_ROOT}/reloc/mba.mbn', mba_elf_wrap_reloc)
+        install_target_elf_wp = env.InstallAs('${MBN_ROOT}/wp/mba.mbn', mba_elf_wrap_wp)
+          
+      
+
+      #----------------------------------------------------------------------------
+      # Build the PIL ELF 
+      #----------------------------------------------------------------------------
+      
+      
+      
+      if 'USES_PIL' in env:
+         #-------------------------------------------------------------------------
+         # Split mbn file for PIL
+         #-------------------------------------------------------------------------
+         env.LoadToolScript("${BUILD_ROOT}/core/bsp/build/scripts/pil_splitter_builder.py")
+      
+         split_files = env.PilSplitterBuilder("${SHORT_BUILDPATH}/SPLITBINS_${SHORT_BUILDPATH}/${PIL_SPLITTER_PREFIX}.mdt", install_target_elf)
+         install_pil = env.Install("${BUILD_ROOT}/build/ms/bin/PIL_IMAGES", split_files[0].dir)
+         mba_img_units+= install_pil   
+         split_files = env.PilSplitterBuilder('${BUILD_ROOT}/build/ms/bin/${PIL_BUILDPATH}/${PIL_SPLITTER_PREFIX}.mdt', install_target_elf)
+         mba_img_units+= split_files
+      
+      #============================================================================
+      # Define units that will be built
+      #============================================================================
+      if env['MSM_ID'] in ['9x25']:
+        if 'USES_DIME_1_1' in env:
+          mba_img_units += install_target_pil_elf 
+        else:
+          mba_img_units += install_target_elf 
+      else:
+        mba_img_units += install_target_elf 
+        mba_img_units += install_target_elf_reloc
+        mba_img_units += install_target_elf_wp
+   
+# Add aliases
+for alias in aliases:
+   env.Alias(alias, mba_img_units)

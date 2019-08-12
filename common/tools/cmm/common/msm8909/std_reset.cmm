@@ -1,0 +1,119 @@
+//============================================================================
+//  Name:                                                                     
+//    std_reset.cmm 
+//
+//  Description:                                                              
+//		Top level reset script
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------------------
+// 09/10/2013 AJCheriyan        Disable PMIC watchdog added
+// 05/25/2013 AJCheriyan        Removed chip revision checking during reset
+// 02/12/2013 AJCheriyan	Rebased to 8974 version of script
+// 02/11/2013 AJCheriyan	Pulled in DLOAD cookie clearing logic from HLOS reset scripts
+// 02/08/2013 AJCheriyan	Added change to clear boot partition select / watchdog enable registers
+// 10/10/2012 AJCheriyan	Added change to go to end of RPM boot loader to turn on IMEM clocks
+// 08/13/2012 AJCheriyan	Manually reset the security block to workaround V1 HW bug
+// 07/19/2012 AJCheriyan    Created for B-family (8974)
+//
+
+LOCAL &DLOAD_COOKIE1_ADDR &DLOAD_COOKIE2_ADDR
+
+// DLOAD Cookies in OCIMEM
+&DLOAD_COOKIE1_ADDR=0x8600000
+&DLOAD_COOKIE2_ADDR=0x8600004
+
+MAIN:
+
+	// Check for any active sessions
+	do std_intercom_init CHECKSESSION 4 RPM APPS0 MPSS WCNSS
+	
+	// "Reset" all T32 sessions except APPS
+	IF (("&RPM_ALIVE"!="0.")&&("&RPM_ALIVE"!=""))
+	(
+		INTERCOM.EXECUTE &RPM_PORT SYS.D
+	)
+	IF (("&APPS1_ALIVE"!="0.")&&("&APPS1_ALIVE"!=""))
+	(
+		INTERCOM.EXECUTE &APPS1_PORT SYS.D
+	)
+	IF (("&APPS2_ALIVE"!="0.")&&("&APPS2_ALIVE"!=""))
+	(
+		INTERCOM.EXECUTE &APPS2_PORT SYS.D
+	)
+	IF (("&APPS3_ALIVE"!="0.")&&("&APPS3_ALIVE"!=""))
+	(
+		INTERCOM.EXECUTE &APPS3_PORT SYS.D
+	)
+	IF (("&MPSS_ALIVE"!="0.")&&("&MPSS_ALIVE"!=""))
+	(
+		INTERCOM.EXECUTE &MPSS_PORT SYS.D
+	)
+	IF (("&WCNSS_ALIVE"!="0.")&&("&WCNSS_ALIVE"!=""))
+	(
+		INTERCOM.EXECUTE &WCNSS_PORT SYS.D
+	)
+
+	// Reset RPM last
+	IF ((("&APPS0_ALIVE"!="0.")&&("&APPS0_ALIVE"!=""))||("&LOCALHOST"=="&APPS0_PORT"))
+	(
+		INTERCOM.EXECUTE &APPS0_PORT SYS.U
+
+		// Load HWIO
+		do hwio
+
+		// Clear the Boot Partition Select Register and Watchdog debug for all revs
+		;do std_utils HWIO_OUT BOOT_PARTITION_SELECT 0x0
+		;do std_utils HWIO_OUT GCC_WDOG_DEBUG 0x0
+		
+		&ACCESS="AXI"
+		
+		do std_utils HWIO_OUT TCSR_BOOT_MISC_DETECT 0x0
+		do std_utils HWIO_OUT TCSR_RESET_DEBUG_SW_ENTRY 0x0
+		do std_utils HWIO_OUT GCC_RESET_DEBUG 0x400000
+		
+		// We need to go to the end of the APPS boot rom to be able to properly reset the system
+		// We CANNOT use std_debug here because it could be a recursive call
+		;GO 0x2F94A /ONCHIP
+
+		;WAIT !RUN()
+
+		// Enable IMEM clock branch
+		;do std_utils HWIO_OUTF GCC_IMEM_CFG_AHB_CBCR CLK_ENABLE 0x1
+
+		// Disable PMIC watchdog
+		;do std_utils EXECUTESCRIPT EXIT	&RPM_BUILDROOT/rpm_proc/core/systemdrivers/pmic/scripts/PMICWdogctrl.cmm 0 
+
+		// Add changes for other chipset revs here
+
+		// Now clear the cookies
+		;DATA.SET E&ACCESS:&DLOAD_COOKIE1_ADDR %LE %LONG 0x0
+		;DATA.SET E&ACCESS:&DLOAD_COOKIE2_ADDR %LE %LONG 0x0
+		
+		// Call the HLOS specific reset script
+		&HLOSCRIPT=STR.LWR("&HLOS")+"/std_reset_"+STR.LWR("&HLOS")      
+		do &HLOSCRIPT
+
+	)
+	
+	GOTO EXIT
+
+
+
+FATALEXIT:
+	END
+
+EXIT:
+	ENDDO
+
+
+

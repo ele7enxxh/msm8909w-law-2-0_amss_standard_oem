@@ -1,0 +1,83 @@
+#===============================================================================
+#
+# APT Libs
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2009-2013 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who   what, where, why
+# ----------  ---   -------------------------------------------------------------
+# 2013-05-13  jihok Created.
+#
+#================================================================================
+
+import sys
+Import('env')
+env = env.Clone()
+apt_scripts_path = env.RealPath('${BUILD_ROOT}/core/apt/build/')
+sys.path.append(apt_scripts_path)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/apt/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   # Boot logging API
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'APT',
+   'SERVICES',
+
+   # needs to be last as it may contain wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# APT source files
+#-----------------------------------------------------------------------------
+
+APT_SOURCES = [
+    '${BUILDPATH}/boot_apt_test.c',
+    '${BUILDPATH}/boot_apt_test_asm.s'
+]
+apt_obj = env.Object(APT_SOURCES)
+apt_lib = env.Library('${BUILDPATH}/apt', apt_obj)
+
+#-----------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage(['APT_BOOT_DRIVER'], apt_lib)
+
+

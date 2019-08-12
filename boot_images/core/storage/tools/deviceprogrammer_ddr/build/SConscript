@@ -1,0 +1,131 @@
+#===============================================================================
+#
+# DEVICEPROGRAMMER build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010, 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/tools/deviceprogrammer_ddr/build/SConscript#2 $
+#  $DateTime: 2015/09/13 23:33:33 $
+#  $Author: pwbldsvc $
+#  $Change: 9017835 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2014-15-12   sb      Merge deviceprogrammer into SBL
+# 2014-07-02   sb      Updated to support 8909
+# 2013-03-07   ab      Initial firehose checkin for deviceprogrammer on 8974
+#
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+if env['MSM_ID'] in ['9x45']:
+   Return()
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/tools/deviceprogrammer_ddr/src/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'CS',
+   'DSM',
+   'MODEM_1X',
+   'MODEM_ADIE',
+   'MODEM_DATA',
+   'MODEM_FTM',
+   'MODEM_GERAN',
+   'MODEM_GPS',
+   'MODEM_HDR',
+   'MODEM_MDSP',
+   'MODEM_NAS',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+   'MODEM_UIM',
+   'MODEM_WCDMA',
+   'MULTIMEDIA_AUDIO',
+   'MULTIMEDIA_DISPLAY',
+   'MULTIMEDIA_GRAPHICS',
+   'MULTIMEDIA',
+   'WIRELESSCONNECTIVITY',
+   'MODEM_PMIC_EXTERNAL'
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'HAL',
+   'HWIO',
+   'BUSES',
+   'DEBUGTOOLS',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'POWER',
+   'SECUREMSM',
+   'SENSORS',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h   
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi('DEVICEPROGRAMMER', [
+    "${INC_ROOT}/core/storage/tools/deviceprogrammer_ddr/src/bsp/",
+    "${INC_ROOT}/core/storage/tools/deviceprogrammer_ddr/src/firehose/",
+    "${INC_ROOT}/core/storage/tools/deviceprogrammer_ddr/src/emmc/",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+DEVICEPROGRAMMER_SOURCES = [
+    '${BUILDPATH}/firehose/deviceprogrammer_initialize.c',
+    '${BUILDPATH}/firehose/deviceprogrammer_utils.c',
+    '${BUILDPATH}/firehose/deviceprogrammer_firehose.c',
+    '${BUILDPATH}/emmc/deviceprogrammer_storage_device.c',
+    '${BUILDPATH}/firehose/deviceprogrammer_xml_parser.c',
+    '${BUILDPATH}/firehose/deviceprogrammer_security.c',
+]
+
+DEVICEPROGRAMMER_SOURCES += [
+    '${BUILDPATH}/bsp/deviceprogrammer_bsp_8974.c',
+]
+
+if env['MSM_ID'] in ['8909','8909w']:
+   env.Append(CPPDEFINES = "DEVPROG_HWIO_INCLUDE_H=\\\"msmhwioreg_8909.h\\\"")
+else:
+   env.Append(CPPDEFINES = "DEVPROG_HWIO_INCLUDE_H=\\\"msmhwioreg.h\\\"")  
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibrary(['DEVICEPROGRAMMER_IMAGE'], '${BUILDPATH}/deviceprogrammer', DEVICEPROGRAMMER_SOURCES)

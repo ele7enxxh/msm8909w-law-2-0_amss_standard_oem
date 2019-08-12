@@ -1,0 +1,103 @@
+
+
+
+[*======================= COPYRIGHT NOTICE ======================*]
+[* Copyright 2011 QUALCOMM Incorporated.                         *]  
+[* All rights reserved.                                          *] 
+[*                                                               *]   
+[* All data and information contained in or disclosed by this    *]
+[* document is confidential and proprietary information of       *]
+[* QUALCOMM Incorporated and all rights therein are expressly    *]
+[* reserved. By accepting this material the recipient agrees     *]
+[* that this material and the information contained therein is   *]
+[* held in confidence and in trust and will not be used, copied, *]
+[* reproduced in whole or in part, nor its contents revealed in  *]
+[* any manner to others without the express written permission   *]
+[* of QUALCOMM.                                                  *]
+[*===============================================================*]
+
+
+
+HEXAGON QuRT RTOS VERSION 02.00.03 - RELEASE NOTES (since 2.0.0)
+
+* Overview
+
+    - Bug Fixes 
+    - Kernel SCons build 
+    - Qmutex and PI Mutex optimization
+	- MPQuRT
+    
+
+* Bug Fixes
+
+    - Increase kernel stack for system initialization. This is to unblock 8974 
+	bringup. In future, boot shall use separate stack than kernel.
+	
+	- Fix a mutex race condition.  Previously in mutex_unlock, the wait_count 
+	is read before setting the holder to 0xFE.  This is prone to race condition 
+	as in mutex_lock, the holder is read and if not equaled to 0xFE, the 
+	wait_count is then incremented.
+	
+	- use kernel_virtual space only in case of config_mp=y, use only 
+	default_virt_pool otherwise. In case config_mp=n kernel_virt_space 
+	remains existing, but is empty.
+	
+	- Fix a race condition found in mutex_unlock where the queue_id becomes 
+	zero after the mutex is unlocked.  This can occur if a thread unlocks 
+	the mutex (writing 0xFE to holder) and is then preempted before it reads 
+	the queue Id.  When the thread resumes, the queue Id may be zeroed if the 
+	mutex is destroyed by another thread.
+	
+	- Fix QURTK_reset_reason get wrong value
+	
+	- Fix Floating point err handler clober the registers
+	
+* Kernel SCons build
+- QuRT supports Scons and therefore can be integrated with other Scons based build systems.
+
+Instruction for setting up Scons build system environemnt on Windows:
+    - Install Python 2.5.2 or above
+    - Install Scons 2.1 or above for Windows
+    - Make sure <python path> and <python scripts path> are in the ENVIRONMENT
+        -eg: C:\Python26 and C:\Python26\scripts
+
+Instruction for setting up Scons build system environemnt on Unix:
+    - Make sure Python 2.5.2 or above are in the path
+    - Under Unix, download and unzip the .zip Scons library from the internet on your mapped Linux Disk
+  	- "cd" into the downloaded scons folder
+    - Run "python setup.py install --prefix=$HOME" and make sure to attach the path in the Environment PATH variable.
+
+Command for kernel installation
+    For Usage details:
+    scons --help
+    
+    Usage:
+    scons qurt --target=TARGET [OPTIONS]
+    
+    TARGET 
+              - modemv5, for modem build based on Hexagon v5  
+              -	MMv5, for Multimedia build based on Hexagon v5
+              -	staticv5, for MBA build based on Hexagon v5
+    
+    
+    [OPTIONS]
+                --install_dir=<INSTALL DIRECTORY>            #Install Directory
+                --build_dir=<BUILD_DIRECTORY>                #Build Directory
+                --q6_tools_root=<Q6_TOOLS_ROOT>              #Q6 tools directory                   
+                -c                                           #Cleaning the installation
+
+
+
+* Qmutex and PI Mutex optimization
+
+    - In essence the changes made here were to reduce the number of instruction 
+	packets being executed along the lock/unlock path. It was observed that the 
+	C implementations resulted in a lot more packets than necessary when compiled.
+	
+	- Secondly there were shortcuts incorporated to restore the stack and return 
+	back to the caller in a single return rather than multiple allocframe, 
+	deallocframe and call statements.
+	
+* MPQuRT
+	
+

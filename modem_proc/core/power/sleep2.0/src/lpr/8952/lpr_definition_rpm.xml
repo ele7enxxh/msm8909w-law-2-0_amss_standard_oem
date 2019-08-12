@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  RPM Sleep Low Power Resource/Mode definitions
+
+  Copyright (c) 2012-2014 Qualcomm Technologies, Inc. (QTI).
+  All Rights Reserved.
+  Qualcomm Technologies Confidential and Proprietary
+-->
+
+<!--
+Format of Enter/Exit/Backoff latency fields:
+"<Fixed>,<Scaled>"
+Fixed - Unscaled value that is always added to each frequency table entry
+Scaled - Value that will be scaled at 1:1 ratio according to frequency table entries
+         and the initial base profile frequency given via ProfileFreq
+
+
+Bitwise attribute values (see sleep_mode_attribute enum for full description):
+  0x01 - No reference count
+  0x02 - No function lock
+  0x04 - Force LPRM to contribute to QR event; All synth modes containing the component will be updated
+  0x08 - No automatic latency tracking
+  0x10 - LPRM is cacheable
+-->
+
+<!--
+New Enter Latency = orig rpm_sync enter latency + enter latency of removed vdd dig
+                  = 28500 + 5100
+                  = 33600
+New Exit Latency = orig rpm_sync exit latency + exit latency of removed vdd dig
+                  = 26300 + 5100
+                  = 31400
+-->
+
+<LPRDefinition>
+  <LPR Name="rpm" CoreMask="0xFFFFFFFF" ProfileFreq="576000">
+    <Mode Name="sync"
+          Dependency="cpu_vdd.apcr_rail_lpm | cpu_vdd.pc_l2_noret | cpu_vdd.pc_noret"
+          Order="AFTER cxo.shutdown"
+          PowerSavings="-10,2"
+          EnterLat="19200"
+          ExitLat="19200"
+          Backoff="2300"
+          EnterFn="RPMSyncLPR_enter"
+          ExitFn="RPMSyncLPR_exit"
+          Supported="TRUE"
+          >
+    </Mode>
+    <Mode Name="sync_only"
+          Dependency="cpu_vdd.apcr_rail_lpm | cpu_vdd.pc_l2_noret"
+          Order="BEFORE cpu_vdd"
+          PowerSavings="-10, 1"
+          EnterLat="19200"
+          ExitLat="19200"
+          Backoff="2300"
+          EnterFn="RPMSyncLPR_enter"
+          ExitFn="RPMSyncLPR_exit"
+          Supported="TRUE"
+          >
+    </Mode>
+  </LPR>
+</LPRDefinition>

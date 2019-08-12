@@ -1,0 +1,58 @@
+#===============================================================================
+#
+# Modem wrapper script
+#
+# GENERAL DESCRIPTION
+#    build script to load modem data software units
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/data/1x/build/rel/10.02.02/data_1x.scons#1 $
+#  $DateTime: 2010/10/05 13:12:17 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/31/10   ack     Initial revision
+#
+#===============================================================================
+Import('env')
+
+env = env.Clone()
+
+env.Replace(USES_PDCP = True)
+
+if 'USES_MOB' not in env:
+  env.Append(CCFLAGS = ' -Werror-high -Werror-medium')
+  env.Append(CXXFLAGS = ' -Werror-high -Werror-medium')
+
+
+#env.Replace(MSVC_WARN = '/W3 /WX /wd4013 /wd4005')
+
+import copy
+orig_env = env
+env = env.Clone()
+env['CFLAGS'] = copy.deepcopy(orig_env['CFLAGS'])
+
+# Set -Werror compiler flag to treat warnings as errors
+if env['CFLAGS'].count('-Wno-low') > 0:
+  env['CFLAGS'].remove('-Wno-low')
+
+if env['CFLAGS'].count('-Wno-medium') > 0:
+  env['CFLAGS'].remove('-Wno-medium')
+
+if env['CFLAGS'].count('-Wno-high') > 0:
+  env['CFLAGS'].remove('-Wno-high')
+
+if env['CFLAGS'].count('-Wno-error') > 0:
+  env['CFLAGS'].remove('-Wno-error')
+  
+env.LoadSoftwareUnits()

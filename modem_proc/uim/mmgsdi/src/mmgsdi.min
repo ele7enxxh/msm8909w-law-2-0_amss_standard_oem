@@ -1,0 +1,65 @@
+#-------------------------------------------------------------------------------
+# MMGSDI
+#-------------------------------------------------------------------------------
+MMGSDI_SOURCES=\
+	mmgsdi_nv.c \
+	mmgsdi_efs.c \
+	mmgsdi_cphs.c \
+	mmgsdi_perso_engine.c \
+	mmgsdi_perso_engine_ruim.c \
+	mmgsdi_perso_sec.c \
+	mmgsdi_icc.c \
+	mmgsdi_cnf.c \
+	mmgsdilib.c \
+	mmgsdi_sap.c \
+	mmgsdi_sap_rsp.c \
+	mmgsdi_gen.c \
+	mmgsdi_gen_rsp.c \
+	mmgsdi_uicc.c \
+	mmgsdi_uim_uicc.c \
+	mmgsdi_uim_icc.c \
+	mmgsdi_icc_rsp.c \
+	mmgsdi_uicc_rsp.c \
+	mmgsdibt.c \
+	mmgsdiutil.c \
+	mmgsdi.c \
+	mmgsdi_session.c \
+	virtuim.c \
+	virtsat.c \
+	mmgsdi_ruim_jcdma.c \
+	mmgsdi_mflo.c \
+	mmgsdi_refresh.c \
+	mmgsdi_refresh_rsp.c \
+	mmgsdi_convert.c \
+	mmgsdi_evt.c \
+	mmgsdisessionlib.c \
+	mmgsdicache.c \
+	mmgsdi_card_init.c \
+	mmgsdi_task_init.c \
+	mmgsdi_eons.c \
+	mmgsdi_file_update.c \
+	mmgsdi_se13.c \
+	mmgsdi_multi_profile.c \
+MMGSDI_OBJS :=  $(addprefix $(TARGETDIR)/, $(MMGSDI_SOURCES:%.c=%.o))
+vpath %.c $(MMGSDI_SRC)
+
+ifeq ($(BIG),yes)
+        MMGSDI_OBJS := $(TARGETDIR)/mmgsdi.lib
+else
+        MMGSDI_OBJS :=  $(addprefix $(TARGETDIR)/, $(MMGSDI_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/mmgsdi.lib : $(MMGSDI_SOURCES)
+	$(group_c_compile)
+
+
+### Start Lint block ###
+ifeq ($(DO_LINT),yes)
+
+MMGSDI_LINT_OBJS := $(addprefix $(LINTDIR)/, $(MMGSDI_SOURCES:%.c=%.lint))
+
+# Specify group target for linting MMGSDI unit
+$(LINTDIR)/mmgsdi_lint : $(MMGSDI_LINT_OBJS)
+
+endif
+### End Lint block ###

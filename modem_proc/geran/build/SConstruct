@@ -1,0 +1,53 @@
+#
+# SU-level SConstruct file
+#
+# Copyright (c) 2009-2013 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/geran/build/SConstruct#1 $
+#
+#===============================================================================
+import os
+import glob
+import time
+
+
+env.PrintInfo("------------------------------------------------------------------------------")
+env.PrintInfo("   Loading MODEM build system")
+env.PrintInfo("------------------------------------------------------------------------------")
+
+#------------------------------------------------------------------------------
+# Get system Environment
+#------------------------------------------------------------------------------
+env = DefaultEnvironment(ENV = os.environ, tools = ['mingw'])
+#env = DefaultEnvironment(ENV = os.environ)
+#env = Environment(ENV = os.environ, platform = 'posix')
+#env = Environment(ENV = os.environ, platform = 'cygwin')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Set global variables and defaults
+#------------------------------------------------------------------------------
+#t_start = time.clock()
+
+BUILD_ROOT = '../../../'  #for modem/SU/build
+env.Replace(BUILD_ROOT = BUILD_ROOT)
+
+#import pdb; pdb.set_trace()
+
+#next block from defaults.py  (in all cases, default=/build replaced with /+scons
+
+#these global patterns affect all AU's, not just modem
+#affects image units only
+
+# Next line specifies pattern to find images in modem AU only (ie. ignores CoreBSP targets)
+env.Replace(IMAGE_ROOT_DIR_PATTERNS = ['${BUILD_ROOT}/modem/geran/build/images/*',])
+
+env.Tool('ComSConstruct', toolpath = ['${BUILD_ROOT}/core/bsp/build/tools'])
+
+#t_end = time.clock()
+#env.PrintInfo("** SConsctruct Elapsed time = " + str(round(t_end - t_start, 3)))

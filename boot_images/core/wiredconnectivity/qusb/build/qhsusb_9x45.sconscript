@@ -1,0 +1,154 @@
+#
+# Copyright (c) 2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: 
+#  $DateTime: 
+#  $Author: pwbldsvc $
+#  $Change: 
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who       what, where, why
+# --------    ---       ---------------------------------------------------------
+# 2014-05-27  shreyasr  Initial draft created for 9x45
+# 2013-06-19  shreyasr  Initial draft created for 9x35
+#===============================================================================
+Import('env')
+env = env.Clone()
+#-------------------------------------------------------------------------------
+# Defines
+#-------------------------------------------------------------------------------
+
+#To Enable the Fast enumeration feature please add 'FEATURE_QUSB_FAST_ENUMERATION'
+#whenever env.has_key('HSUSB_BOOT_DRIVER')
+
+if env.has_key('SBL1_BOOT') or env.has_key('HSUSB_BOOT_DRIVER') or env.has_key('EHOSTDL_IMAGE') or env.has_key('HOSTDL_IMAGE') or env.has_key('FIREHOSE_IMAGE'):
+   env.Append(CPPDEFINES = ['QUSB_ENABLE_LOGGING'])
+
+if env.has_key('EHOSTDL_IMAGE') or env.has_key('HOSTDL_IMAGE'):
+   env.Append(CPPDEFINES = ['FEATURE_SKIP_SERIAL_STR_UPDATE'])
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/wiredconnectivity/qusb/src/"
+
+# Setup object file destination location.
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+    'BOOT',
+    'STORAGE',
+    'SERVICES',
+    'HWIO_API',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'DAL',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+]
+
+env.RequirePublicApi( CBSP_API )
+env.RequireRestrictedApi( CBSP_API )
+
+env.PublishPrivateApi('QUSB_CLASSES', [
+   "${BUILD_ROOT}/core/wiredconnectivity/qusb/inc/",
+   "${BUILD_ROOT}/core/wiredconnectivity/qusb/src/dci/",
+   "${BUILD_ROOT}/core/wiredconnectivity/qusb/src/dcd/",
+   "${BUILD_ROOT}/core/wiredconnectivity/qusb/src/al/",
+   "${BUILD_ROOT}/core/wiredconnectivity/qusb/src/func/",
+   "${BUILD_ROOT}/core/wiredconnectivity/qusb/src/common",
+])
+env.PublishPublicApi('WIREDCONNECTIVITY', [
+    "${BUILD_ROOT}/core/api/wiredconnectivity",
+])
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi('RFA', 'pmic')
+#-------------------------------------------------------------------------------
+# Source Code and LIBs
+#-------------------------------------------------------------------------------
+
+QUSB_DCI_SOURCES = [
+    '${BUILDPATH}/dci/qusb_dci.c',
+    '${BUILDPATH}/dci/qusb_dci_${MSM_ID}.c',
+]
+
+if env.has_key('HSUSB_BOOT_DRIVER') or env.has_key('EHOSTDL_IMAGE') or env.has_key('HOSTDL_IMAGE') or env.has_key('FIREHOSE_IMAGE'):
+                QUSB_DCI_SOURCES += [
+                '${BUILDPATH}/dci/qusb_dci_${MSM_ID}_hw_apis_sbl1.c',
+                ]
+
+QUSB_DCD_SOURCES = [
+   '${BUILDPATH}/dcd/qusb_dcd_ch9.c',
+]
+
+QUSB_AL_BULK_SOURCES = [
+   '${BUILDPATH}/al/qusb_al_bulk.c',
+]
+
+QUSB_AL_FAST_ENUM_SOURCES = [
+   '${BUILDPATH}/al/qusb_al_fast_enum.c',
+]
+
+QUSB_FD_BTLDR_SOURCES = [
+   '${BUILDPATH}/func/qusb_fd.c',
+   '${BUILDPATH}/func/qusb_cookie.c',
+]
+
+QUSB_LOGGING_SOURCES = [
+	'${BUILDPATH}/common/qusb_log.c',
+]
+
+QUSB_COMMON_SOURCES = [
+  QUSB_FD_BTLDR_SOURCES,
+  QUSB_DCD_SOURCES,
+  QUSB_DCI_SOURCES,
+  QUSB_LOGGING_SOURCES,
+]
+
+QUSB_AL_ARMPRG_SOURCES = [
+  '${BUILDPATH}/al/qusb_al_hostdl.c',
+]
+
+QUSB_ARMPRG_SOURCES = [
+  QUSB_AL_ARMPRG_SOURCES,
+  QUSB_COMMON_SOURCES,
+]
+
+QUSB_BULK_SOURCES = [
+  QUSB_AL_BULK_SOURCES,
+  QUSB_COMMON_SOURCES,
+]
+
+QUSB_FAST_ENUM_SOURCES = [ 
+  QUSB_AL_FAST_ENUM_SOURCES,
+  QUSB_COMMON_SOURCES,
+]
+
+qusb_fast_enum_objs = env.Object(QUSB_FAST_ENUM_SOURCES)
+qusb_fast_enum_lib  = env.Library('${BUILDPATH}/qusb_fast_enum',qusb_fast_enum_objs); 
+
+qusb_armprg_objs = env.Object(QUSB_ARMPRG_SOURCES)
+qusb_armprg_lib  = env.Library('${BUILDPATH}/qusb_armprg', qusb_armprg_objs)
+
+qusb_bulk_objs = env.Object(QUSB_BULK_SOURCES)
+qusb_bulk_lib  = env.Library('${BUILDPATH}/qusb_bulk', qusb_bulk_objs)
+
+env.AddLibsToImage(['HOSTDL_IMAGE','EHOSTDL_IMAGE'],qusb_armprg_lib)
+
+env.AddLibsToImage(['HSUSB_BOOT_DRIVER'], qusb_bulk_lib)
+env.AddLibsToImage(['HSUSB_BOOT_DRIVER'], qusb_fast_enum_lib)
+
+env.AddLibsToImage(['FIREHOSE_IMAGE'], qusb_bulk_lib)

@@ -1,0 +1,56 @@
+
+#===============================================================================
+#
+# System Drivers INC PATHs
+#
+# GENERAL DESCRIPTION
+#    System Drivers INC PATHs
+#
+# Copyright (c) 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/build/systemdrivers.api#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#===============================================================================
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# These are accessible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+
+env.PublishPublicApi('SYSTEMDRIVERS', [
+    "${INC_ROOT}/core/api/systemdrivers",
+    "${INC_ROOT}/core/api/systemdrivers/pmic",
+])
+
+#-------------------------------------------------------------------------------
+# Publish set of restricted APIs used just for the dal/config building.
+# These are directories containing headers required when compiling the DAL
+# properties.
+#-------------------------------------------------------------------------------
+
+env.PublishRestrictedApi('SYSTEMDRIVERS_DALCONFIG', [
+  "${INC_ROOT}/core/systemdrivers/hal/clk/inc",
+  "${INC_ROOT}/core/systemdrivers/hal/avs/inc",
+  "${INC_ROOT}/core/systemdrivers/clock/src",
+  "${INC_ROOT}/core/systemdrivers/clock/config",
+  "${INC_ROOT}/core/systemdrivers/clock/config/${CHIPSET}",
+  "${INC_ROOT}/core/systemdrivers/GpioInterruptController/src",
+  "${INC_ROOT}/core/systemdrivers/GpioInterruptController/config", 
+  "${INC_ROOT}/core/systemdrivers/tlmm/config",
+  "${INC_ROOT}/core/systemdrivers/tlmm/config/${CHIPSET}"
+])
+
+# --------------------------------------------------------------------------- #
+# Search for additional APIs                                                  #
+# --------------------------------------------------------------------------- #
+
+env.LoadAPIUnits()
+

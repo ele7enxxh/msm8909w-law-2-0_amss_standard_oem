@@ -1,0 +1,85 @@
+;============================================================================
+;  Name:
+;    LOAD_IMAGE.CMM
+;
+;  Description:
+;    Setup image's location for downloading from different builds.
+; 
+;    This script should be invoked from another .cmm script before mjnand.cmm is called.
+;
+;  Usage: do load_image.cmm <IMAGE_TYPE> <IMAGE_FULL_PATH>
+;    e.g.,
+;      do load_image partition \\boot_image_build\build\ms\bin\AAABQNBG\partition.mbn
+;      do load_image sbl \\boot_image_build\build\ms\bin\AAABQNBG\sbl1.mbn
+;      do load_image sbl2 \\boot_image_build\build\ms\bin\AAABQNBG\sbl2.mbn
+;      do load_image dspsw \\boot_image_build\build\ms\bin\AAABQNBG\dsp2.mbn
+;      do load_image dspfw \\boot_image_build\build\ms\bin\AAABQNBG\dsp1.mbn
+;
+;  Copyright (c) 2011-2013 Qualcomm Technologies, Inc.  
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/load_image.cmm#1 $ $DateTime: 2015/09/01 00:30:35 $ $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 03/05/12   eo      Replace WDT name reference with SDI 
+; 11/07/12   eo      Add ACDB image programming support for 9x25
+; 09/10/12   eo      Update image ids for 9x25
+; 08/23/11   eo      Add Appsbl image support
+; 07/22/11   sv      Update DSP3 variable image name
+; 07/15/11   jz      Initial version
+;============================================================================;
+
+entry &ImageType &Image &PartitionName
+global &Parti &Sbl1
+global &Apps &AppsBoot &Tz &Sdi &Rpm &Mba &QDsp &ADsp &Acdb
+
+if "&ImageType"=="partition"
+(
+  &Parti="&Image"
+)
+else if "&ImageType"=="sbl"
+(
+  &Sbl1="&Image"
+)
+else if "&ImageType"=="tz"
+(
+  &Tz="&Image"
+)
+else if "&ImageType"=="sdi"
+(
+  &Sdi="&Image"
+)
+else if "&ImageType"=="mba"
+(
+  &Mba="&Image"
+)
+else if "&ImageType"=="apps"
+(
+  &Apps="&Image"
+)
+else if "&ImageType"=="appsboot"
+(
+  &AppsBoot="&Image"
+)
+else if "&ImageType"=="rpm"
+(
+  &Rpm="&Image"
+)
+else if "&ImageType"=="qdsp"
+(
+  &QDsp="&Image"
+)
+else if "&ImageType"=="adsp"
+(
+  &ADsp="&Image"
+)
+else if "&ImageType"=="acdb"
+(
+  &Acdb="&Image"
+)

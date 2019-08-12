@@ -1,0 +1,60 @@
+//  Name:                                                                     
+//    std_debug_wp.cmm 
+//
+//  Description:                                                              
+//    WP specific debug script. Called after top level debug setup is done
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 06/12/2013 AJCheriyan    Fixed package name for 8x26
+// 10/19/2012 AJCheriyan    Created for B-family
+
+// Following arguments are supported. 
+// ARG0 - Image to debug. 
+// ARGn - n > 1 - Script specific arguments 
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+LOCAL &TARGETPKG &RAMENTRYADDR
+
+&TARGETPKG="Msm8x26Pkg"
+&RAMENTRYADDR=0x00200000
+
+MAIN:
+	// Load the memory map
+	do std_memorymap
+
+	// Set the cookie to enable SBL1 debug
+	DATA.SET EAHB:&SBL1_DEBUG_COOKIE %LONG %LE &DEBUG_COOKIE_VALUE
+
+	// Everything for UEFI	
+	IF ("&ARG0"=="appsboot")
+	(
+		INTERCOM.EXECUTE &APPS0_PORT cd &APPS_BUILDROOT\..\..\..\uefi\rel\4.0\edk2\
+  
+		// Execute Dxe Debug script
+		INTERCOM.EXECUTE &APPS0_PORT do QcomPkg\Tools\dxe_dbg.cmm &TARGETPKG &RAMENTRYADDR &ARG1
+	)
+
+	GOTO EXIT
+
+
+EXIT:
+	ENDDO
+
+FATALEXIT:
+	END
+
+
+	
+
+
+

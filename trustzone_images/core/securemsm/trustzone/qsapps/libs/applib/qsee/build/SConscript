@@ -1,0 +1,190 @@
+#===============================================================================
+#
+# TZ applib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2015 QUALCOMM Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains schedulerents describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+# when         who     what, where, why
+# --------     ---     ---------------------------------------------------------
+# 02/24/15     bh      Update copyright year
+# 02/10/15     cz      Added including path for macchiato to get utc time
+# 01/19/15     wt      Removed AOSTLM_IMAGE
+# 07/24/14     wt      Added AOSTLM_IMAGE
+# 04/25/14     tp      Changed DRM sconscripts to use the prxy_services 
+#                      library instead of linking to qsee_services.
+# 10/17/13     ib      Add SECUREMM
+# 03/11/13     bbs     Add ISDBTMM to TZ common lib
+# 01/15/2013   cz      removed drmprov
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/libs/applib/qsee"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+#env.Append(ARMCC_OPT = ' --arm')
+
+
+CBSP_API = [
+   'SERVICES',
+   'DAL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+INC_PATH_API = ["${INC_ROOT}/core/api/securemsm/trustzone/qsee"]
+env.Append(CPPPATH = INC_PATH_API)
+INC_PATH_COMDEF = ["${INC_ROOT}/core/api/services"]
+env.Append(CPPPATH = INC_PATH_COMDEF)
+INC_PATH_SYSCALL = ["${INC_ROOT}/core/securemsm/trustzone/qsee/include"]
+env.Append(CPPPATH = INC_PATH_SYSCALL)
+INC_PATH_CTZLIB = ["${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/applib/common/src"]
+env.Append(CPPPATH = INC_PATH_CTZLIB)
+INC_PATH_KER = ["${INC_ROOT}/core/api/kernel/libstd"]
+env.Append(CPPPATH = INC_PATH_KER)
+INC_PATH_MACC = [
+        "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+        "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/services/src",
+        "${INC_ROOT}/core/securemsm/trustzone/qsee/services/keyprov/macchiato/shared/inc",
+]
+env.Append(CPPPATH = INC_PATH_MACC)
+
+#----------------------------------------------------------------------------
+# TZ Exec Shared Objects
+#----------------------------------------------------------------------------
+LIB_ENTRY_SOURCES = [
+    '${BUILDPATH}/src/qsee_core_shim.c',
+    '${BUILDPATH}/src/qsee_crypto_shim.c',
+    '${BUILDPATH}/src/qsee_timer_shim.c',
+    '${BUILDPATH}/src/qsee_boot_shim.c',
+    '${BUILDPATH}/src/qsee_cache_shim.c',
+    '${BUILDPATH}/src/qsee_int_shim.c',
+    '${BUILDPATH}/src/qsee_securechannel_shim.c',
+    '${BUILDPATH}/src/tzapp_syscall.s',
+    '${BUILDPATH}/src/qsee_comstr.c',
+    '${BUILDPATH}/src/stor.c',
+    '${BUILDPATH}/src/stor_gpt.c',
+    '${BUILDPATH}/src/stor_rpmbw.c',
+    '${BUILDPATH}/src/qsee_counter_shim.c',
+    '${BUILDPATH}/src/qsee_keyprov_shim.c'
+]
+
+IMG_ENTRY_SOURCES = [
+    '${BUILDPATH}/src/tzapp_entry.s',
+]
+
+if env.has_key('KEYMASTER_IMAGE'):
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main.c',]
+elif env.has_key('SAMPLEAPP_IMAGE'):
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main.c',]
+elif env.has_key('ASSURANCETEST_IMAGE'):
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main.c',]
+elif env.has_key('SECUREMM_IMAGE'):
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main.c',]
+elif env.has_key('SECUREUISAMPLE_IMAGE'):
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main.c',]
+elif env.has_key('APTSFSTESTAPP_IMAGE'):
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main.c',]
+elif env.has_key('APTSFSTESTAPP2_IMAGE'):
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main.c',]
+elif env.has_key('APTCRYPTOTESTAPP_IMAGE'):
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main.c',]
+elif env.has_key('WIDEVINE_IMAGE'):
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main.c',]
+elif env.has_key('MACCHIATO_SAMPLE_IMAGE'):
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main.c',]
+elif env.has_key('PLAYREADY_IMAGE'):
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main.c',]
+else:
+   LIB_ENTRY_SOURCES += [ '${BUILDPATH}/src/tzapp_lib_main_legacy.c',]
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryObject('GPSAMPLEAPP_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('GPSAMPLEAPP_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('SAMPLETZOSAPP_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('SAMPLETZOSAPP_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('SAMPLEAPP_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('SAMPLEAPP_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('KEYMASTER_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('KEYMASTER_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('ASSURANCETEST_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('ASSURANCETEST_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('APTSFSTESTAPP_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('APTSFSTESTAPP_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('APTSFSTESTAPP2_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('APTSFSTESTAPP2_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('APTCRYPTOTESTAPP_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('APTCRYPTOTESTAPP_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('SECURITYTEST_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('SECURITYTEST_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('WINSECAPP_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('WINSECAPP_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('PLAYREADY_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('PLAYREADY_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('WIDEVINE_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('WIDEVINE_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('SECUREMM_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('SECUREMM_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('DXHDCP2_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('DXHDCP2_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('DXHDCP2DBG_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('DXHDCP2DBG_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('TOUCHSAMPLE_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('TOUCHSAMPLE_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('SECURETOUCH_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('SECURETOUCH_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('SECUREUISAMPLE_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('SECUREUISAMPLE_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+env.AddBinaryObject('MACCHIATO_SAMPLE_IMAGE', IMG_ENTRY_SOURCES)
+env.AddBinaryLibrary('MACCHIATO_SAMPLE_IMAGE', '${BUILDPATH}/tzapp_entrylib', LIB_ENTRY_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

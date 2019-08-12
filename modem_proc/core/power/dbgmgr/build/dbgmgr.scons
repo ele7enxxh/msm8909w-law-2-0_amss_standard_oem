@@ -1,0 +1,75 @@
+#===============================================================================
+#                    Copyright 2015 Qualcomm Technologies Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/power/dbgmgr"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+  'DAL',
+  'DEBUGTOOLS',
+  'POWER',
+  'SERVICES',
+  'SYSTEMDRIVERS',
+  'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi('POWER_MPM', [
+  "${INC_ROOT}/core/power/dbgmgr/inc",
+])
+
+env.Append(CPPPATH = ['${INC_ROOT}/core/power/npa/src/framework'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+# Main DBMGR ON/OFF feature guard
+env.Append( CPPDEFINES=['FEATURE_DBGMGR_SCENARIO'] )
+
+DBGMGR_SOURCES =  [
+   '${BUILDPATH}/src/dbgmgr.c',
+   '${BUILDPATH}/src/dbgmgr_client.c',
+   '${BUILDPATH}/src/dbgmgr_npa.c',
+   '${BUILDPATH}/src/dbgmgr_plugin.c',
+   '${BUILDPATH}/src/dbgmgr_scenario.c',
+]
+
+# Only build this for main image in multi PD environments.
+# Additionally, this is not required to be run in a uimage space as well.
+# Any other constraints stem from the ULOG Diag interface runtime requirements.
+dbgmgr_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE'], 
+                                  '${BUILDPATH}/dbgmgr',
+                                    DBGMGR_SOURCES)
+if env['MSM_ID'] not in ['9607', '8937']:
+    if 'USES_RCINIT' in env:
+	    RCINIT_IMG = ['CORE_QDSP6_SW', 'CBSP_QDSP6_SW_IMAGE']
+	    env.AddRCInitFunc(              # Code Fragment in TMC: YES
+	    RCINIT_IMG,                     # define TMC_RCINIT_INIT_DALSYS_INIT
+	    {
+		    'sequence_group'             : 'RCINIT_GROUP_0',          # required
+		    'init_name'                  : 'dbgmgr',                  # required
+		    'init_function'              : 'dbgmgr_init',             # required
+		    'dependencies'               : ['npa']
+	    })

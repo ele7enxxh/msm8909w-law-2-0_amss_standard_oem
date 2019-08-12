@@ -1,0 +1,93 @@
+;============================================================================
+;  Name:
+;    MJNAND.CMM
+;
+;  Description:
+;    FLASH Programming Script file for Lauterbach JTAG/ICD TRACE32.
+;    Supports Multi-Image Boot only
+;
+;    There is a combination of JTAG/ICD FLASH.* commands and our own
+;    extensions to those commands used.  Because of the nature of the NAND
+;    flash, we must send a "preparation" command before FLASH.program
+;    command, and then a "finish" command after, to tell the MNAND program
+;    that the last page of code should be flushed to the NAND flash
+;    and to write the boot information block.
+;
+;  Execution:
+;    Inside the debugger, type at the command line: "do mjnand".  Make
+;    menu choices as directed.
+;
+;  Command line args handled by MJNAND:
+;
+;     MJNAND [DEBUG] [TRUSTED] [NOMENU] [BUILDID] [EXTPATH]
+;
+;       DEBUG is optional but MUST be first if used.  Will make MJNAND verbose
+;
+;       TRUSTED is optional but MUST be first or second if used.  Must be second
+;              if DEBUG is used.  Will set security mode to TRUSTED, otherwise,
+;              default security is NON-TRUSTED
+;
+;       NOMENU[(APPS|MODEM)] is used by JNLOAD and will cause all header and code
+;               images to be loaded with no intervention and MJNAND to become 
+;               very quiet.  This option requires a valid build ID.
+;               NOMENUAPPS will load only apps and apps boot images and headers.
+;               NOMENUMODEM will only load all of the modem images.
+;               NOMENUCEFS will load all of the modem and apps images along with 
+;                          the CEFS (apps or modem) image.
+;
+;       NOMENUAPPSEXT will be used to load an external apps image (ie from a
+;               split build).  In this case the path to the external binaries 
+;               should be passed as the EXTPATH parameter
+;
+;       BUILDID is a valid Build ID and can be in the format of:
+;
+;           TMQQ
+;
+;       MJNAND will assume ../../build/ms/bin and will prepend BUILDID to
+;         all image names.
+;       If no BUILDID is given, MJNAND will provide a file chooser window
+;         with its base in ../../build/ms/bin
+;
+;       EXTPATH is the path used to locate all of the needed external
+;          binaries for a split WM build
+;  Usage: 
+;       do mjnand.cmm <BUILDID>
+;       do mjnand.cmm NOMENU <BUILDID>
+;       do mjnand.cmm NOMENUMODEM <BUILDID> 
+;       do mjnand.cmm NOMENUCEFS <BUILDID> 
+;       do mjnand.cmm NOMENUAPPS <BUILDID> 
+;       do mjnand.cmm NOMENUAPPSEXT <BUILDID> <EXTPATH> 
+;          e.g. do mjnand.cmm NOMENUAPPSEXT SDCABPS ../ext_bin
+;       do mjnand.cmm NOMENUCUSTOM <BUILDID> <EXTPATH>
+;
+;  NOTE:  Because all headers and images are binary, they contain no
+;         symbolic information.  Any symbol loading must be done outside
+;         if MJNAND using an ELF version of the binary
+;
+;
+;  Copyright (c) 2009-2010 Qualcomm Technologies Incorporated. 
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/mjnand.cmm#1 $ $DateTime: 2015/09/01 00:30:35 $ $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 11/23/10   jz      Updated for NOMEHUCUSTOM support
+; 08/21/09   bb      Changed path separators from \ to /
+; 05/04/09   eo      Include CEFS image in single load programming.
+; 02/05/09   mm      Support for flash programming
+;============================================================================;
+
+
+;============================================================================
+; Declare variables used
+;============================================================================   
+ENTRY &arg1 &arg2 &arg3 &arg4 &arg5
+do nand_param
+do &NandConfigDir/nand_tools.cmm &arg1 &arg2 &arg3 &arg4 &arg5
+

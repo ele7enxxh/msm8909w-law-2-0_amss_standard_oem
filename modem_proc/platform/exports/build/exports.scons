@@ -1,0 +1,21 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+exports_root = str(env.get('BUILD_ROOT', None)) + '/platform/exports'
+
+if 'USES_FEATURE_DYNAMIC_LOADING' in env :
+    # Example of exposing a single symbol
+    env.DLExpose("__stack_chk_guard")
+
+    # Example of exposing multiple symbols as a comma separated list
+    env.DLExpose("dlw_Open, dlw_Sym, dlw_Error, dlw_Close")
+
+    # Exposing base symbols via a file
+    env.DLExposeFile(exports_root + '/dl_base_symbols.lst')
+    env.DLExposeFile(exports_root + '/dl_hap_symbols.lst')

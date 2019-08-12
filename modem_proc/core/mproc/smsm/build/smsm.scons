@@ -1,0 +1,220 @@
+#===============================================================================
+#
+# SMSM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/mproc/smsm/build/smsm.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/30/15   rv      Add 8937 XML config.
+# 06/11/15   rv      Add 9607 XML config.
+# 10/18/13   bt      Add 8916-specific XML config.
+# 10/11/13   bt      Add 8994 XML config.
+# 05/10/13   bt      Fix bad Scons updates.
+# 05/07/13   bt      Support both multi-image and single-image DevConfig.
+# 04/30/13   bt      Add Pack exception flags for HY31 pack builds.
+# 03/06/13   bt      Deliver DevConfig xml files in packed builds.
+# 02/11/13   bt      Update DevConfig setup.
+# 01/25/13   bt      Implement SMSM QDI, add Userspace interface to sensor_img.
+# 12/04/12   bt      Explicitly CleanPack all relevant files.
+# 11/15/12   bt      Ship sources for TN Apps.
+# 11/05/12   bt      Add DevConfig for SMSM based on target.
+# 10/15/12   bt      Add Modem sources only to Core images, not to MBA.
+# 08/01/12   bt      Add RCINIT to Apps Images, for Sparrow.
+# 05/01/12   bt      Add ADSP libs to CORE_QDSP6_SW, not ADSP_PROC, to avoid 
+#                    non-Core images on multi-PD.
+# 03/30/12   pa      Use RCINIT for WCN builds
+# 03/13/12   bt      8974 Sconscript update to use SconsPack.
+# 01/09/12   bt      Initial revision for 8974/Badger.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/mproc/smsm/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+if env.has_key('ADSP_PROC'):
+  env.Append(CPPDEFINES=['MPROC_LPASS_PROC'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SMSM_CORE = [
+   '${BUILDPATH}/smsm.c',
+]
+
+SMSM_REX_SOURCES = [
+   '${BUILDPATH}/smsm_dal.c',
+   '${BUILDPATH}/smsm_intr_dal.c',
+]
+
+SMSM_QURT_SOURCES = [
+   '${BUILDPATH}/smsm_dal.c',
+   '${BUILDPATH}/smsm_intr_dal.c',
+]
+
+SMSM_QDI_DRIVER_SOURCES = [
+   '${BUILDPATH}/smsm_qdi_driver.c',
+]
+
+SMSM_QDI_USER_SOURCES = [
+   '${BUILDPATH}/smsm_qdi_user.c',
+   '${BUILDPATH}/smsm_dal.c'
+]
+
+PACK_FLAGS = ['USES_COMPILE_SMD_SMEM_PROTECTED_LIBS']
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+# Add Image-specific Libraries, whose sources should be packed out.
+env.AddBinaryLibrary(['CORE_QDSP6_SW', 'WCN_IMAGE'], 
+                     '${BUILDPATH}/smsm_core', 
+                     [SMSM_CORE], pack_exception=PACK_FLAGS)
+
+env.AddBinaryLibrary(['WCN_IMAGE'], 
+                     '${BUILDPATH}/smsm_rex', 
+                     [SMSM_REX_SOURCES], pack_exception=PACK_FLAGS)
+
+if env.has_key('MODEM_PROC'):
+  env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smsm_rex', 
+                       [SMSM_REX_SOURCES], pack_exception=PACK_FLAGS)
+
+if env.has_key('ADSP_PROC'):
+  env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smsm_qurt', 
+                       [SMSM_QURT_SOURCES], pack_exception=PACK_FLAGS)
+  # Add SMSM QDI User interface to Sensors image only.  Sensors image will have
+  # no other SMSM interfaces (which are secure only for the GuestOS).
+  env.AddBinaryLibrary(['CORE_QDSP6_SENSOR_SW'], '${BUILDPATH}/smsm_qdi_user',
+                       [SMSM_QDI_USER_SOURCES])
+
+# Add SMSM QDI Driver interface to GuestOS images with QurtOS support only.
+if env.has_key('USES_QURTOS_IMG'):
+  env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smsm_qdi_driver',
+                       [SMSM_QDI_DRIVER_SOURCES])
+#-------------------------------------------------------------------------------
+# Add Sources to image
+#-------------------------------------------------------------------------------
+# On TN Apps, all sources can be shipped.
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'], 
+               '${BUILDPATH}/smsm_core', 
+               [SMSM_CORE])
+
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'], 
+               '${BUILDPATH}/smsm_rex', 
+               [SMSM_REX_SOURCES])
+
+#-------------------------------------------------------------------------------
+# CleanPack (Remove) all remaining files for peripheral processors
+#-------------------------------------------------------------------------------
+PACK_OUT = env.FindFiles(['*.h', '*.c', '*.s'], SRCPATH)
+# Don't include RPM in this list, because it already does we want automatically.
+env.CleanPack(['CORE_QDSP6_SW', 'WCN_IMAGE'], PACK_OUT, 
+              pack_exception=PACK_FLAGS)
+
+#-------------------------------------------------------------------------------
+# RCINIT Task and Init Fields and Initialization
+#-------------------------------------------------------------------------------
+RCINIT_INIT_SMSM_INIT = {
+  'sequence_group'             : 'RCINIT_GROUP_0',             # required
+  'init_name'                  : 'smsm',                       # required
+  'init_function'              : 'smsm_init',                  # required
+  'dependencies'               : ['smem']
+}
+
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['MODEM_PROC', 'CORE_QDSP6_SW', 'WCN_IMAGE', 
+                'CBSP_APPS_IMAGE', 'APPS_IMAGE']
+  # SMSM INIT
+  env.AddRCInitFunc( RCINIT_IMG, RCINIT_INIT_SMSM_INIT )
+  if env.has_key('USES_QURTOS_IMG'):
+    env.AddRCInitFunc( ['CORE_QDSP6_SW'],
+      {
+        'sequence_group'      : 'RCINIT_GROUP_0',             # required
+        'init_name'           : 'smsm_qdi_driver',            # required
+        'init_function'       : 'smsm_qdi_driver_init',       # required
+        'dependencies'        : ['smsm']
+      })
+  env.AddRCInitFunc( ['CORE_QDSP6_SENSOR_SW'],
+    {
+      'sequence_group'      : 'RCINIT_GROUP_0',               # required
+      'init_name'           : 'smsm_qdi_user',                # required
+      'init_function'       : 'smsm_user_init',               # required
+      'dependencies'        : []
+    })
+
+#-------------------------------------------------------------------------------
+# Device Config
+#-------------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+  DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+  if env['MSM_ID'] in ['9x25', '9x35']:
+    env.Replace(SMSM_PLATFORM = 'mdm')
+  if env['MSM_ID'] in ['9607']:
+    env.Replace(SMSM_PLATFORM = 'amr')
+  else:
+    env.Replace(SMSM_PLATFORM = 'msm')
+  SMSM_DEVCFG_XML = SRCPATH + '/../config/smsm_' + env['SMSM_PLATFORM'] + '.xml'
+  env.AddDevCfgInfo(DEVCFG_IMG,
+  {
+    '8974_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],
+    '8610_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],
+    '8926_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],
+    '8626_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],
+    '8962_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],
+    '8092_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],
+    '8094_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],
+    '8962_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],
+    '8084_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],
+    '8994_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],	
+    '8952_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],	
+    '8976_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],	
+    '8937_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_msm.xml'],
+    # 9x25: no WCNSS processor.
+    '9625_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_mdm.xml'],
+    '9635_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_mdm.xml'],
+    # No ADSP processor.
+    '8916_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_amwr.xml'],
+    '8936_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_amwr.xml'],
+    '8909_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_amwr.xml'],
+    # APPS, MPSS & RPM
+    '9607_xml' : ['${BUILD_ROOT}/core/mproc/smsm/config/smsm_amr.xml'],
+    # For single-image DevConfig (WCNSS, TN Apps, etc)
+    'devcfg_xml' : SMSM_DEVCFG_XML,
+  })

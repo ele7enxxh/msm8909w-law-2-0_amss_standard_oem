@@ -1,0 +1,141 @@
+#===============================================================================
+#
+# GPIO INTERRUPT CONTROLLER Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/GPIOInt/build/GPIOInt.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/systemdrivers/GPIOInt/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+  'CS_INC',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${INC_ROOT}/core/systemdrivers/GPIOInt/inc",
+   "${INC_ROOT}/core/systemdrivers/GPIOInt/src",
+   "${INC_ROOT}/core/systemdrivers/GPIOInt/config",
+   "${INC_ROOT}/core/api/systemdrivers",
+])
+
+env.PublishPrivateApi('SYSTEMDRIVERS_GPIOINT', [
+   "${INC_ROOT}/core/systemdrivers/hal/gpioint/inc",
+])
+
+
+CBSP_API = [
+  'HAL',
+  'DAL',
+  'DEBUGTOOLS',
+  'MPROC',
+  'POWER',
+  'SERVICES',
+  'SYSTEMDRIVERS_8660',
+  'SYSTEMDRIVERS',
+  'KERNEL',
+]
+ 
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+# turned off until we have mpm support.
+env.Append(CCFLAGS = " -DGPIOINT_USE_MPM")
+env.Append(CCFLAGS = " -DGPIOINT_USE_NPA")
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+GPIO_INTERRUPT_SOURCES = [
+   '${BUILDPATH}/GPIOIntFwk.c',
+   '${BUILDPATH}/GPIOIntInfo.c',
+   '${BUILDPATH}/GPIOInt.c',
+]
+
+GPIO_INTERRUPT_CFG_SOURCES = [
+   '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/${CHIPSET}/GPIOInt_ConfigData.c',
+]
+
+#-------------------------------------------------------------------------------
+# RCInit Dependencies
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+  env.AddRCInitFunc(       # Code Fragment in TMC: NO
+  RCINIT_IMG,              # define TMC_RCINIT_INIT_GPIOINT_INIT
+  {
+    'sequence_group'             : 'RCINIT_GROUP_0',       # required
+    'init_name'                  : 'GPIOInt',              # required
+    'init_function'              : 'GPIOInt_Init',         # required
+    'dependencies'               : ['dalsys','npa']
+  })
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(['MODEM_IMAGE','CBSP_MODEM_IMAGE','APPS_IMAGE','CBSP_APPS_IMAGE','WCN_IMAGE','CBSP_WCN_IMAGE', 'CORE_SPS','CBSP_IMAGE_PPSS', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE'],'${BUILDPATH}/GPIOInt',GPIO_INTERRUPT_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+
+# Remove target config files
+ALL_CONFIG_FILES = env.FindFiles(
+  ['*'],
+  '../config/')
+MY_CONFIG_FILES = env.FindFiles(
+  ['*'],
+  '../config/${CHIPSET}')
+PACK_CONFIG_FILES = list(set(ALL_CONFIG_FILES) - set(MY_CONFIG_FILES))
+env.CleanPack(
+     ['MODEM_IMAGE','CBSP_MODEM_IMAGE','APPS_IMAGE','CBSP_APPS_IMAGE','WCN_IMAGE','CBSP_WCN_IMAGE', 'CORE_SPS','CBSP_IMAGE_PPSS', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+      'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE'], PACK_CONFIG_FILES)
+
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      '8909_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/msm8909/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/msm8909/GPIOInt_ConfigData.c'],
+      '8937_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/msm8937/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/msm8937/GPIOInt_ConfigData.c'],
+      '9607_xml' : ['${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/mdm9607/GPIOInt.xml',
+                    '${BUILD_ROOT}/core/systemdrivers/GPIOInt/config/mdm9607/GPIOInt_ConfigData.c'],
+   })

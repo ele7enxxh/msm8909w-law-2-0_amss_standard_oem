@@ -1,0 +1,198 @@
+# Build rules for libefs.
+
+.DEFAULT:
+
+EFS_SOURCES = \
+        fs_api_counters \
+        fs_benchmark \
+        fs_buffer \
+        fs_compat \
+        fs_convert_utf \
+        fs_cookie \
+        fs_counters \
+        fs_db \
+        fs_desc \
+        fs_device \
+        fs_device_efs_flash \
+        fs_device_efs_mnand \
+        fs_device_efs_ramfs \
+        fs_device_efs_rmts \
+        fs_device_ftl_flash \
+        fs_device_otp_flash \
+        fs_device_read_pointer_cache \
+        fs_diag \
+        fs_diag_access \
+        fs_diag_golden_copy_handler \
+        fs_efs2 \
+        fs_efs2_names \
+        fs_errno_list \
+        fs_estdio \
+        fs_ext_hfat \
+        fs_extfs \
+        fs_factory \
+        fs_flash_dal_shim \
+        fs_fsck \
+        fs_ftl \
+        fs_ftl_cache \
+        fs_global_lock \
+        fs_inode \
+        fs_journal \
+        fs_lib \
+        fs_logr \
+        fs_malloc \
+        fs_mnand_bird_view \
+        fs_mnand_log \
+        fs_mnand_pcache \
+        fs_mnand_pm \
+        fs_mnand_ptbl \
+        fs_mnand_region \
+        fs_mnand_super \
+        fs_mount \
+        fs_namei \
+        fs_nodev \
+        fs_otp \
+        fs_otp_pcache \
+        fs_pathbuff \
+        fs_pm \
+        fs_pm_gc \
+        fs_pm_log \
+        fs_pm_ptable_nand \
+        fs_pm_ptable_nor \
+        fs_pm_super \
+        fs_privatedir \
+        fs_profile \
+        fs_profile_config \
+        fs_profile_extensive \
+        fs_public \
+        fs_ramfs_pm \
+        fs_realpath \
+        fs_rmts_bootup_action \
+        fs_rmts_cookie \
+        fs_rmts_cookie_golden_copy_handler \
+        fs_rmts_guid \
+        fs_rmts_image_header \
+        fs_rmts_pm \
+        fs_rmts_super \
+        fs_rollback \
+        fs_romfs \
+        fs_stdio \
+        fs_sync \
+        fs_task \
+        fs_timetick \
+        fs_timings \
+        fs_unicode \
+        fs_unicode_sjis \
+        fs_unicode_utf8 \
+        fs_upgrade \
+        fs_vnode \
+        fs_zip \
+        fs_zip_malloc \
+
+EFS_READONLY_SOURCES = \
+        fs_buffer \
+        fs_counters \
+        fs_db \
+        fs_desc \
+        fs_device \
+        fs_device_efs_flash \
+        fs_efs2 \
+        fs_efs2_names \
+        fs_flash_dal_shim \
+        fs_global_lock \
+        fs_inode \
+        fs_journal \
+        fs_lib \
+        fs_logr \
+        fs_malloc \
+        fs_mount \
+        fs_namei \
+        fs_nodev \
+        fs_pathbuff \
+        fs_pm \
+        fs_pm_gc \
+        fs_pm_log \
+        fs_pm_ptable_nand \
+        fs_pm_super \
+        fs_public \
+        fs_realpath \
+        fs_romfs \
+        fs_timings \
+        fs_upgrade \
+        fs_vnode \
+
+
+EFS_UTILS_SOURCES = \
+	fs_errno \
+	fs_osal \
+	fs_util \
+
+# Flags for extfs:
+CFLAGS += -Werror
+CFLAGS += -std=c99 -pedantic
+
+
+if $(defined-env CALLGRAPH)
+    CFLAGS += -finstrument-functions
+    CFLAGS += -DENABLE_INSTRUMENT_FUNCTIONS
+    CFLAGS += -D'CALLGRAPH_OUTPUT_FILE="$(EXENAME)"'
+    export
+
+INCLUDES += $(dir $(ROOT)/efs/src)
+INCLUDES += $(dir $(ROOT)/zlib/api)
+INCLUDES += $(dir $(ROOT)/efs_async_put/inc)
+
+CFLAGS_BASE = $(CFLAGS)
+
+StaticCLibrary (libefs, $(EFS_SOURCES))
+StaticCLibrary (libefs_readonly, $(EFS_READONLY_SOURCES))
+StaticCLibrary (libefs_utils, $(EFS_UTILS_SOURCES))
+
+######################################################################
+# Linting.
+
+# Lint needs the GCC specific search dirs.  To start with, just grab the
+# GCC install base.
+GCC_BASE = $(shell $(CC) --print-search-dirs | grep 'install:' | \
+             sed 's/install: //')
+
+LINT = flint
+# Start the LINT_FLAGS with what is specified in the build-config file.
+LINT_FLAGS = $(CFG_LINT_FLAGS)
+
+LINT_DEPS =
+LINT_DEPS += $(file $(ROOT)/etc/lint/co-gnu3.lnt)
+LINT_DEPS += $(file ./efs.lnt)
+LINT_DEPS += $(file $(ROOT)/etc/lint/off-target.lnt)
+LINT_DEPS += $(file $(ROOT)/etc/lint/amss_std.lnt)
+
+LINT_FLAGS += $(LINT_DEPS)
+
+LINT_FLAGS += -I$(dir $(ROOT)/efs/api)
+LINT_FLAGS += -I$(dir $(ROOT)/efs/inc)
+LINT_FLAGS += -I$(dir $(ROOT)/efs/src)
+LINT_FLAGS += -I$(dir $(ROOT)/csupport)
+LINT_FLAGS += -I$(dir $(ROOT)/flash-1.0)
+LINT_FLAGS += -I$(dir $(ROOT)/hfat/inc)
+LINT_FLAGS += -I$(dir $(ROOT)/hotplug/api)
+LINT_FLAGS += -I$(dir $(ROOT)/hotplug/inc)
+LINT_FLAGS += -I$(dir $(ROOT)/fs_tar/inc)
+LINT_FLAGS += -I$(dir $(ROOT)/zlib/api)
+LINT_FLAGS += -I$(dir $(ROOT)/efs_async_put/inc)
+LINT_FLAGS += -I$(dir $(GCC_BASE)/include)
+LINT_FLAGS += -I/usr/include
+
+# Needed, until buffer removes the MD5 stuff.
+LINT_FLAGS += -I$(OCAML_BASE)
+
+LINT_FLAGS += -DFS_STANDALONE
+LINT_FLAGS += -DFEATURE_EFS2
+
+section
+	CFILES = $(addsuffix .c, $(EFS_SOURCES))
+        CFILES += $(addsuffix .c, $(EFS_UTILS_SOURCES))
+
+        efslint.stamp: $(CFILES) $(LINT_DEPS)
+                rm -f efslint.stamp
+                $(LINT) $(LINT_FLAGS) $(CFILES)
+                touch efslint.stamp
+######################################################################

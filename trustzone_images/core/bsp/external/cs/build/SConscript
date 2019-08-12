@@ -1,0 +1,63 @@
+#===============================================================================
+#
+# L4 Prebuild Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/bsp/external/cs/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+cs_prebuild_arm_libs = []
+cs_prebuild_qdsp6_libs = []
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['9x00']:
+   cs_prebuild_arm_libs = [
+      env.File(env.subst("${PLAT_ROOT}/libstd/lib/RVCT22arm9_Release/a1std.lib")),
+   ]
+   
+   cs_prebuild_qdsp6_libs = [
+      env.File(env.subst("${PLAT_ROOT}/libstd/lib/qdsp6v2_Release/a1std.lib")),
+   ]
+else:
+   cs_prebuild_arm_libs = [
+      env.File(env.subst("${PLAT_ROOT}/cs/lib/RVCT22arm11_Release/a1std.lib")),
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage(
+   ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 
+   'MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 
+   'OSBL_BOOT_IMAGE', 'DBL_BOOT_IMAGE', 'PARTITION_BOOT_IMAGE'], 
+   cs_prebuild_arm_libs)
+   
+env.AddLibsToImage(['APPS_IMAGE', 'CBSP_APPS_IMAGE', 'APPSBL_BOOT_IMAGE'],
+   cs_prebuild_arm_libs)
+   
+env.AddLibsToImage(['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+   cs_prebuild_qdsp6_libs)   

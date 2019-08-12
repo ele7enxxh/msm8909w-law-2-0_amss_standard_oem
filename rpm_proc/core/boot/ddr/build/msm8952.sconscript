@@ -1,0 +1,85 @@
+#===============================================================================
+#
+# DDR Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/rpm.bf/2.1.1/core/boot/ddr/build/msm8952.sconscript#1 $
+#  $DateTime: 2015/02/25 02:53:43 $
+#  $Author: pwbldsvc $
+#  $Change: 7538753 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/11/14   sk      Initial version.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('DDR', [
+  "${INC_ROOT}/core/boot/ddr/common/",
+  "${INC_ROOT}/core/boot/ddr/hw/msm8952/",
+  "${INC_ROOT}/core/boot/ddr/common/params/v2/",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+  'BOOT',
+  'SERVICES',
+  'DAL',
+  'SYSTEMDRIVERS',
+  'POWER',
+  'DEBUGTRACE',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.Append(CPPDEFINES = [
+  "SHARED_IMEM_DDR_PARAM_BASE=0x00090400"
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+DDR_DRIVERS_SOURCES = [
+  '${BUILDPATH}/core/boot/ddr/common/ddr_seq_drivers.c',
+  '${BUILDPATH}/core/boot/ddr/common/ddr_sync.c',
+  '${BUILDPATH}/core/boot/ddr/hw/msm8952/ddr_target.c',
+]
+
+DDR_TEST_SOURCES = [
+]
+
+
+if 'BUILD_BOOT_CHAIN' in env:
+  DDR_HAL_SOURCES += []
+
+ddr_drivers_lib = env.Library('${BUILDPATH}/DDR_DRIVERS', DDR_DRIVERS_SOURCES)
+ddr_test_lib = env.Library('${BUILDPATH}/DDR_TEST', DDR_TEST_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibsToImage('DDR_BOOT_DRIVER', [ddr_drivers_lib])
+env.AddLibsToImage('RPM_IMAGE', [ddr_drivers_lib])

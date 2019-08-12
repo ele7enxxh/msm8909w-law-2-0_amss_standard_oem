@@ -1,0 +1,143 @@
+#===============================================================================
+#
+# SECUREMSM Paths
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2013 by Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/scmm/main/latest/securemsm/build/paths.sconscript#4 $
+#  $DateTime: 2009/10/30 12:35:21 $
+#  $Author: shitalm $
+#  $Change: 1070004 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/14/13   hw      Added paths for securemsm secboot
+# 02/23/12   ejt     Added paths for securemsm directories
+# 01/05/11   sm      Added 8930 Support
+# 12/22/11   nk      Added MSM_VARIANT to compile 9x15 and 8960 on PW MPSS 1.1
+# 05/13/11   rv      Added paths for secrsa
+# 05/04/11   vg      Added paths for secmath and secboot.
+# 02/08/11   nk      Added SMECOM residual paths to resolve compilation errors.
+# 02/08/11   nk      Added IPSec non CLF paths for backward compatibility.
+# 01/21/11   sp      Added changes for ipsec CLF directory structure.
+# 12/14/10   chm     Added support for PlayReady.
+# 01/10/10   nk      Added paths for CLF smecom
+# 11/08/10   cz      Added changes for PlayReady Provisioning
+# 09/15/10   qxu     Added changes for new sfs and cryptoutil directory stucture
+# 09/15/10   ejt     Added changes for new crypto directory stucture
+#===============================================================================
+Import('env')
+import os
+
+# Public APIs these are accecible by anyone internal or external to CoreBSP
+env.PublishPublicApi('SECUREMSM', [
+   "${INC_ROOT}/core/api/securemsm",
+   "${INC_ROOT}/core/api/securemsm/akaalgo",
+   "${INC_ROOT}/core/api/securemsm/chdlr",
+   "${INC_ROOT}/core/api/securemsm/chdlrcom",
+   "${INC_ROOT}/core/api/securemsm/crypto",
+   "${INC_ROOT}/core/api/securemsm/cryptoutil",
+   "${INC_ROOT}/core/api/securemsm/drmcom",
+   "${INC_ROOT}/core/api/securemsm/drmoma",
+   "${INC_ROOT}/core/api/securemsm/drmms",
+   "${INC_ROOT}/core/api/securemsm/ipsec",
+   "${INC_ROOT}/core/api/securemsm/smecom",
+   "${INC_ROOT}/core/api/securemsm/x509",
+   "${INC_ROOT}/core/api/securemsm/sfp",
+   "${INC_ROOT}/core/api/securemsm/sfs",
+   "${INC_ROOT}/core/securemsm/secboot/api",
+   "${INC_ROOT}/core/api/securemsm/ssl",
+   "${INC_ROOT}/core/api/securemsm/rapi",
+   "${INC_ROOT}/core/api/securemsm/tzos",
+   "${INC_ROOT}/core/api/securemsm/playready",   
+   "${INC_ROOT}/core/securemsm/smecom/com/inc",
+   "${INC_ROOT}/core/api/rapi/securemsm/inc",
+   "${INC_ROOT}/core/api/kernel/libstd/stringl",
+])
+
+# Restricted APIs these are accecible by anyone within CoreBSP
+env.PublishRestrictedApi('SECUREMSM', [
+   "${INC_ROOT}/core/securemsm/crypto/environment/inc",
+   "${INC_ROOT}/core/securemsm/crypto/shared/inc",
+   "${INC_ROOT}/core/securemsm/crypto/shared/src",
+   "${INC_ROOT}/core/securemsm/cryptodrivers/ce/shared/inc",
+   "${INC_ROOT}/core/securemsm/cryptodrivers/crypto_old/inc",
+   "${INC_ROOT}/core/securemsm/cryptodrivers/ce/test/inc",
+   "${INC_ROOT}/core/securemsm/cryptodrivers/prng/shared/inc",
+   "${INC_ROOT}/core/securemsm/cryptodrivers/prng/test/inc",
+   "${INC_ROOT}/core/boot/secboot3/src"
+   "${INC_ROOT}/core/securemsm/secboot/api",
+   "${INC_ROOT}/core/securemsm/cryptohw/inc",
+   "${INC_ROOT}/core/securemsm/ssd/inc",
+   "${INC_ROOT}/core/securemsm/ssd/src",
+   "${INC_ROOT}/core/securemsm/ssl/src",
+   "${INC_ROOT}/core/securemsm/ssl/shared/src",
+   "${INC_ROOT}/core/securemsm/ssl/chipset/src",
+   "${INC_ROOT}/core/securemsm/smecom/com/inc",
+   "${INC_ROOT}/core/securemsm/smecom/ixtime/shared/inc",
+   "${INC_ROOT}/core/securemsm/smecom/ixutil/environment/amss/inc",
+   "${INC_ROOT}/core/securemsm/x509/src",
+   "${INC_ROOT}/core/securemsm/x509/shared/src",
+   "${INC_ROOT}/core/securemsm/sfp/src",
+   "${INC_ROOT}/core/securemsm/sfp/shared/src",
+   "${INC_ROOT}/core/securemsm/sfp/environment/inc",
+   "${INC_ROOT}/core/securemsm/sfp/chipset/nand/src",
+   "${INC_ROOT}/core/securemsm/sfs/shared/inc",
+   '${INC_ROOT}/core/securemsm/sfs/environment/env/sbl/inc',
+   "${INC_ROOT}/core/securemsm/ipsec/inc",
+   "${INC_ROOT}/core/securemsm/ipsec/src",
+   "${INC_ROOT}/core/securemsm/ipsec/shared/src",
+   "${INC_ROOT}/core/securemsm/ipsec/chipset/src",
+   "${INC_ROOT}/core/securemsm/ipsec/environment/env/brew/src",
+   "${INC_ROOT}/core/securemsm/ipsec/environment/env/brew/inc",
+   "${INC_ROOT}/core/securemsm/secboot/auth/inc",
+   "${INC_ROOT}/core/securemsm/secboot/auth/src",
+   "${INC_ROOT}/core/securemsm/secboot/crypto/inc",
+   "${INC_ROOT}/core/securemsm/secboot/crypto/src",
+   "${INC_ROOT}/core/securemsm/efs_crypto/shared/inc",
+   "${INC_ROOT}/core/securemsm/secboot/chipset/cores/secctrl/inc",
+   "${INC_ROOT}/core/securemsm/smetest/test_crypto/src",
+   "${INC_ROOT}/core/securemsm/tzos/core/shared/src",
+   "${INC_ROOT}/core/securemsm/tzos/common/include",
+   "${INC_ROOT}/core/securemsm/tzos/core/shared/inc",
+   "${INC_ROOT}/core/securemsm/tzos/core/target/msm8660/src",
+   "${INC_ROOT}/core/securemsm/tzos/monitor/shared/src",
+   "${INC_ROOT}/core/securemsm/tzos/monitor/target/msm8660/src",
+   "${INC_ROOT}/core/securemsm/tzos/services/recho/shared/src",
+   "${INC_ROOT}/core/securemsm/tzbsp/include",
+   "${INC_ROOT}/core/securemsm/tzbsp/libarm/include",
+   "${INC_ROOT}/core/securemsm/drmdiag/src",
+   "${INC_ROOT}/core/securemsm/cryptodrivers/prng/shared/inc",
+   "${INC_ROOT}/core/securemsm/cryptodrivers/prng/shared/src",
+   "${INC_ROOT}/core/securemsm/cryptodrivers/prng/chipset/inc",
+   "${INC_ROOT}/core/securemsm/crypto/inc",
+   "${INC_ROOT}/core/securemsm/crypto/src",
+   "${INC_ROOT}/core/securemsm/sfs/inc",
+   "${INC_ROOT}/core/securemsm/sfs/src",
+   "${INC_ROOT}/core/securemsm/secmath/api",
+   "${INC_ROOT}/core/securemsm/secboot/test/inc",
+   "${INC_ROOT}/core/securemsm/efs_crypto/shared/src",
+   "${INC_ROOT}/core/securemsm/secrsa/shared/inc",
+   "${INC_ROOT}/core/securemsm/secrsa/shared/src",
+   "${INC_ROOT}/core/securemsm/secpil/inc",
+   "${INC_ROOT}/core/securemsm/secpil/src",
+   "${INC_ROOT}/core/securemsm/secpil/src/mba",
+   "${INC_ROOT}/core/securemsm/secboot/api",
+   "${INC_ROOT}/core/api/securemsm/secboot",
+   "${INC_ROOT}/core/api/securemsm/seccfg",
+   "${INC_ROOT}/core/securemsm/secboot/api",
+   "${INC_ROOT}/core/securemsm/secmath/shared/inc",
+   "${INC_ROOT}/core/securemsm/fuseprov/chipset/msm8909/inc",
+])
+

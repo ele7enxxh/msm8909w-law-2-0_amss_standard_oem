@@ -1,0 +1,95 @@
+#===============================================================================
+#
+# create singleimage.bin
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011-07-27   ah      Changed to show how to use singleimage.py to create image
+# 2011-05-26   ah      msp.py does patching now, updated for all common targets
+# 2011-04-14   ah      First release, creates a singleimage.bin for emmcbld
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+print "\nSConscript CWD: ", os.getcwd(), "\n"
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles aliases
+aliases = [
+   'singleimage', 
+]
+
+image_name = str(aliases[0]).upper()
+env.Replace(PROC = 'scorpion')
+
+if not env.CheckAlias(image_name, aliases):
+   Return()
+
+print aliases
+
+print "\t                                      _   _               _ "
+print "\t                                     | | | |             | |"
+print "\t _ __   _____      __  _ __ ___   ___| |_| |__   ___   __| |"
+print "\t| '_ \\ / _ \\ \\ /\\ / / | '_ ` _ \\ / _ \\ __| '_ \\ / _ \\ / _` |"
+print "\t| | | |  __/\\ V  V /  | | | | | |  __/ |_| | | | (_) | (_| |"
+print "\t|_| |_|\\___| \\_/\\_/   |_| |_| |_|\\___|\\__|_| |_|\\___/ \\__,_|"
+print "\n"
+
+print "-"*78
+print "python singleimage.py -x singleimage_partition_%s.xml -s search_path1 -s search_path2 -s search_path3" % env['MSMID']
+print "-"*78+"\n"
+
+PARTITION_TOOLS_ROOT = os.path.join(env.subst('${BUILD_ROOT}'), 'core', 'storage', 'tools', 'jsdcc', 'partition_load_pt')
+import sys
+if sys.platform.startswith("linux"):
+	PARTITION_TOOLS_ROOT= PARTITION_TOOLS_ROOT.replace("\\","/")
+	MBN_ROOT			= env['MBN_ROOT'].replace("\\","/")
+	COPY				= "cp"
+	SLASH				= "/"
+else:
+	PARTITION_TOOLS_ROOT= PARTITION_TOOLS_ROOT.replace("/","\\")
+	MBN_ROOT			= env['MBN_ROOT'].replace("/","\\")
+	COPY				= "copy"
+	SLASH				= "\\"
+
+	
+print "\t _____ _                  "
+print "\t/  ___| |                 "
+print "\t\\ `--.| |_  ___ _ __  ___ "
+print "\t `--. \\ __|/ _ \\ '_ \\/ __|"
+print "\t/\\__/ / |_|  __/ |_) \\__ \\"
+print "\t\\____/ \\__|\\___| .__/|___/"
+print "\t               | |        "
+print "\t               |_|        \n"
+	
+print "These 3 steps should allow you to create a singleimage for emmcbld"
+print "1. cd %s" % PARTITION_TOOLS_ROOT
+print "2. python singleimage.py -x singleimage_partition_%s.xml -s %s" % (env['MSMID'],MBN_ROOT)
+print "3. %s singleimage.bin %s%s_msimage.mbn" % (COPY,MBN_ROOT+SLASH,env['MSMID'])
+print "-"*78
+print "-"*78+"\n\n"
+
+print "NOTE: Your single image is *not* made yet!!\n\n"
+print "NOTE: You must *manually* run the 3 steps above, this is *not* a scons script\n\n"
+
+import sys
+sys.exit(1)
+

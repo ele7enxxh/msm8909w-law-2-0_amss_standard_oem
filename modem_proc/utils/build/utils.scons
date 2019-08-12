@@ -1,0 +1,224 @@
+#===============================================================================
+#
+# Utils Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/utils/build/utils.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/10/14    xl     Enabled O2 for 6.4.04
+# 07/18/14    vd     Support for QSH
+# 09/21/10    ag     Support for logging msg packets.
+# 09/21/10    ag     Added BUSES, UIM and HDR paths.
+# 09/21/10    ag     Initial version.
+#===============================================================================
+
+Import('env')
+
+# Remove this line and if statement once 6.4.04 toolchain has been released
+if env['HEXAGON_RTOS_RELEASE'] >= '6.4.04':
+   # Enable -O2 optimization
+   env.Replace(HEXAGONCC_OPT = "${HEXAGON_OPT_2}")
+
+# Enable warnings -> errors for all, except LLVM toolchain (6.x.x) during migration
+import os
+if not os.environ.get('HEXAGON_RTOS_RELEASE').startswith('6'):
+	env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror")
+	env = env.Clone(HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")
+   
+if env.PathExists('${BUILD_ROOT}/utils'):
+    env.Replace(UTILS_ROOT = '${INC_ROOT}/utils')
+else:    
+    env.Replace(UTILS_ROOT = '${INC_ROOT}/modem/utils')
+
+# Load cleanpack script:
+import os
+if os.path.exists(env.subst('${UTILS_ROOT}/pack/utils_cleanpack.py')):
+   env.LoadToolScript('${UTILS_ROOT}/pack/utils_cleanpack.py')
+	
+env.RequirePublicApi([
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'OSYS',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'SERVICES',
+        'DAL',
+        'MEMORY',
+        'DEBUGTOOLS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'A2',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'MCS',
+        ],
+        area='MCS')
+
+env.RequirePublicApi([
+        'SYSTEMDRIVERS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'MPROC',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'CFM',
+        'COMMON',
+        'QSH',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'WIREDCONNECTIVITY',
+        'STORAGE',
+        'POWER',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='LTE')
+
+env.RequirePublicApi([
+        'SECUREMSM',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'FC',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'MPOWER',
+        ],
+        area='MPOWER')
+
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'DATAMODEM',
+        ],
+        area='DATAMODEM')
+
+
+#next two added manually
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='FW')
+
+
+env.RequirePublicApi([
+        'MYPS',
+        ],
+        area='MYPS')
+
+
+
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+
+
+
+# cust file relocation
+# Protected is "private within the SU" vs. Restricted with is visible to other SUs
+env.PublishProtectedApi('UTILS', [
+        '${UTILS_ROOT}/osys',
+        '${UTILS_ROOT}/a2/driver/src',
+        '${UTILS_ROOT}/cust/inc',
+        '${UTILS_ROOT}/variation/inc',
+        '${UTILS_ROOT}/cfm/src',
+        '${UTILS_ROOT}/qsh/src',
+        '${UTILS_ROOT}/fc/inc',
+        '${UTILS_ROOT}/fc/src',
+		'${UTILS_ROOT}/rtxsrc',
+		'${UTILS_ROOT}/rtpersrc',
+		'${UTILS_ROOT}/rtsrc',
+        ])
+
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+env.RequireProtectedApi(['UTILS'])
+
+
+#delete to end of file when modem folder is removed
+
+env.RequirePublicApi([
+    'HWENGINES',
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'DAL',
+    'POWER',
+    'BUSES',
+    'SECUREMSM',
+    'KERNEL',                             # needs to be last
+    ], area='core')
+
+#-------------------------------------------------------------------------------
+# Publish protected API's for utils
+#-------------------------------------------------------------------------------
+env.PublishProtectedApi('UTILS', ['${INC_ROOT}/modem/utils/a2/driver/inc',
+                                  '${INC_ROOT}/modem/utils/cfm/inc',
+                                  '${INC_ROOT}/modem/utils/qsh/inc',
+                                  '${INC_ROOT}/modem/utils/common/inc',
+                                  '${INC_ROOT}/modem/utils/dsmutils/inc',
+                                  '${INC_ROOT}/modem/utils/fc/inc',
+                                ])
+
+#----------------------------------------------------.---------------------------
+# Continue loading software units
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+

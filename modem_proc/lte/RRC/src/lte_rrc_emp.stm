@@ -1,0 +1,296 @@
+/*!
+  @file
+  lte_rrc_emp.stm
+
+  @brief
+  State machine description of eMBMS procedure (EMP) state machine
+
+*/
+
+/*===========================================================================
+
+  Copyright (c) 2011 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_emp.stm#1 $
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+10/06/11   zz      Created another handler for act_tmgi_reqi only when EMP 
+                   is in WAIT_FOR_CNF state.
+08/22/11   zz      Initial version
+===========================================================================*/
+
+/*===========================================================================
+
+                       STATE MACHINE DESCRIPTION
+
+This is a state machine for RRC EMP module.
+
+The RRC eMBMS service procedure (RRC-EMP) is designed for RRC internal 
+configuration of eMBMS service. EMP is responsible for SIB13 processing of 
+MBSFN area list, acquiring MCCH signaling messages and configuring MCCH/MTCH 
+channels. It responds to RRC eMBMS service manager (RRC-EMGR) about the 
+status of activating/deactivating an eMBMS service. A TMGI and optionally a 
+session ID is provided from eMBMS service manager to configure the channel 
+for a particular service. An MRB ID would be generated in EMP for MTCH bearers.  
+MRB ID will be used in a similar way that EPS bearer ID is used by data 
+services, and layer 2 for unicast services. 
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_EMP_SM
+{
+  ENTRY                                 lte_rrc_emp_sm_entry;
+  EXIT                                  NULL;
+  INITIAL_STATE                         INACTIVE;
+  INSTANCES                             1;
+  ERROR_HOOK                            lte_rrc_stm_error;
+  DEBUG_HOOK                            lte_rrc_stm_debug;
+  INPUT_DEF_FILE                        lte_rrc_stm.h;
+  INPUT_DEF_FILE                        lte_rrc_int_msg.h;
+  INPUT_DEF_FILE                        lte_rlc_msg.h;
+
+  /*!
+  INACTIVE state: This state indicates that EMP has no active services and 
+  is waiting for an activation command from eMBMS service manager to setup 
+  a service.
+  */
+  STATE INACTIVE
+  {
+    ENTRY                               NULL;
+    EXIT                                NULL;
+
+    INPUTS
+    {
+      /*! LTE_RRC_EMGR_ACT_TMGI_REQI is used to initiate SIB13 reading and 
+          MCCH/MTCH setup */
+      LTE_RRC_ESMGR_ACT_TMGI_REQI                lte_rrc_emp_sm_act_tmgi_reqi_init;
+
+      /*! LTE_RRC_EMGR_DEACT_TMGI_REQI is used to deactivate eMBMS service */
+      LTE_RRC_ESMGR_DEACT_TMGI_REQI              lte_rrc_emp_sm_deact_tmgi_reqi;
+
+      /*! LTE_RRC_ESMGR_AVAIL_TMGI_LIST_REQI is used to initiate SIB13 reading and
+          MCCH setup */
+      LTE_RRC_ESMGR_AVAIL_TMGI_LIST_REQI         lte_rrc_emp_sm_avail_tmgi_list_reqi;
+
+      /*! LTE_RRC_STOPPED_INDI handled for cleanup of active events */
+      LTE_RRC_STOPPED_INDI                      lte_rrc_emp_sm_stopped_indi;
+
+			/*! LTE_RLCDL_MCCH_PDU_IND is is sent for configuring MTCH.
+			    In this state, EMP will only free the DSM memory if MCCH PDU comes. */
+      LTE_RLCDL_MCCH_PDU_IND                    lte_rrc_emp_sm_rlcdl_mcch_pdu_ind;
+
+      /*! LTE_CPHY_MCCH_CHANGE_NOTIFICATION_IND indicates change in MCCH */
+      LTE_CPHY_MCCH_CHANGE_NOTIFICATION_IND     lte_rrc_emp_sm_mcch_change_notification;
+
+    }
+  }
+
+  /*!
+  ACTIVE state: This state indicates that EMP has active services and is waiting
+  commands from eMBMS service manager or other RRC modules.
+  */
+  STATE ACTIVE
+  {
+    ENTRY                               NULL;
+    EXIT                                NULL;
+
+    INPUTS
+    {
+      /*! LTE_RRC_EMGR_ACT_TMGI_REQI is used to initiate SIB13 reading and 
+          MCCH/MTCH setup */
+      LTE_RRC_ESMGR_ACT_TMGI_REQI                lte_rrc_emp_sm_act_tmgi_reqi;
+
+      /*! LTE_RRC_EMGR_DEACT_TMGI_REQI is used to deactivate eMBMS service */
+      LTE_RRC_ESMGR_DEACT_TMGI_REQI              lte_rrc_emp_sm_deact_tmgi_reqi;
+
+      /*! LTE_RRC_ESMGR_AVAIL_TMGI_LIST_REQI is used to initiate SIB13 reading and
+          MCCH setup */
+      LTE_RRC_ESMGR_AVAIL_TMGI_LIST_REQI         lte_rrc_emp_sm_avail_tmgi_list_reqi;
+
+      /*! LTE_RRC_SIB_UPDATED_INDI is is sent by SIB to indicate the update 
+          info of SIB13 */
+      LTE_RRC_SIB_UPDATED_INDI                  lte_rrc_emp_sm_sib_updated_indi;
+
+      /*! LTE_RLCDL_MCCH_PDU_IND is is sent for configuring MTCH */
+      LTE_RLCDL_MCCH_PDU_IND                    lte_rrc_emp_sm_rlcdl_mcch_pdu_ind;
+
+      /*! LTE_RRC_CFG_CNFI is sent to RRC procedures once the channel 
+          operations requests is completed */
+      LTE_RRC_CFG_CNFI                          lte_rrc_emp_sm_cfg_cnfi;
+
+      /*! LTE_RRC_EMP_MCCH0_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 0 has expired */
+      LTE_RRC_EMP_MCCH0_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH1_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 1 has expired */
+      LTE_RRC_EMP_MCCH1_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH2_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 2 has expired */
+      LTE_RRC_EMP_MCCH2_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH3_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 3 has expired */
+      LTE_RRC_EMP_MCCH3_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH4_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 4 has expired */
+      LTE_RRC_EMP_MCCH4_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH5_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 5 has expired */
+      LTE_RRC_EMP_MCCH5_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH6_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 6 has expired */
+      LTE_RRC_EMP_MCCH6_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH7_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 7 has expired */
+      LTE_RRC_EMP_MCCH7_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+      /*! LTE_RRC_STOPPED_INDI handled for cleanup of active events */
+      LTE_RRC_STOPPED_INDI                      lte_rrc_emp_sm_stopped_indi;
+
+      /*! LTE_RRC_SERVICE_IND is used to stop unicast OOS timer. */
+      LTE_RRC_SERVICE_IND                       lte_rrc_emp_sm_service_ind;
+
+      /*! LTE_RRC_CAMPED_INDI is used to stop Unicast OOS Timer and send OOS Recovery */
+      LTE_RRC_CAMPED_INDI                       lte_rrc_emp_sm_service_ind;
+
+      /*! LTE_RRC_EMP_PENDED_SERVICE_IND is pended when LTE_RRC_SERVICE_IND is 
+          received in WAIT_FOR_CNF state. Used to stop unicast OOS timer after 
+          unpended. */
+      LTE_RRC_EMP_PENDED_SERVICE_INDI           lte_rrc_emp_sm_service_ind;
+
+      /*! LTE_RRC_EMP_OOS_TMRI indicates that the unicast OOS/RLF timer has 
+          expired */
+      LTE_RRC_EMP_OOS_TMRI                      lte_rrc_emp_sm_oos_tmri;
+
+      /*! LTE_CPHY_MCCH_CHANGE_NOTIFICATION_IND indicates change in MCCH */
+      LTE_CPHY_MCCH_CHANGE_NOTIFICATION_IND     lte_rrc_emp_sm_mcch_change_notification;
+
+      /*! LTE_RRC_ESMGR_ACT_DEACT_TMGI_REQI is the super command used only 
+          for channel switching */
+      LTE_RRC_ESMGR_ACT_DEACT_TMGI_REQI         lte_rrc_emp_sm_act_deact_tmgi_reqi;
+    }
+  }
+
+  /*!
+  WAIT_FOR_CNF state: In this state EMP is waiting for CHAN_CFG_CNF from LLC. 
+  Any incoming commands except for CFG_CNFI or LTE_RRC_STOPPED_INDI would be 
+  pended in the queue.
+  */
+  STATE WAIT_FOR_CNF
+  {
+    ENTRY                               NULL;
+    EXIT                                NULL;
+
+    INPUTS
+    {
+      /*! LTE_RRC_EMGR_ACT_TMGI_REQI is used to initiate SIB13 reading and 
+          MCCH/MTCH setup */
+      LTE_RRC_ESMGR_ACT_TMGI_REQI                lte_rrc_emp_sm_act_tmgi_reqi_pend;
+
+      /*! LTE_RRC_EMGR_DEACT_TMGI_REQI is used to deactivate eMBMS service */
+      LTE_RRC_ESMGR_DEACT_TMGI_REQI              lte_rrc_emp_sm_deact_tmgi_reqi_pend;
+
+      /*! LTE_RRC_ESMGR_AVAIL_TMGI_LIST_REQI is used to initiate SIB13 reading and
+          MCCH setup */
+      LTE_RRC_ESMGR_AVAIL_TMGI_LIST_REQI         lte_rrc_emp_sm_avail_tmgi_list_reqi;
+
+      /*! LTE_RRC_SIB_UPDATED_INDI is is sent by SIB to indicate the update 
+          info of SIB13 */
+      LTE_RRC_SIB_UPDATED_INDI                  lte_rrc_emp_sm_sib_updated_indi_pend;
+
+      /*! LTE_RLCDL_MCCH_PDU_IND is is sent for configuring MTCH */
+      LTE_RLCDL_MCCH_PDU_IND                    lte_rrc_emp_sm_rlcdl_mcch_pdu_ind_pend;
+
+      /*! LTE_RRC_CFG_CNFI is sent to RRC procedures once the channel 
+          operations requests is completed */
+      LTE_RRC_CFG_CNFI               lte_rrc_emp_sm_cfg_cnfi;
+
+      /*! LTE_RRC_EMP_MCCH0_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 0 has expired */
+      LTE_RRC_EMP_MCCH0_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH1_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 1 has expired */
+      LTE_RRC_EMP_MCCH1_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH2_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 2 has expired */
+      LTE_RRC_EMP_MCCH2_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH3_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 3 has expired */
+      LTE_RRC_EMP_MCCH3_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH4_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 4 has expired */
+      LTE_RRC_EMP_MCCH4_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH5_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 5 has expired */
+      LTE_RRC_EMP_MCCH5_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH6_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 6 has expired */
+      LTE_RRC_EMP_MCCH6_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+			/*! LTE_RRC_EMP_MCCH7_WT_TMRI indicates that the MCCH reading wait timer in
+			    MCCH DB index 7 has expired */
+      LTE_RRC_EMP_MCCH7_WT_TMRI                  lte_rrc_emp_sm_mcch_wt_tmri;
+
+      /*! LTE_RRC_STOPPED_INDI handled for cleanup of active events */
+      LTE_RRC_STOPPED_INDI                      lte_rrc_emp_sm_stopped_indi;
+
+      /*! LTE_RRC_SERVICE_IND is used to stop unicast OOS timer. */
+      LTE_RRC_SERVICE_IND                       lte_rrc_emp_sm_service_ind;
+
+      /*! LTE_RRC_CAMPED_INDI is used to stop Unicast OOS Timer and send OOS Recovery */
+      LTE_RRC_CAMPED_INDI                       lte_rrc_emp_sm_service_ind;
+
+      /*! LTE_RRC_EMP_PENDED_SERVICE_IND is pended when LTE_RRC_SERVICE_IND is 
+          received in WAIT_FOR_CNF state. Used to stop unicast OOS timer after 
+          unpended. */
+      LTE_RRC_EMP_PENDED_SERVICE_INDI           lte_rrc_emp_sm_service_ind;
+
+      /*! LTE_RRC_EMP_OOS_TMRI indicates that the unicast OOS/RLF timer has 
+          expired */
+      LTE_RRC_EMP_OOS_TMRI                      lte_rrc_emp_sm_oos_tmri;
+
+      /*! LTE_CPHY_MCCH_CHANGE_NOTIFICATION_IND indicates change in MCCH */
+      LTE_CPHY_MCCH_CHANGE_NOTIFICATION_IND     lte_rrc_emp_sm_mcch_change_notification;
+
+      /*! LTE_RRC_ESMGR_ACT_DEACT_TMGI_REQI is the super command used only 
+          for channel switching */
+      LTE_RRC_ESMGR_ACT_DEACT_TMGI_REQI         lte_rrc_emp_sm_act_deact_tmgi_reqi;
+    }
+  }
+}

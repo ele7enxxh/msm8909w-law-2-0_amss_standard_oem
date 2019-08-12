@@ -1,0 +1,303 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/24/14   KKO     Created
+#===============================================================================
+import sys
+import os
+from glob import glob
+from sets import Set
+
+Import('env')
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = ['root_pd_img']
+
+build_tags = ['CORE_QDSP6_SW', 'CORE_ROOT_PD', 'MODEM_MODEM', 'CORE_MODEM', 'MULTIMEDIA_QDSP6_SW', 'MULTIMEDIA_ROOT_PD', 'QDSS_EN_IMG', 'QMIMSGS_MPSS', 'CTA_APPS']
+
+if os.path.exists(os.path.join(env.subst("${BUILD_ROOT}"), "build/manifest.xml")) or 'CRMSERVERNAME' in os.environ:
+   build_tags.append('IMAGE_TREE_VERSION_AUTO_GENERATE')
+
+# init environment variables
+env.InitImageVars(
+   alias_list=aliases,           # aliases
+   proc='qdsp6',              # proc
+   config='qdsp6_sw',                # config type, proc_name
+   plat='qurt',
+   target='MODEM_PROC_IMG_${BUILD_ID}',# target (elf, image file name)
+   build_tags = build_tags,
+   deprecated_build_tags = ['CBSP_QDSP6_SW_IMAGE'],
+   tools = ['buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/swe_intermidiate_builder.py']
+   )
+
+if not env.CheckAlias():
+   Return()
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(MBN_FILE="${BUILD_MS_ROOT}/bin/${SHORT_BUILDPATH}/dsp2")
+env.Replace(USES_DEVCFG = 'yes')
+env.Replace(USES_MULTI_DEVCFG = 'yes')
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_IMG')
+env.Append(USES_QDSS_SWE_MULTIPD = True)
+
+if env['MSM_ID'] in ['8994','9x45','8996','8909','9609','9607']:
+  env.Replace(QURT_BUILD_CONFIG="modemv56")
+elif env['MSM_ID'] in ['8916','8936']:
+  env.Replace(QURT_BUILD_CONFIG="modemv5")
+else:
+  print("-------------------------------------------------------------------------------")
+  print("*** QuRT target could not be determined")
+  print("-------------------------------------------------------------------------------")
+  Exit(1)
+
+#---------------------------------------------------------------------------
+# root PD virtual address
+#---------------------------------------------------------------------------
+env.Replace(HEXAGON_IMAGE_ENTRY = '0xC0000000')
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('qdsp6_defs', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('sleep_lpr_builder', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+env.LoadToolScript('build_utils', toolpath = ['${BUILD_ROOT}/build/scripts'])
+
+#------------------------------------------------------------------------------
+# Find the location of the config XML for CoreBSP.
+#---------------------- --------------------------------------------------------
+env.Replace(CONFIG_XML = env.FindConfigFiles('cust_config.xml')[0])
+
+env.Append(CFLAGS = ARGUMENTS.get('T_CFLAGS', '') + ' ')
+env.Append(LFLAGS = ARGUMENTS.get('T_LFLAGS', '') + ' ')
+
+env.Replace(QDSP6_RELEASE_LIB_DIR="${QDSP6_RELEASE_DIR}/dinkumware/lib/${Q6VERSION}/G0")
+
+# Tell the linker to look for it's config files in the $BUILDPATH directory
+for config_path in env.FindConfigPaths():
+   env.Append(LFLAGS = "-L " + config_path + ' ')
+
+#---------------------------------------------------------------------------
+# Proof of concept, need to find a correct location
+#---------------------------------------------------------------------------
+
+env.Append(CPPDEFINES=['MODEM_FW_NUM_PRIO=64'])
+env.AddUsesFlags('USES_RCINIT_PLAYBOOK') # MUST OCCUR BEFORE FIRST LoadAreaSoftwareUnits
+  
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+modem_proc_img_libs = []
+modem_proc_img_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+core_qurt_env = env.Clone()
+#core_qurt_env.Replace(QURT_BUILD_CONFIG="modemv5")
+core_qurt_env.Replace(CONFIG_XML = env.FindConfigFiles('cust_config.xml')[0])
+core_qurt_items = core_qurt_env.LoadAreaSoftwareUnits('core', ["kernel/qurt"])
+modem_proc_img_libs.extend(core_qurt_items['LIBS'])
+modem_proc_img_objs.extend(core_qurt_items['OBJS'])
+
+# ---------------------------------------------------------------------------
+# Make SWE master list from individual image list
+# ---------------------------------------------------------------------------
+
+SWE_LISTS = [    #  SWE LISTS CONTAINING INTERMEDIATS EVENT INFO 
+	  '${BUILD_ROOT}/build/bsp/core_root_libs/build/${SHORT_BUILDPATH}/sweevent_list.txt',
+     '${BUILD_ROOT}/build/bsp/modem_root_libs/build/${SHORT_BUILDPATH}/sweevent_list.txt',
+   ]
+env.SWEMergeBuilder(['${SHORT_BUILDPATH}/sweevent_consolidate_list.txt'],SWE_LISTS)
+
+SWE_OUTPUT_LISTS = [    # SWE LISTS THAT WILL CONTAIN SWE INFO FROM MASTER FILE 
+	  '${BUILD_ROOT}/build/bsp/core_root_libs/build/${SHORT_BUILDPATH}/sweevent_master_list.txt',
+     '${BUILD_ROOT}/build/bsp/modem_root_libs/build/${SHORT_BUILDPATH}/sweevent_master_list.txt',
+   ]
+env.SWEReplicateBuilder(SWE_OUTPUT_LISTS,['${SHORT_BUILDPATH}/sweevent_consolidate_list.txt'])
+
+# ---------------------------------------------------------------------------
+# Make Sleep LPR master list from individual image list
+# ---------------------------------------------------------------------------
+
+SleepLPR_LISTS = [    #  Sleep LPR LISTS CONTAINING INTERMEDIATS EVENT INFO 
+     '${BUILD_ROOT}/build/bsp/core_root_libs/build/${SHORT_BUILDPATH}/sleep_LPR_list.txt',
+     '${BUILD_ROOT}/build/bsp/modem_root_libs/build/${SHORT_BUILDPATH}/sleep_LPR_list.txt',
+   ]
+env.SleepLPRMergeBuilder(['${SHORT_BUILDPATH}/SleepLPR_consolidate_list.txt'],SleepLPR_LISTS)
+
+SleepLPR_OUTPUT_LISTS = [    # Sleep LPR LISTS THAT WILL CONTAIN SWE INFO FROM MASTER FILE 
+     '${BUILD_ROOT}/build/bsp/core_root_libs/build/${SHORT_BUILDPATH}/sleep_LPR_master_list.txt',
+     '${BUILD_ROOT}/build/bsp/modem_root_libs/build/${SHORT_BUILDPATH}/sleep_LPR_master_list.txt',
+   ]
+env.SleepLPRReplicateBuilder(SleepLPR_OUTPUT_LISTS,['${SHORT_BUILDPATH}/SleepLPR_consolidate_list.txt'])
+
+image_units= []
+# ---------------------------------------------------------------------------
+# Make RCINIT Playboook from playlists
+# ---------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+
+   RCINIT_PLAYLISTS = [    # PLAYLISTS INTERMEDIATS BUILT WITH LIBRARY
+	  '${BUILD_ROOT}/build/bsp/modem_root_libs/build/${SHORT_BUILDPATH}/rcinit.rcpl',
+     '${BUILD_ROOT}/build/bsp/core_root_libs/build/${SHORT_BUILDPATH}/rcinit.rcpl',
+     '${BUILD_ROOT}/build/bsp/audio_root_libs/build/${SHORT_BUILDPATH}/rcinit.rcpl',
+   ]
+   env.AddRcinitPlaybookParams(build_tags, image_units, modem_proc_img_objs, RCINIT_PLAYLISTS)
+ 
+#------------------------------------------------------------------------------
+# Init secure varables
+#------------------------------------------------------------------------------
+env.Replace(ENABLE_ENCRYPT = True)
+
+
+#------------------------------------------------------------------------------
+# Putting the image toghther
+#------------------------------------------------------------------------------
+image_units += [modem_proc_img_objs, modem_proc_img_libs]
+
+env.Append(ORIG_PREPEND = 'orig_')
+
+env.Append(LFLAGS = ' '.join([
+  '-L',
+  '/'.join([
+    env.subst('${BUILD_ROOT}').replace('\\', '/'),
+    'rfc_thor/rf_card/build/modem_root_libs',env.subst('${PROC}').replace('\\', '/'),
+    env.subst('${SHORT_BUILDPATH}').replace('\\', '/'),
+  ]),
+  '',
+]))
+
+if 'IMAGE_BUILD_LOCAL_FILES' in env:
+   #-------------------------------------------------------------------------
+   # Local Files
+   #-------------------------------------------------------------------------
+   if 'USES_LCS_FILE' in env:
+      # Dynamically load lcs_builder
+      env.LoadToolScript("${BUILD_SCRIPTS_ROOT}/lcs_builder.py")
+      # Location and name of lcs file
+      qurt_lcs = env.FindConfigFiles('${BUILD_ASIC}_QuRT_${TARGET_IMAGE}.lcs')[0]
+      lcs_file = env.LcsBuilder("${BUILD_MS_ROOT}/${ORIG_PREPEND}${TARGET_NAME}.elf.lcs", qurt_lcs)
+
+      image_units += lcs_file
+      
+if 'IMAGE_BUILD_LINK' in env:
+   #-------------------------------------------------------------------------
+   # List of list-files containing libraries generated else where.
+   #-------------------------------------------------------------------------
+   core_root_lf = env.RealPath('${BUILD_ROOT}/build/bsp/core_root_libs/build/${SHORT_BUILDPATH}/CORE_ROOT_LIBS_${BUILD_ID}.txt', posix=True)   
+   audio_root_lf = env.RealPath('${BUILD_ROOT}/build/bsp/audio_root_libs/build/${SHORT_BUILDPATH}/AUDIO_ROOT_LIBS_${BUILD_ID}.txt', posix=True) 
+   modem_root_lf = env.RealPath('${BUILD_ROOT}/build/bsp/modem_root_libs/build/${SHORT_BUILDPATH}/MODEM_ROOT_LIBS_${BUILD_ID}.txt', posix=True)   
+   #-------------------------------------------------------------------------
+   # Link image
+   #-------------------------------------------------------------------------
+   listfiles = [ core_root_lf, modem_root_lf, audio_root_lf]
+   
+   image_elf = env.AddProgram(
+      "${BUILD_MS_ROOT}/${ORIG_PREPEND}${TARGET_NAME}",         # target name
+      modem_proc_img_objs,                         # sources (objects files must have at least 1)
+      LIBS=modem_proc_img_libs,                    # libraries
+      LISTFILES=listfiles                          # other libraries generated externally
+   )
+   
+   if 'USES_LCS_FILE' in env:
+      # Add lcs dependency to elf file
+      env.Depends(image_elf, lcs_file)
+
+
+   #---------------------------------------------------------------------------
+   # Use the MYPS_LINKER, if specified, for CR 340311
+   #---------------------------------------------------------------------------
+   if 'USES_MYPS_LINKER' in env:
+      # find out where the myps tools are {{{
+      myps_paths = [
+        'build/myps/tools',
+      ]
+
+      myps_paths = [
+        os.path.abspath(
+          os.path.join(*([
+            env.subst('${BUILD_ROOT}')] +
+            i.split('/')))) for i in myps_paths]
+
+      for potential_myps_dir in myps_paths:
+        if os.path.exists(potential_myps_dir):
+          myps_dir = potential_myps_dir
+          break
+      # }}}
+
+      # memory report generation? y/n?
+      env.Append(MEMREPORT = ARGUMENTS.get('MEMREPORT', '0'))
+
+      env.LoadToolScript(os.path.join(myps_dir, 'hook_pplk.py'))
+      image_elf,qshrink_qdb = env.Pplk(
+        ['${SHORT_BUILDPATH}/${TARGET_NAME}.elf','${SHORT_BUILDPATH}/qdsp6m.qdb'],
+        [image_elf])
+
+
+if 'IMAGE_BUILD_POST_LINK' in env:
+
+   #-------------------------------------------------------------------------
+   # Install ELF, reloc files
+   #-------------------------------------------------------------------------
+   # copy elf and reloc to needed locations for AMSS tools to load on target
+   install_target_elf = env.InstallAs("${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_NODEVCFG.elf", image_elf)
+   
+   install_target_qdb = env.InstallAs(
+      "${BUILD_MS_ROOT}/bin/${SHORT_BUILDPATH}/qdsp6m.qdb", qshrink_qdb)
+
+   if 'USES_ELF_TO_BLAST_EXTRACTOR' in env:
+      #-------------------------------------------------------------------------
+      # Run Elf To Blast Extractor (temp hack until code can move to modem_proc.scons
+      #-------------------------------------------------------------------------
+      env.LoadToolScript("${BUILD_ROOT}/tools/elf_to_blast_extractor/elf_to_blast_extractor_builder.py")
+
+      address_map_files = env.ElfToBlastExtractorBuilder('${SHORT_BUILDPATH}/symbol_to_addressmap.txt', install_target_elf)
+      image_units += address_map_files
+
+   if 'USES_CMMBUILDER' in env:
+       cmmscripts = env.CMMGenerateFiles()
+       image_units += cmmscripts
+       
+   image_units += [
+      install_target_elf,
+      install_target_qdb,
+      # target_mbn,
+   ]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)
+
+# This probably needs to go someplace else.
+env.CMMBuilder(None, None)

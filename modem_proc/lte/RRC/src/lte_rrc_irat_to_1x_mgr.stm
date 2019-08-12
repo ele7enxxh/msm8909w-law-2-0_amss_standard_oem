@@ -1,0 +1,311 @@
+/*!
+  @file
+  lte_rrc_irat_to_1x_mgr.stm
+
+  @brief
+  This module contains the state machine description of the LTE to 1x RAT manager.
+*/
+
+/*===========================================================================
+
+  Copyright (c) 2009 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_1x_rat_mgr.stm#1 $
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+10/14/10   np      Support for e1xCSFB
+01/11/10   np      Changes done to rename the MSG ID's in 1xCP to matchup HDR.
+12/15/09   np      Integrate with real 1xCP MSGR header file for redir
+12/01/09   np      LTE - 1x IRAT Reselection Support
+09/10/09   np      Initial Revision
+           
+===========================================================================*/
+
+/*!===========================================================================
+
+                      STATE MACHINE DESCRIPTION
+
+This state machine implements the RRC 1x RAT manager module that interacts with
+the 1x stack specifically 1x CP for various inter-RAT procedures like
+reselection, redirection and handovers etc.
+
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_IRAT_TO_1X_MGR_SM
+{
+  ENTRY           lte_rrc_irat_to_1x_sm_entry; /* State machine entry func */
+  EXIT            lte_rrc_irat_to_1x_sm_exit;  /* State machine exit func */
+
+  INITIAL_STATE   INITIAL;                    /* State machine initial state */
+  
+  ERROR_HOOK      lte_rrc_stm_error;           /* Common error handler */
+  DEBUG_HOOK      lte_rrc_stm_debug;           /* Common debug handler */
+  
+  /************ external message defines ************/ 
+  INPUT_DEF_FILE  onex_cp_msg.h;               /* 1x CDMA CP Header file */
+  INPUT_DEF_FILE  lte_cphy_msg.h;
+  /************ internal message defines ************/
+  INPUT_DEF_FILE  lte_rrc_stm.h;               /* STM common defs */
+  INPUT_DEF_FILE  lte_rrc_int_msg.h;           /* Internal msg defs */
+  INPUT_DEF_FILE  lte_rrc_ext_msg.h;           /* External msg defs */
+  
+  INSTANCES       1;                           /* optional if only 1 */
+
+  /*!=========================================================================
+
+                             INITIAL
+
+  o	This is the main standby state of the IRAT manager
+
+  o	The IRAT manager waits for requests to start the Inter-RAT procedure 
+    like redirection ,reselection, e1xcsfb HO here.
+                               
+  =========================================================================*/
+
+  STATE INITIAL
+  {
+    ENTRY                       lte_rrc_irat_to_1x_sm_initial_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+
+      /*! Redirection to 1x request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_TO_1X_REDIR_REQI  lte_rrc_irat_to_1x_sm_redir_reqi;
+
+      /*! Reselection to 1x request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_TO_1X_RESEL_REQI  lte_rrc_irat_to_1x_sm_resel_reqi;
+
+      /*! SIB updated indication from SIB */
+      LTE_RRC_SIB_UPDATED_INDI                lte_rrc_irat_to_1x_sm_sib_updated_indi;
+
+      /*! Mobility to 1x indication */
+      LTE_RRC_IRAT_FROM_LTE_TO_1X_MOBILITY_INDI  lte_rrc_irat_to_1x_sm_ho_req;
+
+      /*! Asynchronous indication/failures before actual Mobility from Eutra is rcvd */
+      ONEX_CP_LTE_1xCSFB_CALL_REL_IND         lte_rrc_irat_to_1x_sm_csfb_call_rel_ind;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_1x_sm_lte_depri_indi;
+	  
+	  /*! Get CGI Req for 1X */
+      LTE_RRC_IRAT_FROM_LTE_TO_1X_GET_CGI_REQI lte_rrc_irat_to_1x_sm_get_cgi_reqi;
+
+      LTE_RRC_NV_REFRESH_INDI lte_rrc_irat_to_1x_sm_nv_refresh_indi;
+    }
+  }
+
+  /*!=========================================================================
+
+                             WT_FOR_SUSPEND_CNF
+
+                             
+   o IRAT manager moves to this state if it gets a redirection/reselection request.
+     This state is used to suspend the LTE stack.
+   
+   o	In this state, for redirection, LTE ML1 is stopped
+      
+   o	For Reselections, LTE ML1 is suspended
+                               
+  =========================================================================*/
+
+  STATE WT_FOR_SUSPEND_CNF
+  {
+    ENTRY                       lte_rrc_irat_to_1x_sm_wt_for_suspend_cnf_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+      /*! Mode change confirmation from Controller */
+      LTE_RRC_MODE_CHANGE_CNFI           lte_rrc_irat_to_1x_sm_suspended;
+
+      /*! Redirection/Reselection Abort Request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI   lte_rrc_irat_to_1x_sm_abort_during_suspend;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_1x_sm_lte_depri_indi;
+	  
+	  /*! Not camped indication from CSP while handling OOS indication in Suspended state*/
+      LTE_RRC_NOT_CAMPED_INDI                      lte_rrc_irat_to_1x_sm_not_camped_indi_suspended;
+    }
+  }
+
+/*!=========================================================================
+
+                             WT_TO_ABORT_DURING_SUSPEND
+
+                             
+   o	The Inter-RAT procedure needs to be aborted for higher priority user requests.  
+   
+   o	The Inter-RAT manager waits in this state if the IRAT procedure has been 
+      aborted while it is trying to suspend the stack.
+   
+   o	It resumes the stack to process the higher priority request.
+                             
+  =========================================================================*/
+
+  STATE WT_TO_ABORT_DURING_SUSPEND
+  {
+    ENTRY                       lte_rrc_irat_to_1x_sm_wt_to_abort_during_suspend_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+      LTE_RRC_MODE_CHANGE_CNFI   lte_rrc_irat_to_1x_sm_start_abort;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_1x_sm_lte_depri_indi;
+	  
+	  /*! Abort Request from PLMN/CRP/CSP/MEAS */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI              lte_rrc_irat_to_1x_sm_abort_during_abort;
+    }
+  }
+
+  /*!=========================================================================
+
+                             WT_FOR_RESUME_CNF
+
+  o	If the IRAT procedure is aborted, the LTE stack needs to be resumed and 
+    this state is used to wait for the stack to be resumed.
+
+  =========================================================================*/
+
+  STATE WT_FOR_RESUME_CNF
+  {
+    ENTRY                       lte_rrc_irat_to_1x_sm_wt_for_resume_cnf_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+      /*! Mode change confirmation from Controller */
+      LTE_RRC_MODE_CHANGE_CNFI   lte_rrc_irat_to_1x_sm_resumed;
+
+      /*! Redirection Abort Request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI   lte_rrc_irat_to_1x_sm_abort_during_resume;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_1x_sm_lte_depri_indi;
+
+    }
+  }
+
+
+  /*!=========================================================================
+
+                            IRAT_TO_1X_IN_PROGRESS
+
+                            
+    o	After the LTE stack is successfully suspended (ML1 being either suspended 
+      or stopped), the IRAT manager send the redirection/reselection request 
+      to the target RAT and waits in this state.
+
+    o	There are three possibilities of in this state
+      o	IRAT procedure is successful.
+        1.	If the IRAT procedure is successful, LTE NAS deactivates LTE RRC 
+            and IRAT manager moves to Inactive state.
+      o	IRAT procedure fails.
+        1.	If the IRAT procedure fails, for reselections, IRAT manager 
+            resumes the LTE stack and for redirections, IRAT manager deactivates LTE.
+      o	IRAT procedure needs to be aborted.
+        1.	If the IRAT procedure needs to be aborted in this state, IRAT manager 
+            issues the abort request to the target RAT and goes to waiting 
+            for the abort confirmation.
+                            
+  =========================================================================*/
+  STATE IRAT_TO_1X_IN_PROGRESS
+  {
+    ENTRY                       lte_rrc_irat_to_1x_sm_irat_to_1x_in_progress_entry;
+    EXIT                        NULL;
+
+    INPUTS
+    {
+
+      /*! LTE Stopped indication */
+      LTE_RRC_STOPPED_INDI                lte_rrc_irat_to_1x_sm_stopped;
+
+      /*! Redirection Failed Indication received from 1x CP */
+      ONEX_CP_LTE_REDIR_FAILED_RSP        lte_rrc_irat_to_1x_sm_redir_failed;
+
+      /*! Reselection Failed Indication received from 1x CP */
+      ONEX_CP_LTE_RESEL_FAILED_RSP        lte_rrc_irat_to_1x_sm_resel_failed;
+
+      /*! e1xCSFB Handover Failed Indication received from 1x CP */
+      ONEX_CP_LTE_1xCSFB_HO_FAILED_RSP    lte_rrc_irat_to_1x_sm_ho_failed;
+
+      /*! SRVCC Handover Failed Indication received from 1x CP */
+      ONEX_CP_LTE_1xSRVCC_HO_FAILED_RSP    lte_rrc_irat_to_1x_sm_ho_failed;
+
+      /*! Redirection Abort Request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI    lte_rrc_irat_to_1x_sm_abort_irat;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_1x_sm_lte_depri_indi;
+	  
+	  /*! 1X Get CGI Response from 1X CP */
+      ONEX_CP_LTE_GET_CGI_RSP lte_rrc_irat_to_1x_sm_get_cgi_rsp;
+    }
+  }
+
+/*!=========================================================================
+
+                             WT_FOR_1X_ABORT_RSP
+
+  o	The Inter-RAT procedure needs to be aborted for higher priority user requests.  
+  
+  o	The Inter-RAT manager waits in this state if the IRAT procedure has been 
+    aborted and a request has been sent to the target RAT to abort.
+  
+
+  =========================================================================*/
+  STATE WT_FOR_1X_ABORT_RSP
+  {
+    ENTRY           lte_rrc_irat_to_1x_sm_wt_for_1x_abort_rsp_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      /*! Redirection Abort Confirmation from 1x CP  */
+      ONEX_CP_LTE_ABORT_REDIR_RSP         lte_rrc_irat_to_1x_sm_redir_abort_rsp;
+      
+      /*! Reselection Abort Confirmation from 1x CP  */
+      ONEX_CP_LTE_ABORT_RESEL_RSP         lte_rrc_irat_to_1x_sm_resel_abort_rsp;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_1x_sm_lte_depri_indi;
+
+      /*! 1XCSFB abort response from 1X CP */
+      ONEX_CP_LTE_ABORT_1xCSFB_HO_RSP     lte_rrc_irat_to_1x_sm_csfb_ho_abort_rsp;
+	  
+	  /*! 1X Get CGI Response from 1X CP */
+      ONEX_CP_LTE_GET_CGI_RSP lte_rrc_irat_to_1x_sm_get_cgi_rsp;
+	  
+	  /*! Abort Request from PLMN/CRP/CSP/MEAS */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI              lte_rrc_irat_to_1x_sm_abort_during_abort;
+    }
+  }
+}

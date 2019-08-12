@@ -1,0 +1,105 @@
+;****************************************************************************
+;**         boot_debug.cmm
+;**
+;**         This script performs setup for debugging on secboot 3.0 Architecture.
+;**
+;** Copyright  2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.
+;**
+;****************************************************************************
+;**
+;**                        EDIT HISTORY FOR MODULE
+;**
+;** $$
+;**
+;** when       who     what, where, why
+;** --------   ---     ------------------------------------------------------
+;** 07/22/14   sk      Changes for 8909
+;** 07/01/14   sk      Added DDR Base address to 8916 and 8939 targets
+;** 05/26/14   sve     Added 8936 target to the debug script
+;** 05/06/14   ck      Removed Badger targets
+;** 03/25/14   ck      Update for 8916
+;** 10/31/13   jz      Updated to support command line usage
+;** 10/23/13   kpa     Update for 9x35
+;** 09/03/13   jz      Updated for 8084 to use common debug scripts
+;** 07/23/13   plc     Update for 8994
+;** 07/10/13   aus     Added support for boot crash dumps
+;** 06/26/13   plc     Update for 8092
+;** 05/06/13   plc     Update for 8x62
+;** 03/18/13   plc     Update for 8x10
+;** 08/20/12   dh      Initial revision for badger family
+
+;****************************************************************************
+
+  ; This script is a wrapper for the target specific debug script
+
+  ;============================================================================
+  ; Declare variables used
+  ;============================================================================
+  local &Choice
+  local &Option  ; Menu Option
+  global &ddr_base ;DDR Base address
+  global &crash_addr_mask	;Crash Dump address Mask
+  ;============================================================================
+  ; Get the arguments passed in.
+  ;============================================================================
+  ENTRY &Choice &Option &QSEEBuildPath
+  
+  ;============================================================================
+  ; Set up the display window
+  ;============================================================================
+
+  winclear
+  area.RESET 
+  WINPOS 0% 50% 68% 50% 0. 0. W001
+  Area.create MAIN
+  Area.view MAIN
+  Area.select MAIN
+
+  ;============================================================================
+  ; If user passed TARGET on command line, just go
+  ;============================================================================ 
+  if "&Choice"=="9x45"
+  (
+    &ddr_base=0x80000000
+    &crash_addr_mask=0x7FFFFFFF
+    ; To Be Done for command line
+    do boot_debug_common.cmm mdm9x45 &Option
+    enddo
+  )
+  else if "&Choice"=="8909"
+  (
+    &ddr_base=0x80000000
+    &crash_addr_mask=0x7FFFFFFF
+    do boot_debug_common.cmm DAASANAA &Option &QSEEBuildPath
+    enddo
+  )
+  
+  ;============================================================================
+  ; Provide user with a choice for the chipset
+  ;============================================================================
+    
+  print "Please enter chipset under debug: "
+  print " 1: 9x45"
+  print " 2: 8909"  
+  print
+  print "Please make a choice: "
+  enter &Choice
+  if "&Choice"=="1"
+  (
+    &ddr_base=0x80000000
+    &crash_addr_mask=0x7FFFFFFF
+    do boot_debug_common.cmm mdm9x45
+    enddo
+  )
+  else if "&Choice"=="2"
+  (
+    &ddr_base=0x80000000
+    &crash_addr_mask=0x7FFFFFFF
+    do boot_debug_common.cmm DAASANAA
+    enddo
+  )
+  else
+  (
+    print "Incorrect entry"
+    enddo
+  )

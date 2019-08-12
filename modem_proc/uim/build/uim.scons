@@ -1,0 +1,297 @@
+#===============================================================================
+# UIM Subsystem build script
+# GENERAL DESCRIPTION
+#    build script for modem/uim
+#
+#                        COPYRIGHT INFORMATION
+#
+# Copyright (c) 2010, 2012 - 2016 QUALCOMM Technologies, Inc (QTI) and its licensors.
+# All Rights Reserved.  QUALCOMM Technologies Proprietary.
+# Export of this technology or software
+# is regulated by the U.S. Government. Diversion contrary to U.S. law prohibited.
+#
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime:  $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ----------------------------------------------------------
+# 04/12/16   bcho    Introduce support for SimLock fuse
+# 04/11/16   av      Introduce LPA support
+# 01/28/16   sam     enable FEATURE_UIM_WEARABLE based on USES_SENSORS_COMPONENT
+# 11/25/15   sp      Updated copyright
+# 10/28/15   nr      Addition /pbm/inc/uim_pbm.h
+# 06/17/15   vr      Enable MOB compiler warnings
+# 02/26/15   tl      Introduce new GBA files
+# 10/19/14   sk      Mark compile warnings as errors
+# 07/15/14   kk      NV Refresh: MCFG - MMGSDI interactions
+# 06/30/14   vv      Remove Perso code
+# 06/10/14   vv      Enable Simlock UT
+# 06/03/14   nk      Updates on when to turn warnings to errors
+# 05/12/14   vv      Define FEATURE_UIM_SIMLOCK
+# 04/01/14   av      Cleanup of NVRUIM headers
+# 03/27/14   tl      Remove /simlock/test/inc path from MOB compilation
+# 03/18/14   tl      Introduce new SIM Lock files
+# 01/31/14   kk      Updates to include PBM UT TCs
+# 06/01/14   df      Add common/inc folder
+# 12/11/13   vs      Updates for QMI UIM Remote feature
+# 11/20/13   nk      Updates to support PLI NMR Feature enablement
+# 10/30/13   as      UIM Scons/API file clean up to remove violations
+# 10/08/13   sam     changes for compatibility with the new LLVM compiler
+# 09/23/13   vr      qtf-crm MOB migration
+# 09/06/13   as      Changes to support PBM transition to UIM
+# 08/09/13   kk      Deprecating uimcallctrl
+# 05/02/13   nk      Added check so that compilation warnings will create a build error
+# 04/30/13   yt      Remove non-existent paths
+# 04/24/13   nk      Changes to fix compilation error
+# 09/18/12   nk      Changes to support modem folder removal
+# 10/11/10   nk      Updated with header
+# 06/11/12   yt      Update for cust file refactoring
+#
+#===============================================================================
+Import('env')
+
+env.Replace(UIM_ROOT = '${INC_ROOT}/uim')
+
+# Enable warnings -> errors for all LLVM toolchain (6.x.x) during migration
+import os
+
+env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror")
+env = env.Clone(HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")
+
+env.RequirePublicApi([
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'DAL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'DEBUGTOOLS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'UIM',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'MCS',
+        ],
+        area='MCS')
+
+env.RequirePublicApi([
+        'MEMORY',
+        'SYSTEMDRIVERS',
+        'SERVICES',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='LTE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'MPROC',
+        'STORAGE',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'POWER',
+        'WIREDCONNECTIVITY',
+        'SECUREMSM',
+        'BOOT',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'CAT',
+        'UIM',
+        'PBM',
+        'UIMRMT',
+        'UIMHTTP',
+        'LOC',
+        ],
+        area='QMIMSGS')
+
+env.RequirePublicApi([
+        'MPOWER',
+        ],
+        area='MPOWER')
+
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='RFA')
+
+
+#next added manually
+env.RequirePublicApi([
+        'MYPS',
+        ],
+        area='MYPS')
+
+env.RequirePublicApi([
+        'TDSCDMA',
+        ],
+        area='TDSCDMA')
+
+env.RequirePublicApi([
+        'GPS',
+        ],
+        area='GPS')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'MVS',
+        ],
+        area='AVS')
+
+env.RequirePublicApi([
+        'MCFG',
+        ],
+        area='MCFG')
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+
+
+
+# cust file relocation
+# Protected is "private within the SU" vs. Restricted with is visible to other SUs
+env.PublishProtectedApi('UIM', [
+        '${UIM_ROOT}/cust/inc',
+        '${UIM_ROOT}/common/inc',
+        '${UIM_ROOT}/mmgsdi/src',
+        '${UIM_ROOT}/simlock/src',
+        '${UIM_ROOT}/simlock/src/hw',
+        '${UIM_ROOT}/simlock/inc',
+        '${UIM_ROOT}/gstk/src',
+        '${UIM_ROOT}/variation/inc',
+        '${UIM_ROOT}/mmgsdi/inc',
+        '${UIM_ROOT}/uimdrv/inc',
+        '${UIM_ROOT}/gstk/inc',
+        '${UIM_ROOT}/uimdrv/src',
+        '${UIM_ROOT}/uimdiag/inc',
+        '${UIM_ROOT}/gba/src',
+        '${UIM_ROOT}/estk/src',
+        '${UIM_ROOT}/estk/inc',
+        '${UIM_ROOT}/pbm/src',
+        '${UIM_ROOT}/pbm/inc',
+        '${UIM_ROOT}/uimqmi/src',
+        '${UIM_ROOT}/uimqmi/inc',
+        '${UIM_ROOT}/uimdiag/src',
+        '${UIM_ROOT}/uimdrv/src/enumeration',
+        '${UIM_ROOT}/uimdrv/src/hw/interruptctrl',
+        '${UIM_ROOT}/uimdrv/src/hw/uartdm',
+        '${UIM_ROOT}/uimdrv/src/hw/clkregime',
+        '${UIM_ROOT}/uimdrv/src/hw/gpio_tlmm',
+        '${UIM_ROOT}/uimdrv/src/hw/pmic',
+        '${UIM_ROOT}/uimdrv/src/hw/rumi',
+        '${UIM_ROOT}/nvruim/inc',
+        '${UIM_ROOT}/lpa/src',
+        '${UIM_ROOT}/lpa/inc',
+        ])
+
+if 'USES_MOB' in env:
+        env.PublishProtectedApi('UIM', [
+                '${UIM_ROOT}/offtarget/emulation/inc',
+                '${UIM_ROOT}/gstk/test/inc',
+                '${UIM_ROOT}/pbm/test/inc',
+                '${UIM_ROOT}/uimqmi/test/inc',
+                '${UIM_ROOT}/gba/test/inc',
+                '${UIM_ROOT}/mmgsdi/test/inc',
+                '${UIM_ROOT}/mmgsdi/test/test_fuzz',
+                '${UIM_ROOT}/simlock/test/inc',
+                '${UIM_ROOT}/virtsat/inc',
+                '${UIM_ROOT}/virtuim/inc',
+                '${UIM_ROOT}/nvruim/inc'
+                ])
+
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+env.RequireProtectedApi(['UIM'])
+
+
+env.PublishPrivateApi('VIOLATIONS',[
+        '${INC_ROOT}/wcdma/mac/inc',
+        '${INC_ROOT}/wcdma/l1/offline/inc',
+        '${INC_ROOT}/wcdma/rlc/inc',
+        '${INC_ROOT}/wcdma/variation/inc',
+        '${INC_ROOT}/wcdma/cust/inc',
+        '${INC_ROOT}/utils/api/a2',
+        ])
+
+if 'USES_MOB' in env:
+    env.Replace(MSVC_WARN = "/W4 /wd4127 /wd4341 /wd4309 /wd4201 /wd4512 /wd4214 /analyze")
+
+if 'USES_SENSORS_COMPONENT' in env:
+    env.Append(CFLAGS = '-DFEATURE_UIM_WEARABLE ')
+
+
+env.LoadSoftwareUnits()

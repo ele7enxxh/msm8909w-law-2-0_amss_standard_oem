@@ -1,0 +1,96 @@
+# -------------------------------------------------------------------------------- #
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/gps/gnss/wwanme/lte_otdoa/5_0/build/gnss_lte_otdoa_50.scons#1 $
+# $Date: 2016/12/13 $
+# -------------------------------------------------------------------------------- #
+#                         G N S S _ L T E _ O T D O A _ 5 _ 0 . S C O N S
+#
+# DESCRIPTION
+#   SCons file for the GNSS LTE OTDOA 5.0 subsystem.
+#
+#
+# INITIALIZATION AND SEQUENCING REQUIREMENTS
+#   None.
+#
+#
+#  Copyright (c) 2015 Qualcomm Technologies, Inc.
+#  Qualcomm Technologies Confidential and Proprietary. All Rights Reserved. 
+#  Copyright (c) 2015 Qualcomm Atheros, Inc.
+#  Qualcomm Atheros Confidential and Proprietary. All Rights Reserved. 
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+#--------------------------------------------------------------------------------
+# Import the SCons environment
+#--------------------------------------------------------------------------------
+Import('env')
+from glob import glob
+from os.path import join, basename
+
+#--------------------------------------------------------------------------------
+# Check USES flags and return if library isn't needed
+#--------------------------------------------------------------------------------
+if 'USES_CGPS' not in env:
+    Return()
+#--------------------------------------------------------------------------------
+# Compile out this module for SA targets 
+#--------------------------------------------------------------------------------
+if 'USES_GNSS_SA' in env:
+   Return( )
+   
+if 'USES_FEATURE_GNSS_OTDOA_50' not in env:
+   env.CleanPack('CLEANPACK_TARGET', env.FindFiles('*', '..'))
+   Return()
+
+env.PrintInfo("Using OTDOA 5.0")
+
+#--------------------------------------------------------------------------------
+# Setup source PATH
+#--------------------------------------------------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#--------------------------------------------------------------------------------
+# Name of the subsystem to which this unit belongs
+#--------------------------------------------------------------------------------
+LIB_TARGET = '${BUILDPATH}/' + 'gnss_lte_otdoa'
+
+#--------------------------------------------------------------------------------
+# Images that this VU is added
+#--------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM']
+
+#--------------------------------------------------------------------------------
+# Local Features
+#--------------------------------------------------------------------------------
+if env['CHIPSET'] in ['msm8996',
+                     ]:
+    env.Append(CPPDEFINES = "FEATURE_GNSS_OTDOA_8996_CALIBRATION")
+
+#--------------------------------------------------------------------------------
+# Generate the library and add to an image
+#--------------------------------------------------------------------------------
+if ('USES_LTE' not in env or
+    'USES_GNSS_LOWMEM' in env):
+    BINARY_LIB_SOURCES = ['${BUILDPATH}/' + basename(fname) for fname in glob(join(env.subst('../src'), '*.c')) if basename(fname) in ['loc_lte_otdoa_api.c']]
+else:
+    BINARY_LIB_SOURCES = ['${BUILDPATH}/' + basename(fname) for fname in glob(join(env.subst('../src'), '*.c'))]
+    
+#--------------------------------------------------------------------------------
+# Ship our code as binary library and add it to the Modem image
+#--------------------------------------------------------------------------------
+if env.has_key('USES_CUSTOMER_GENERATE_LIBS'):
+    env.AddLibrary(IMAGES, (LIB_TARGET + '_pvt'), BINARY_LIB_SOURCES)
+else:
+    env.AddBinaryLibrary(IMAGES, (LIB_TARGET + '_pvt'), BINARY_LIB_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])

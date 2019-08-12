@@ -1,0 +1,40 @@
+#=============================================================================
+# DALTLMM API LIBRARY
+#
+# Target:    All
+# Processor: All
+#
+#=============================================================================
+# $Header: //source/qcom/qct/core/systemdrivers/hwio/common/main/latest/build/SConscript#3 $
+#=============================================================================
+#  Copyright 2010 QUALCOMM Incorporated.
+#  All Rights Reserved.
+#  QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+Import('env')
+env = env.Clone()
+
+#---------------------------------------------------------------------------
+# Setup the rules for document generation
+#---------------------------------------------------------------------------
+
+env['DOCTITLE']="DALTLMM API"
+env['DOCREVISION']="1.0"
+
+DOCSRCPATH = "${BUILD_ROOT}/core/api/systemdrivers"
+env.Replace(DOCSRCPATH = DOCSRCPATH)
+
+docsrcfiles = [
+  '${DOCSRCPATH}/docsrc/tlmm/introduction.tex',
+  '${DOCSRCPATH}/docsrc/tlmm/mainpage.h',
+  '${DOCSRCPATH}/DDITlmm.h'
+  ]
+
+try:
+  target_doc = env.PdfDocument('DALTLMM', docsrcfiles)
+  env.AddDocs('CORE_DOCS', target_doc)
+except:
+  pass
+
+

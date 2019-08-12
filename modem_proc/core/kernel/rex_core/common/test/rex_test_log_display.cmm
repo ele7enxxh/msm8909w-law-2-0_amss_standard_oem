@@ -1,0 +1,78 @@
+ENTRY &print_loc
+
+GLOBAL &p_next_log;
+GLOBAL &result_str;
+
+gosub init_print_location;
+gosub display_test_results;
+
+goodbye:
+   enddo;
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;All the subroutines start here;;;;;;;;;;;;;;;;;;;;;;;;
+
+display_test_results:
+&success_ctr=0;
+&fail_ctr=0;
+&total_ctr=0;
+&rex_log_list_head=v.value((rex_test_log_type*)p_rex_log_list_head)
+&rex_log_list_tail=v.value((rex_test_log_type*)p_rex_log_list_tail)
+&p_next_log=v.value(((rex_test_log_type*)&rex_log_list_tail)->prev)
+
+while &p_next_log!=&rex_log_list_head
+(
+   &result=v.value(((rex_test_log_type*)&p_next_log)->test_result)
+   if &result==0
+   (
+      &result_str="PASS";
+      &success_ctr=&success_ctr+1;
+   )
+   else
+   (
+      &result_str="FAIL";
+      &fail_ctr=&fail_ctr+1;
+   )
+   &total_ctr=&total_ctr+1;
+   gosub  print_log_item
+   &p_next_log=v.value(((rex_test_log_type*)&p_next_log)->prev)
+)
+gosub print_summary;
+return;
+
+init_print_location:
+   if "&print_loc"==""
+   (
+     &print_loc="screen";
+   )
+   else
+   (
+     &print_loc="file";
+   )
+
+   if "&print_loc"=="screen"
+   (
+      area.create REX_LOG 40 1000;
+      area.select REX_LOG;
+      area.view   REX_LOG;
+      area.clear  REX_LOG;
+   )
+return;
+
+print_log_item:
+   &log=&p_next_log;
+   &test_name=v.string(((rex_test_log_type*)&log)->test_name);
+   &test_major_num=v.value(((rex_test_log_type*)&log)->test_major_num);
+   &test_minor_num=v.value(((rex_test_log_type*)&log)->test_minor_num);
+   &test_result="&result_str";
+   print "Test Name: &test_name Test Case#:(" %d &test_major_num ":" %d &test_minor_num ") Result: &test_result"
+return;
+
+print_summary:
+   print " "
+   print "Test Case Summary"
+   print  "Total Tests: " %d &total_ctr " Passed: " %d &success_ctr " Failed: " %d &fail_ctr
+return;
+
+

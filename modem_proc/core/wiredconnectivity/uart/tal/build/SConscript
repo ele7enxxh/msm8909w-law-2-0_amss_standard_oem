@@ -1,0 +1,68 @@
+#===============================================================================
+#
+# UART driver target abstraction layer
+#
+# This build script is responsible for picking the correct target abstraction
+# layer (TAL) implementation for a particular build, based on the requirements
+# of each individual product line.
+#
+# Copyright (c) 2012, 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/scmm/main/latest/buses/ebi2/dal/build/SConscript#5 $
+#
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/wiredconnectivity/uart/tal/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_APIS = [
+   'DAL',
+   'HAL',
+   'BUSES',
+   'HWENGINES',
+   'SYSTEMDRIVERS',
+   'SERVICES',
+   'KERNEL',   
+   'POWER',   
+]
+
+env.RequirePublicApi( CBSP_APIS )
+env.RequireRestrictedApi( CBSP_APIS )
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+UART_TAL_SOURCES = [
+   '${BUILDPATH}/tal_clock.c',
+   '${BUILDPATH}/tal_dma_bam.c',
+   '${BUILDPATH}/tal_tlmm.c',
+   '${BUILDPATH}/tal_interrupt.c',
+]
+
+uart_tal_obj = env.Object(UART_TAL_SOURCES)
+uart_tal_lib = env.Library('${BUILDPATH}/uart_tal', uart_tal_obj)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+IMAGES = ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+
+env.AddLibsToImage( IMAGES, uart_tal_lib )

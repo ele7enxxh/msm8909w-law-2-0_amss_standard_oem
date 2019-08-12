@@ -1,0 +1,336 @@
+#====include path optimized=====================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011 - 2013 Qualcomm Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rfa/rf/common/ftm/build/rfa_rf_common_ftm.scons#1 $
+# $DateTime: 2016/12/13 07:59:52 $ 
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/26/14   kg      Change to USES_CUSTOMER_GENERATE_LIBS
+# 09/11/13   dyc     Support policy for opt FTM boot
+# 02/04/13   dyc     Updated qualifiers for pack.
+# 01/15/13   sar     Updated for RFTECH_GSM component.
+# 08/15/12   shb     Added RFDEVICE_INTERFACE
+# 03/28/12   sar     Added RFA_PMIC_INC, for pmic ftm include file.
+# 03/16/12   prp     Change to USES_FEATURE_RF_PACKBUILD_GENERATE_PROTECTED_LIBS
+# 03/02/12   sar     Added support for RCINIT.
+# 02/29/12   sar     Change USES_RFA_PACKBUILD_GENERATED_PROTECTED_LIBS to
+#                    USES_PACKBUILD_GENERATE_PROTECTED_LIBS
+# 02/18/12   prp     Removed env2.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+# 02/16/12   hy      Added support for TDSCDMA Non-signaling
+# 02/15/12   prp     Added test for USES_FEATURE_RFA_PACKBUILD_GENERATED_PROTECTED_LIBS to enable building protected library in pack build
+# 12/20/11   aki     Added RFCA 
+# 11/22/11   tnt     Add Ant Tuner dependency from HAL 
+# 11/17/11   Saul    Thermal Backoff. Added DATAMODEM compile dependency.
+# 06/24/11   sar     Updated file to remove rfa violations
+# 06/01/11   prp     Commented out building .s files for protected lib 
+# 06/01/11   prp     Added env2 to fix FEATURE_LIBRARY_ONLY error with src directory
+# 04/23/11   prp     Created
+#===============================================================================
+
+Import('env')
+
+# Load test units
+env.LoadSoftwareUnits()
+
+LIB_NAME        = 'rf_common_ftm'
+IMAGE_SOURCES   = ['MODEM_MODEM','MOB_RFA']
+
+LIB_SRC         = 'src'
+LIB_PROTECTED   = 'protected'
+
+
+from glob import glob
+
+env = env.Clone()
+
+# Method to abort processing of this file, if not required for current air interface mode, etc
+#if ( (USES_TEST_FLAG1 in env and USES_TEST_FLAG2 not in env) or USES_TEST_FLAG3 not in env)):
+#   Return( )
+
+
+#for mcs MSG Router
+if 'USES_MSGR' in env:
+    env.AddUMID('${BUILDPATH}/rf_common_ftm.umid', [
+        '../inc/ftm_msg.h',
+        ])
+
+
+
+#-------------------------------------------------------------------------------
+# Source PATH:  
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+#BUILDPATH =  image_name / processor_name, eg modem_libs / arm11 = directory where built objects stored
+env.VariantDir('${BUILDPATH}', SRCPATH , duplicate=0)
+
+env.Append(CPPDEFINES = ['MSG_BT_SSID_DFLT=MSG_SSID_FTM',]) 
+
+if env.get('CHIPSET') not in ('mdm9x25'):
+  env.Append(CPPDEFINES = ['FEATURE_RF_RFCA',]) 
+
+env.RequirePublicApi([
+        'RFLM',
+        ],
+        area='RFLM')
+env.RequirePublicApi([
+        'TDSCDMA',
+        ],
+        area='TDSCDMA')
+
+
+env.RequirePublicApi([
+#    'APTTESTS',
+#    'BOOT',
+    'BUSES', 
+    'DAL',
+    'DEBUGTOOLS',
+#    'HAL',
+#    'HWENGINES',
+#    'IODEVICES',
+    'KERNEL',
+    'MPROC', 
+    'POWER', 
+#    'SECUREMSM', 
+    'SERVICES',
+    'STORAGE', 
+    'SYSTEMDRIVERS', 
+#    'HWIO'
+#    'WIREDCONNECTIVITY',
+    ],
+    area='CORE')
+
+env.RequirePublicApi([
+    'ONEX',       
+#    'DATA',       
+#    'DATACOMMON', 
+    'DATAMODEM',  
+#    'GERAN',      
+    'GPS',        
+    'HDR', 
+#    'LTE',       
+    'MCS',        
+    'MMODE',      
+#    'NAS',        
+#    'PBM',        
+    'RFA',        
+    'UIM',        
+#    'UTILS',      
+    'WCDMA',      
+    'TDSCDMA', 	 
+#    'WMS',
+    ],
+    area='MODEM')
+
+env.RequirePublicApi([
+        'RFTECH_GSM',
+        ],
+        area='RFTECH_GSM')
+
+env.RequirePublicApi([
+        'RFTECH_WCDMA',
+        ],
+        area='RFTECH_WCDMA')
+
+env.RequirePublicApi([
+#    'APR',
+#    'AUDIO',
+#    'CVD',
+    'MVS',
+#    'MMUTILS',
+    ],
+    area='MULTIMEDIA')
+
+env.RequirePublicApi([
+        'RFTECH_TDSCDMA',
+        ],
+        area='RFTECH_TDSCDMA')
+    
+env.RequireRestrictedApi([
+    'RFDEVICE_INTERFACE',
+    'ONEX',
+#    'DATA', 
+#    'MODEM_DATA', 
+#    'MODEM_DATACOMMON', 
+#    'DATACOMMON',
+    'DATAMODEM', 
+    'FW', 
+    'GERAN',
+    'GPS', 
+    'HDR', 
+    'LTE', 
+    'MCS', 
+#    'XSD', 
+    'MMODE',
+    'NAS', 
+#    'PBM', 
+    'RFA',
+    'UIM', 
+    'UTILS', 
+    'WCDMA', 
+    'TDSCDMA',
+#    'WMS', 
+    ])
+
+
+env.RequireProtectedApi([
+#    'LM_COMMON_INC',
+#    'LM_NIKEL_INC',
+    'RFC_COMMON_INC',
+#    'RFC_RF_CARD_INC',
+    'RFC_TARGET_INC',
+    'RF_CDMA_INC',
+    'RF_COMMON_INC',
+    'RF_DEVICE_INC',
+    'RF_GNSS_INC',
+    'RF_GSM_INC',
+    'RF_HAL_INC',
+    'RF_LTE_INC',
+    'RF_MDSP_INC',
+    'RF_MEAS_INC',
+    'RF_RFD_INC',
+    'RF_RFNV_INC',
+    'RF_TASK_INC',
+    'RF_WCDMA_INC',
+    'RF_TDSCDMA_INC',
+    'RF_RFCA_INC',
+    ])
+
+env.RequireProtectedApi([
+#    'LM_COMMON_SRC',
+#    'RFC_COMMON_SRC',
+#    'RFC_RF_CARD_SRC',
+#    'RFC_TARGET_SRC',
+#    'RF_CDMA_SRC',
+#    'RF_COMMON_SRC',
+#    'RF_GNSS_SRC',
+    'RF_GSM_SRC',
+    'RF_HAL_SRC',
+#    'RF_LTE_SRC',
+#    'RF_MEAS_SRC',
+#    'RF_RFD_SRC',
+#    'RF_TASK_SRC',
+    'RF_WCDMA_SRC',
+#    'RF_TDSCDMA_SRC',
+    ])
+
+env.RequireProtectedApi([
+#    'LM_NIKEL_PROTECTED',
+#    'RF_CDMA_PROTECTED',
+     'RF_COMMON_PROTECTED',
+#    'RF_DEVICE_PROTECTED',
+#    'RF_GNSS_PROTECTED',
+#    'RF_GSM_PROTECTED',
+#    'RF_HAL_PROTECTED',
+#    'RF_LTE_PROTECTED',
+#    'RF_MDSP_PROTECTED',
+#    'RF_MEAS_PROTECTED',
+#    'RF_RFD_PROTECTED',
+#    'RF_WCDMA_PROTECTED',
+#    'RF_TDSCDMA_PROTECTED',
+     'RFA_PMIC_INC',
+    ])
+
+
+
+
+LIB_SOURCES = [ ]  #empy list
+
+SOURCE_FILES = [ ] 
+
+#find all .c
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.c'))
+
+#find all .cpp files 
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.cpp'))
+
+#find all .s files
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.s'))
+
+
+for filename in SOURCE_FILES:
+        LIB_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+
+env.AddLibrary(IMAGE_SOURCES, '${BUILDPATH}/'+LIB_NAME, [LIB_SOURCES])
+
+
+
+
+
+env2 = env.Clone()
+
+#env2.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+#this statement must appear outside of 'USES_NO_STRIP_NO_ODM' test so that AddBinaryLibrary can be launched
+LIB_SOURCES = []  #empy list
+
+
+#force protected library to be rebuilt
+if 'USES_FEATURE_RF_PACKBUILD_GENERATE_PROTECTED_LIBS' in env2:
+	env2.Replace(USES_NO_STRIP_NO_ODM = 'yes')
+	
+
+if 'USES_NO_STRIP_NO_ODM' in env2:
+
+        SOURCE_FILES = [ ] 
+
+        #find all .c
+        SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.c'))
+
+        #find all .cpp files 
+        SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.cpp'))
+
+        #find all .s files
+#       SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.s'))
+
+
+        for filename in SOURCE_FILES:
+                LIB_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+
+#this statement must appear outside of 'USES_NO_STRIP_NO_ODM' test so that the pre-built library will be added to the list file
+env2.AddBinaryLibrary(IMAGE_SOURCES, '${BUILDPATH}/'+LIB_NAME+'_protected',[
+    LIB_SOURCES,
+    ], pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+
+RCINIT_RF_TEST_TASK = {
+ 'sequence_group'             : env.subst('$MODEM_DRIVER'),
+ 'thread_name'                : 'ftm',
+ 'stack_size_bytes'           : '16384',                # required
+ 'priority_amss_order'        : 'FTM_PRI_ORDER',       # required
+ 'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY'),
+ 'stack_name'                 : 'ftm_stack',
+ 'thread_entry'               : 'rf_test_task',
+ 'tcb_name'                   : 'ftm_tcb',
+ 'policy_optin'               : ['default', 'ftm', ],  # required
+} 
+
+if 'USES_MODEM_RCINIT' in env:
+   env.AddRCInitTask(IMAGE_SOURCES, RCINIT_RF_TEST_TASK)

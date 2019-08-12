@@ -1,0 +1,83 @@
+#===============================================================================
+#                    Copyright 2010 Qualcomm Technologies Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# REX Libs
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# Define the stack size for DPC task so it can be configured with ease.
+env.Append(CPPDEFINES = ["REX_DPC_STACK_SIZE=4096"])
+
+# Define feature REX_CORE_TEST used in conditional compilation of REX tests
+if 'REX_CORE_TEST' in env:
+   env.Append(CPPDEFINES=['REX_CORE_TEST'])
+
+# This feature is for images that provide the DOG service
+if 'USES_DOG' in env:
+    env.Append(CPPDEFINES = ["FEATURE_DOG_SERVICE_ENABLED"])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DEBUGTOOLS',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'STORAGE',
+   'DAL',
+   'HAL',
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+REX_CORE_SOURCES =  [
+   '${BUILDPATH}/src/rex_cb_registry.cpp',
+   '${BUILDPATH}/src/rex_cb_registry_helpers.c',
+   '${BUILDPATH}/src/rex_def_task.c',
+   '${BUILDPATH}/src/rex_dpc.c',
+   '${BUILDPATH}/src/rex_init.c',
+   '${BUILDPATH}/src/rex_kill_task.c',
+   '${BUILDPATH}/src/rex_task_attr.c',
+]
+
+REX_AMSS_SERVICES =  [
+   '${BUILDPATH}/src/amss_services/timer/rex_timer.c',
+#   '${BUILDPATH}/src/amss_services/diagnostics/rex_diag.c',
+#   '${BUILDPATH}/src/amss_services/diagnostics/rex_task_profile.c',
+]
+
+if 'REX_CORE_TEST' in env:
+   REX_CORE_TEST_SOURCES =  [
+      '${BUILDPATH}/test/rex_test_crit_sect.c',
+      '${BUILDPATH}/test/rex_test_log.c',
+      '${BUILDPATH}/test/rex_test_main.c',
+      '${BUILDPATH}/test/rex_test_preliminary.c',
+      '${BUILDPATH}/test/rex_test_sigs.c',
+      '${BUILDPATH}/test/rex_test_timers.c',
+      '${BUILDPATH}/test/rex_test_tls.c',      
+   ]
+else:
+   REX_CORE_TEST_SOURCES =  [
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+IMAGES = ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']    
+env.AddLibrary(IMAGES, ('${BUILDPATH}/rex_core/common'), [REX_CORE_SOURCES, REX_AMSS_SERVICES, REX_CORE_TEST_SOURCES])

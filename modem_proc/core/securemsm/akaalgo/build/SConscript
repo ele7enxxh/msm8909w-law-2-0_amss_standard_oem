@@ -1,0 +1,130 @@
+#===============================================================================
+#
+# akaalgo Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/scmm/main/latest/securemsm/akaalgo/build/SConscript#1 $
+#  $DateTime: 2009/10/02 00:38:04 $
+#  $Author: cbirch $
+#  $Change: 1042912 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/akaalgo"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'MULTIMEDIA',
+   'MULTIMEDIA_CORE',
+   'MULTIMEDIA_AUDIO',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${BUILD_ROOT}/core/securemsm/akaalgo/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------
+# AKA Algorithm in SW ( As opposed to USIM, RUIM etc) 
+#----------------------------------------------------------------------------
+AKAALGO_SOURCES =  [
+	'${BUILDPATH}/src/AKAAlgo.c', 
+	'${BUILDPATH}/src/AKAAlgoKeyGen.c', 
+	'${BUILDPATH}/src/SecSHA.c', 
+	'${BUILDPATH}/src/AKAAlgoBit.c', 
+	'${BUILDPATH}/src/AKAAlgoMilenage.c', 
+	'${BUILDPATH}/src/AKAMilenage.c', 	
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+if env.has_key('USES_AKA'):
+   env.AddBinaryLibrary(
+		['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+		 'MODEM_IMAGE',  'CBSP_MODEM_IMAGE',
+		 'APPS_IMAGE',   'CBSP_APPS_IMAGE',
+		 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+		'${BUILDPATH}/akaalgo', 
+		AKAALGO_SOURCES)
+
+#---------------------------------------------------------------------------
+# Setup the constants for document title and the DCN number for Agile
+#---------------------------------------------------------------------------
+
+env['DOCTITLE']="Authentication and Key Agreement (AKA) API"
+env['DOCREVISION']="80-xxxx-TBD Rev A"
+
+DOCSRCPATH = "${BUILD_ROOT}/core/api/securemsm/akaalgo/"
+env.Replace(DOCSRCPATH = DOCSRCPATH)
+
+#---------------------------------------------------------------------------
+# List of Header files that contain doxygen tags + List of TeX files that
+# contain documentation to be merged with doxygen generated TeX files
+#---------------------------------------------------------------------------
+akadocsrcfiles = [
+    '${DOCSRCPATH}/AKAAlgo.h',
+    '${DOCSRCPATH}/AKAAlgoKeyGen.h',
+    '${DOCSRCPATH}/introduction.tex'
+     ]
+
+#---------------------------------------------------------------------------
+# Finally call the builder with the name of the document. The document can
+# be found under \core\api\doc once the build completes.
+#---------------------------------------------------------------------------
+#target_doc = env.PdfDocument('AKA_ISOD',
+#                              akadocsrcfiles
+#                             )
+
+#env.AddDocs('CORE_DOCS',target_doc)
+
+

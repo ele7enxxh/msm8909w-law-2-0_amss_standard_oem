@@ -1,0 +1,159 @@
+//============================================================================
+//  Name:                                                                     
+//    std_trace_apps.cmm 
+//
+//  Description:                                                              
+//    Trace setup script for Krait0
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 09/28/2012 jbilling           Created for B-family.
+
+// Following arguments are supported. 
+// ARG0 - "APPS" 
+// ARG1 - Tracing Type . Currently supports TPIU, ETB
+// ARG2 - which Krait (0-3) to debug
+// ARGn - n > 1 - Any other arguments to be passed to the script 
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+
+
+MAIN:
+
+    print "Checking that app core number (0,1,2,3) was specified"
+    do std_utils CHECKARGS FATALEXIT &ARG2 0 1 2 3
+    
+	print "If using CDP, make sure that rotary switch is set to B, and that dipswitch S3 1 and 8 are off"
+
+	IF (("&ARG1"=="TPIU")||("&ARG1"=="tpiu")||("&ARG1"=="SDCARD")||("&ARG1"=="SDcard")||("&ARG1"=="sdcard"))
+	(
+	
+		SYStem.CONFIG.FUNNEL1.BASE DAP:0x80045000
+		SYStem.CONFIG.FUNNEL2.BASE DAP:0x80019000
+		SYStem.CONFIG.FUNNEL3.BASE DAP:0x8001A000
+		SYStem.CONFIG.FUNNEL4.BASE DAP:0x8001B000
+		SYStem.CONFIG.ETM.BASE DAP:0x8003C000
+		SYStem.CONFIG.ETB.BASE DAP:0x80007000
+		SYStem.CONFIG.ETF.BASE DAP:0x80007000
+		
+		
+		;take inputs from all Apps processors
+		SYStem.CONFIG.FUNNEL1.ATBSOURCE ETM 0 ETM 1 ETM 2 ETM 3 
+		SYStem.CONFIG.FUNNEL3.ATBSOURCE FUNNEL1 5 
+		SYStem.CONFIG.FUNNEL4.ATBSOURCE FUNNEL2 0 FUNNEL3 1
+		SYStem.CONFIG.ETF.ATBSOURCE FUNNEL4
+		SYStem.CONFIG.TPIU1.BASE DAP:0x80018000
+		SYStem.CONFIG.TPIU1.ATBSOURCE ETF
+
+
+
+		// Reset ETM
+		ETM.RESET
+        
+        //set portsize. should be 4 for sdcard
+		IF ("&ARG3"=="4bit")       
+        (
+            ETM.PORTSIZE 4.
+            print "Configuring Portsize to 4. THis setting is compliant with Lauterbach SDCC2 Port adapter"
+        )
+        ELSE IF ("&ARG3"=="8bit")  
+        (
+            ETM.PORTSIZE 8.
+            print "Configurtion Portsize to 8"
+        )
+        ELSE IF ("&ARG3"=="16bit") 
+        (
+            ETM.PORTSIZE 16.
+            print "Configurtion Portsize to 16"
+        )
+        ELSE                       
+        (
+            ETM.PORTSIZE 8.
+            print "Configurtion Portsize to 8"
+        )
+		
+        //set traceID to correct krait processor
+		if (("&ARG2"=="krait0")||("&ARG2"=="KRAIT0")||("&ARG2"=="0")||("&ARG2"=="Krait0")) 
+		(
+			ETM.TRACEID 4
+		)
+		if (("&ARG2"=="krait1")||("&ARG2"=="KRAIT1")||("&ARG2"=="1")||("&ARG2"=="Krait1"))
+		(
+			ETM.TRACEID 5
+		)
+		if (("&ARG2"=="krait2")||("&ARG2"=="KRAIT2")||("&ARG2"=="2")||("&ARG2"=="Krait2"))
+		(
+			ETM.TRACEID 6
+		)
+		if (("&ARG2"=="krait3")||("&ARG2"=="KRAIT3")||("&ARG2"=="3")||("&ARG2"=="Krait3"))
+		(
+			ETM.TRACEID 7
+		)		
+		
+		
+		etm.portmode continuous
+		etm.stall OFF
+		etm.on
+		etm.clear
+		trace.method ANALYZER
+		trace.init 
+		trace.list
+		trace.AutoFocus
+
+
+    )
+	ELSE IF (("&ARG1"=="ETB")||("&ARG1"=="etb"))
+	(
+		SYStem.CONFIG.FUNNEL1.BASE DAP:0x80045000
+		SYStem.CONFIG.FUNNEL2.BASE DAP:0x80019000
+		SYStem.CONFIG.FUNNEL3.BASE DAP:0x8001A000
+		SYStem.CONFIG.FUNNEL4.BASE DAP:0x8001B000
+		SYStem.CONFIG.ETM.BASE DAP:0x8003C000
+		SYStem.CONFIG.ETB.BASE DAP:0x80007000
+		SYStem.CONFIG.STM1.BASE DAP:0x80002100
+
+		SYStem.CONFIG.FUNNEL1.ATBSOURCE ETM 
+		SYStem.CONFIG.FUNNEL3.ATBSOURCE FUNNEL1 5 STM1 7
+		SYStem.CONFIG.FUNNEL4.ATBSOURCE FUNNEL2 0 FUNNEL3 1
+		SYStem.CONFIG.ETB.ATBSOURCE FUNNEL4
+
+		etm.reset
+		etm.portsize 16.
+		;etm.traceid 4.
+		;etm.portmode continuous
+		;etm.timestamps ON
+		etm.stall OFF
+		etm.on
+		etm.clear
+		trace.method ONCHIP
+		trace.clock 10.MHz
+		trace.init 
+		trace.list
+		;trace.AutoFocus
+
+	)
+	ELSE
+	(
+		GOTO FATALEXIT
+	)	
+
+	GOTO EXIT
+
+
+FATALEXIT:
+        mmu.on
+	END
+
+EXIT:
+        mmu.on
+	ENDDO
+

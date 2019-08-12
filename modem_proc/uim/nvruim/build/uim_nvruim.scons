@@ -1,0 +1,127 @@
+#===============================================================================
+# UIM NVRUIM Subsystem build script
+# GENERAL DESCRIPTION
+#    build script for modem/uim/nvruim
+#
+# Copyright (c) 2010-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/uim/nvruim/build/main/latest/uim_nvruim.scons#2 $ $DateTime: 2010/08/15 23:58:06 $ $Author: amitp $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/26/14   av      Changes to make sure task opts for inclusion in FTM mode
+# 09/23/13   vr      qtf-crm MOB migration
+# 05/13/13   vs      Updated NVRUIM task priority to be same as NV task
+# 05/13/13   vs      Created NVRUIM task
+# 09/18/12   nk      Changes to support modem folder removal
+# 07/03/12   av      Provided a nvruim_init() routine for crit sect init
+# 12/01/12   av      Del refrences to files deleted as part of feature cleanup
+# 04/28/11   nk      Updated to include MCS Publice APIs
+# 04/20/11   adp     Moving NVRUIM logging under UIM
+# 10/22/10   nk      Moved USES_RUIM check after env.Clone()
+# 10/11/10   nk      Updated with header and UESES Flag Check
+#
+#===============================================================================
+
+
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+# Verify that USES_RUIM is set, otherwise bail out now
+if 'USES_RUIM' not in env:
+    Return()
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-----------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-----------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_RUIM",
+])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'DAL',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+# We need the Core BSP API's
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+# We need the UIM API's
+env.RequirePublicApi(['UIM',
+                      'MMODE',
+                      'MCS'])
+
+# We need our "inc" dir too + other UIM "inc" dirs
+env.RequireRestrictedApi(['UIM',
+                          'MCS',
+                          'MN'])
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+NVRUIM_C_SOURCES = [
+    '${BUILDPATH}/nvruim.c',
+    '${BUILDPATH}/nvruim_task.c',
+    '${BUILDPATH}/nvruim_request.c'
+]
+
+# Build image for which this task belongs
+RCINIT_NVRUIM = ['MODEM_MODEM','MOB_UIM']
+
+# Add our library to the MODEM_AMSS image
+env.AddLibrary(['MODEM_MODEM','MOB_UIM'], '${BUILDPATH}/uim_nvruim', NVRUIM_C_SOURCES)
+
+# RC Init Function Dictionary
+RCINIT_INIT_NVRUIM = {
+            'sequence_group'      : 'RCINIT_GROUP_0',
+            'init_name'           : 'nvruim_init',
+            'init_function'       : 'nvruim_init',
+            'dependencies'        : [''],
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_NVRUIM= {
+            'thread_name'         : 'nvruim',
+            'sequence_group'      : 'RCINIT_GROUP_4',
+            'stack_size_bytes'    : '8192',
+            'priority_amss_order' : 'NV_PRI_ORDER',
+            'stack_name'          : 'nvruim_stack',
+            'thread_entry'        : 'nvruim_task',
+            'tcb_name'            : 'nvruim_task_tcb',
+            'cpu_affinity'        : env.subst('$MODEM_CPU_AFFINITY'),
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+env.AddRCInitTask(RCINIT_NVRUIM, RCINIT_TASK_NVRUIM)
+env.AddRCInitFunc(RCINIT_NVRUIM, RCINIT_INIT_NVRUIM)
+
+# Load test units
+env.LoadSoftwareUnits()

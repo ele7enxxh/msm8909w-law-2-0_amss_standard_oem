@@ -1,0 +1,65 @@
+#===============================================================================
+#
+# App Core
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/kernel/hypervisor/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains schedulerents describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/kernel/hypervisor/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+   'SERVICES',           #< comdef.h
+])
+
+env.RequireRestrictedApi([
+   'SYSTEMDRIVERS',          #< HALqgic.h
+   'SECUREMSM',              #< secboot_hw.h
+   'KERNEL',
+   'HYPERVISOR',             #< 
+])
+
+env.PublishRestrictedApi('HYPERVISOR', [
+   '${INC_ROOT}/core/kernel/hypervisor/inc', 
+])
+
+#----------------------------------------------------------------------------
+# HYP Objects
+#----------------------------------------------------------------------------   
+HYP_ENTRY_SOURCES = [      
+   '${BUILDPATH}/hyp_entry.s',
+   '${BUILDPATH}/hyp_util.s',
+   '${BUILDPATH}/hyp_log.c',
+   '${BUILDPATH}/hyp_exception.c',
+   '${BUILDPATH}/hyp_mm.c',
+]
+
+env.AddBinaryObject(['HYPERVISOR_IMAGE'], HYP_ENTRY_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

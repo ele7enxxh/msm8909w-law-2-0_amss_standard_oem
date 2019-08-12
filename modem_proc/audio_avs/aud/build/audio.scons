@@ -1,0 +1,82 @@
+#===============================================================================
+#
+# AVS AU
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+env.Append(CFLAGS = '-Werror')
+env.Append(CFLAGS = '-Werror') 
+
+env.PublishProtectedApi('AVS',[
+   '${AVS_ROOT}/aud/algorithms/audencdec/aac/common/CAACDecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/aac/common/param/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/aac/etsi/dec/aacstereo/CBsacDecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/aac/etsi/enc/CEtsiEaacPlusEncoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/adpcm/qcom/dec/CADPCMDecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/adpcm/qcom/enc/CADPCMEncoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/amrwbplus/etsi/dec/CEtsiAmrWbPlusDecLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/flac/tataelxsi/dec/CFlacDecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/mp3/common/CComboMp3DecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/mp3/qcom/dec/CMp3DecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/mp3/Allgo/enc/CMp3EncoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/mp2/Allgo/dec/CHpMp2DecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/sbc/oi/enc/CSbcEncoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/vorbis/tataelxsi/dec/CVorbisDecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/wmapro/ms/dec/CWmaProDecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/wmastd/ms/dec/CWmaStdDecoderLib/inc',   
+   '${AVS_ROOT}/aud/algorithms/audencdec/wmastd/ms/enc/CWmaStdV8EncoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/dts/post_processing/DTS_DialNorm/DialNormAppi/inc',
+   '${AVS_ROOT}/aud/algorithms/dts/post_processing/DTS_DRC/DTS_DRC_Appi/inc',
+   '${AVS_ROOT}/aud/algorithms/dolby/dolby_mobile/dec/eAC3/CeAc3DecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/dolby/dolby_mobile/dec/eAC3/CComboDDPDecPacketizerLib/inc',
+   '${AVS_ROOT}/aud/algorithms/dolby/DolbyPulse/CDolbyPulseDecoderLib/inc',
+   '${AVS_ROOT}/aud/algorithms/dolby/dolby_mobile/proc/DakAppi/inc',
+   '${AVS_ROOT}/aud/algorithms/midi/midihw_hal/inc',
+   '${AVS_ROOT}/aud/algorithms/midi/qsynth_core_lib/inc',
+   '${AVS_ROOT}/aud/algorithms/midi/qsynth_core_lib/src',
+   '${AVS_ROOT}/aud/algorithms/srs/tru_media/SrsTruMediaAppi/inc',
+   '${AVS_ROOT}/aud/services/dynamic_svcs/audio_proc_svc/inc',
+   '${AVS_ROOT}/aud/services/static_svcs/audio_dev_mgr/inc',
+   '${AVS_ROOT}/aud/services/static_svcs/audio_stream_mgr/inc',
+   '${AVS_ROOT}/aud/algorithms/dts/post_processing/DTS_DownMix/DTS_DwnMixLib/Include',
+   '${AVS_ROOT}/aud/algorithms/dts/post_processing/DTS_DownMix/DTS_DownMixAppi/inc',
+   '${AVS_ROOT}/aud/algorithms/dolby/ds1/dolby_surround_appi/inc',
+   '${AVS_ROOT}/aud/algorithms/dolby/dolby_enc/CDDPEncLib/inc',
+   '${AVS_ROOT}/aud/algorithms/dts/headphonex/dts_hpx_premix_appi/inc',
+   '${AVS_ROOT}/aud/algorithms/dts/headphonex/dts_hpx_postmix_appi/inc',
+   '${AVS_ROOT}/aud/algorithms/srs/srs_ss3d/Srs_ss3dAppi/inc',
+   '${AVS_ROOT}/aud/algorithms/audencdec/alac/dec/CAlacDecoder/inc',
+   ])
+
+
+
+if 'USES_DEVCFG' in env:
+    DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+    env.AddDevCfgInfo(DEVCFG_IMG, 
+    {
+      'soc_xml'    : ['${AVS_ROOT}/aud/common/config/dynamic_libraries.xml']
+    })
+
+env.LoadSoftwareUnits()

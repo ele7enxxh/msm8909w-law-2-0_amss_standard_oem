@@ -1,0 +1,106 @@
+#===============================================================================
+#
+# Common OS Wrapper Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2016 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/Sensors/osa/build/common.scons#1 $
+#  $DateTime: 2016/12/13 08:00:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985213 $
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# External Dependencies within core BSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'SYSTEMDRIVERS',
+   'SENSOR1',
+   'MPROC',
+   'SERVICES',
+]
+env.RequireRestrictedApi(CBSP_API)
+env.RequirePublicApi(CBSP_API, area='core')
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_SMR',
+   'SNS_QUEUE',
+   'SNS_MEMMGR',
+   'SNS_EVMGR',
+   'SNS_COMMON',
+   'SNS_DEBUG_DSPS'
+]
+env.RequireRestrictedApi(SENSORS_API)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/osa/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPPATH = [
+#Guru below ones are added(might have to remove as Sensors/common/common.scons already has following values
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/api",
+   "${BUILD_ROOT}/elite/common/qurt_elite/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+DAL_UCOS_API = [
+   'DAL',
+]
+env.RequireRestrictedApi(DAL_UCOS_API)
+env.RequirePublicApi(DAL_UCOS_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+OSA_DSPS_SOURCES = [
+      '${BUILDPATH}/sns_osa_dsps.c',
+   ]
+
+OSA_DSPS_UIMG_SOURCES = [
+      '${BUILDPATH}/sns_osa_dsps_uimg.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   COMMON_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/osa/src')
+   COMMON_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/osa/inc')
+
+   osa_dsps_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   "${BUILDPATH}/osa_dsps", OSA_DSPS_SOURCES)
+
+   osa_dsps_uimg_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   "${BUILDPATH}/osa_dsps_uimg", OSA_DSPS_UIMG_SOURCES)
+
+   # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], COMMON_CLEAN_SOURCES)
+
+else:
+   osa_dsps_lib = env.AddLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   '${BUILDPATH}/osa_dsps', OSA_DSPS_SOURCES)
+
+   osa_dsps_uimg_lib = env.AddLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   '${BUILDPATH}/osa_dsps_uimg', OSA_DSPS_UIMG_SOURCES)
+
+# Common clause for regular and HD22 builds
+if 'USES_ISLAND' in env:
+   env.AddIslandLibrary('CORE_QDSP6_SENSOR_SW', osa_dsps_uimg_lib)

@@ -1,0 +1,77 @@
+/*****************************************************************************
+  @FILE     sns_sam_gyro_cal.idl
+
+  @BRIEF    Message definition for Gyroscope Calibration.
+
+  @DESCRIPTION
+  This file defines messages provided to clients to use
+  Gyroscope calibration algorithm services.
+
+  @COPYRIGHT
+  Copyright (c) 2016 Qualcomm Technologies, Inc.
+  All Rights Reserved.
+  Confidential and Proprietary - Qualcomm Technologies, Inc.
+
+*****************************************************************************/
+include "sns_sam_common_v01.idl";
+include "sns_sam_cal_v01.idl";
+
+revision 0;
+
+const SNS_SAM_GYRO_CAL_SUID = 0x868aada5ce7856cc;
+
+//============================================================================
+// Service definition
+//============================================================================
+service SNS_SAM_GYRO_CAL_SVC {
+  //! @ID SNS_COMMON_CANCEL
+  sns_common_cancel_req_msg            SNS_SAM_GYRO_CAL_CANCEL_REQ,
+  sns_common_cancel_resp_msg           SNS_SAM_GYRO_CAL_CANCEL_RESP
+    = 0x00;
+
+  //! @ID SNS_COMMON_VERSION
+  sns_common_version_req_msg           SNS_SAM_GYRO_CAL_VERSION_REQ,
+  sns_common_version_resp_msg          SNS_SAM_GYRO_CAL_VERSION_RESP
+    = 0x01;
+
+  //! @ID SNS_SAM_CAL_ENABLE
+  sns_sam_cal_enable_req_msg           SNS_SAM_GYRO_CAL_ENABLE_REQ,
+  sns_sam_cal_enable_resp_msg          SNS_SAM_GYRO_CAL_ENABLE_RESP
+    = 0x02;
+
+  //! @ID SNS_SAM_CAL_DISABLE
+  sns_sam_cal_disable_req_msg          SNS_SAM_GYRO_CAL_DISABLE_REQ,
+  sns_sam_cal_disable_resp_msg         SNS_SAM_GYRO_CAL_DISABLE_RESP
+    = 0x03;
+
+  //! @ID SNS_SAM_CAL_REPORT
+  sns_sam_cal_report_ind_msg           SNS_SAM_GYRO_CAL_REPORT_IND
+    = 0x05;
+
+  //! @ID SNS_SAM_CAL_ERROR
+  sns_sam_cal_error_ind_msg            SNS_SAM_GYRO_CAL_ERROR_IND
+    = 0x06;
+
+  //! @ID SNS_SAM_CAL_UPDATE
+  sns_sam_cal_update_req_msg           SNS_SAM_GYRO_CAL_UPDATE_REQ,
+  sns_sam_cal_update_resp_msg          SNS_SAM_GYRO_CAL_UPDATE_RESP
+    = 0x20;
+
+  //! @ID SNS_SAM_GET_ALGO_ATTRIBUTES
+  sns_sam_get_algo_attrib_req_msg      SNS_SAM_GYRO_CAL_GET_ATTIRBUTES_REQ,
+  sns_sam_get_algo_attrib_resp_msg     SNS_SAM_GYRO_CAL_GET_ATTRIBUTES_RESP
+    = 0x24;
+
+} = SNS_QMI_SVC_ID_65;
+
+//============================================================================
+// File footer
+//============================================================================
+/**
+@FOOTER
+*/
+
+//============================================================================
+// End of Module
+//============================================================================
+

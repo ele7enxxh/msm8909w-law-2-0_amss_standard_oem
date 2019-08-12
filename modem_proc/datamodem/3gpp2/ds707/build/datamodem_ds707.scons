@@ -1,0 +1,271 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/datamodem/3gpp2/ds707/build/datamodem_ds707.scons#1 $
+#  $DateTime: 2016/12/13 08:00:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/30/14   niv     Added ds707_nv_util.c 
+# 10/21/11   msh     Added ds707_wmk_lvl.c
+# 04/11/11   ls      Remove ds707_ccmi.c and ds707_ccm_init.c
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#import pdb
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env or 'USES_CDMA' not in env:
+   Return()
+
+#-------------------------------------------------------------------------------
+# Regular source compilation starts...
+#-------------------------------------------------------------------------------
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+	
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_DS",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+	 'DAL',
+	 'POWER',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'QCHAT',
+    'RFA',
+    'GPS',
+    'CNE',
+	'ECALL',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'QCHAT',
+    'UTILS',
+    'FW',
+    'GPS',
+    'CNE',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#env.PublishPrivateApi('VIOLATIONS',[
+#   '${INC_ROOT}/modem/datamodem/protocls/mip/src',
+#   '${INC_ROOT}/modem/datamodem/interface/atcop/src',
+#   '${INC_ROOT}/modem/datamodem/3gpp2/doqos/src',
+#   '${INC_ROOT}/core/systemdrivers/clk/inc',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/nv/src',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/core/src',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/rfc/src',
+#   '${INC_ROOT}/modem/rfa/rf/device/rtr8600_1x/inc',
+#   '${INC_ROOT}/modem/rfa/rf/device/rfdev_intf/inc',
+#   '${INC_ROOT}/modem/rfa/rf/hal/p2_1x/inc',
+#   '${INC_ROOT}/modem/rfa/rf/hal/common/inc',
+#   '${INC_ROOT}/modem/rfa/rf/wcdma/rf/mc/inc',
+#   '${INC_ROOT}/modem/rfa/rf/wcdma/rf/nv/inc',
+#   '${INC_ROOT}/modem/rfa/rf/gsm/rf/core/src',
+#   '${INC_ROOT}/modem/uim/uimdrv/inc',
+#   '${INC_ROOT}/modem/utils/fc/inc',
+#   '${INC_ROOT}/modem/mdsp/build/src',
+#   '${INC_ROOT}/modem/uim/mmgsdi/inc',
+#   ])
+
+#env.RequirePrivateApi('VIOLATIONS')
+
+#-------------------------------------------------------------------------------
+#  OffTarget/QTF
+#-------------------------------------------------------------------------------
+if 'USES_MOB' in env:
+  env.RequireRestrictedApi(['DATAMODEM_QTF_OFT'])
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+MODEM_DATA_1X_707_SOURCES = [
+   '${BUILDPATH}/src/ds707_async_mgr.c',
+   '${BUILDPATH}/src/ds707_async_timer.c',
+   '${BUILDPATH}/src/ds707_async_wmk.c',
+   '${BUILDPATH}/src/ds707_chs.c',
+   '${BUILDPATH}/src/ds707_cta_rlp.c',
+   '${BUILDPATH}/src/ds707_diag.c',
+   '${BUILDPATH}/src/ds707_dorm_timer.c',
+   '${BUILDPATH}/src/ds707_pkt_auto_redial.c',
+   '${BUILDPATH}/src/ds707_drs.c',
+   '${BUILDPATH}/src/ds707_extif.c',
+   '${BUILDPATH}/src/ds707_gonulltmri.c',
+   '${BUILDPATH}/src/ds707_gonulltmr.c',
+   '${BUILDPATH}/src/ds707_hi_spd_clk.c',
+   '${BUILDPATH}/src/ds707_iface4_hdlr.c',
+   '${BUILDPATH}/src/ds707_ifaceAny_hdlr.c',
+   '${BUILDPATH}/src/ds707_mc.c',
+   '${BUILDPATH}/src/ds707_nid.c',
+   '${BUILDPATH}/src/ds707_p_rev.c',
+   '${BUILDPATH}/src/ds707_pkt_mgr.c',
+   '${BUILDPATH}/src/ds707_pkt_mgr_hdlr.c',
+   '${BUILDPATH}/src/ds707_pkt_mgr_hdr.c',
+   '${BUILDPATH}/src/ds707_pkt_mgr_iface.c',
+   '${BUILDPATH}/src/ds707_pkt_mgr_ioctl.c',
+   '${BUILDPATH}/src/ds707_pkt_mgr_phys_link.c',
+   '${BUILDPATH}/src/ds707_pkt_mgr_util.c',
+   '${BUILDPATH}/src/ds707_epzid.c',
+   '${BUILDPATH}/src/ds707_epzid_util.c',
+   '${BUILDPATH}/src/ds707_epzid_mgr.c',
+   '${BUILDPATH}/src/ds707_epzid_hyst.c',
+   '${BUILDPATH}/src/ds707_rrm.c',
+   '${BUILDPATH}/src/ds707_rt_acl.c',
+   '${BUILDPATH}/src/ds707_scrm.c',
+   '${BUILDPATH}/src/ds707_sid.c',
+   '${BUILDPATH}/src/ds707_so_async.c',
+   '${BUILDPATH}/src/ds707_so_g3fax.c',
+   '${BUILDPATH}/src/ds707_so_pkt.c',
+   '${BUILDPATH}/src/ds707_so_retrydel.c',
+   '${BUILDPATH}/src/ds707_socm.c',
+   '${BUILDPATH}/src/ds707_timer.c',
+   '${BUILDPATH}/src/ds707_wmk_lvl.c',
+   '${BUILDPATH}/src/ds707_wmk.c',
+   '${BUILDPATH}/src/ds707_rmsm.c',
+   '${BUILDPATH}/src/ds707_netmodel.c',
+   '${BUILDPATH}/src/ds707_sdb.c',
+   '${BUILDPATH}/src/dshdr_cord_mgr.c',
+   '${BUILDPATH}/src/ds707_cback.c',
+   '${BUILDPATH}/src/ps707_async.c',
+   '${BUILDPATH}/src/dscam.c',
+   '${BUILDPATH}/src/dsrdud.c',
+   '${BUILDPATH}/src/dsdctm.c',
+   '${BUILDPATH}/src/ds707_pkt_mgr_flow.c',
+   '${BUILDPATH}/src/ds707_data_session_profile.c',
+   '${BUILDPATH}/src/ds_ehrpd_pdn_mgr.c',
+   '${BUILDPATH}/src/ds_1x_profile.c',
+   '${BUILDPATH}/src/ds_1x_stats.c',
+   '${BUILDPATH}/src/ds_3gpp2_vendor.c',
+   '${BUILDPATH}/src/dshdr_dhcp_mgr.c',
+   '${BUILDPATH}/src/dsrsp.c',
+   '${BUILDPATH}/src/ds707_roaming.c',
+   '${BUILDPATH}/src/ds707_sys_chg_hdlr.c',
+   '${BUILDPATH}/src/ds707_pdn_context.c',
+   '${BUILDPATH}/src/ds707_devmgr.c',
+   '${BUILDPATH}/src/ds707_ccm_log.c',
+   '${BUILDPATH}/src/ds707_s101.c',
+   '${BUILDPATH}/src/ds707_s101_vctm.c',
+   '${BUILDPATH}/src/ds707_s101_dctm.c',
+   '${BUILDPATH}/src/ds707_ps_evt_hdlr.c',
+   '${BUILDPATH}/src/ds707_cmd_hdlr.c',
+   '${BUILDPATH}/src/ds707_nv_util.c',
+   '${BUILDPATH}/src/ds707_tm_mgr.c',
+]
+
+DS707_SO33_SOURCES = [
+	 '${BUILDPATH}/src/ds707_so33.c',
+   ]
+
+if 'USES_DATA_ON_APPS' in env:
+	 env.AddLibrary(['MODEM_MODEM', ], '${BUILDPATH}/data_1x_707_so33',[DS707_SO33_SOURCES, ])
+else:
+	env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/data_1x_707',[MODEM_DATA_1X_707_SOURCES, DS707_SO33_SOURCES, ])
+   
+MODEM_DATA_1X_707_MAIN_MDM_SOURCES = [
+   '${BUILDPATH}/src/ds707_sdb_mdm.c',
+   '${BUILDPATH}/src/ds707_ccm.c',
+   ]
+
+if 'USES_HDR' in env:
+   MODEM_DATA_1X_707_MAIN_MDM_SOURCES.extend(['${BUILDPATH}/src/rohc_parser.c',])
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/data_1x_707_mdm',[MODEM_DATA_1X_707_MAIN_MDM_SOURCES, ])
+
+DS707_PKT_CLASSIFIER_SOURCES = [
+     '${BUILDPATH}/src/ds707_pkt_classifier.c',
+   ]
+
+if 'USES_PKT_CLASSIFIER' in env:
+  env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/data_1x_707_pkt_classifier',[DS707_PKT_CLASSIFIER_SOURCES, ])

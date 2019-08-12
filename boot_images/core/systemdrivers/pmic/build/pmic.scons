@@ -1,0 +1,147 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011-2013 QUALCOMM Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of QUALCOMM Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/systemdrivers/pmic/build/pmic.scons#2 $
+# $DateTime: 2015/09/13 23:33:33 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/04/15   mr      Added support for 8956 target (CR-790476)
+# 01/29/15   mr      Added support for Coincell Driver (CR-688196)
+# 01/23/14   xmp     Added support for LBC driver
+# 09/27/13   ck      Wrapped LoadSoftwareUnits around PMIC_BOOT_DRIVER key
+# 06/17/13   aab     Added support for SMBB driver
+# 06/13/13   aab     Added support for apq8084
+# 04/29/13   aab     Added support for 8974Pro
+# 04/29/13   aab     Added support for SBL charger APP
+# 03/25/13   aab     Updated GPIO drivers
+# 03/13/13   hw      Rearchitecting clk module driver to peripheral driver
+# 02/07/13   aab     Added support for RGB,LPG and VIB drivers
+# 01/15/13   aab     Fix KW error:   Added for support PMIC_ERR_FATAL()
+# 01/08/13   aab     Added support for 8x10/PM8110
+# 12/06/12   hw      Rearchitecturing module driver to peripheral driver
+# 11/08/12   hw      Move "base_v6" to "base" to match RPM image folder name
+# 03/07/12   hs      Added support for BOOT builds.
+# 03/12/12   hs      Updated.
+# 03/07/12   hs      Added support for MPSS and RPM builds.
+# 01/24/12   hs      Created
+#===============================================================================
+
+Import('env')
+
+if env['MSM_ID'] not in ['9x45', '8909','8909w', '8952', '8956']:
+    Return();
+
+
+env.Replace(PMIC_ROOT = [
+    "${INC_ROOT}/core/systemdrivers/pmic",
+])
+
+env.PublishProtectedApi( 'PMIC_APP', [
+    '${PMIC_ROOT}/app/chg/src',
+    ])
+
+env.PublishProtectedApi( 'PMIC_COMM', [
+    '${PMIC_ROOT}/comm/src',
+    ])
+
+env.PublishProtectedApi( 'PMIC_DRIVERS', [
+    '${PMIC_ROOT}/drivers/smps/src',
+    '${PMIC_ROOT}/drivers/ldo/src',
+    '${PMIC_ROOT}/drivers/pwr/src',
+    '${PMIC_ROOT}/drivers/vs/src',
+    '${PMIC_ROOT}/drivers/clk/src',
+    '${PMIC_ROOT}/drivers/gpio/src',
+    '${PMIC_ROOT}/drivers/mpp/src',
+    '${PMIC_ROOT}/drivers/pon/src',
+    '${PMIC_ROOT}/drivers/rgb/src',
+    '${PMIC_ROOT}/drivers/lpg/src',
+    '${PMIC_ROOT}/drivers/vib/src',
+    '${PMIC_ROOT}/drivers/smbb/src',
+    '${PMIC_ROOT}/drivers/smb/src',
+    '${PMIC_ROOT}/drivers/lbc/src',
+    '${PMIC_ROOT}/drivers/pbs/src',
+    '${PMIC_ROOT}/drivers/rtc/src',
+    '${PMIC_ROOT}/drivers/ibb/src',
+    '${PMIC_ROOT}/drivers/lab/src',
+    '${PMIC_ROOT}/drivers/wled/src',
+    '${PMIC_ROOT}/drivers/pwm/src',
+    '${PMIC_ROOT}/drivers/coincell/src',
+   ])
+
+env.PublishProtectedApi( 'PMIC_DEVICES', [
+    '${PMIC_ROOT}/pmic_devices/common/src',
+    ])
+
+env.PublishProtectedApi( 'PMIC_UTILS', [
+    '${PMIC_ROOT}/utils/src',
+    ])
+
+env.PublishProtectedApi( 'PMIC_CONFIG', [
+    '${PMIC_ROOT}/config/src',
+    ])
+
+env.PublishProtectedApi( 'PMIC_FRAMEWORK', [
+    '${PMIC_ROOT}/framework/src',
+    '${PMIC_ROOT}/framework/inc',
+    ])
+
+
+if env['CHIPSET'] in ['mdm9x45']:
+    env.PublishProtectedApi( 'PMIC_TARGET_SBL1', [
+    '${PMIC_ROOT}/target/mdm9x45_pmd9x45/system/src',
+    ])
+
+elif env['CHIPSET'] in ['msm8909', 'msm8909w']:
+    env.PublishProtectedApi( 'PMIC_TARGET_SBL1', [
+    '${PMIC_ROOT}/target/msm8909_pm8909/system/src',
+    ])
+
+elif env['CHIPSET'] in ['msm8952']:
+    env.PublishProtectedApi( 'PMIC_TARGET_SBL1', [
+    '${PMIC_ROOT}/target/msm8952_pm8950_pmi8950/system/src',
+    ])
+
+elif env['CHIPSET'] in ['msm8956']:
+    env.PublishProtectedApi( 'PMIC_TARGET_SBL1', [
+    '${PMIC_ROOT}/target/msm8956_pm8950_pmi8950_pm8004/system/src',
+    ])
+
+env.PublishPrivateApi('CORE_DEPENDENCY', [
+    '${INC_ROOT}/core/boot/secboot3/src',              # Added to support PMIC_ERR_FATAL()
+    '${INC_ROOT}/core/wiredconnectivity/qhsusb/inc/',  # Added to support charging related API
+    '${INC_ROOT}/core/api/systemdrivers/',             # Added to support HWIO macros
+    '${INC_ROOT}/core/api/hwengines/',                 # Added to support ADC Read
+    ])
+
+env.RequirePublicApi([
+    'POWER',
+    'BOOT',
+    ])
+
+env.LoadSoftwareUnits( )

@@ -1,0 +1,139 @@
+
+#===============================================================================
+#
+# System Drivers INC PATHs
+#
+# GENERAL DESCRIPTION
+#    System Drivers INC PATHs
+#
+# Copyright (c) 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/rel/1.0/boot_images/core/systemdrivers/build/paths.sconscript#3 $
+#  $DateTime: 2011/05/02 10:22:56 $
+#  $Author: coresvc $
+#  $Change: 1728222 $
+#===============================================================================
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Define HWIO API paths
+#-------------------------------------------------------------------------------
+
+env.Replace(HWIO_API = [
+   "${INC_ROOT}/core/api/systemdrivers/hwio/msm8909",
+   "${INC_ROOT}/core/api/systemdrivers/hwio/msm8909/inc/hal",
+])
+
+# image specific inc paths
+if env.has_key('MODEM_PROC'):
+   env.Append(HWIO_API = [
+      "${INC_ROOT}/core/api/systemdrivers/hwio/msm8909/inc/proc/modem",
+   ])
+elif env.has_key('APPS_PROC'):
+   env.Append(HWIO_API = [
+      "${INC_ROOT}/core/api/systemdrivers/hwio/msm8909/inc/proc/apps",
+   ])
+elif env.has_key('RPM_IMAGE'):
+   env.Append(HWIO_API = [
+      "${INC_ROOT}/core/api/systemdrivers/hwio/msm8909/inc/proc/rpm",
+   ])
+elif env.has_key('WCN_IMAGE'):
+   env.Append(HWIO_API = [
+      "${INC_ROOT}/core/api/systemdrivers/hwio/msm8909/inc/proc/riva",
+   ])
+if env.has_key('CORE_SPS'):
+   env.Append(HWIO_API = [
+      "${INC_ROOT}/core/api/systemdrivers/hwio/msm8909/inc/proc/dsps",
+   ])
+
+# plat specific inc paths
+if env.has_key('BUILD_BOOT_CHAIN') or env.has_key('BUILD_TOOL_CHAIN') or env.has_key('TZOS_IMAGE') or env.has_key('CORE_SPS') or env.has_key('RPM_IMAGE') or env.has_key('USES_BMPOS_QNK') or env.has_key('USES_REX') or env.has_key('USES_BLAST'):
+   env.Append(HWIO_API = [
+      "${INC_ROOT}/core/api/systemdrivers/hwio/msm8909/inc/plat/phys",
+   ])
+else:
+   env.Append(HWIO_API = [
+      "${INC_ROOT}/core/api/systemdrivers/hwio/msm8909/inc/plat/l4/user",
+   ])
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# These are accessible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+
+env.PublishPublicApi('SYSTEMDRIVERS', [
+    "${INC_ROOT}/core/api/systemdrivers",
+    "${INC_ROOT}/core/api/systemdrivers/pmic",
+    "${HWIO_API}"
+])
+
+env.PublishPublicApi('HWIO', env['HWIO_API'])
+
+
+#-------------------------------------------------------------------------------
+# Publish Restricted APIs
+# These are accessible just inside CoreBSP
+#-------------------------------------------------------------------------------
+
+env.PublishRestrictedApi('SYSTEMDRIVERS', [
+      "${INC_ROOT}/hal/common/include",
+      "${INC_ROOT}/core/systemdrivers/hal/tlmm/inc",
+      "${INC_ROOT}/core/systemdrivers/hal/avs/inc",
+      "${INC_ROOT}/core/systemdrivers/bio",
+      "${INC_ROOT}/core/systemdrivers/bio/src",
+      "${INC_ROOT}/core/systemdrivers/hal/gpioint/inc",
+      "${INC_ROOT}/core/systemdrivers/hal/gpioint/src/common_v2",
+      "${INC_ROOT}/core/systemdrivers/hal/gpioint/src/8960",
+      "${INC_ROOT}/core/systemdrivers/hal/modemclk/inc",
+      "${INC_ROOT}/core/systemdrivers/hal/gsbi/src",
+      "${INC_ROOT}/core/systemdrivers/hal/gsbi/inc",
+      "${INC_ROOT}/core/systemdrivers/hal/pic/inc",
+      "${INC_ROOT}/core/systemdrivers/hal/pic/src",
+      "${INC_ROOT}/core/systemdrivers/hal/qgic/inc",
+      "${INC_ROOT}/core/systemdrivers/hal/qgic/src",
+      "${INC_ROOT}/core/systemdrivers/tlmm/inc",
+      "${INC_ROOT}/core/systemdrivers/tlmm/src",
+      "${INC_ROOT}/core/systemdrivers/tlmm/src/wrapper/bsp",
+      "${INC_ROOT}/core/systemdrivers/bio",
+      "${INC_ROOT}/core/systemdrivers/busywait/inc",
+      "${INC_ROOT}/core/systemdrivers/clk/inc",
+      "${INC_ROOT}/core/systemdrivers/clk/src",
+      "${INC_ROOT}/core/systemdrivers/clkregim/src/rpc",
+      "${INC_ROOT}/core/systemdrivers/fpga/src",
+      "${INC_ROOT}/core/systemdrivers/fpga/inc",
+      "${INC_ROOT}/core/systemdrivers/fpga/src/bsp/7627",
+      "${INC_ROOT}/core/systemdrivers/fpga/src/wrapper",
+      "${INC_ROOT}/core/systemdrivers/fpga/inc/turaco4",
+      "${INC_ROOT}/core/systemdrivers/SoftwareSwitches/src",
+      "${INC_ROOT}/core/systemdrivers/SoftwareSwitches/inc",
+      "${INC_ROOT}/core/systemdrivers/SoftwareSwitches/src/wrapper",
+      "${INC_ROOT}/core/systemdrivers/GPIOInt/src",
+      "${INC_ROOT}/core/systemdrivers/GPIOInt/config",
+      "${INC_ROOT}/core/systemdrivers/gsbi/src",
+      "${INC_ROOT}/core/systemdrivers/gsbi/config",
+      "${INC_ROOT}/core/systemdrivers/tramp/inc",
+      "${INC_ROOT}/core/systemdrivers/tramp/src",
+      "${INC_ROOT}/core/systemdrivers/tramp/src/platform/qgic",
+      "${HWIO_API}"
+])
+
+
+#-------------------------------------------------------------------------------
+# Publish set of restricted APIs used just for the dal/config building.
+# These are directories containing headers required when compiling the DAL
+# properties.
+#-------------------------------------------------------------------------------
+
+env.PublishRestrictedApi('SYSTEMDRIVERS_DALCONFIG', [
+  "${INC_ROOT}/core/systemdrivers/hal/clk/api",
+  "${INC_ROOT}/core/systemdrivers/hal/avs/inc",
+  "${INC_ROOT}/core/systemdrivers/clock/shared/inc",
+  "${INC_ROOT}/core/systemdrivers/clock/chipset/msm8960/bsp/inc",
+  "${INC_ROOT}/core/systemdrivers/GpioInterruptController/src",
+  "${INC_ROOT}/core/systemdrivers/GpioInterruptController/config",
+])

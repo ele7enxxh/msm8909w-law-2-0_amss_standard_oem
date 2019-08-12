@@ -1,0 +1,114 @@
+#===============================================================================
+#
+# UART Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/04/13   VV      Fixed file name issue. Sconscript to SConscript
+# 06/24/13   VV      Initial revision.
+#===============================================================================
+import os.path
+Import('env')
+env = env.Clone()
+
+if env['MSM_ID'] in ['8909w']: 
+   env['MSM_ID'] = '8909' 
+
+if env['MSM_ID'] not in ['8974', '9x25', '8x10', '8x26', '8084', '8x62', '8092', '9x35', '8994', '8916', '8936', '9x45', '8909', '8952', '8956']:
+   Return();
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+#-------------------------------------------------------------------------------
+#  Publish protected APIs
+#-------------------------------------------------------------------------------
+
+#  There are none.
+
+#-------------------------------------------------------------------------------
+#  Figure out UART_ROOT dynamically.  Look at the usual suspects.
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/buses/uart"
+
+env.Replace( UART_ROOT = SRCPATH )
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+#  Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('BUSES_UART_API', [
+        '${INC_ROOT}/core/buses/uart/hw',
+        '${INC_ROOT}/core/buses/uart/inc',
+        '${INC_ROOT}/core/buses/uart/src',
+])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'BUSES',
+   'HAL',
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS', 
+   'BOOT'
+]
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+
+env.Append(CPPDEFINES = [
+   "UART_LOG_ERROR",
+])
+
+UART_SOURCES = [
+   '${BUILDPATH}/src/Uart.c',
+   '${BUILDPATH}/src/Uart_sbl_os.c',
+   '${BUILDPATH}/src/Uart_hal.c',
+   '${BUILDPATH}/src/Uart_log.c',
+
+]
+
+#-------------------------------------------------------------------------------
+# Set the path to the UART config file.
+#-------------------------------------------------------------------------------
+
+if 'USES_DEVCFG' in env:
+
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+
+   #  If there is a processor specific .xml file use that.
+   #  Otherwise, use the generic .xml file for the MSM.
+
+   msm        = env['MSM_ID']
+   config_dir = "%s/core/buses/uart/config" % ( env['BUILD_ROOT'] )
+
+   msm_xml    = "%s/uart_sbl_%s.xml"    % ( config_dir, msm )
+   print "Uart msm_xml = %s" % msm_xml
+
+   if( os.path.exists( msm_xml )):
+      devcfg_xml = msm_xml
+      env.AddDevCfgInfo( DEVCFG_IMG, {'devcfg_xml': devcfg_xml })
+
+IMAGES = ['UART_BOOT_DRIVER']
+env.AddLibrary(IMAGES, '${BUILDPATH}/UART', UART_SOURCES)

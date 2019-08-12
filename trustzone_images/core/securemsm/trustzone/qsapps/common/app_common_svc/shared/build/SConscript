@@ -1,0 +1,85 @@
+#===============================================================================
+#
+# TZ Common library
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# Qualcomm Technologies Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/19/15    wt     Removed AOSTLM image
+# 07/24/14    wt     Added AOSTLM image
+# 03/03/14    rk     Initial version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/common/app_common_svc/shared"
+
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --arm')
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/applib/qsee/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/include",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/common/app_common_svc/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/common/version/shared/inc/",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/services/src",
+])
+
+#----------------------------------------------------------------------------
+# APP COMMON SVC Library
+#----------------------------------------------------------------------------   
+
+SME_APP_COMMON_SVC_LIB_SOURCES = [
+    '${BUILDPATH}/src/app_common_svc_handler.c',
+]
+
+sme_app_common_svc_lib = '${BUILDPATH}/sme_app_common_svc'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary (['PLAYREADY_IMAGE'],sme_app_common_svc_lib, [SME_APP_COMMON_SVC_LIB_SOURCES])
+env.AddBinaryLibrary (['WIDEVINE_IMAGE'],sme_app_common_svc_lib, [SME_APP_COMMON_SVC_LIB_SOURCES])
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+NOSHIP_SOURCES = [
+            SRCPATH + "/src/*",
+]
+env.CleanPack('PLAYREADY_IMAGE', NOSHIP_SOURCES)
+env.CleanPack('WIDEVINE_IMAGE', NOSHIP_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

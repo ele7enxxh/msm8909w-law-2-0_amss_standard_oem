@@ -1,0 +1,26 @@
+; Variables
+local &BootBuildPath
+local &StorageToolsPath
+local &EmmcCDTProgramPath
+
+&StorageToolsPath="boot_images/core/storage/tools/jsdcc"
+&EmmcCDTProgramPath="boot_images/core/boot/secboot3/scripts/emmc_cdt_program_scripts"
+
+; Assuming that the user is running the script from core/boot/secboot3/scripts/emmc_cdt_program_scripts
+cd ../../../../../../
+
+&BootBuildPath=os.pwd()
+&StorageToolsPath="&BootBuildPath"+"/"+"&StorageToolsPath"
+&EmmcCDTProgramPath="&BootBuildPath"+"/"+"&EmmcCDTProgramPath"
+
+; Set up the display window
+area.reset
+area.create
+WINPOS 0% 50% 68% 50% 0. 0. W001
+area.view
+area.select
+
+cd.do &StorageToolsPath/mjsdload.cmm LOAD xml=rawprogram2_BLANK.xml searchpaths=&EmmcCDTProgramPath
+cd &EmmcCDTProgramPath
+
+enddo

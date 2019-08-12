@@ -1,0 +1,224 @@
+#===============================================================================
+#
+# Target-Level Build Script for Modem Processor - HW Configuration
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcfg/bsp/mcfg_hw_img/build/mcfg_hw_img.scons#1 $
+#  $DateTime: 2016/12/13 07:58:21 $
+#  $Change: 11985132 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import sys
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = ['mcfg_hw', 'mcfg', 'mpss', 'mpss_images']
+
+build_tags = ['MCFG_HW' ]
+
+# init environment variables
+env.InitImageVars(
+   alias_list=aliases,           # aliases
+   proc='qdsp6',              # proc
+   config='qdsp6_sw',                # config type, proc_name
+   plat='qurt',
+   target='MCFG_HW_IMG_${BUILD_ID}',# target (elf, image file name)
+   build_tags = build_tags,
+   deprecated_build_tags = ['CBSP_QDSP6_SW_IMAGE'],
+   tools = ['buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/kernel_builders.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/doc_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py']
+   )
+
+if not env.CheckAlias(alias_list=aliases):
+  Return()
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(MBN_FILE="${BUILD_MS_ROOT}/bin/${SHORT_BUILDPATH}/mcfg_hw")
+
+#---------------------------------------------------------------------------
+# Now that we know we need to build something, the first thing we need
+# to do is add our image to BuildProducts.txt, so that tools can verify
+# when our build is successful.  Make sure we append, so that we don't
+# overwrite other images that have written to this file.
+#---------------------------------------------------------------------------
+prod_files = []
+prod_files.append(env.BuildProductsFile ("${BUILDPATH}/BuildProducts_mcfg_hw.txt", "${BUILD_ROOT}/build/ms/bin/${SHORT_BUILDPATH}/mcfg_hw.mbn")) 
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.Replace(QDSP6_LIBDIR = "${COREBSP_ROOT}/kernel/qurt/install/modemv5/lib")
+env.Tool('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.Tool('qdsp6_defs', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+if 'T_CFLAGS' in os.environ:
+   # Surround with spaces to protect against other flags added elsewhere
+   env.Append(CFLAGS = os.environ['T_CFLAGS'])
+
+#---------------------------------------------------------------------------
+#  Handle for the no-dealloc_return-libs
+#---------------------------------------------------------------------------
+dealloc_cflags = env.get('CFLAGS')
+if '-mno-dealloc_return' in dealloc_cflags:
+   env.Replace(QDSP6_RELEASE_LIB_DIR = "${QDSP6_RELEASE_DIR}/no-dealloc_return-libs/dinkumware/lib/${Q6VERSION}")
+
+mcfg_hw_gen_path = env.RealPath('${BUILD_ROOT}/mcfg/bsp/mcfg_hw_img/build/')        
+mcfg_hw_build_dest_name = '${SHORT_BUILDPATH}/${TARGET_NAME}_${BUILD_ASIC}${BUILD_ID}${BUILD_VER}'
+
+if 'USES_BOLT_MODEM' in env:
+   mcfg_hw_lcs_file = env.RealPath('${BUILD_ROOT}/mcfg/mcfg_gen/build/mcfg_gen_bolt.lcs')
+else: 
+   mcfg_hw_lcs_file = env.RealPath('${BUILD_ROOT}/mcfg/mcfg_gen/build/mcfg_gen.lcs')        
+
+mcfg_conv_elf_to_mbn_script = env.RealPath('${BUILD_ROOT}/mcfg/mcfg_gen/build/mcfg_conv_elf_2_mbn.pl')        
+mcfg_hw_elf_filename = mcfg_hw_build_dest_name + ".elf"
+mcfg_hw_elf_mbn_filename = mcfg_hw_build_dest_name + ".mbn"
+mcfg_hw_elf_strip_filename = mcfg_hw_build_dest_name + "_strip.elf"
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+mcfg_hw_img_libs = []
+mcfg_hw_img_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load MODEM libs/objs build rules.
+if env.PathExists('${INC_ROOT}/api'):
+    au_items = env.LoadAreaSoftwareUnits('api')
+else:
+    au_items = env.LoadAreaSoftwareUnits('qmimsgs')
+mcfg_hw_img_libs.extend(au_items['LIBS'])
+mcfg_hw_img_objs.extend(au_items['OBJS'])
+au_items = env.LoadAreaSoftwareUnits('mcfg')
+mcfg_hw_img_libs.extend(au_items['LIBS'])
+mcfg_hw_img_objs.extend(au_items['OBJS'])
+
+mcfg_hw_units = [mcfg_hw_img_libs, mcfg_hw_img_objs]
+
+print '\t -- BUILDING-- MCFG-HW'
+print '\t -- FROM MCFG direectory'
+#=========================================================================
+# Beging building MCFG Image
+#-------------------------------------------------------------------------
+# filter is not define or filter is current target files only, ok to build misc files
+filter_opt = env.get('FILTER_OPT')
+
+if filter_opt is None:
+   mcfg_hw_units += prod_files
+
+   libs_path = env['INSTALL_LIBPATH']
+   
+   #Setup the bare minimum linker commands
+   env.Replace(LINKFLAGS ="-m${Q6VERSION} -nostdlib --strip-debug --strip-all --whole-archive --section-start .start=0x0 --entry=0x0 ${LFLAGS}")
+   env.Append(LINKFLAGS = '-T' + str(mcfg_hw_lcs_file))
+   env.Replace(LINKOBJGRP = "--start-group $_LIBFLAGS_POSIX  $SOURCES.posix --end-group ")
+
+   #Invoke the build command
+   mcfg_hw_elf = env.Program(mcfg_hw_build_dest_name, 
+                          source=[mcfg_hw_img_objs],
+                          LIBS=[mcfg_hw_img_libs], 
+                          LIBPATH=libs_path)
+
+   mcfg_hw_map = env.SideEffect(env.subst(mcfg_hw_build_dest_name + '.map'), mcfg_hw_elf)
+   mcfg_hw_sym = env.SideEffect(env.subst(mcfg_hw_build_dest_name + '.sym'), mcfg_hw_elf)
+   env.Clean(mcfg_hw_elf, mcfg_hw_map)
+   env.Clean(mcfg_hw_elf, mcfg_hw_sym)
+
+   # Generate MCFG HW MBN 
+   def gen_mcfg_hw_mbn(target, source, env):
+         
+      # Strip out extra info out of the elf using qdsp-objcopy
+      print 'MCFG-HW: Strip out extra info out of the elf using Binutils objcopy'
+      cdir = os.getcwd()
+      print 'MCFG-HW:Current working dir is:'
+      print cdir
+
+      if env.PathExists("${QDSP6BIN}"):
+         MCFG_OBJCOPY_PATH = env.RealPath("${QDSP6BIN}") 
+         if env['PLATFORM'] in ['windows', 'win32']:
+            MCFG_OBJCOPY_PATH = MCFG_OBJCOPY_PATH + "\\"
+         else:
+            MCFG_OBJCOPY_PATH = MCFG_OBJCOPY_PATH + "/"
+      else:
+         env.PrintWarning("${QDSP6BIN} not found using system environment. Using system paths for MCFG_OBJCOPY_PATH")
+         MCFG_OBJCOPY_PATH = ""
+
+      MCFG_OBJCOPY = MCFG_OBJCOPY_PATH + "hexagon-objcopy${EXE_EXT}"
+      env.PrintInfo("MCFG_OBJCOPY_PATH            = %s" % env.RealPath("${QDSP6BIN}"))
+
+      cmd = MCFG_OBJCOPY + " -I elf32-little --only-section .mcfg_seg" + \
+           " " + mcfg_hw_elf_filename + \
+           " " + mcfg_hw_elf_strip_filename
+      env.ExecCmds(cmd, dir=mcfg_hw_gen_path)
+
+      # Run the MCFG_CONV_ELF_2_MBN script to adjust p_offset and strip out link view
+      print 'MCFG-HW: Run the MCFG_CONV_ELF_2_MBN script to adjust p_offset and remove link view'
+      cmd2 = "perl " + mcfg_conv_elf_to_mbn_script + \
+            " " + mcfg_hw_elf_strip_filename + \
+            " -o " + mcfg_hw_elf_mbn_filename 
+      env.ExecCmds(cmd2, dir=mcfg_hw_gen_path) 
+         
+   # End def gen_mcfg_hw_mbn()
+
+   print '\t -- Generating mcfg_hw_mbn'
+   mcfg_hw_mbn = env.Command(mcfg_hw_elf_mbn_filename, mcfg_hw_elf_filename, gen_mcfg_hw_mbn)
+
+   mcfg_hw_strip_elf = env.SideEffect(env.subst(mcfg_hw_build_dest_name + '_strip.elf'), mcfg_hw_mbn)
+   env.Clean(mcfg_hw_mbn, mcfg_hw_strip_elf)
+        
+   install_mcfg_hw_elf = env.InstallAs(
+      "${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_MCFG_HW.elf", mcfg_hw_elf)
+   install_mcfg_hw_mbn = env.InstallAs(
+      "${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_MCFG_HW.mbn", mcfg_hw_mbn)
+
+   print '\t -- Invoke MbnBuilder for mcfg_hw_mbn'
+   cdir = os.getcwd()
+   print cdir
+   #-------------------------------------------------------------------------
+   # Build env mbn files
+   #-------------------------------------------------------------------------
+   target_mcfg_hw_mbn = env.MbnBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}", install_mcfg_hw_mbn, IMAGE_TYPE='mcfg_hw',
+                                        MBN_TYPE="elf", FLASH_TYPE=env['TARGET_FLASH_TYPE'])
+
+   #=========================================================================
+   # Define targets needed for MCFG_HW_IMG 
+   #=========================================================================
+   mcfg_hw_units += [
+      install_mcfg_hw_elf,
+      install_mcfg_hw_mbn,
+      target_mcfg_hw_mbn,
+   ]
+
+# add aliases
+for alias in aliases:
+   env.Alias(alias, mcfg_hw_units)
+

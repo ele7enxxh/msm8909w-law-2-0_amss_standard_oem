@@ -1,0 +1,521 @@
+;============================================================================
+;  Name:
+;    TLMM_SLEEP_CONFIGS.CMM
+;
+;  Description:
+;    SLEEP_CONFIGS array access and modification script.
+;
+;    Note: Changes will be lost upon reset.
+;
+;
+;  Copyright (c) 2009 Qualcomm Technologies Incorporated.
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/tlmm/scripts/tlmm_sleep_configs.cmm#1 $ $DateTime: 2016/12/13 07:59:23 $ $Author: mplcsds1 $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 09/08/09   dcf     Created.
+;============================================================================;
+
+ENTRY &ELFFileName
+
+;============================================================================
+; Declare changing variables used (Changes with each selection of a GPIO.
+;============================================================================
+&num_gpio=0.
+&gpio_number=0.
+&pull=""
+&drive=""
+&dir=""
+&func=""
+&config=""
+&out_val=""
+
+&selection=""
+&current_config=""
+&current_output=""
+&pin=""
+&curr_pull=""
+&curr_drive=""
+&curr_dir=""
+&curr_func=""
+&curr_output=""
+
+&id=""
+&target_msm=""
+&target_msm_rev=""
+&name=""
+
+;============================================================================
+; Start with a new window
+;============================================================================
+
+AREA.Create A000 80. 1000.
+AREA.Select A000
+WINPOS 0. 0. 50% 100%
+AREA.View
+
+;============================================================================
+; Get total GPIO for the target.
+;============================================================================
+msm_retry:
+
+if "&ELFFileName"==""
+(
+  print "Select image file in browser: "
+  local &filename
+  dialog.file *.elf
+  entry &filename
+  ; Clip the ".elf" off of the file name
+  &ELFFileName=string.cut("&filename", -4)
+)
+
+if "&ELFFileName"==""
+(
+  print " No ELF file selected.  Cannot determine global paths.  Exiting..."
+  enddo
+)
+else
+(
+  &name=OS.FILE.NAME(&ELFFileName)
+  &id=string.mid("&name", 5, 9)
+  &target_msm=string.mid("&name", 0, 5)
+  &target_msm_rev=string.mid("&name", 5, 1)
+
+  if "&target_msm"=="M6615"
+  (
+    &num_gpio=0x45
+    &target_msm="6615"
+  )
+  else if "&target_msm"=="M8660"
+  (
+    &num_gpio=0xAD
+    &target_msm="8660"
+  )
+  else if "&target_msm"=="M8672"
+  (
+    &num_gpio=0x98
+    &target_msm="8672"
+  )
+  else if "&target_msm"=="M8960"
+  (
+    &num_gpio=0x95
+    &target_msm="8960"
+  )
+  else if "&target_msm"=="M9615"
+  (
+    &num_gpio=0x58
+    &target_msm="9615"
+  )
+  else
+  (
+    print "Target not supported or unable to determine target."
+    print "Supported targets:  6615, 8660, 8672, 8960, 9615
+    goto msm_retry
+  )
+)
+
+
+;============================================================================
+; Main Menu window
+;============================================================================
+MainMenu:
+  gosub ClearConfigs
+  print
+  print
+  print "------------------------------------------------"
+  print "|                                              |"
+  print "|         SLEEP CONFIG MANIPULATION            |"
+  print "|                                              |"
+  print "|          Selected target:  &target_msm              |"
+  print "|       Number of GPIO detected:  &num_gpio          |"
+  print "|                                              |"
+  print "|     Copyright (c) 2009 by QUALCOMM, Inc.     |"
+  print "|                                              |"
+  print "------------------------------------------------"
+  print
+  print
+  print "      0: Exit"
+  print "      1: Dump current sleep configurations"
+  print "      2: Find floating sleep configurations"
+  print "      3: Find pins not managed for sleep by TLMM"
+  print "      4: Change sleep configuration"
+  print "      5: Read a particular sleep configuration"
+  print
+  print " Please make a Selection: "
+
+  &t32_cmm_stopped=1
+  enter &Selection
+  &t32_cmm_stopped=0
+
+  print
+  print
+  
+  ; Validate input.
+  if &Selection>5
+  (
+    print "Invalid input.  Please try again."
+    goto MainMenu
+  )
+
+  ; Exit program.
+  if "&Selection"=="0"
+  (
+    print "Ending GPIO configuration program..."
+    enddo
+  )
+
+  if "&Selection"=="1"
+  (
+    print " Dumping current sleep configuration settings..."
+    &current_config=0
+    &pin=0.
+
+loop:
+    gosub GetConfiguration &pin
+
+    if &gpio_number>&num_gpio
+    (
+      if &pin<&num_gpio
+      (
+        print " GPIO &pin is not set to be handled by TLMM for sleep. May be handled elsewhere."
+        &pin=&pin+1
+        goto loop
+      )
+    )
+
+    if &pin<&num_gpio
+    (
+      if &gpio_number>&num_gpio
+      (
+        print " GPIO &pin is not set to be handled by TLMM for sleep. May be handled elsewhere."
+      )
+      else
+      (
+        gosub ReadConfig
+      )
+      &pin=&pin+1
+      goto loop
+    )
+    goto MainMenu
+  )
+
+  if "&Selection"=="2"
+  (
+    print "Searching for floating pins..."
+    &current_config=0
+    &pin=0.
+    print "The following GPIOs have floating sleep configurations."
+    print "This may negatively impact power consumption."
+    print "Note: this does not consider GPIO which are not programmed for sleep by TLMM."
+    print
+check_loop:
+
+    gosub GetConfiguration &pin
+
+    if &pin<&num_gpio
+    (
+      if &curr_dir==0x0
+      (
+        if &curr_pull==0x0
+        (
+          if &gpio_number<&num_gpio
+          (
+            if &curr_func==0x0
+            (
+              gosub ReadConfig
+            )
+          )
+        )
+      )
+      &pin=&pin+1
+      goto check_loop
+    )
+    goto MainMenu
+  )
+
+  if "&Selection"=="3"
+  (
+    print "Searching for unmanaged GPIO pins..."
+    &current_config=0
+    &pin=0.
+    print
+check_loop2:
+
+    gosub GetConfiguration &pin
+
+    if "&pin"<"&num_gpio"
+    (
+      if &num_gpio<&gpio_number
+      (
+        print "GPIO &pin is not managed for sleep by TLMM"
+      )
+      &pin=&pin+1
+      goto check_loop2
+    )
+    goto MainMenu
+  )
+
+  if "&Selection"=="4"
+  (
+    print "NOTE:  Configuration changes will only be effective until a reset occurs."
+    print "       All changes will be lost upon reset."
+    print
+    print " Please select GPIO number: "
+    &t32_cmm_stopped=1
+    enter &gpio_number
+    &gpio_number=&gpio_number.
+    &t32_cmm_stopped=0
+    &pin=&gpio_number
+
+    if &num_gpio<&gpio_number
+    (
+      print "Invalid GPIO number selected. Exiting selection...
+      goto MainMenu
+    )
+
+    print " Please check with software interface for available function selections."
+    print " Please select function select (usually 0 for sleep): "
+    &t32_cmm_stopped=1
+    enter &curr_func
+    &t32_cmm_stopped=0
+    if 0xF<&curr_func
+    (
+      print "function select is out of bounds.  Exiting selection...
+      goto MainMenu
+    )
+
+    print " Available directions: "
+    print "  0:  INPUT"
+    print "  1:  OUTPUT"
+    print " Please select direction: "
+    &t32_cmm_stopped=1
+    enter &curr_dir
+    &t32_cmm_stopped=0
+    if 0x1<&curr_dir
+    (
+      print "Invalid direction selected.  Exiting selection...
+      goto MainMenu
+    )
+
+    print " Available pulls: "
+    print "  0:  NO PULL"
+    print "  1:  PULL DOWN"
+    print "  2:  KEEPER"
+    print "  3:  PULL_UP"
+    print " Please select a pull: "
+    &t32_cmm_stopped=1
+    enter &curr_pull
+    &t32_cmm_stopped=0
+    if 0x3<&curr_pull
+    (
+      print "Invalid pull selected.  Exiting selection...
+      goto MainMenu
+    )
+
+    print " Available drive strengths: "
+    print "  0:  2MA"
+    print "  1:  4MA"
+    print "  2:  6MA"
+    print "  3:  8MA"
+    print "  4:  10MA"
+    print "  5:  13MA"
+    print "  6:  14MA"
+    print "  7:  16MA"
+    print " Please select drive strength: "
+    &t32_cmm_stopped=1
+    enter &curr_drive
+    &t32_cmm_stopped=0
+    if 0x7<&curr_drive
+    (
+      print "Invalid drive strength selected.  Exiting selection...
+      goto MainMenu
+    )
+
+
+    if &curr_dir==0x1
+    (
+      print " Available outputs (for func=0 and direction=OUTPUT only) "
+      print " Select 0 for INPUT configurations: "
+      print "  0:  LOW"
+      print "  1:  HIGH"
+      print " Please select and output value: "
+      &t32_cmm_stopped=1
+      enter &curr_output
+      &t32_cmm_stopped=0
+      if 0x1<&curr_output
+      (
+        print "Invalid output value selected.  Exiting selection...
+        goto MainMenu
+      )
+      if &curr_output==0x0
+      (
+        &curr_output=0x2
+      )
+      else
+      (
+        &curr_output=0x3
+      )
+    )
+
+    print "Setting sleep configuration entry..."
+    gosub SetConfiguration &gpio_number
+    goto MainMenu
+  )
+
+  if "&Selection"=="5"
+  (
+    print " Please select GPIO number: "
+    &t32_cmm_stopped=1
+    enter &pin
+    &t32_cmm_stopped=0
+
+    gosub GetConfiguration &pin
+    gosub ReadConfig
+    goto MainMenu
+  )
+
+
+GetConfiguration:
+
+    ENTRY &pin_number
+
+    if "&pin_number"<"num_gpio"
+    (
+      &gpio_number=&pin_number
+      &curr_func=v.value(\\&id\Global\pgtState->ptGPIO[&pin_number].tInactive.nFunc)
+      &curr_dir=v.value(\\&id\Global\pgtState->ptGPIO[&pin_number].tInactive.nDir)
+      &curr_pull=v.value(\\&id\Global\pgtState->ptGPIO[&pin_number].tInactive.nPull)
+      &curr_drive=v.value(\\&id\Global\pgtState->ptGPIO[&pin_number].tInactive.nDrive)
+      &curr_output=v.value(\\&id\Global\pgtState->ptGPIO[&pin_number].tAttr.nSleepVal)
+    )
+    else
+    (
+      print "Encountered invalid GPIO number when trying to retrieve configuration."
+    )
+return
+
+
+
+SetConfiguration:
+    ENTRY &pin_number
+
+    if "&pin_number"<"num_gpio"
+    (
+      d.set v.address(\\&id\Global\pgtState->ptGPIO[&pin_number].tInactive.nFunc) %long &curr_func
+      d.set v.address(\\&id\Global\pgtState->ptGPIO[&pin_number].tInactive.nDir) %long &curr_dir
+      d.set v.address(\\&id\Global\pgtState->ptGPIO[&pin_number].tInactive.nPull) %long &curr_pull
+      d.set v.address(\\&id\Global\pgtState->ptGPIO[&pin_number].tInactive.nDrive) %long &curr_drive
+      d.set v.address(\\&id\Global\pgtState->ptGPIO[&pin_number].tAttr.nSleepVal) %long &curr_output
+    )
+    else
+    (
+      print "Encountered invalid GPIO number when trying to set configuration."
+    )
+return
+
+
+
+ReadConfig:
+
+    if &curr_pull==0x0
+    (
+      &pull="NO PULL"
+    )
+    else if &curr_pull==1
+    (
+      &pull="PULL DOWN"
+    )
+    else if &curr_pull==0x2
+    (
+      &pull="KEEPER"
+    )
+    else if &curr_pull==0x3
+    (
+      &pull="PULL UP"
+    )
+    if &curr_dir==0x0
+    (
+      &dir="INPUT"
+    )
+    else
+    (
+      &dir="OUTPUT"
+    )
+    if &curr_drive==0x0
+    (
+      &drive="2mA"
+    )
+    else if &curr_drive==0x1
+    (
+      &drive="4mA"
+    )
+    else if &curr_drive==0x2
+    (
+      &drive="6mA"
+    )
+    else if &curr_drive==0x3
+    (
+      &drive="8mA"
+    )
+    else if &curr_drive==0x4
+    (
+      &drive="10mA"
+    )
+    else if &curr_drive==0x5
+    (
+      &drive="12mA"
+    )
+    else if &curr_drive==0x6
+    (
+      &drive="14mA"
+    )
+    else if &curr_drive==0x7
+    (
+      &drive="16mA"
+    )
+    if (&curr_output==0x2||&curr_output==0x0)
+    (
+      &out_val="LOW"
+    )
+    else if (&curr_output==0x3||&curr_output==0x1)
+    (
+      &out_val="HIGH"
+    )
+    else
+    (
+      &out_val="UNK"
+    )
+    &func=&curr_func
+
+    if &curr_dir==0x1
+    (
+      print " GPIO[&pin]: [FS]&func, [DIR]&dir, [PULL]&pull, [DRV]&drive, [OUT VAL]&out_val"
+    )
+    else
+    (
+      print " GPIO[&pin]: [FS]&func, [DIR]&dir, [PULL]&pull, [DRV]&drive"
+    )
+return
+
+
+ClearConfigs:
+  &current_config=""
+  &gpio_number=""
+  &pin=""
+  &curr_func=""
+  &curr_dir=""
+  &curr_pull=""
+  &curr_drive=""
+  &func=""
+  &dir=""
+  &pull=""
+  &drive=""
+return
+

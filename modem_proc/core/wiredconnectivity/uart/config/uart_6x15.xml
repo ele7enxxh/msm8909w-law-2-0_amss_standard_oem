@@ -1,0 +1,110 @@
+
+#include "DALDeviceId.h"
+
+<!-- =================================================================================== -->
+<!--                                                                                     -->
+<!-- Use the following configurations for GPIOs:                                         -->
+<!--                                                                                     -->
+<!-- UART_GSBI0_RFR_N  = TLMM_GPIO_CFG( 15, 1, GPIO_OUTPUT, GPIO_PULL_UP,   GPIO_2MA )   -->
+<!-- UART_GSBI0_CTS_N  = TLMM_GPIO_CFG( 16, 1, GPIO_INPUT,  GPIO_PULL_DOWN, GPIO_2MA )   -->
+<!-- UART_GSBI0_RX     = TLMM_GPIO_CFG( 17, 1, GPIO_INPUT,  GPIO_PULL_DOWN, GPIO_2MA )   -->
+<!-- UART_GSBI0_TX     = TLMM_GPIO_CFG( 18, 1, GPIO_OUTPUT, GPIO_PULL_UP,   GPIO_2MA )   -->
+<!--                                                                                     -->
+<!-- i.e. func = 0; RX, CTS_N = PULL_DOWN; RFR_N, TX = PULL_UP.                          -->
+<!-- =================================================================================== -->
+
+<driver name="Uart">
+
+  <global_def>    
+    <var_seq name="uartgsbi0_gpio" type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x70f01, 0x21001, 0x21101, 0x71201, end </var_seq>
+    <var_seq name="uartgsbi1_gpio" type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x71301, 0x21401, 0x21501, 0x71601, end </var_seq>
+    <var_seq name="uartgsbi2_gpio" type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x71701, 0x21801, 0x21901, 0x71a01, end </var_seq>
+    <var_seq name="uartgsbi3_gpio" type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x71b01, 0x21c01, 0x21d01, 0x71e01, end </var_seq>
+    <var_seq name="uartgsbi4_gpio" type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x71f01, 0x22001, 0x22101, 0x72201, end </var_seq>
+  </global_def>
+
+  <!-- =================================================================== -->
+  <!-- UART1DM                                                             -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTDM_DEVICE_1>
+    <props name="DMOV_DEV"     type=DALPROP_ATTR_TYPE_UINT32> DALDEVICEID_DMOV_DEVICE_1 </props>
+    <props name="DMOV_CHAN_RX" type=DALPROP_ATTR_TYPE_UINT32> 5                         </props>
+    <props name="DMOV_CHAN_TX" type=DALPROP_ATTR_TYPE_UINT32> 6                         </props>
+    <props name="DMOV_CRCI_RX" type=DALPROP_ATTR_TYPE_UINT32> 7                         </props>
+    <props name="DMOV_CRCI_TX" type=DALPROP_ATTR_TYPE_UINT32> 8                         </props>
+    <props name="ManagePCLK"   type=DALPROP_ATTR_TYPE_UINT32> 1                         </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- GSBI0                                                               -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTGSBI_DEVICE_0>
+    <props name="GpioCfg"      type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> uartgsbi0_gpio            </props>    
+    <props name="DMOV_DEV"     type=DALPROP_ATTR_TYPE_UINT32>         DALDEVICEID_DMOV_DEVICE_0 </props>
+    <props name="DMOV_CHAN_RX" type=DALPROP_ATTR_TYPE_UINT32>         1                         </props>
+    <props name="DMOV_CHAN_TX" type=DALPROP_ATTR_TYPE_UINT32>         2                         </props>
+    <props name="DMOV_CRCI_RX" type=DALPROP_ATTR_TYPE_UINT32>         5                         </props>
+    <props name="DMOV_CRCI_TX" type=DALPROP_ATTR_TYPE_UINT32>         4                         </props>
+    <props name="ManagePCLK"   type=DALPROP_ATTR_TYPE_UINT32>         1                         </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- GSBI1                                                               -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTGSBI_DEVICE_1>
+    <props name="GpioCfg"      type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> uartgsbi1_gpio            </props>    
+    <props name="DMOV_DEV"     type=DALPROP_ATTR_TYPE_UINT32>         DALDEVICEID_DMOV_DEVICE_0 </props>
+    <props name="DMOV_CHAN_RX" type=DALPROP_ATTR_TYPE_UINT32>         1                         </props>
+    <props name="DMOV_CHAN_TX" type=DALPROP_ATTR_TYPE_UINT32>         2                         </props>
+    <props name="DMOV_CRCI_RX" type=DALPROP_ATTR_TYPE_UINT32>         7                         </props>
+    <props name="DMOV_CRCI_TX" type=DALPROP_ATTR_TYPE_UINT32>         6                         </props>
+    <props name="ManagePCLK"   type=DALPROP_ATTR_TYPE_UINT32>         1                         </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- GSBI2                                                               -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTGSBI_DEVICE_2>
+    <props name="GpioCfg"      type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> uartgsbi2_gpio            </props>    
+    <props name="DMOV_DEV"     type=DALPROP_ATTR_TYPE_UINT32>         DALDEVICEID_DMOV_DEVICE_0 </props>
+    <props name="DMOV_CHAN_RX" type=DALPROP_ATTR_TYPE_UINT32>         3                         </props>
+    <props name="DMOV_CHAN_TX" type=DALPROP_ATTR_TYPE_UINT32>         4                         </props>
+    <props name="DMOV_CRCI_RX" type=DALPROP_ATTR_TYPE_UINT32>         9                         </props>
+    <props name="DMOV_CRCI_TX" type=DALPROP_ATTR_TYPE_UINT32>         8                         </props>
+    <props name="ManagePCLK"   type=DALPROP_ATTR_TYPE_UINT32>         1                         </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- GSBI3                                                               -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTGSBI_DEVICE_3>
+    <props name="GpioCfg"      type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> uartgsbi3_gpio            </props>    
+    <props name="DMOV_DEV"     type=DALPROP_ATTR_TYPE_UINT32>         DALDEVICEID_DMOV_DEVICE_0 </props>
+    <props name="DMOV_CHAN_RX" type=DALPROP_ATTR_TYPE_UINT32>         5                         </props>
+    <props name="DMOV_CHAN_TX" type=DALPROP_ATTR_TYPE_UINT32>         6                         </props>
+    <props name="DMOV_CRCI_RX" type=DALPROP_ATTR_TYPE_UINT32>         11                        </props>
+    <props name="DMOV_CRCI_TX" type=DALPROP_ATTR_TYPE_UINT32>         10                        </props>
+    <props name="ManagePCLK"   type=DALPROP_ATTR_TYPE_UINT32>         1                         </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- GSBI4                                                               -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTGSBI_DEVICE_4>
+    <props name="GpioCfg"      type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> uartgsbi4_gpio            </props>    
+    <props name="DMOV_DEV"     type=DALPROP_ATTR_TYPE_UINT32>         DALDEVICEID_DMOV_DEVICE_0 </props>
+    <props name="DMOV_CHAN_RX" type=DALPROP_ATTR_TYPE_UINT32>         7                         </props>
+    <props name="DMOV_CHAN_TX" type=DALPROP_ATTR_TYPE_UINT32>         8                         </props>
+    <props name="DMOV_CRCI_RX" type=DALPROP_ATTR_TYPE_UINT32>         13                        </props>
+    <props name="DMOV_CRCI_TX" type=DALPROP_ATTR_TYPE_UINT32>         12                        </props>
+    <props name="ManagePCLK"   type=DALPROP_ATTR_TYPE_UINT32>         1                         </props>
+  </device>
+
+</driver>
+

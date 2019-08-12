@@ -1,0 +1,72 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for QDSS ctrl library
+#
+# Copyright (c) 2013 Qualcomm Technologies Incorporated.
+# All rights reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/debugtrace/ctrl/build/ctrl.scons#1 $
+#
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.RequirePublicApi([
+   'DEBUGTRACE',
+   'DAL',
+   'SERVICES',
+   'KERNEL',
+   'POWER',
+   'SYSTEMDRIVERS'
+])
+env.RequireRestrictedApi(['DEBUGTRACE'])
+env.RequireProtectedApi(['DEBUGTRACE'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+QDSS_CTRL_SRC = [
+   '${BUILDPATH}/qdss_ctrl_diag.c',
+   '${BUILDPATH}/qdss_ctrl.c',
+   '${BUILDPATH}/qdss_ctrl_test.c',
+]
+
+if env.IsTargetEnable(['CORE_MODEM','MODEM_IMAGE','CBSP_MODEM_IMAGE']):
+   env.Append(CCFLAGS = " -DQDSS_CTRL_DIAG_PROC_ID=0x0200")
+   QDSS_CTRL_SRC += ['${BUILDPATH}/qdss_ctrl_etm_qurt.c']
+elif env.IsTargetEnable(['CORE_QDSP6_SW']):
+   env.Append(CCFLAGS = " -DQDSS_CTRL_DIAG_PROC_ID=0x0500")
+   QDSS_CTRL_SRC += ['${BUILDPATH}/qdss_ctrl_etm_qurt.c']
+elif env.IsTargetEnable(['WCN_IMAGE','CBSP_WCN_IMAGE']):
+   env.Append(CCFLAGS = " -DQDSS_CTRL_DIAG_PROC_ID=0x0300")
+   QDSS_CTRL_SRC += ['${BUILDPATH}/qdss_ctrl_etm_arm.c']
+else:
+   env.Append(CCFLAGS = " -DQDSS_CTRL_DIAG_PROC_ID=0xFF00")
+   QDSS_CTRL_SRC += ['${BUILDPATH}/qdss_ctrl_etm_stub.c']
+
+
+env.AddLibrary(['CORE_MODEM','MODEM_IMAGE','CBSP_MODEM_IMAGE',
+   'CORE_QDSP6_SW','WCN_IMAGE','CBSP_WCN_IMAGE','CORE_QDSP6_SENSOR_SW'],
+   '${BUILDPATH}/qdss_ctrl',QDSS_CTRL_SRC)
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(
+      ['CORE_MODEM','MODEM_IMAGE','CBSP_MODEM_IMAGE', 'CORE_QDSP6_SW',
+      'WCN_IMAGE'],
+      {
+         'sequence_group'          : 'RCINIT_GROUP_1',
+         'init_name'               : 'qdss_ctrl',
+         'init_function'           : 'qdss_ctrl_init',
+         'dependencies'            : ['dalsys','diag','npa']
+      })
+

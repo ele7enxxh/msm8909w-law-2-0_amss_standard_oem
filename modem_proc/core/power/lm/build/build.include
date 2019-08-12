@@ -1,0 +1,82 @@
+
+Import('env')
+import os.path
+
+env = env.Clone()
+
+LM_ROOT = "${BUILD_ROOT}/core/power/lm"
+INC_PATH = LM_ROOT + '/inc'
+SRC_PATH = LM_ROOT + '/src'
+
+env.VariantDir('${BUILDPATH}', SRC_PATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Determine if target specific files need to be used
+#-------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Determine which target specific HWIO file needs to be included
+#-------------------------------------------------------------------------------
+
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'BUSES',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.PublishPrivateApi('LM',[INC_PATH])
+
+#-------------------------------------------------------------------------------
+# Run Sleep LPR tool to create a LPRM definition for LM.
+#-------------------------------------------------------------------------------
+#if env.has_key('USES_CORESLEEP_TOOL') :
+if 'USES_CORESLEEP_TOOL' in env:
+   xml_file = SRC_PATH + '/lpr_definition_lm.xml'
+   env.AddCoreSleepLPR('CBSP_QDSP6_SW_IMAGE', {'sleep_lpr_xml' : [xml_file]})
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+LM_SOURCES = [
+    '${BUILDPATH}/lm_main.c',
+	'${BUILDPATH}/lm_utils.c'
+    
+  ]
+
+#-----------------------------------------------------------------------------
+# Add Libraries to image
+#-----------------------------------------------------------------------------
+env.AddLibrary(
+  ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+  '${BUILDPATH}/lm', LM_SOURCES)
+
+#-----------------------------------------------------------------------------
+# Register with RCINIT framework so that it can call our init function.
+#-----------------------------------------------------------------------------
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+  env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_1',
+      'init_name'                  : 'S1LM',
+      'init_function'              : 'lm_initialize',
+      'dependencies'               : ['clk_regime','dalsys','sleep']
+    })

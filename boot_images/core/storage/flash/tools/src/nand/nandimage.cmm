@@ -1,0 +1,224 @@
+;============================================================================
+;  Name:
+;    NANDIMAGE.CMM
+;
+;  Description:
+;    TRACE32 script is a wrapper script to nand_dump.cmm to dump flash
+;    partitions.
+;
+;  Execution:
+;    Inside the debugger, type at the command line: "do nandimage".
+;
+; Copyright (c) 2009 Qualcomm Technologies Incorporated.
+; All Rights Reserved.
+; Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/nandimage.cmm#1 $ 
+; $DateTime: 2015/09/01 00:30:35 $ 
+; $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 02/22/09   op      Fix to save the dump to user defined location on 8K WM7
+; 11/22/09   op      Check write permission before dumping image
+; 08/27/09   bb      Changing paths from \ to / to support linux environment
+; 04/15/09   eo      Created
+;============================================================================;
+
+;============================================================================
+; Declare variables used
+;============================================================================
+LOCAL &ClearWin
+LOCAL &TempDir
+LOCAL &FileSpec
+LOCAL &InFileSpec
+LOCAL &WhichPartition
+
+LOCAL &buildId
+LOCAL &TrustMode
+LOCAL &MenuMode
+
+;============================================================================
+; Set up some defaults for some variables
+;============================================================================
+&ClearWin="yes"          ; Remove all windows before starting
+&TempDir=OS.ENV(TEMP)    ; Get the temperory directory
+&FileSpec="&TempDir/efsimage.bin" ; default file to save to
+&TrustMode="TRUSTED"     ; Only TRUSTED mode supported
+&MenuMode="NOMENU"       ; Use this script's menu, bypass the one from nand_dump
+
+;============================================================================
+; For normal use set up the screen with only area window for reports
+; For debug purposes, don't clear
+; In both cases, make sure we have an area window
+;============================================================================
+if "&ClearWin"=="yes"
+  (
+    WinCLEAR
+    WinPage.Reset
+    WINPOS 0. 0. 80% 80%
+  )
+
+area
+
+if "&ClearWin"=="yes"
+  (
+    area.RESET
+  )
+
+MainMenu:
+  print
+  print
+  print "------------------------------------------------"
+  print "|           _   _    _    _   _ ____           |"
+  print "|          | \ | |  / \  | \ | |  _ \          |"
+  print "|          |  \| | / _ \ |  \| | | | |         |"
+  print "|          | |\  |/ ___ \| |\  | |_| |         |"
+  print "|          |_| \_/_/   \_\_| \_|____/          |"
+  print "|                                              |"
+  print "|         ___ __  __    _    ____ _____        |"
+  print "|        |_ _|  \/  |  / \  / ___| ____|       |"
+  print "|         | || |\/| | / _ \| |  _|  _|         |"
+  print "|         | || |  | |/ ___ \ |_| | |___        |"
+  print "|        |___|_|  |_/_/   \_\____|_____|       |"
+  print "|                                              |"
+  print "|                                              |"
+  print "|               NAND-Image Tool                |"
+  print "|           Flash Image Dump Utility           |"
+  print "|                                              |"
+  print "|                                              |"
+  print "|  Copyright (c) 2009 by QUALCOMM, Inc.        |"
+  print "|                                              |"
+  print "------------------------------------------------"
+  print
+  print
+  print "  0: Exit"
+  print "  1: Dump MODEM EFS2 image"
+  print "  2: Dump APPS EFS2 image"
+  print "  3: Dump other modem defined images"
+  print
+  print " Please make a choice: "
+
+  &t32_cmm_stopped=1
+  enter &Choice
+  &t32_cmm_stopped=0
+  print
+  print
+  if "&ClearWin"=="yes"
+  (
+    area.RESET
+  )
+
+  if "&Choice"=="0"
+  (
+    print "...exiting NAND Image Tool"
+    enddo
+  )
+
+
+  if "&Choice"=="1"
+  (
+    print "Dumping MODEM EFS2 image..."
+    &WhichPartition="0:EFS2"
+    gosub GetFilespec
+    gosub DumpFS
+    goto MainMenu
+  )
+
+
+  if "&Choice"=="2"
+  (
+    print "Dumping APPS EFS2 image..."
+    &WhichPartition="0:EFS2APPS"
+    gosub GetFilespec
+    gosub DumpFS
+    goto MainMenu
+  )
+
+  if "&Choice"=="3"
+  (
+    print "Please use nand_dump.cmm script utility to dump any other"
+    print "modem defined image."
+    print " "
+    print "Press any key to continue"
+    inkey
+  )
+
+  goto MainMenu
+
+return  ; MainMenu
+
+
+
+;=====================================================
+; --- Function to dump file system area
+;=====================================================
+DumpFS:
+  do nand_dump.cmm &MenuMode &WhichPartition &TrustMode &FileSpec
+return
+
+;-------------------------------------------------------------------------------
+; Get name of file for saving trace records or use default
+;-------------------------------------------------------------------------------
+GetFilespec:
+  print " "
+  print " "
+  print "   +++++ File Spec for data storage may be relative or absolute +++++"
+  print "   "
+  print "Please enter filespec [default: &FileSpec] >  "
+  enter &InFileSpec
+
+  ; 
+  ; Test write permission on directory 
+  ;
+  
+  os mkdir ttdir
+  if OS.DIR(ttdir)
+  (
+    os rmdir ttdir 
+  )
+  else
+  (
+     print "Error No Write permission to directory" 
+     return
+  )
+
+  if "&InFileSpec"!=""
+  (
+    &FileSpec= "&InFileSpec"
+  )
+  else
+  (
+     print "Error invalid filename" 
+  )
+
+  print "  "
+  print "  "
+  print "  "
+return
+
+;-------------------------------------------------------------------------------
+; Get name of file for saving trace records or use default
+;-------------------------------------------------------------------------------
+GetBuildId:
+  print " "
+  print " "
+  print "   +++++ Get build Id +++++"
+  print "   "
+  print "Please enter BuildId [default: &buildId] >  "
+  enter &InBuildId
+
+  if "&InBuildId"!=""
+  (
+    &buildId= "&InBuildId"
+  )
+
+  print "  "
+  print "  "
+  print "  "
+return
+

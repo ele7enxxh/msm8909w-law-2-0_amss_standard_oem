@@ -1,0 +1,108 @@
+#=============================================================================
+# INTERPROCESSOR INTERRUPT LIBRARY
+#
+#=============================================================================
+# $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/ipcint/build/ipcint.scons#1 $
+#=============================================================================
+#            Copyright 2009-2015 QUALCOMM Technologies Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/systemdrivers/ipcint/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'HAL',
+   'DAL',
+
+   # Must be last due to comdef.h issues
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi("SYSTEMDRIVERS_IPCINT", [
+ 	   "${INC_ROOT}/core/systemdrivers/hal/ipcint/inc"
+ 	])
+ 	 
+#-------------------------------------------------------------------------------
+# Define sources
+#-------------------------------------------------------------------------------
+
+IPCINT_SOURCES = [
+   '${BUILDPATH}/DalIPCInt.c',
+   '${BUILDPATH}/DalIPCIntInfo.c',
+   '${BUILDPATH}/DalIPCIntFwk.c'
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+IPCINT_IMAGES = ['CORE_MODEM']
+
+env.AddLibrary(IPCINT_IMAGES,'${BUILDPATH}/DalIPCInt', IPCINT_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+
+# Remove documentation source files
+DOCSRC_FILES = env.FindFiles(
+  ['*'],
+  '${BUILD_ROOT}/core/api/systemdrivers/docsrc/ipcint/')
+env.CleanPack(IPCINT_IMAGES, DOCSRC_FILES)
+
+#---------------------------------------------------------------------------
+# Invoke Test APP for IPCInt (currently commented out)
+#---------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+# RCInit Dependencies
+#-------------------------------------------------------------------------------
+#env.Append(CCFLAGS = " -DIPCINT_SEND_TEST")
+#env.Append(CCFLAGS = " -DIPCINT_RECEIVE_TEST")
+
+#if 'USES_RCINIT' in env:
+#  RCINIT_IMG = IPCINT_IMAGES
+#  env.AddRCInitFunc(       # Code Fragment in TMC: NO
+#  RCINIT_IMG,              # define TMC_RCINIT_INIT_IPCINT_TEST
+#  {
+#    'sequence_group'             : 'RCINIT_GROUP_0',       # required
+#    'init_name'                  : 'IPCInt',              # required
+#    'init_function'              : 'IPCInt_Test',         # required
+#    'dependencies'               : ['dalsys','npa']
+#  })
+
+#---------------------------------------------------------------------------
+# Invoke document generation SConscript
+#---------------------------------------------------------------------------
+
+if os.path.exists(env['BUILD_ROOT'] + '/core/api/systemdrivers/docsrc/ipcint/SConscript') :
+  env.SConscript(
+    '${BUILD_ROOT}/core/api/systemdrivers/docsrc/ipcint/SConscript',
+    exports='env')
+
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      'soc_xml' : ['${BUILD_ROOT}/core/systemdrivers/ipcint/config/DalIPCInt.xml']
+   })

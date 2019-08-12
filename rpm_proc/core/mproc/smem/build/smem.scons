@@ -1,0 +1,337 @@
+#===============================================================================
+#
+# SMEM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/mpss/dev/btousley.Bringup8974MdmSW4/modem_proc/core/mproc/smem/build/smem.scons#2 $
+#  $DateTime: 2012/01/16 08:55:48 $
+#  $Author: btousley $
+#  $Change: 2146059 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/20/15   rv      SMEM_TARG_XXX removed.
+# 10/11/13   bt      Remove unneeded smem_diag.c.
+# 10/09/13   bt      Add OS-specific page mapping source files.
+# 09/19/13   bt      Added SMEM config for B-family APQ/MPQs.
+# 08/22/13   bt      Added SMEM config setup for other B-family, 8916 targets.
+# 07/03/13   bt      Add MDM config for 9x35.
+# 06/12/13   bt      Add RPM-specific sources, don't build partition files.
+# 06/03/13   bt      Add new header for files to ship in pack builds.
+# 04/30/13   bt      Add Pack exception flags for HY31 pack builds.
+# 04/24/13   pa      Add source files for SMEM partitions.
+# 04/13/13   bt      Add DevConfig to SBL for setting up TOC.
+# 04/12/13   bt      Add smem_list.c to Core SMEM lib and smem_rex.c to Boot.
+# 03/14/13   bt      CleanPack for Boot and TZ as well.
+# 03/06/13   bt      Deliver DevConfig xml files in packed builds.
+# 02/08/13   bt      Fix edit history comment.
+# 02/06/13   bt      Add smem boot functions to the RPM Image.
+# 01/22/13   bt      Ship source for TN spinlock lib.
+# 01/08/13   pa      Add SW Spinlocks to Q6 processors.
+# 12/17/12   bt      Add SW Spinlocks to Arm processors.
+# 12/06/12   bt      Add smem_qurt.c for SMEM mapping in QURT, and smem_rex.c
+#                    for processors using the default target.builds defines.
+# 12/04/12   bt      Explicitly CleanPack all relevant files.
+# 11/15/12   bt      Ship sources for TN Apps.
+# 10/25/12   bt      Add libs for TZ build flags, adding SMEM lib to TZ image.
+# 10/15/12   bt      Add Modem sources only to Core images, not to MBA.
+# 10/01/12   bt      Add RPM hack: specify 9x25 RPM SCL_SHARED_RAM_BASE.
+# 08/09/12   bt      Remove smem_dal.c from Bootloaders.
+# 08/02/12   bt      Add FEATURE_SMEM_BOOT_ENV for Bootloaders.
+# 08/01/12   bt      Add RCINIT to Apps Images, for Sparrow.
+# 05/14/12   bt      Remove RequireExternalApi references, not needed.
+# 05/01/12   bt      Add ADSP libs to CORE_QDSP6_SW, not ADSP_PROC, to avoid 
+#                    non-Core images on multi-PD.
+# 03/30/12   pa      Use RCINIT for WCN builds
+# 03/13/12   bt      8974 Sconscript update to use SconsPack.
+# 01/20/12   pa      Minor update for BOOTLOADERS
+# 01/09/12   bt      Initial Revision for 8974/Badger
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/mproc/smem/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',            # for Bootloader images
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'SECUREMSM',       # for TZ image
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+]
+
+env.RequireProtectedApi([
+  'SMEM_INTERNAL',
+])
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+if env.has_key('ADSP_PROC'):
+  env.Append(CPPDEFINES=['MPROC_LPASS_PROC'])
+
+# Create special flag for TZ image
+# Unfortunately, BUILD_BOOT_CHAIN is defined somewhere in the TZ image.
+if env.has_key('TZOS_IMAGE'):
+  env.Append(CPPDEFINES=['SMEM_TZ_IMAGE'])
+# Create special flag for BOOTLOADER BUILD
+elif env.has_key('BUILD_BOOT_CHAIN'):
+  env.Append(CPPDEFINES=['SMEM_BOOT_IMAGE'])
+
+#-------------------------------------------------------------------------------
+# Declare a compiler flag indicating RPM build
+#-------------------------------------------------------------------------------
+if env.has_key('CORE_RPM'):
+  env.Append(CPPDEFINES=['IMAGE_RPM_PROC'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SMEM_CORE = [
+   '${BUILDPATH}/smem.c',
+   '${BUILDPATH}/smem_list.c',
+   '${BUILDPATH}/spinlock.c',
+   '${BUILDPATH}/spinlock_cs.c',
+   '${BUILDPATH}/spinlock_internal.c',
+   '${BUILDPATH}/smem_partition.c'
+]
+
+SMEM_RPM_SOURCES = [
+   '${BUILDPATH}/smem.c',
+   '${BUILDPATH}/smem_list.c',
+   '${BUILDPATH}/spinlock.c',
+   '${BUILDPATH}/spinlock_cs.c',
+   '${BUILDPATH}/spinlock_internal.c',
+]
+
+SMEM_EXT_COMMON_SOURCES = [
+   '${BUILDPATH}/smem_ext.c',
+]
+
+SMEM_APPS_SOURCES = [
+]
+
+SMEM_APPSBL_SOURCES = [
+   '${BUILDPATH}/smem.c',
+   '${BUILDPATH}/smem_boot.c',
+   '${BUILDPATH}/spinlock.c',
+   '${BUILDPATH}/spinlock_internal.c',
+   '${BUILDPATH}/spinlock_cs.c'
+]
+
+# Spinlock assembly for ARM Cortex-A procs
+SMEM_SPINLOCK_A_SOURCES = [
+   '${BUILDPATH}/spinlock_armv7.s'
+]
+
+# Spinlock assembly for ARM Cortex-M procs
+SMEM_SPINLOCK_M_SOURCES = [
+   '${BUILDPATH}/spinlock_armv7m.s'
+]
+
+# Spinlock assembly for Q6 procs
+SMEM_SPINLOCK_Q_SOURCES = [
+   '${BUILDPATH}/spinlock_qdsp6.c'
+]
+
+SMEM_REX_SOURCES = [
+   '${BUILDPATH}/smem_dal.c',
+   '${BUILDPATH}/smem_rex.c',
+]
+
+SMEM_QURT_SOURCES = [
+   '${BUILDPATH}/smem_dal.c',
+   '${BUILDPATH}/smem_qurt.c',
+]
+
+SMEM_LOG_SOURCES = [
+   '${BUILDPATH}/smem_log.c',
+]
+
+SMEM_BOOT_SOURCES = [
+   '${BUILDPATH}/smem.c',
+   '${BUILDPATH}/smem_boot.c',
+   '${BUILDPATH}/smem_rex.c',
+]
+
+SMEM_BOOT_INIT_SOURCES = [
+   '${BUILDPATH}/smem_boot.c'
+]
+
+PACK_FLAGS = ['USES_COMPILE_SMD_SMEM_PROTECTED_LIBS']
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+# Add Image-specific Libraries, whose sources should be packed out.
+env.AddBinaryLibrary(['WCN_IMAGE'], 
+                     '${BUILDPATH}/smem_wcnss', 
+                     [SMEM_CORE, SMEM_REX_SOURCES], pack_exception=PACK_FLAGS)
+
+env.AddBinaryLibrary(['RPM_IMAGE'], 
+                     '${BUILDPATH}/smem_rpm', 
+                     [SMEM_RPM_SOURCES, SMEM_REX_SOURCES], 
+                     pack_exception=PACK_FLAGS)
+
+env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smem_spinlock',
+                     [SMEM_SPINLOCK_Q_SOURCES], pack_exception=PACK_FLAGS)
+
+if env.has_key('MODEM_PROC'):
+  env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smem_modem', 
+                       [SMEM_CORE, SMEM_REX_SOURCES], pack_exception=PACK_FLAGS)
+
+if env.has_key('ADSP_PROC'):
+  env.AddBinaryLibrary('CORE_QDSP6_SW', '${BUILDPATH}/smem_adsp', 
+                       [SMEM_CORE, SMEM_QURT_SOURCES], 
+                       pack_exception=PACK_FLAGS)
+
+env.AddBinaryLibrary('APPSBL_BOOT_IMAGE', '${BUILDPATH}/smem_appsbl_boot',
+                     [SMEM_APPSBL_SOURCES], pack_exception=PACK_FLAGS)
+
+env.AddBinaryLibrary(['SMEM_BOOT_DRIVER', 'TZOS_IMAGE'], 
+                     '${BUILDPATH}/smem_boot',
+                     [SMEM_BOOT_SOURCES], pack_exception=PACK_FLAGS)
+
+#-------------------------------------------------------------------------------
+# Add Sources to image
+#-------------------------------------------------------------------------------
+# On TN Apps, all sources can be shipped.
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'], 
+               '${BUILDPATH}/smem_apps',
+               [SMEM_CORE, SMEM_REX_SOURCES, SMEM_APPS_SOURCES])
+
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'], 
+               '${BUILDPATH}/smem_spinlock',
+               [SMEM_SPINLOCK_A_SOURCES])
+
+# Add SMEM Log sources: everything except Boot.
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE', 'CORE_QDSP6_SW', 'WCN_IMAGE'], 
+               '${BUILDPATH}/smem_log', SMEM_LOG_SOURCES)
+
+# Add SMEM Ext sources: all images.
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE', 'CORE_QDSP6_SW', 
+                'APPSBL_BOOT_IMAGE', 'WCN_IMAGE', 'SMEM_BOOT_DRIVER', 
+                'RPM_IMAGE', 'TZOS_IMAGE'], 
+               '${BUILDPATH}/smem_ext_common', 
+               SMEM_EXT_COMMON_SOURCES)
+
+#-------------------------------------------------------------------------------
+# CleanPack (Remove) all remaining files for peripheral processors
+#-------------------------------------------------------------------------------
+ALL_SRC = env.FindFiles(['*.h', '*.c', '*.s'], SRCPATH)
+# Don't CleanPack the inc/ folders since they are required to be present for
+#   compilation of other CoreBSP modules in pack builds.
+# Must explicitly omit the files we want to keep in, required to compile 
+#   smem_log and smem_ext_common.  Includes subdirectories of smem/ folder.
+SHIP_SRC = env.FindFiles(['smem_ext.c', 'smem_log.c',
+                    'smem_ext.h', 'smem_target.h', 'smem_hwio.h',
+                    'smem_os.h', 'smem_log_v.h', 'spinlock.h', 
+                    'smem_os_common.h', 'smem_config.h'],
+                    SRCPATH + '/..')
+# Final pack-out list of files to be removed is the set difference.
+PACK_OUT = list(set(ALL_SRC) - set(SHIP_SRC))
+# Don't include RPM in this list, because it already does what we want 
+#   automatically.  Affects MPSS, ADSP, and WCNSS.
+env.CleanPack(['CORE_QDSP6_SW', 'WCN_IMAGE', 'SMEM_BOOT_DRIVER', 'TZOS_IMAGE'], 
+              PACK_OUT, pack_exception=PACK_FLAGS)
+
+#-------------------------------------------------------------------------------
+# RCINIT Task and Init Fields and Initialization
+#-------------------------------------------------------------------------------
+RCINIT_INIT_SMEM_INIT = {
+  'sequence_group'             : 'RCINIT_GROUP_0',             # required
+  'init_name'                  : 'smem',                       # required
+  'init_function'              : 'smem_init',                  # required
+  'dependencies'               : ['dalsys',]
+}
+
+RCINIT_INIT_SMEM_LOG_INIT = {
+  'sequence_group'             : 'RCINIT_GROUP_0',             # required
+  'init_name'                  : 'smem_log',                   # required
+  'init_function'              : 'smem_log_init',              # required
+  'dependencies'               : ['smem',]
+}
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_PROC', 'CORE_QDSP6_SW', 'WCN_IMAGE', 
+                 'CBSP_APPS_IMAGE', 'APPS_IMAGE']
+   # SMEM INIT
+   env.AddRCInitFunc( RCINIT_IMG, RCINIT_INIT_SMEM_INIT )
+   # SMEM LOG INIT
+   env.AddRCInitFunc( RCINIT_IMG, RCINIT_INIT_SMEM_LOG_INIT )
+
+#-------------------------------------------------------------------------------
+# Device Config
+#-------------------------------------------------------------------------------
+SMEM_MSM_1MB_CONFIG_SOURCES = [
+  SRCPATH + '/../config/smem_msm_1MB_structs.c',
+]
+
+SMEM_MSM_2MB_CONFIG_SOURCES = [
+  SRCPATH + '/../config/smem_msm_2MB_structs.c',
+]
+
+SMEM_APQ_CONFIG_SOURCES = [
+  SRCPATH + '/../config/smem_apq_structs.c',
+]
+
+SMEM_AMWR_1MB_CONFIG_SOURCES = [
+  SRCPATH + '/../config/smem_8916_structs.c',
+]
+
+SMEM_MDM_CONFIG_SOURCES = [
+  SRCPATH + '/../config/smem_mdm_structs.c',
+]
+
+SMEM_CONFIG_FILES = SRCPATH + '/../config/smem_toc.xml'
+
+if env.has_key('BUILD_BOOT_CHAIN'):
+  if 'USES_DEVCFG' in env:
+    DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+    env.Replace(SMEM_DEVCFG_XML = SMEM_CONFIG_FILES)
+    if env['MSM_ID'] in ['9x25', '9x35']:
+      env.AddLibrary(DEVCFG_IMG, '${BUILDPATH}/smem_config', 
+                     SMEM_MDM_CONFIG_SOURCES)
+    elif env['MSM_ID'] in ['8916', '8936', '8909']:
+      env.AddLibrary(DEVCFG_IMG, '${BUILDPATH}/smem_config', 
+                     SMEM_AMWR_1MB_CONFIG_SOURCES)
+    elif env['MSM_ID'] in ['8084', '8092']:
+      env.AddLibrary(DEVCFG_IMG, '${BUILDPATH}/smem_config', 
+                     SMEM_APQ_CONFIG_SOURCES)
+    elif env['MSM_ID'] in ['8x10', '8x26']:
+      env.AddLibrary(DEVCFG_IMG, '${BUILDPATH}/smem_config', 
+                     SMEM_MSM_1MB_CONFIG_SOURCES)
+    else:
+      env.AddLibrary(DEVCFG_IMG, '${BUILDPATH}/smem_config', 
+                     SMEM_MSM_2MB_CONFIG_SOURCES)
+    env.AddDevCfgInfo(DEVCFG_IMG, 
+    {
+      'devcfg_xml' : env['SMEM_DEVCFG_XML']
+    })

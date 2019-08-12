@@ -1,0 +1,416 @@
+/*!
+  @file
+  lte_rrc_irat_to_DO_mgr.stm
+
+  @brief
+  This module contains the state machine description of the 
+  FROM_LTE_TO_DO RAT manager.
+*/
+
+/*===========================================================================
+
+  Copyright (c) 2009 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_do_rat_mgr.stm#1 $
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+06/01/10   np/sk   Support for RTT
+01/13/10   sk      Moved to use of actual HDR UMIDs for LTE -> DO resel / redir
+                   Added handling of capabilities request from within RRC
+12/06/09   sk      Added LTE --> DO reselection support
+11/07/09   sk      Fixed typo error
+10/02/09   sk      Added state name changes.
+                   Seperated mode change into two states for suspend and resume
+                   Added fix for Abort request when LTE stack is being suspended
+09/02/09   sk      Initial Revision
+           
+===========================================================================*/
+
+/*!===========================================================================
+
+                      STATE MACHINE DESCRIPTION
+
+This state machine implements the RRC DO RAT manager module that interacts with
+the DO stack specifically DO CP for various From LTE to DO procedures like
+reselection, redirection and handover.
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_IRAT_TO_DO_MGR_SM
+{
+  ENTRY           lte_rrc_irat_to_DO_sm_entry; /* State machine entry func */
+  EXIT            lte_rrc_irat_to_DO_sm_exit;  /* State machine exit func */
+  INITIAL_STATE   INITIAL;                     /* State machine initial state */
+  ERROR_HOOK      lte_rrc_stm_error;           /* Common error handler */
+  DEBUG_HOOK      lte_rrc_stm_debug;           /* Common debug handler */
+  INPUT_DEF_FILE  lte_rrc_stm.h;               /* STM common defs */
+  INPUT_DEF_FILE  lte_rrc_int_msg.h;           /* Internal msg defs */
+  INPUT_DEF_FILE  hdrcp_msg.h;                 /* External msg defs */
+  INSTANCES       1;                           /* optional if only 1 */
+
+  /*!=========================================================================
+
+                             INITIAL
+
+  This is the entry state of the TO DO RAT manager state machine 
+  which depicts that the UE is either in LTE NOT_CAMPED state or in 
+  LTE CAMPED state. 
+
+  In this state,TO DO RAT manager is ready to handle inter-RAT procedures 
+  from LTE to DO such as Reselection, Redirection and Handover. 
+
+  Check for appropriate controller states may determine if a particular 
+  inter-RAT procedure will be processed or not.
+
+  The state machine transitions out of this state when it receives the 
+  LTE_RRC_IRAT_FROM_LTE_TO_DO_REDIR_REQI or 
+  LTE_RRC_IRAT_FROM_LTE_TO_DO_RESEL_REQI
+
+  =========================================================================*/
+
+  STATE INITIAL
+  {
+    ENTRY                       lte_rrc_irat_to_DO_sm_initial_entry;
+    EXIT                        lte_rrc_irat_to_DO_sm_initial_exit;
+
+    INPUTS
+    {
+
+      /*! Redirection to HRPD/eHRPD request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_REDIR_REQI  lte_rrc_irat_to_DO_sm_redir_reqi;
+
+      /*! Reselection to HRPD/eHRPD request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_RESEL_REQI  lte_rrc_irat_to_DO_sm_resel_reqi;
+
+      /*! HDR Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_CAPABILITIES_REQI lte_rrc_irat_to_DO_sm_hdr_capabilities_reqi;
+
+      /*! HDR Capabilities response from DO CP */
+      HDR_CP_LTE_1X_HRPD_CAPABILITIES_RSP lte_rrc_irat_to_DO_sm_hdr_capabilities_rsp;
+
+      /*! SIB updated indication from SIB */
+      LTE_RRC_SIB_UPDATED_INDI   lte_rrc_irat_to_DO_sm_sib_updated_indi;
+
+      /*! Pre-registration info available indication */
+      LTE_RRC_IRAT_HRPD_PRE_REG_INFO_INDI lte_rrc_irat_to_DO_sm_prereg_available_indi;
+
+      /*! Pre-registration status from HDR CP */
+      HDR_CP_HRPD_PREREG_STATUS_IND lte_rrc_irat_to_DO_sm_hdr_pre_reg_status_ind;
+
+      /*!Mobility from E-UTRA to HDR Indication from Config  */
+      LTE_RRC_IRAT_FROM_LTE_TO_HDR_MOBILITY_INDI lte_rrc_irat_to_DO_sm_mobility_to_hdr_indi;
+
+      /*! Get CGI Req for DO */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_GET_CGI_REQI lte_rrc_irat_to_DO_sm_get_cgi_reqi;
+
+      /*! LTE Stopped indication */
+      LTE_RRC_STOPPED_INDI lte_rrc_irat_to_DO_sm_stopped_indi;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_DO_sm_lte_depri_indi;
+
+    }
+  }
+
+  /*!=========================================================================
+
+                             WT_FOR_SIB_1
+
+  This state of the TO DO RAT manager state machine depicts that 
+  the UE has undergone handover and TO DO RAT manager has buffered 
+  prereg info and is waiting for SIB1 from same cell to forward 
+  prereg info to DO CP.
+
+  The state machine transitions out of this state when it receives the 
+  LTE_RRC_SERVICE_IND, HDR_CP_HRPD_PREREG_STATUS_IND
+  LTE_RRC_STOPPED_INDI
+
+  =========================================================================*/
+
+  STATE WT_FOR_SIB_1
+  {
+    ENTRY                       lte_rrc_irat_to_DO_sm_wt_for_sib_1_entry;
+    EXIT                        lte_rrc_irat_to_DO_sm_wt_for_sib_1_exit;
+
+    INPUTS
+    {
+      /*! Redirection to HRPD/eHRPD request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_REDIR_REQI  lte_rrc_irat_to_DO_sm_redir_reqi;
+
+      /*! HDR Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_CAPABILITIES_REQI lte_rrc_irat_to_DO_sm_hdr_capabilities_reqi;
+
+      /*! HDR Capabilities response from DO CP */
+      HDR_CP_LTE_1X_HRPD_CAPABILITIES_RSP lte_rrc_irat_to_DO_sm_hdr_capabilities_rsp;
+
+       /*! Pre-registration info available indication */
+      LTE_RRC_IRAT_HRPD_PRE_REG_INFO_INDI lte_rrc_irat_to_DO_sm_prereg_available_indi;
+
+      /*!Mobility from E-UTRA to HDR Indication from Config  */
+      LTE_RRC_IRAT_FROM_LTE_TO_HDR_MOBILITY_INDI lte_rrc_irat_to_DO_sm_mobility_to_hdr_indi;
+
+      /*! service indication from CSP */
+      LTE_RRC_SERVICE_IND   lte_rrc_irat_to_DO_sm_service_indi_after_internal_lte_handover;
+
+      /*! Pre-registration status from HDR CP */
+      HDR_CP_HRPD_PREREG_STATUS_IND lte_rrc_irat_to_DO_sm_hdr_pre_reg_status_ind;
+
+      /*! Get CGI Req for DO */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_GET_CGI_REQI lte_rrc_irat_to_DO_sm_get_cgi_reqi;
+
+      /*! LTE Stopped indication */
+      LTE_RRC_STOPPED_INDI lte_rrc_irat_to_DO_sm_stopped_indi;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_DO_sm_lte_depri_indi;
+
+    }
+  }
+
+  /*!=========================================================================
+
+                             WT_FOR_SUSPEND_CNF
+
+  In this state, the module TO DO RAT manager is waiting for a suspend 
+  confirmation from the controller. 
+
+  An ABORT request from CSP to abort the inter-RAT procedure may be received 
+  in this state. The Abort request should only be handled after receiving the
+  Suspend confirmation from the controller.
+
+  =========================================================================*/
+
+  STATE WT_FOR_SUSPEND_CNF
+  {
+    ENTRY               lte_rrc_irat_to_DO_sm_wt_for_suspend_cnf_entry;
+    EXIT                lte_rrc_irat_to_DO_sm_wt_for_suspend_cnf_exit;
+
+    INPUTS
+    {
+      /*! Mode change confirmation from Controller */
+      LTE_RRC_MODE_CHANGE_CNFI   lte_rrc_irat_to_DO_sm_suspend_cnfi;
+
+      /*! Redirection/Reselection/Handover Abort Request */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI   lte_rrc_irat_to_DO_sm_handle_abort_req_during_suspend;
+
+      /*! HDR Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_CAPABILITIES_REQI lte_rrc_irat_to_DO_sm_hdr_capabilities_reqi;
+
+      /*! HDR Capabilities response from DO CP */
+      HDR_CP_LTE_1X_HRPD_CAPABILITIES_RSP lte_rrc_irat_to_DO_sm_hdr_capabilities_rsp;
+
+      /*! HRPD Pre-registration status indication */
+      HDR_CP_HRPD_PREREG_STATUS_IND lte_rrc_irat_to_DO_sm_hdr_pre_reg_status_ind;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_DO_sm_lte_depri_indi;
+	  
+	  /*! Not camped indication from CSP while handling OOS indication in Suspended state*/
+      LTE_RRC_NOT_CAMPED_INDI                      lte_rrc_irat_to_DO_sm_not_camped_indi_suspended;
+    }
+  }
+
+/*!=========================================================================
+
+                             WT_TO_ABORT_DURING_SUSPEND
+
+  In this state, the TO DO RAT manager is expecting to receive a confirmation 
+  for the Suspend request it had sent to Controller. Upon receiving the 
+  suspend confirmation, a Resume Request will be sent to Controller since
+  the inter-RAT procedure needs to be aborted. 
+
+  =========================================================================*/
+  STATE WT_TO_ABORT_DURING_SUSPEND
+  {
+    ENTRY           lte_rrc_irat_to_DO_sm_wt_to_abort_during_suspend_entry;
+    EXIT            lte_rrc_irat_to_DO_sm_wt_to_abort_during_suspend_exit;
+
+    INPUTS
+    {
+       /*! Suspend confirmation from Controller */
+      LTE_RRC_MODE_CHANGE_CNFI   lte_rrc_irat_to_DO_sm_start_abort_proc_after_suspend;
+
+      /*! HDR Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_CAPABILITIES_REQI lte_rrc_irat_to_DO_sm_hdr_capabilities_reqi;
+
+      /*! HDR Capabilities response from DO CP */
+      HDR_CP_LTE_1X_HRPD_CAPABILITIES_RSP lte_rrc_irat_to_DO_sm_hdr_capabilities_rsp;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_DO_sm_lte_depri_indi;
+
+      /*! HRPD Pre-registration status indication */
+      HDR_CP_HRPD_PREREG_STATUS_IND lte_rrc_irat_to_DO_sm_hdr_pre_reg_status_ind;
+    }
+  }
+
+  /*!=========================================================================
+
+                             WT_FOR_RESUME_CNF
+
+  In this state, the module TO DO RAT manager is waiting for a Resume 
+  confirmation from the controller. 
+
+  An ABORT request from CSP to abort the Reselection procedure may be received 
+  in this state. No specific action needs to be taken to handle the Abort 
+  Request since the LTE stack is in the process of being resumed.
+
+  =========================================================================*/
+
+  STATE WT_FOR_RESUME_CNF
+  {
+    ENTRY               lte_rrc_irat_to_DO_sm_wt_for_resume_cnf_entry;
+    EXIT                lte_rrc_irat_to_DO_sm_wt_for_resume_cnf_exit;
+
+    INPUTS
+    {
+      /*! Mode change confirmation from Controller */
+      LTE_RRC_MODE_CHANGE_CNFI   lte_rrc_irat_to_DO_sm_resume_cnfi;
+
+      /*! Reselection Abort Request from CSP */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI   lte_rrc_irat_to_DO_sm_handle_abort_req_during_resume;
+
+      /*! HDR Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_CAPABILITIES_REQI lte_rrc_irat_to_DO_sm_hdr_capabilities_reqi;
+
+      /*! HDR Capabilities response from DO CP */
+      HDR_CP_LTE_1X_HRPD_CAPABILITIES_RSP lte_rrc_irat_to_DO_sm_hdr_capabilities_rsp;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_DO_sm_lte_depri_indi;
+
+      /*! HRPD Pre-registration status indication */
+      HDR_CP_HRPD_PREREG_STATUS_IND lte_rrc_irat_to_DO_sm_hdr_pre_reg_status_ind;
+    }
+  }
+
+  /*!=========================================================================
+
+                             IRAT_TO_DO_IN_PROGRESS
+
+  In this state, the module is waiting for an external inter-RAT procedure
+  acknowledgement from NAS or from DO CP module.This acknowledgment
+  may be in the form of a response from DO CP if the inter-RAT procedure has 
+  failed or it may be an implicit acnowledgment from NAS indicating that the 
+  inter-RAT procedure has succeeded and that the active RAT has now changed 
+  from LTE to DO.
+
+  An Abort request from CSP may be received in this state upon which the
+  module will send an inter-RAT procedure Abort request to DO stack and move
+  to WT_FOR_PROC_ABORT_CNF state.
+
+  =========================================================================*/
+  STATE IRAT_TO_DO_IN_PROGRESS
+  {
+    ENTRY                  lte_rrc_irat_to_DO_sm_irat_to_DO_in_progress_entry;
+    EXIT                   lte_rrc_irat_to_DO_sm_irat_to_DO_in_progress_exit;
+
+    INPUTS
+    {
+
+      /*! LTE Stopped indication */
+      LTE_RRC_STOPPED_INDI lte_rrc_irat_to_DO_sm_stopped_indi;
+
+      /*! Redirection Reject Indication received from DO CP */
+      HDR_CP_LTE_REDIR_FAILED_RSP lte_rrc_irat_to_DO_sm_redir_reject_rsp;
+
+      /*! Reselection Reject Indication received from DO CP */
+      HDR_CP_LTE_RESEL_FAILED_RSP lte_rrc_irat_to_DO_sm_resel_reject_rsp;
+
+      /*! RTT from DO CP */
+      HDR_CP_LTE_REVERSE_TIMING_TRANSFER_RSP lte_rrc_irat_to_DO_sm_rtt_rsp;
+
+      /*! Redirection / Reselection/ Handover  Abort Request */
+      LTE_RRC_IRAT_FROM_LTE_ABORT_REQI   lte_rrc_irat_to_DO_sm_abort_reqi;
+
+      /*! HDR Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_CAPABILITIES_REQI lte_rrc_irat_to_DO_sm_hdr_capabilities_reqi;
+
+      /*! HDR Capabilities response from DO CP */
+      HDR_CP_LTE_1X_HRPD_CAPABILITIES_RSP lte_rrc_irat_to_DO_sm_hdr_capabilities_rsp;
+
+      /*! Handover failure from DO CP */
+      HDR_CP_LTE_ACTIVE_HO_FAILED_RSP lte_rrc_irat_to_DO_sm_hdr_handover_reject_rsp;
+
+      /*! DO Get CGI Response from DO CP */
+      HDR_CP_LTE_GET_CGI_RSP lte_rrc_irat_to_DO_sm_get_cgi_rsp;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_DO_sm_lte_depri_indi;
+
+      /*! HRPD Pre-registration status indication */
+      HDR_CP_HRPD_PREREG_STATUS_IND lte_rrc_irat_to_DO_sm_hdr_pre_reg_status_ind;
+
+    }
+  }
+
+/*!=========================================================================
+
+                             WT_FOR_DO_ABORT_CNF
+
+  In this state, the module expects to receive a confirmation for the Abort
+  request it had sent to the DO stack i.e to DO CP to abort the inter-rat 
+  procedure.
+
+  =========================================================================*/
+  STATE WT_FOR_DO_ABORT_CNF
+  {
+    ENTRY           lte_rrc_irat_to_DO_sm_wt_for_DO_abort_cnf_entry;
+    EXIT            lte_rrc_irat_to_DO_sm_wt_for_DO_abort_cnf_exit;
+
+    INPUTS
+    {
+      /*! Redirection Abort Confirmation received from DO CP  */
+      HDR_CP_LTE_REDIR_ABORT_RSP lte_rrc_irat_to_DO_sm_redir_abort_cnf;
+
+      /*! Reselection Abort Confirmation received from DO CP  */
+      HDR_CP_LTE_RESEL_ABORT_RSP lte_rrc_irat_to_DO_sm_resel_abort_cnf;
+
+      /*! RTT Abort Confirmation received from DO CP */
+      HDR_CP_LTE_REVERSE_TIMING_TRANSFER_ABORT_RSP lte_rrc_irat_to_DO_sm_rtt_abort_cnf;
+
+      /*! HDR Capabilities query from RRC Capabilities Module */
+      LTE_RRC_IRAT_FROM_LTE_TO_DO_CAPABILITIES_REQI lte_rrc_irat_to_DO_sm_hdr_capabilities_reqi;
+
+      /*! HDR Capabilities response from DO CP */
+      HDR_CP_LTE_1X_HRPD_CAPABILITIES_RSP lte_rrc_irat_to_DO_sm_hdr_capabilities_rsp;
+
+      /*! HDR Get CGI Response from DO CP */
+      HDR_CP_LTE_GET_CGI_RSP lte_rrc_irat_to_DO_sm_get_cgi_rsp;
+
+      /*! HDR Active Handover Abort response from DO CP */
+      HDR_CP_LTE_ACTIVE_HO_ABORT_RSP lte_rrc_irat_to_DO_sm_active_ho_abort_cnf;
+
+      /*! LTE deprioritization indi from Meas */
+      LTE_RRC_IRAT_LTE_DEPRI_INDI  lte_rrc_irat_to_DO_sm_lte_depri_indi;
+
+      /*! HRPD Pre-registration status indication */
+      HDR_CP_HRPD_PREREG_STATUS_IND lte_rrc_irat_to_DO_sm_hdr_pre_reg_status_ind;
+
+    }
+  }
+}

@@ -1,0 +1,80 @@
+#===============================================================================
+#
+# DSM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/bsp/external/dsm/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPDEFINES = [
+   "MSG_SSID_DS=5000",
+   "MSG_BUILD_MASK_MSG_SSID_DS=MSG_BUILD_MASK_DFLT",
+])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = env.GetExternalPath("${DSM_SRC}")
+
+if not env.PathExists(SRCPATH):
+   SRCPATH = env.GetExternalPath("${DSM}")
+
+if not env.PathExists(SRCPATH):
+   SRCPATH = "${BUILD_ROOT}/modem/mcs/dsm"
+
+env.VariantDir('${BUILDPATH}', SRCPATH , duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'BREW',
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+DSM_SOURCES = [
+   '${BUILDPATH}/dsm.c',
+   '${BUILDPATH}/dsm_queue.c',
+   '${BUILDPATH}/dsm_pool.c',
+   '${BUILDPATH}/dsm_iov.c',
+   '${BUILDPATH}/dsmi.c',
+   '${BUILDPATH}/dsm_init.c',
+   '${BUILDPATH}/dsmbit.c',
+   '${BUILDPATH}/dsm_lock.c',
+]
+
+dsm_objs = env.Object(DSM_SOURCES)
+dsm_lib = env.Library('${BUILDPATH}/dsm', dsm_objs)
+
+env.SConscript('dsmutils/SConscript', exports='env')
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage (['CBSP_APPS_IMAGE', 'CBSP_MODEM_IMAGE'], dsm_lib)

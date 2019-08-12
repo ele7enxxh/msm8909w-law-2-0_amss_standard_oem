@@ -1,0 +1,579 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+    2 00000000         ;
+    3 00000000         ;                              SBL1 DDR Debug
+    4 00000000         ;
+    5 00000000         ; GENERAL DESCRIPTION
+    6 00000000         ;   This file bootstraps the processor. The Start-up
+    7 00000000         ;   (SBL1_ddr_debug) performs the following functions:
+    8 00000000         ;
+    9 00000000         ;      - Set up the hardware to continue boot process.
+   10 00000000         ;      - Initialize DDR memory
+   11 00000000         ;      - Copies SBL1 to CODERAM
+   12 00000000         ;      - Sets up stack in WDOG reset path .
+   13 00000000         ;      - Jumps to OCIMEM to execute WDOG reset path
+   14 00000000         ;
+   15 00000000         ;   The SBL1_ddr_debug is written to perform the above f
+                       unctions with optimal speed.
+   16 00000000         ;   It also attempts to minimize the execution time and 
+                       hence reduce boot time.
+   17 00000000         ;
+   18 00000000         ; Copyright 2013 by Qualcomm Technologies, Incorporated.
+                       All Rights Reserved.
+   19 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   20 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   21 00000000         ;
+   22 00000000         ;                           EDIT HISTORY FOR FILE
+   23 00000000         ;
+   24 00000000         ; This section contains comments describing changes made
+                        to the module.
+   25 00000000         ; Notice that changes are listed in reverse chronologica
+                       l order.
+   26 00000000         ;
+   27 00000000         ; $Header: 
+   28 00000000         ;
+   29 00000000         ; when       who     what, where, why
+   30 00000000         ; --------   ---     -----------------------------------
+                       ---------------------
+   31 00000000         ; 07/14/14   yps     Added sbl1_external_abort_enable fu
+                       ntion for DDI build
+   32 00000000         ; 05/14/14   yps     Porting code to 8916 platform.
+   33 00000000         ; 09/13/13   sl      Cleaned up exception handlers.
+   34 00000000         ; 07/17/13   sr      Initial Version.
+   35 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   36 00000000         ;=======================================================
+                       =====================
+   37 00000000         ;
+   38 00000000         ;                            MODULE INCLUDES
+   39 00000000         ;
+   40 00000000         ;=======================================================
+                       =====================
+   41 00000000         ;#define ((0x004a0000 + 0x0000b000) + 0x00000000) 0x004A
+                       B000
+   42 00000000         ;#define 0x1 0x01
+   43 00000000         ;=======================================================
+                       =====================
+   44 00000000         ;
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   45 00000000         ;                             MODULE DEFINES
+   46 00000000         ;
+   47 00000000         ;=======================================================
+                       =====================
+   48 00000000         ;
+   49 00000000 00000013 
+                       Mode_SVC
+                               EQU              0x13
+   50 00000000 00000017 
+                       Mode_ABT
+                               EQU              0x17
+   51 00000000 0000001B 
+                       Mode_UND
+                               EQU              0x1b
+   52 00000000 00000010 
+                       Mode_USR
+                               EQU              0x10
+   53 00000000 00000011 
+                       Mode_FIQ
+                               EQU              0x11
+   54 00000000 00000012 
+                       Mode_IRQ
+                               EQU              0x12
+   55 00000000 0000001F 
+                       Mode_SYS
+                               EQU              0x1F
+   56 00000000 00000016 
+                       Mode_MON
+                               EQU              0x16
+   57 00000000 00000080 
+                       I_Bit   EQU              0x80
+   58 00000000 00000040 
+                       F_Bit   EQU              0x40
+   59 00000000         ;=======================================================
+                       =====================
+   60 00000000         ;
+   61 00000000         ;                             MODULE IMPORTS
+   62 00000000         ;
+   63 00000000         ;=======================================================
+                       =====================
+   64 00000000         ; Import the external symbols that are referenced in thi
+                       s module.
+   65 00000000                 IMPORT           ddr_debug_init
+   66 00000000                 IMPORT           sbl1_wdogpath_main_ctl
+   67 00000000                 IMPORT           sbl1_ddr_debug_main_ctl
+   68 00000000         ;=======================================================
+                       =====================
+   69 00000000         ;
+   70 00000000         ;                             MODULE EXPORTS
+   71 00000000         ;
+   72 00000000         ;=======================================================
+                       =====================
+   73 00000000         ; Export the external symbols that are referenced in thi
+                       s module.
+   74 00000000                 EXPORT           sbl_loop_here
+   75 00000000         ; Export the symbols __main and _main to prevent the lin
+                       ker from
+   76 00000000         ; including the standard runtime library and startup rou
+                       tine.
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   77 00000000                 EXPORT           __main
+   78 00000000                 EXPORT           _main
+   79 00000000                 EXPORT           sbl_save_regs
+   80 00000000                 EXPORT           sbl1_external_abort_enable
+   81 00000000                 EXPORT           ddr_debug_invalidate_tlb
+   82 00000000                 EXPORT           sbl_memcpy
+   83 00000000         ;=======================================================
+                       =====================
+   84 00000000         ;
+   85 00000000         ;                             MODULE DATA AREA
+   86 00000000         ;
+   87 00000000         ;=======================================================
+                       =====================
+   88 00000000                 PRESERVE8
+   89 00000000                 AREA             SBL1_INDIRECT_VECTOR_TABLE, COD
+E, READONLY, ALIGN=4
+   90 00000000                 CODE32
+   91 00000000         unused_reset_vector
+   92 00000000 EAFFFFFE        B                0x00000000
+   93 00000004         undefined_instruction_vector
+   94 00000004 EAFFFFFE        B                loophere
+   95 00000008         swi_vector
+   96 00000008 EAFFFFFE        B                loophere
+   97 0000000C         prefetch_abort_vector
+   98 0000000C EAFFFFFE        B                loophere
+   99 00000010         data_abort_vector
+  100 00000010 EAFFFFFE        B                loophere
+  101 00000014         reserved_vector
+  102 00000014 EAFFFFFE        B                loophere
+  103 00000018         irq_vector
+  104 00000018 EAFFFFFE        B                loophere
+  105 0000001C         fiq_vector
+  106 0000001C EAFFFFFE        B                loophere
+  107 00000020         ;=======================================================
+                       =====================
+  108 00000020         ; Qualcomm SECONDARY BOOT LOADER 1 ENTRY POINT
+  109 00000020         ;=======================================================
+                       =====================
+  110 00000020                 AREA             SBL1_ENTRY, CODE, READONLY, ALI
+GN=4
+  111 00000000                 CODE32
+  112 00000000                 ENTRY
+  113 00000000         __main
+  114 00000000         _main
+  115 00000000         sbl1_entry
+  116 00000000         ;Change to Supervisor Mode
+  117 00000000 E321F0D3        msr              CPSR_c, #Mode_SVC:OR:I_Bit:OR:F
+_Bit
+  118 00000004         ; Save the passing parameter from PBL
+  119 00000004 E1A07000        mov              r7, r0
+  120 00000008         ; Set VBAR (Vector Base Address Register) to SBL vector 
+                       table
+  121 00000008 E59F00E0        ldr              r0, =0x08005800
+  122 0000000C EE0C0F10        MCR              p15, 0, r0, c12, c0, 0
+  123 00000010         ; Setup the supervisor mode stack
+  124 00000010 E59F00DC        ldr              r0, =(0x08005800 + 0x0040000)
+  125 00000014 E1A0D000        mov              r13, r0
+  126 00000018         ; Switch to undefined mode and setup the undefined mode 
+                       stack
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+  127 00000018 E321F0DB        msr              CPSR_c, #Mode_UND:OR:I_Bit:OR:F
+_Bit
+  128 0000001C E1A0D000        mov              r13, r0
+  129 00000020         ; Switch to abort mode and setup the abort mode stack
+  130 00000020 E321F0D7        msr              CPSR_c, #Mode_ABT:OR:I_Bit:OR:F
+_Bit
+  131 00000024 E1A0D000        mov              r13, r0
+  132 00000028         ; Return to supervisor mode
+  133 00000028 E321F0D3        msr              CPSR_c, #Mode_SVC:OR:I_Bit:OR:F
+_Bit
+  134 0000002C         ; Restore the passing parameter
+  135 0000002C E1A00007        mov              r0, r7
+  136 00000030 E59F50C0        ldr              r5, =ddr_debug_init
+  137 00000034 E12FFF35        blx              r5
+  138 00000038 E59F50BC        ldr              r5,=sbl1_ddr_debug_main_ctl
+  139 0000003C E12FFF35        blx              r5
+  140 00000040         ;    b wdog_entry
+  141 00000040         ;=======================================================
+                       =====================
+  142 00000040         ; sbl_save_regs
+  143 00000040         ;
+  144 00000040         ; PROTOTYPE
+  145 00000040         ;   void sbl_save_regs();
+  146 00000040         ;
+  147 00000040         ; ARGS
+  148 00000040         ;   None
+  149 00000040         ;
+  150 00000040         ; DESCRIPTION
+  151 00000040         ;   Configure VBAR, vector table base register.
+  152 00000040         ;   
+  153 00000040         ;=======================================================
+                       =====================    
+  154 00000040         sbl_save_regs
+  155 00000040         ; Finished so return    
+  156 00000040 E12FFF1E        bx               lr
+  157 00000044         ; void sbl1_external_abort_enable(uint32 flags)
+  158 00000044         sbl1_external_abort_enable
+                               FUNCTION
+  159 00000044 E12FFF1E        bx               lr
+  160 00000048                 ENDFUNC
+  161 00000048         ;=======================================================
+                       ===============
+  162 00000048         ; Called by sbl1_error_handler only. We clean up the reg
+                       isters and loop
+  163 00000048         ; here until JTAG is connected.
+  164 00000048         ;=======================================================
+                       ===============
+  165 00000048         sbl_loop_here
+  166 00000048 EAFFFFFE        b                sbl_loop_here
+  167 0000004C         loophere
+  168 0000004C EAFFFFFE        b                loophere
+  169 00000050         ;=======================================================
+                       =====================
+  170 00000050         ; MACRO mdsb
+  171 00000050         ;
+  172 00000050         ; ARGS
+  173 00000050         ;   NONE
+  174 00000050         ;
+  175 00000050         ; DESCRIPTION
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+  176 00000050         ;   Performs a data synchronization barrier, either usin
+                       g the ARMv7 instruction
+  177 00000050         ;   or the legacy coprocessor instruction.
+  178 00000050         ;
+  179 00000050         ; NOTES
+  180 00000050         ;   For reference see ARM DDI 0406A-03 section A3.8.3.
+  181 00000050         ;=======================================================
+                       =====================
+  182 00000050                 MACRO
+  183 00000050                 mdsb
+  184 00000050                 IF               {ARCHITECTURE} = "7-A" :LOR: {A
+RCHITECTURE} = "7-M" :LOR: {ARCHITECTURE} == "7-A.security"
+  185 00000050                 dsb                          ; RVDS >= 3.0 suppo
+                                                            rts ARMv7 instructi
+                                                            ons
+  186 00000050                 ELSE
+  187 00000050                 IF               {CONFIG} = 32
+  188 00000050                 DCI              0xF57FF040 :OR: SY 
+                                                            ; ARMv7 A1 Opcode
+  189 00000050                 ELSE
+  190 00000050                 DCI              0xF3BF8F40 :OR: SY 
+                                                            ; ARMv7 T1 Opcode
+  191 00000050                 ENDIF
+  192 00000050         ;mcr    p15, 0, r0, c7, c10, 4  ; Legacy Data Write Barr
+                       ier
+  193 00000050                 ENDIF
+  194 00000050                 MEND
+  195 00000050         ;=======================================================
+                       ===============
+  196 00000050         ;
+  197 00000050         ; void sbl_memcpy(uint32* dst, uint32* src, int32 size)
+  198 00000050         ;
+  199 00000050         ; We perform our copy by using assembly.
+  200 00000050         ; Parameters:
+  201 00000050         ;   r0 contains the destination address
+  202 00000050         ;   r1 is the source address
+  203 00000050         ;   r2 is the size to be copied.
+  204 00000050         ; Notes:
+  205 00000050         ;   - Does not handle source/destination overlapping 
+  206 00000050         ;=======================================================
+                       ===============
+  207 00000050         sbl_memcpy
+  208 00000050 E3520080        cmp              r2,   #0x80 ; check bigger than
+                                                             128 bytes or not.
+  209 00000054 AA000006        bge              loop_for_128byte_copy
+  210 00000058         check_32byte_left_over
+  211 00000058 E3520020        cmp              r2,   #0x20 ; check bigger than
+                                                             32 bytes or not.
+  212 0000005C AA00000A        bge              loop_for_32byte_copy
+  213 00000060         check_4byte_left_over
+  214 00000060 E3520004        cmp              r2,   #0x4
+  215 00000064 AA00000E        bge              loop_for_4byte_copy
+  216 00000068         check_byte_left_over
+  217 00000068 E3520000        cmp              r2,   #0x0
+  218 0000006C CA000012        bgt              loop_for_byte_copy
+  219 00000070         memcpy_end
+  220 00000070 E12FFF1E        bx               lr
+  221 00000074         loop_for_128byte_copy
+  222 00000074 ECB10B20        vldm             r1!, {Q0-Q7} ; copy 128 bytes a
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+                                                            t a time
+  223 00000078 ECA00B20        vstm             r0!, {Q0-Q7}
+  224 0000007C E2422080        sub              r2, r2, #0x80 ; decrement size 
+                                                            by 128
+  225 00000080 E3520080        cmp              r2, #0x80
+  226 00000084 AAFFFFFA        bge              loop_for_128byte_copy
+  227 00000088 BAFFFFF2        blt              check_32byte_left_over
+  228 0000008C         loop_for_32byte_copy
+  229 0000008C ECB10B08        vldm             r1!, {Q0-Q1} ; copy 32 bytes at
+                                                             a time
+  230 00000090 ECA00B08        vstm             r0!, {Q0-Q1}
+  231 00000094 E2422020        sub              r2, r2, #0x20 ; decrement size 
+                                                            by 32
+  232 00000098 E3520020        cmp              r2, #0x20
+  233 0000009C AAFFFFFA        bge              loop_for_32byte_copy
+  234 000000A0 BAFFFFEE        blt              check_4byte_left_over
+  235 000000A4         loop_for_4byte_copy
+  236 000000A4 E8B10008        ldmia            r1!,  {r3}  ; load 4 bytes each
+                                                             time
+  237 000000A8 E8A00008        stmia            r0!,  {r3}
+  238 000000AC E2422004        sub              r2,r2,#0x4  ;
+  239 000000B0 E3520004        cmp              r2,#0x4
+  240 000000B4 AAFFFFFA        bge              loop_for_4byte_copy
+  241 000000B8 BAFFFFEA        blt              check_byte_left_over
+  242 000000BC         loop_for_byte_copy
+  243 000000BC E4D13001        ldrb             r3,   [r1], #0x1
+  244 000000C0 E4C03001        strb             r3,   [r0], #0x1
+  245 000000C4 E2422001        sub              r2,r2,#0x1
+  246 000000C8 E3520000        cmp              r2, #0x0
+  247 000000CC CAFFFFFA        bgt              loop_for_byte_copy
+  248 000000D0 DAFFFFE6        ble              memcpy_end  ; end the byte copy
+                                                            .
+  249 000000D4         ;=======================================================
+                       =====================
+  250 000000D4         ; MACRO misb
+  251 000000D4         ;
+  252 000000D4         ; ARGS
+  253 000000D4         ;   NONE
+  254 000000D4         ;
+  255 000000D4         ; DESCRIPTION
+  256 000000D4         ;   Performs an instruction synchronization barrier, eit
+                       her using the ARMv7
+  257 000000D4         ;   instruction or the legacy coprocessor instruction.
+  258 000000D4         ;
+  259 000000D4         ; NOTES
+  260 000000D4         ;   For reference see ARM DDI 0406A-03 section A3.8.3.
+  261 000000D4         ;=======================================================
+                       =====================
+  262 000000D4                 MACRO
+  263 000000D4                 misb
+  264 000000D4                 IF               {ARCHITECTURE} = "7-A" :LOR: {A
+RCHITECTURE} = "7-M" :LOR: {ARCHITECTURE} == "7-A.security"
+  265 000000D4                 isb                          ; RVDS >= 3.0 suppo
+                                                            rts ARMv7 instructi
+                                                            ons
+  266 000000D4                 ELSE
+  267 000000D4                 IF               {CONFIG} = 32
+  268 000000D4                 DCI              0xF57FF060 :OR: SY 
+                                                            ; ARMv7 A1 Opcode
+
+
+
+ARM Macro Assembler    Page 7 
+
+
+  269 000000D4                 ELSE
+  270 000000D4                 DCI              0xF3BF8F60 :OR: SY 
+                                                            ; ARMv7 T1 Opcode
+  271 000000D4                 ENDIF
+  272 000000D4         ;mcr    p15, 0, r0, c7, c5, 4   ; Legacy Pre-Fetch Flush
+                       
+  273 000000D4                 ENDIF
+  274 000000D4                 MEND
+  275 000000D4         ;=======================================================
+                       =====================
+  276 000000D4         ; ddr_debug_invalidate_tlb
+  277 000000D4         ;
+  278 000000D4         ; ARGS
+  279 000000D4         ;   NONE
+  280 000000D4         ;
+  281 000000D4         ; DESCRIPTION
+  282 000000D4         ;   Invalidates the entire Translation Look-aside Buffer
+                        (TLB) as a unified
+  283 000000D4         ;   operation (Data and Instruction). Invalidates all un
+                       locked entries in the
+  284 000000D4         ;   TLB. Causes the prefetch buffer to be flushed. All f
+                       ollowing instructions
+  285 000000D4         ;   are fetched after the TLB invalidation.
+  286 000000D4         ;   We should do this before we enable to MMU.
+  287 000000D4         ;=======================================================
+                       =====================
+  288 000000D4         ddr_debug_invalidate_tlb
+  289 000000D4         ; Call memory barrier operations to ensure completion of
+                        all cache 
+  290 000000D4         ; maintenance & branch predictor operations appearing in
+                        program 
+  291 000000D4         ; order, before these instructions 
+  292 000000D4                 mdsb
+  184 000000D4                 IF               {ARCHITECTURE} = "7-A" :LOR: {A
+RCHITECTURE} = "7-M" :LOR: {ARCHITECTURE} == "7-A.security"
+  185 000000D4 F57FF04F        dsb                          ; RVDS >= 3.0 suppo
+                                                            rts ARMv7 instructi
+                                                            ons
+  186 000000D8                 ELSE
+  193                          ENDIF
+  293 000000D8                 misb
+  264 000000D8                 IF               {ARCHITECTURE} = "7-A" :LOR: {A
+RCHITECTURE} = "7-M" :LOR: {ARCHITECTURE} == "7-A.security"
+  265 000000D8 F57FF06F        isb                          ; RVDS >= 3.0 suppo
+                                                            rts ARMv7 instructi
+                                                            ons
+  266 000000DC                 ELSE
+  273                          ENDIF
+  294 000000DC E3A00000        mov              r0 , #0
+  295 000000E0 EE080F17        mcr              p15, 0, r0, c8, c7, 0
+  296 000000E4                 mdsb
+  184 000000E4                 IF               {ARCHITECTURE} = "7-A" :LOR: {A
+RCHITECTURE} = "7-M" :LOR: {ARCHITECTURE} == "7-A.security"
+  185 000000E4 F57FF04F        dsb                          ; RVDS >= 3.0 suppo
+                                                            rts ARMv7 instructi
+                                                            ons
+  186 000000E8                 ELSE
+  193                          ENDIF
+  297 000000E8                 misb
+
+
+
+ARM Macro Assembler    Page 8 
+
+
+  264 000000E8                 IF               {ARCHITECTURE} = "7-A" :LOR: {A
+RCHITECTURE} = "7-M" :LOR: {ARCHITECTURE} == "7-A.security"
+  265 000000E8 F57FF06F        isb                          ; RVDS >= 3.0 suppo
+                                                            rts ARMv7 instructi
+                                                            ons
+  266 000000EC                 ELSE
+  273                          ENDIF
+  298 000000EC E12FFF1E        bx               lr
+  299 000000F0                 END
+              08005800 
+              08045800 
+              00000000 
+              00000000 
+Command Line: --cpu=Cortex-A7 --apcs=/noswst/interwork --no_unaligned_access -o
+/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208
+_043404/b/boot_images/core/boot/secboot3/hw/build/ddr_debug/Cortex-A7/WAASANAZ/
+sbl1/sbl1_ddr_debug.o -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M
+8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/secboot3/hw/build -I/lo
+cal/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_04
+3404/b/boot_images/build/cust -I. -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.
+2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/boot -I/loca
+l/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_0434
+04/b/boot_images/core/api/boot/qfprom -I/local/mnt/workspace/CRMBuilds/BOOT.BF.
+3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/buses/api/sp
+mi -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_201
+61208_043404/b/boot_images/core/buses/api/icb -I/local/mnt/workspace/CRMBuilds/
+BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/buse
+s/api/uart -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANA
+ZB-1_20161208_043404/b/boot_images/core/buses/api/i2c -I/local/mnt/workspace/CR
+MBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/c
+ore/api/dal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAAN
+AZB-1_20161208_043404/b/boot_images/core/api/services -I/local/mnt/workspace/CR
+MBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/c
+ore/api/storage -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WA
+AAANAZB-1_20161208_043404/b/boot_images/core/api/systemdrivers -I/local/mnt/wor
+kspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot
+_images/core/api/systemdrivers/pmic -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.
+1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/systemdriv
+ers/hwio/msm8909 -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909W
+AAAANAZB-1_20161208_043404/b/boot_images/core/api/wiredconnectivity -I/local/mn
+t/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b
+/boot_images/core/api/securemsm -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.
+c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/securemsm/secboot/
+api -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20
+161208_043404/b/boot_images/core/api/kernel/libstd/stringl -I/local/mnt/workspa
+ce/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_ima
+ges/core/api/hwengines -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-
+M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/secboot3/src -I/local/
+mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404
+/b/boot_images/core/boot/ddr/common -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.
+1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/ddr/hw/ms
+m8909w -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1
+_20161208_043404/b/boot_images/core/boot/ddr/hw/phy -I/local/mnt/workspace/CRMB
+uilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/cor
+e/boot/ddr/hw/controller -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0001
+2-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/secboot3/hw/msm8909 
+-I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_201612
+08_043404/b/boot_images/core/dal/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3
+.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/dal/config -I
+
+
+
+ARM Macro Assembler    Page 9 
+
+
+/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208
+_043404/b/boot_images/core/services/utils/src -I/local/mnt/workspace/CRMBuilds/
+BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/stor
+age/flash/src/dal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909
+WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flash/src/hal -I/local/m
+nt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/
+b/boot_images/core/storage/flash/tools/inc -I/local/mnt/workspace/CRMBuilds/BOO
+T.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage
+/flash/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANA
+ZB-1_20161208_043404/b/boot_images/core/storage/sdcc/src -I/local/mnt/workspace
+/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_image
+s/core/storage/sdcc/src/hal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0
+0012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/sdcc/src/bsp -
+I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016120
+8_043404/b/boot_images/core/storage/efs/inc -I/local/mnt/workspace/CRMBuilds/BO
+OT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storag
+e/hfat/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANA
+ZB-1_20161208_043404/b/boot_images/core/storage/hotplug/inc -I/local/mnt/worksp
+ace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_im
+ages/core/storage/tools/deviceprogrammer_ddr/src/firehose -I/local/mnt/workspac
+e/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_imag
+es/core/storage/ufs/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012
+-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/systemdrivers/tlmm/inc -I/
+local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_
+043404/b/boot_images/core/systemdrivers/tlmm/src -I/local/mnt/workspace/CRMBuil
+ds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/w
+iredconnectivity/qhsusb/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0
+0012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/wiredconnectivity/qusb
+/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2
+0161208_043404/b/boot_images/core/securemsm/cryptodrivers/ce/shared/inc -I/loca
+l/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_0434
+04/b/boot_images/core/securemsm/cryptodrivers/ce/test/inc -I/local/mnt/workspac
+e/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_imag
+es/core/securemsm/cryptodrivers/prng/shared/inc -I/local/mnt/workspace/CRMBuild
+s/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/se
+curemsm/cryptodrivers/prng/test/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.
+1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/securemsm/cryp
+todrivers/prng/shared/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-000
+12-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/securemsm/secboot -I
+/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208
+_043404/b/boot_images/core/api/securemsm/seccfg -I/local/mnt/workspace/CRMBuild
+s/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/se
+curemsm/secmath/shared/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00
+012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/securemsm/fuseprov/chip
+set/msm8909/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WA
+AAANAZB-1_20161208_043404/b/boot_images/core/hwengines/mhi -I/local/mnt/workspa
+ce/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_ima
+ges/core/hwengines/pcie --list=/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-
+00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/secboot3/hw/buil
+d/ddr_debug/Cortex-A7/WAASANAZ/sbl1/sbl1_ddr_debug.o.lst --sitelicense /local/m
+nt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/
+b/boot_images/core/boot/secboot3/hw/build/ddr_debug/Cortex-A7/WAASANAZ/sbl1/sbl
+1_ddr_debug.o.i

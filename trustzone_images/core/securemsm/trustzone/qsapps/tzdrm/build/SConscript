@@ -1,0 +1,41 @@
+#===============================================================================
+#
+# TZ DRM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:$
+#  $DateTime:$
+#  $Author:$
+#  $Change:$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/14/14   dm      Define compile-time flag to enable DRM test features for internal builds
+# 11/06/13   rk      Define compile-time flag for temporary play enabler video protect changes
+# 02/18/11   chm     Initial Version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#This flag should be removed in future after Customer's server development is done
+env.Append(CCFLAGS = ' -DOEM_VIDEO_PROTECT_TEMP ')
+
+if env.has_key('USES_NO_CP'):
+    env.Append(CCFLAGS = ' -DUSES_NO_CP ')
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

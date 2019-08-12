@@ -1,0 +1,207 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011-2014 QUALCOMM Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //source/qcom/qct/modem/rfa2/pmic2/build/v6_0/main/latest/pmic.scons#2 $
+# $DateTime: 2012/07/03 09:26:40 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/25/15   mr      Removed MPSS PMIC SW Compilation Warnings (CR-799430)
+# 05/20/14   rk      Provide PMIC API in MPSS to set voltage for Vdd_MSS Rail (CR - 668036)
+# 06/25/12   hs      Moved to core\systemdrivers.
+# 03/30/12   hs      Added support for VBATT APP.
+# 03/07/12   hs      Added support for BOOT builds.
+# 03/12/12   hs      Updated.
+# 03/07/12   hs      Added support for MPSS and RPM builds.
+# 01/24/12   hs      Created
+#===============================================================================
+
+Import('env')
+
+if env.has_key('MODEM_PROC'):
+   env.Replace(PMIC_ROOT = "${INC_ROOT}/core/systemdrivers/pmic")
+   env.Append(CPPDEFINES = 'PM_IMAGE_MODEM_PROC')
+elif env.has_key('RPM_IMAGE'):
+   env.Replace(PMIC_ROOT = "${INC_ROOT}/core/systemdrivers/pmic")
+   env.Append(CPPDEFINES = 'PM_IMAGE_RPM_PROC')
+elif env.has_key('CBSP_QDSP6_SW_IMAGE'):
+   env.Replace(PMIC_ROOT = "${INC_ROOT}/pmic")
+   env.Append(CPPDEFINES = 'PM_IMAGE_LPASS_PROC')
+elif env.has_key('IMAGE_WCN_PROC'):
+   env.Replace(PMIC_ROOT = "${INC_ROOT}/pmic")
+   env.Append(CPPDEFINES = 'PM_IMAGE_WCN_PROC')
+else:
+   env.Replace(PMIC_ROOT = "${INC_ROOT}/pmic")
+   env.Append(CPPDEFINES = 'PM_IMAGE_APPS_PROC')
+
+#Define for PMIC diag operations
+if 'USES_CLEAN_PACK' not in env:
+    env.Append(CPPDEFINES='FEATURE_PMIC_DIAG_SERVICES')
+
+env.PublishProtectedApi( 'PMIC_APPLICATION', [
+    '${PMIC_ROOT}/application/ftm/common/src',
+    '${PMIC_ROOT}/application/pwr/src',
+    '${PMIC_ROOT}/application/rtc/common/src',
+    '${PMIC_ROOT}/application/uicc/src',
+    ])
+
+env.PublishProtectedApi( 'PMIC_CONFIG', [
+    '${PMIC_ROOT}/config/${CHIPSET}',
+    ])
+
+env.PublishProtectedApi( 'PMIC_COMM', [
+    '${PMIC_ROOT}/comm/src',
+    '${PMIC_ROOT}/comm/spmi_dal/src',
+    ])
+
+env.PublishProtectedApi( 'PMIC_DRIVERS', [
+    '${PMIC_ROOT}/drivers/boost/src',
+    '${PMIC_ROOT}/drivers/bua/src',
+    '${PMIC_ROOT}/drivers/clk/src',
+    '${PMIC_ROOT}/drivers/gpio/src',
+    '${PMIC_ROOT}/drivers/ldo/src',
+    '${PMIC_ROOT}/drivers/mpp/src',
+    '${PMIC_ROOT}/drivers/pbs/src',
+    '${PMIC_ROOT}/drivers/pwr/src',
+    '${PMIC_ROOT}/drivers/rtc/src',
+    '${PMIC_ROOT}/drivers/smps/src',
+    '${PMIC_ROOT}/drivers/vs/src',
+    '${PMIC_ROOT}/drivers/xo/src',
+   ])
+
+env.PublishProtectedApi( 'PMIC_DEVICES', [
+    '${PMIC_ROOT}/pmic_devices/common/src',
+    ])
+
+env.PublishProtectedApi( 'PMIC_FRAMEWORK', [
+    '${PMIC_ROOT}/framework/src',
+    '${PMIC_ROOT}/framework/inc',
+    ])
+
+env.PublishProtectedApi( 'PMIC_NPA', [
+    '${PMIC_ROOT}/npa/src',
+    '${PMIC_ROOT}/npa/inc',
+    ])
+
+env.PublishProtectedApi( 'PMIC_UTILS', [
+    '${PMIC_ROOT}/utils/diag',
+    '${PMIC_ROOT}/utils/src',
+    ])
+	
+env.PublishProtectedApi( 'PMIC_TARGET_RPM', [
+    '${PMIC_ROOT}/target/rpm/lite_rsrc_access/protected',
+    '${PMIC_ROOT}/target/rpm/npa/inc',
+    '${PMIC_ROOT}/target/rpm/gen/dep/inc',
+    '${PMIC_ROOT}/target/rpm/system/protected',
+    ])
+
+env.PublishProtectedApi( 'PMIC_TARGET_SBL', [
+    '${PMIC_ROOT}/target/sbl/gen/protected',
+    '${PMIC_ROOT}/target/sbl/system/protected',
+    ])
+
+env.PublishProtectedApi( 'PMIC_TARGET_LPASSPROC', [
+    '${PMIC_ROOT}/target/lpassproc/npa/inc',
+    ])
+
+env.PublishProtectedApi( 'PMIC_TARGET_WCNPROC', [
+    '${PMIC_ROOT}/target/wcnproc/npa/inc',
+    ])
+
+env.PublishPrivateApi('RFA_VIOLATIONS', [
+    '${INC_ROOT}/core/buses/api/spmi', # TODO need to remove it
+    '${INC_ROOT}/core/api/power', # TODO need to remove it
+    '${INC_ROOT}/core/api/hwengines', # TODO need to remove it
+    ])
+
+CBSP_API = [
+   'DAL',
+   'BUSES',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'POWER',
+   'BUSES_SPMI',
+   'HWENGINES',
+   'DEBUGTRACE',
+   'DEBUGTOOLS'
+]
+
+env.RequirePublicApi(CBSP_API)
+
+env.RequireRestrictedApi([
+    'POWER',
+    ])
+
+#-------------------------------------------------------------------------------
+# QDSS software events
+#-------------------------------------------------------------------------------
+
+if 'USES_QDSS_SWE' in env:
+   env.Append(CPPDEFINES = ["PMIC_NPA_LOGGING"])
+   QDSS_IMG = ['QDSS_EN_IMG']
+   events = [['PMIC_EVENT_FIRST=512','PMIC first event placeholder'],
+             ['PMIC_MPSS_EVENT_INIT','PMIC MPSS Driver Initialize'],
+             ['PMIC_MPSS_PAM_INIT','PMIC MPSS PAM Initialize'],
+             ['PMIC_RESOURCE_VDD_UVOL_INIT','PMIC resouce initialize - vdd_uvol '],
+             ['PMIC_LDO_AGG1', 'device_index = %d sw_en = %d ldo_sw_mode = %d'],
+             ['PMIC_LDO_AGG2', 'pc_en = %d pc_mode = %d'],
+             ['PMIC_LDO_AGG3', 'regulated_uvol = %d current_value = %d'],
+             ['PMIC_LDO_AGG4', 'headroom_vol = %d corner_value = %d'],
+             ['PMIC_LDO_NO_CHANGE', 'id = %d device_index = %d'],
+             ['PMIC_SET_VDD_MEM_UVOL','vdd_mem_uvol(MX) Rail Voltage = %d (uV)'],
+             ['PMIC_CLK_BUF_AGG1', 'CLK Agg for both Suppressable and Required:  id = %d device_index = %d sw_enable = %d pc_enable = %d'],
+             ['PMIC_CLK_BUF_AGG2', 'CLK Agg for Required req:  id = %d device_index = %d sw_enable = %d pc_enable = %d'],
+             ['PMIC_PROCESS_RESOURCE','PMIC process resource'],
+             ['PMIC_EVENT_LAST=639','PMIC last event placeholder']
+            ]
+   env.AddSWEInfo(QDSS_IMG, events)
+
+if 'QDSS_TRACER_SWE' in env:
+  env.SWEBuilder(['${PMIC_ROOT}/utils/build/${BUILDPATH}/pm_sw_event_id.h'],None)
+  env.Append(CPPPATH = '${PMIC_ROOT}/utils/build/${BUILDPATH}')
+
+#-------------------------------------------------------------------------------
+# Add CMM Scripts to T32 Menu
+#-------------------------------------------------------------------------------
+
+SRCPATHSCRIPTS = env['BUILD_ROOT'] + '/core/systemdrivers/pmic/scripts/'
+try:
+    env.AddCMMScripts('MPSS', [SRCPATHSCRIPTS], {
+                      'PMICPeek.cmm' : 'PMIC Peek/Poke',
+                      'PMICDump.cmm' : 'PMIC Dump',
+                      },
+                      'SystemDrivers')
+except:
+    pass
+
+#-------------------------------------------------------------------------------
+# Continue loading sub-units
+#-------------------------------------------------------------------------------
+
+env.LoadSoftwareUnits( )

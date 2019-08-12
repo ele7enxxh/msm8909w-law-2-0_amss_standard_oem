@@ -1,0 +1,98 @@
+#===============================================================================
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+#-------------------------------------------------------------------------------
+# Check Debug Status
+#-------------------------------------------------------------------------------
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+#-------------------------------------------------------------------------------
+# Set Paths
+#-------------------------------------------------------------------------------
+#if env.has_key('IMAGE_NAME'):
+#   SECUREMSMLIBPATH = '${IMAGE_NAME}/${PROC}/${ARMTOOLS}'
+##   SECUREMSMLIBPATH = '${IMAGE_NAME}/${PROC}/${ARMTOOLS}/${DBUG_MODE}'
+#else:
+#   SECUREMSMLIBPATH = 'unknown/${PROC}/${ARMTOOLS}'
+##   SECUREMSMLIBPATH = 'unknown/${PROC}/${ARMTOOLS}/${DBUG_MODE}'
+SECUREMSMLIBPATH = '${BUILDPATH}'
+
+env.Replace(SECUREMSMLIBPATH = SECUREMSMLIBPATH)
+env.VariantDir('${SECUREMSMLIBPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_SEC_SSL'])
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+   'MODEM_API',
+   'MULTIMEDIA_CORE',
+])
+
+MODEM_API = [
+   'MCS',
+   'SSL',
+   'IPSEC',
+]
+
+env.RequirePublicApi(MODEM_API, 'modem')
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   'DAL',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API, 'core')
+env.RequireProtectedApi('SEC')
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------
+# Sec common shared Library
+#---------------------------------------------------------------------------- 
+SEC_SHARED_LIB_SOURCES = [ 
+   '${SECUREMSMLIBPATH}/src/secdsm.c', 
+   '${SECUREMSMLIBPATH}/src/secaesutils.c', 
+]
+
+sec_shared_lib = '${SECUREMSMLIBPATH}/sec_shared'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if env.has_key('USES_SEC'):
+    env.AddBinaryLibrary(
+         ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+          'MODEM_IMAGE',  'CBSP_MODEM_IMAGE',
+          'APPS_IMAGE',   'CBSP_APPS_IMAGE',
+          'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+         sec_shared_lib,[SEC_SHARED_LIB_SOURCES], pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+
+

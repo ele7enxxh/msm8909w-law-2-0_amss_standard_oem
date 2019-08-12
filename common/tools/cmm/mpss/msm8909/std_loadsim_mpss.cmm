@@ -1,0 +1,277 @@
+//============================================================================
+//  Name:                                                                     
+//    std_loadsim_mpss.cmm 
+//
+//  Description:                                                              
+//    Script to load MPSS logs
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 10/02/2013 AJCheriyan    Change for newer SW installations
+// 09/06/2012 AJCheriyan    Added USB RAM dump support
+// 07/10/2012 AJCheriyan    Created for B-family 
+//
+
+// We support the following arguments
+// ARG0 - Chipset Name. Can be used to setup sub-system according to target if needed 
+// Using this argument should be avoided unless absolutely necessary
+// ARG1 - LOGTYPE 
+// ARG2 - BUILD
+// ARG3 - LOGLOCATION
+//
+
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3
+
+LOCAL &LOGTYPE &BUILD &LOGLOCATION
+MAIN:
+	&LOGTYPE="&ARG1"
+	&BUILD="&ARG2"
+	&LOGLOCATION="&ARG3"
+
+	// Load the memory map
+	do std_memorymap
+
+	// Setup the environment
+	do std_setupenv
+
+	// First, all the sanity checks
+	GOSUB CHECKBINARIES
+	
+	// Binaries look good. Else, we wouldn't be here	
+	GOSUB SETUPSIM
+	
+	// Load the binaries
+	GOSUB LOADBIN
+
+	// Load the symbols
+	do std_loadsyms_mpss &BUILD
+
+	// Load the "state" at the time of the crash
+	GOSUB RESTORESTATE
+
+	// Off you go..
+	GOTO EXIT
+
+// Set the simulator for the processor we want
+SETUPSIM:
+
+
+	// Set the CPU and we are ready to roll
+	SYS.CPU HEXAGONV56
+	SYS.UP
+	
+
+	RETURN
+
+// Checks if the binaries for the system are present in the location
+// Loglocation should not be empty and assumes memory map is loaded
+CHECKBINARIES:
+LOCAL &FILE1 &FILE2 &LOGCLASS
+
+
+	// This is the best place to determine the type of the log too
+	IF ("&LOGTYPE"=="AUTODETECT")
+	(
+	    &LOGCLASS="&LOGTYPE"
+		
+		// Check for JTAG logs
+		do std_utils FILEXIST EXIT &LOGLOCATION &MPSS_SW_log
+		ENTRY &FILE1
+
+	    IF ("&FILE1"=="TRUE")
+		(
+		     &LOGCLASS="JTAG"
+	    )
+	
+		// Check for USB logs
+		do std_utils FILEXIST EXIT &LOGLOCATION &DDR_1_USB_log
+		ENTRY &FILE1
+
+		IF ("&FILE1"=="TRUE")
+		(
+			&LOGCLASS="USB"
+		)
+
+		// Repeat the same check for USB files
+		// If we even after that, we are stuck with "AUTODETECT" we have a problem
+		IF ("&LOGCLASS"=="AUTODETECT")
+		(
+		    PRINT %ERROR "Neither USB nor JTAG logs present in folder: &LOGLOCATION"
+		    GOTO FATALEXIT
+		)
+		ELSE
+		(
+		    // Safe to change the logtype
+			&LOGTYPE="&LOGCLASS"
+			PRINT "Detected &LOGTYPE logs in folder: &LOGLOCATION"
+		)
+	)
+
+	IF ("&LOGTYPE"=="JTAG")
+	(
+		
+		// Check for JTAG logs
+		do std_utils FILEXIST EXIT &LOGLOCATION &MPSS_SW_log
+		ENTRY &FILE1
+
+	    IF ("&FILE1"=="FALSE")
+		(
+			PRINT %ERROR "JTAG logs not present in folder: &LOGLOCATION"
+			GOTO FATALEXIT
+	    )
+
+		// Check for Shared IMEM logs
+		do std_utils FILEXIST EXIT &LOGLOCATION &SHARED_IMEM_log
+		ENTRY &FILE1
+
+	    IF ("&FILE1"=="FALSE")
+		(
+			PRINT %ERROR "JTAG Shared IMEM logs not present in folder: &LOGLOCATION"
+			GOTO FATALEXIT
+	    )
+       do std_utils FILEXIST EXIT &LOGLOCATION &MPSS_TCM_log
+	   IF ("&FILE1"=="FALSE")
+		(
+			PRINT %ERROR "JTAG TCM logs not present in folder: &LOGLOCATION"
+			GOTO FATALEXIT
+	    )
+	)
+
+	IF ("&LOGTYPE"=="USB")
+	(
+		
+		// Check for USB logs
+		do std_utils FILEXIST EXIT &LOGLOCATION &DDR_1_USB_log
+		ENTRY &FILE1
+
+	    IF ("&FILE1"=="FALSE")
+		(
+			PRINT %ERROR "USB logs not present in folder: &LOGLOCATION"
+			GOTO FATALEXIT
+	    )
+
+		// Check for USB logs
+		do std_utils FILEXIST EXIT &LOGLOCATION &MSGRAM_USB_log
+		ENTRY &FILE1
+		do std_utils FILEXIST EXIT &LOGLOCATION &OCIMEM_USB_log
+		ENTRY &FILE2
+
+	    IF ("&FILE1"=="FALSE")&&("&FILE2"=="FALSE")
+		(
+			PRINT %ERROR "USB Shared IMEM logs not present in folder: &LOGLOCATION"
+			GOTO FATALEXIT
+	    )
+	)
+
+	    		
+	RETURN
+
+
+// Function :LOADBIN
+// Loads the saved binaries
+LOADBIN:
+	// Check the type of the log and load it
+	IF ("&LOGTYPE"=="JTAG")
+	(
+		do std_utils LOADBIN &LOGLOCATION &SHARED_IMEM_log &SHARED_IMEM_start
+		
+		// Load the memory map again for relocated images
+		do std_memorymap
+
+	 	do std_utils LOADBIN &LOGLOCATION &MPSS_SW_log &MPSS_SW_start
+		do std_utils LOADBIN &LOGLOCATION &MPSS_TCM_log &MPSS_TCM_start
+	)
+	
+	IF ("&LOGTYPE"=="USB")
+	(
+		// Load the shared IMEM logs
+	 	do std_utils LOADBIN &LOGLOCATION &OCIMEM_USB_log &OCIMEM_start
+		do std_utils LOADBIN &LOGLOCATION &MSGRAM_USB_log &MSGRAM_start
+	
+		// Load the memory map again
+		do std_memorymap
+
+	 	do std_utils LOADBIN &LOGLOCATION &DDR_1_USB_log &DDR_1_start
+	)
+
+	RETURN
+
+// Function: RESTORESTATE
+// To load the error information from the saved logs
+RESTORESTATE:
+	// Restore the registers from file if JTAG logs
+	IF ("&LOGTYPE"=="JTAG")
+	(
+	    THREAD 0
+	 	do std_utils EXECUTESCRIPT EXIT &LOGLOCATION/&MPSS_Thread0_regs
+		THREAD 1
+		do std_utils EXECUTESCRIPT EXIT &LOGLOCATION/&MPSS_Thread1_regs
+		THREAD 2
+		do std_utils EXECUTESCRIPT EXIT &LOGLOCATION/&MPSS_Thread2_regs
+	)
+
+	// Symbols should be loaded prior to this step
+	IF ("&LOGTYPE"=="USB")
+	(
+		
+		do std_utils EXECUTESCRIPT EXIT &BUILD/modem_proc/core/debugtools/err/cmm/load_coredump.cmm 
+	)
+    IF ("&LOGTYPE"=="USB")
+	(
+	// Restore saved TCM
+	IF (Y.EXIST(qurt_tcm_dump))
+	(
+		DATA.COPY V.RANGE(qurt_tcm_dump) A:&MPSS_TCM_start
+	)
+    )
+
+	LOCAL &MEMMAP_PHY &MEMMAP_VIRT &MEMMAP_SIZE &rt_pt
+
+	// We need to get the start address of the ADSP image from
+	// the memory map.
+	do std_memorymap
+
+
+	&MEMMAP_VIRT=ADDRESS.OFFSET(start)
+	&MEMMAP_PHY=&MPSS_SW_start
+	
+	TRANSlation.OFF
+	TRANSlation.RESet
+  	mmu.create &MEMMAP_VIRT++&MPSS_SW_size &MEMMAP_PHY++&MPSS_SW_size
+	mmu.on
+
+	// Restore TLB state
+	IF (Y.EXIST(QURTK_tlb_dump))
+	(
+		&tlb_idx=0
+		// 128 entries in the TLB for QDSP6V5A,H,128_A
+		REPEAT 128
+		(
+ 			&val0=V.VALUE(((unsigned int *)&QURTK_tlb_dump)[2*&tlb_idx])
+			&val1=V.VALUE(((unsigned int *)&QURTK_tlb_dump)[2*&tlb_idx+1])
+			MMU.SET TLB &tlb_idx &val0 &val1
+			&tlb_idx=&tlb_idx+1
+		)
+	)
+
+	// Other configuration options
+	FRAME.CONFIG.EPILOG OFF
+     mmu.tlb.scan
+	RETURN
+
+FATALEXIT:
+	END
+
+EXIT:
+	ENDDO
+
+

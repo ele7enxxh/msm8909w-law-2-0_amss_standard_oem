@@ -1,0 +1,169 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/datamodem/appsrv/atp/build/datamodem_atp.scons#1 $
+#  $DateTime: 2016/12/13 08:00:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/12/14   jz      Initial Version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#import pdb
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_DATAMODEM_ATP' not in env:
+     Return()
+
+#turn off debug if requested
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2")
+    env.Replace(HEXAGON_DBG = "-g")
+    env.Replace(GCC_DBG = "-g")
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_DS",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+    'DAL',
+    'POWER',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'QCHAT',
+    'RFA',
+    'GPS',
+    'CNE',
+    'ECALL',
+    'HTTP'
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+env.RequirePublicApi(['IMSDCM', 'IMSRTP'], area='QMIMSGS')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'QCHAT',
+    'UTILS',
+    'FW',
+    'GPS',
+    'CNE',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#env.PublishPrivateApi('VIOLATIONS',[
+#    '${INC_ROOT}/ims/XML/inc',
+#    '${INC_ROOT}/ims/atp/inc',
+#    '${INC_ROOT}/ims/dpl/inc',
+#    '${INC_ROOT}/ims/variation/inc',
+#    '${INC_ROOT}/ims/cust/inc',
+#    '${INC_ROOT}/ims/framework/inc',
+#    '${INC_ROOT}/ims/imsprocess/inc',
+#    '${INC_ROOT}/ims/sip/inc',
+#    '${INC_ROOT}/ims/ut/inc',
+#    ])
+
+#env.RequirePrivateApi('VIOLATIONS')
+
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+MODEM_DATA_ATP_SOURCES = [
+   '${BUILDPATH}/src/ds_atp_api.c',
+   '${BUILDPATH}/src/ds_atp_config.c',
+   '${BUILDPATH}/src/ds_atp_filter_reporting.c',
+   '${BUILDPATH}/src/ds_atp_http.cpp',
+   '${BUILDPATH}/src/ds_atp_http_ims.cpp',
+   '${BUILDPATH}/src/ds_atp_msg.c',
+   '${BUILDPATH}/src/ds_atp_net_if.c',
+   '${BUILDPATH}/src/ds_atp_policy_mgr.c',
+   '${BUILDPATH}/src/ds_atp_sms.c',
+   '${BUILDPATH}/src/ds_atp_xml.cpp',
+]
+
+env.AddBinaryLibrary(['MODEM_MODEM', 'MOB_DATAMODEM'], '${BUILDPATH}/atp', [MODEM_DATA_ATP_SOURCES])

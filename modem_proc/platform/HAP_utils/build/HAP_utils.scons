@@ -1,0 +1,70 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+
+env = env.Clone()
+
+platform_root = '${BUILD_ROOT}/platform'
+env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+
+#-------------------------------------------------------------------------------
+# Include dirs
+#-------------------------------------------------------------------------------
+
+env.RequirePublicApi([
+  'HAPSDK',
+  'STDDEF',
+  'PLATFORM_LIBS',
+  'UTILS',
+  'A1STD',
+  ])
+
+env.RequireRestrictedApi([
+  'HAP_UTILS',
+  'QLIST',
+  'ATOMIC',
+  ])
+
+core_public_apis = [
+   'SYSTEMDRIVERS',
+   'DAL',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'KERNEL',
+   ]
+
+env.RequirePublicApi(core_public_apis, area='core')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${ADSP_PLATFORM_ROOT}/HAP_utils/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PLRegisterDefault("HAP_utils",0)
+env.PLRegisterDefault("HAP_diag", 1)
+
+HAP_UTILS_SOURCES =  [
+   '${BUILDPATH}/HAP_utils.c',
+   '${BUILDPATH}/HAP_diag.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+HAP_utils_lib = env.AddBinaryLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+  'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/HAP_utils',
+  HAP_UTILS_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load Subunits (sys)
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+#Clean and pack rules
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h', '*.txt'], '${ADSP_PLATFORM_ROOT}/HAP_utils'))
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)

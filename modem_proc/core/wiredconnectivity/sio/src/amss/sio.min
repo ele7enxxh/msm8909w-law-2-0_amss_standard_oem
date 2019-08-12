@@ -1,0 +1,19 @@
+#-------------------------------------------------------------------------------
+#  SIO
+#-------------------------------------------------------------------------------
+
+SIO_SOURCES := \
+	sio.c \
+        sio_wrapper.c 
+  	
+
+vpath %.c $(SIO)
+
+ifeq ($(BIG),yes)
+    SIO_OBJS := $(TARGETDIR)/sio.lib
+else
+    SIO_OBJS :=  $(addprefix $(TARGETDIR)/, $(SIO_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/sio.lib : $(SIO_SOURCES)
+	$(group_c_compile)

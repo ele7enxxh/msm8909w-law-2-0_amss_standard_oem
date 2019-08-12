@@ -1,0 +1,138 @@
+#=============================================================================
+# CLOCK LIBRARY
+#
+# Target:    All
+# Processor: All
+#
+#=============================================================================
+# $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/systemdrivers/clock/build/clock.scons#3 $
+#=============================================================================
+#  Copyright 2012-2013 QUALCOMM Technologies Incorporated.
+#  All Rights Reserved.
+#  QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+import os
+
+Import('env')
+env = env.Clone()
+
+if env['MSM_ID'] not in ['8974', '9x25', '8x10', '8x26', '8084', '8x62', '8092', '9x35', '8994', '8916', '8936', '9x45', '8909','8909w', '8952', '8956']:
+   Return();
+
+SRCPATH = "${COREBSP_ROOT}/systemdrivers/clock/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#------------------------------------------------------------------------------
+# Add API folders
+#------------------------------------------------------------------------------
+CBSP_API = [
+   'SYSTEMDRIVERS',
+   'POWER',
+   'SERVICES',
+   'DAL',
+   'BOOT',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#------------------------------------------------------------------------------
+# Add local paths
+#------------------------------------------------------------------------------
+CLOCK_BUILD_ROOT = os.getcwd();
+
+chipset = env.get('CHIPSET')
+
+if(chipset == "msm8x10"):
+   # msm8x10 leverages msm8x26
+   chipset = "msm8x26"
+
+if env['MSM_ID'] == '8909w':
+   env.PublishPrivateApi('SYSTEMDRIVERS_CLOCK', [
+      CLOCK_BUILD_ROOT + "/../src",
+      CLOCK_BUILD_ROOT + "/../hw/" + "msm8909w" + "/src",
+   ])
+else:
+   env.PublishPrivateApi('SYSTEMDRIVERS_CLOCK', [
+      CLOCK_BUILD_ROOT + "/../src",
+      CLOCK_BUILD_ROOT + "/../hw/" + "msm8909" + "/src",
+   ])
+
+#-------------------------------------------------------------------------------
+# Define sources
+#-------------------------------------------------------------------------------
+
+if env['MSM_ID'] in ['8974', '9x25', '8x10', '8x26', '8084', '8x62', '8092', '8916', '8936', '8956']: 
+    CLOCK_SOURCES = [
+   '${BUILDPATH}/v1/ClockSBLCommon.c',
+]
+elif env['MSM_ID'] in ['9x35', '8994', '9x45']:
+    CLOCK_SOURCES = [
+   '${BUILDPATH}/v2/ClockSBLCommon.c',
+]
+elif env['MSM_ID'] in ['8909','8909w', '8952']:
+    CLOCK_SOURCES = [
+   '${BUILDPATH}/v3/ClockSBLCommon.c',
+]
+
+ClockCommonSBL_lib = env.Library('${BUILDPATH}/Clock_Common_SBL', CLOCK_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Invoke sub build files - include chipset first to allow passing parameters
+# to the common script.
+#-------------------------------------------------------------------------------
+
+if env['MSM_ID'] == '8909w':
+  env.SConscript('../hw/msm8909w/build/clock_sbl.scons', exports='env')
+else:
+  env.SConscript('../hw/msm8909/build/clock_sbl.scons', exports='env')
+
+#---------------------------------------------------------------------------
+# Invoke document generation SConscript
+#---------------------------------------------------------------------------
+
+if os.path.exists(env['BUILD_ROOT'] + '/core/api/systemdrivers/docsrc/clock/SConscript') :
+  env.SConscript(
+    '${BUILD_ROOT}/core/api/systemdrivers/docsrc/clock/SConscript',
+    exports='env')
+
+
+env.AddLibsToImage(['CLOCK_BOOT_DRIVER'], ClockCommonSBL_lib)
+env.AddLibsToImage(['JSDCC_TOOL_IMAGE', 'EMMCBLD_IMAGE', 'EHOSTDL_IMAGE', 'HOSTDL_IMAGE', 'DEVICEPROGRAMMER_NAND_IMAGE'], ClockCommonSBL_lib)
+
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+
+# Remove target hw files
+ALL_HW_FILES = env.FindFiles(
+  ['*'],
+  '../hw/')
+
+if env['MSM_ID'] == '8909w':
+  MY_HW_FILES = env.FindFiles(
+    ['*'],
+    '../hw/msm8909w')
+else:
+  MY_HW_FILES = env.FindFiles(
+    ['*'],
+    '../hw/msm8909')
+
+PACK_HW_FILES = list(set(ALL_HW_FILES) - set(MY_HW_FILES))
+env.CleanPack(['SBL1_BOOT'], PACK_HW_FILES)
+
+# Remove target scripts files
+ALL_SCRIPTS_FILES = env.FindFiles(
+  ['*'],
+  '../scripts/')
+SHARED_SCRIPTS_FILES = env.FindFiles(
+  ['Clock.cmm'],
+  '../scripts/')
+MY_SCRIPTS_FILES = env.FindFiles(
+  ['*'],
+  '../scripts/msm8909')
+  
+PACK_SCRIPTS_FILES = list(set(ALL_SCRIPTS_FILES) - set(MY_SCRIPTS_FILES) - set(SHARED_SCRIPTS_FILES))
+env.CleanPack(['SBL1_BOOT'], PACK_SCRIPTS_FILES)

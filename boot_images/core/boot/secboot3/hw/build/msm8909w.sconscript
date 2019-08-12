@@ -1,0 +1,124 @@
+#===============================================================================
+#
+# SECBOOT3 SBL Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2013 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/boot/secboot3/hw/build/msm8909w.sconscript#1 $
+#  $DateTime: 2015/09/14 05:57:56 $
+#  $Author: pwbldsvc $
+#  $Change: 9019630 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/03/14   yps     Add USES_BOOT_DDR_DEBUG_MODE for DDI build
+# 08/28/14   sk      8909 SBL NAND Changes
+# 12/27/13   ck      Changed name and location of dbi files to sys_debug*
+# 10/09/13   ck      Added dbi to SBL1 targets
+# 09/09/13   ck      Initial revision
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+SBL_SRC = "${COREBSP_ROOT}/boot/secboot3/hw/msm8909"
+
+env.VariantDir('${BUILDPATH}', SBL_SRC, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'RFA',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BUSES',
+   'DAL',
+   'HAL',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'SECUREMSM',
+   'HWENGINES',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['BOOT'])
+
+#-------------------------------------------------------------------------------
+# External dependency
+#-------------------------------------------------------------------------------
+env.RequirePublicApi('RFA', 'pmic')
+
+#-------------------------------------------------------------------------------
+# SBL1 Sources, libraries
+#-------------------------------------------------------------------------------
+SBL1_TARGET_SOURCES = [
+   '${BUILDPATH}/sbl1/sbl1_mc.c',
+   '${BUILDPATH}/sbl1/sbl1_target.c',
+   '${BUILDPATH}/sbl1/sbl1_hw.c',
+   '${BUILDPATH}/sbl1/sbl1_config.c',
+   '${BUILDPATH}/boot_cdt_array.c',
+   '${BUILDPATH}/boot_rollback_img_set.c',
+   '${BUILDPATH}/sys_debug.s',
+   '${BUILDPATH}/sys_debug_mc.c',
+]
+
+if env.has_key('USES_SAHARA_BOOT'):
+  SBL1_TARGET_SOURCES += [
+    '${BUILDPATH}/sbl1/sbl1_sahara.c',
+]
+
+if env.has_key('USES_BOOT_DDR_DEBUG_MODE'):
+  SBL1_TARGET_SOURCES += [
+   '${BUILDPATH}/sbl1/sbl1_ddr_debug.s',
+   '${BUILDPATH}/sbl1/sbl1_ddr_debug_sdi.s',
+   '${BUILDPATH}/sbl1/sbl1_ddr_debug_mc.c',
+   '${BUILDPATH}/sbl1/sbl1_copy_ddr_debug.c',
+
+]
+else:
+  SBL1_TARGET_SOURCES += [
+   '${BUILDPATH}/sbl1/sbl1.s',
+]
+secboot3_sbl1_obj = env.Object([ 
+   SBL1_TARGET_SOURCES,
+])
+
+#-------------------------------------------------------------------------------
+# Dload target Sources 
+#-------------------------------------------------------------------------------
+DLOAD_TARGET_SOURCES = [
+   '${BUILDPATH}/boot_dload_debug_target.c',   
+]
+
+dload_target_obj = env.Object([DLOAD_TARGET_SOURCES])
+dload_target_lib = env.Library('${BUILDPATH}/dload_target', dload_target_obj)
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage('SBL1_BOOT', [secboot3_sbl1_obj, dload_target_obj])

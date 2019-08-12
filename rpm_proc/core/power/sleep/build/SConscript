@@ -1,0 +1,131 @@
+#===============================================================================
+#
+# Sleep build script
+#
+# GENERAL DESCRIPTION
+#    Builds the sleep libraries for all target.
+#
+# Copyright (c) 2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary and Confidential
+#
+#===============================================================================
+import os
+import fnmatch
+import itertools
+import subprocess
+import stat
+import re
+
+def find_sleep_target_config(str):
+    return re.search('.*sleep_target_config\.c.*', str)
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = os.path.join("..","src")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTRACE',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'BOOT',
+]
+
+   #'KERNEL', #needs to be last also contains wrong comdef.h
+# Map sleep's diag message to the sleep category.
+#env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_SLEEP'])
+
+if env['MSM_ID'] == '8916':
+#    env.Append(CPPDEFINES = 'MSM_DISABLE_DEEP_SLEEP')
+    env.Append(CPPDEFINES = 'APPS_SPM_TRACING')
+    env.Append(CPPDEFINES = 'DDR_REG_TRACING')
+	
+if env['MSM_ID'] in ['8936']:
+    env.Append(CPPDEFINES = 'MSM_DISABLE_BIMC_PC')
+
+if env['MSM_ID'] in ['8909']:
+    env.Append(CPPDEFINES = 'MSM_DISABLE_BIMC_PC')
+
+if env['MSM_ID'] in ['8909W']:
+    env.Append(CPPDEFINES = 'MSM_DISABLE_BIMC_PC')
+	
+if env['MSM_ID'] in ['8952']:
+    env.Append(CPPDEFINES = 'MSM_DISABLE_BIMC_PC')
+    env.Append(CPPDEFINES = 'MSM_DISABLE_DEEP_SLEEP')
+	
+if env['MSM_ID'] in ['9x07']:
+    env.Append(CPPDEFINES = 'MSM_DISABLE_BIMC_PC')
+#    env.Append(CPPDEFINES = 'MSM_DISABLE_DEEP_SLEEP')
+	
+if env['MSM_ID'] =='8909W':
+	env['MSM_ID'] = '8909'
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['POWER_UTILS'])
+
+env.PublishPrivateApi('SLEEP', [
+   '${BUILD_ROOT}/core/power/sleep/inc',   
+   '${BUILD_ROOT}/core/power/sleep/src',
+   '${BUILD_ROOT}/core/power/sleep/src/${MSM_ID}',   
+   ]
+)
+
+if 'USES_QDSS_SWE' in env:
+   QDSS_IMG = ['QDSS_EN_IMG']
+   events = [['SLEEP_DEEP_SLEEP_ENTER=320','deep sleep enter. (sleep mode: %d) (count: %d)'],
+             ['SLEEP_DEEP_SLEEP_EXIT','deep sleep exit (sleep mode: %d)'],
+             ['SLEEP_NO_DEEP_SLEEP','bail early from deep sleep. (sleep mode: %d) (reason: %d)'],
+             ['SLEEP_RPM_HALT_ENTER','rpm halt enter'],
+             ['SLEEP_RPM_HALT_EXIT','rpm halt exit'],
+             ['SLEEP_MPM_INTS','pending mpm interrupts at wakeup: (interrupt_status_1 %d), (interrupt_status_2 %d)'],
+             ['SLEEP_DEEP_SLEEP_ENTER_COMPLETE','deep sleep exit complete (sleep mode: %d)'],
+             ['SLEEP_DEEP_SLEEP_EXIT_COMPLETE','deep sleep exit (sleep mode: %d)'],
+             ['SLEEP_MPM_INTS_ENABLED','mpm interrupts enabled just before going to sleep : (interrupt_enabled_1 %d), (interrupt_enabled_2 %d)'],
+             ['SLEEP_MPM_WAKEUP_TIME','mpm wake up time (wakeup time: 0x%0.8x%0.8x)'],
+             ['SLEEP_EVENT_LAST=383','sleep last event placeholder'],
+            ]
+   env.AddSWEInfo(QDSS_IMG, events)
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+source_patterns = ['*.c']
+sources = []
+
+for root, dirnames, filenames in os.walk(SRCPATH):
+    matches = itertools.chain(*[fnmatch.filter(filenames, pattern) for pattern in source_patterns])
+    matches = [os.path.join(root, filename) for filename in matches]
+    matches = [matched_path.replace(SRCPATH,'${BUILDPATH}',1) for matched_path in matches]
+    sources.extend(matches) 
+
+sleep_target_configs = filter( find_sleep_target_config, sources )
+for sleep_target_config in sleep_target_configs:
+    sources.remove(sleep_target_config)
+sources.append('${BUILDPATH}/${MSM_ID}/sleep_target_config.c')
+
+#-------------------------------------------------------------------------------
+# Libraries
+#-------------------------------------------------------------------------------
+#sleep_obj = env.Object(sources)
+#sleep_lib = env.Library(os.path.join('${BUILDPATH}','sleep'), sleep_obj)
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/sleep', sources )
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+#env.AddLibsToImage(['CORE_RPM'],
+#                   [sleep_lib])

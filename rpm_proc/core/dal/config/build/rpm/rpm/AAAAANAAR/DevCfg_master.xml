@@ -1,0 +1,340 @@
+#include "DALPropDef.h"
+#include "DALDeviceId.h"
+#include "dalconfig.h"
+
+<?xml version="1.0"?>
+<dal>
+<module name="rpm">
+<driver name="icb_rpm">
+   <global_def>
+   </global_def>
+   <device id="/dev/icb/rpm">
+     <props name="system" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+        icb_rpm_system
+     </props> 
+   </device>   
+</driver>
+
+<!--
+ * @brief: Configuration file for the SPMI driver
+ * 
+ * Copyright (c) 2013 by Qualcomm Technologies Incorporated. All Rights Reserved.
+ * 
+ * $DateTime:$
+ * $Header:$
+ * $Change:$
+-->
+<driver name="NULL">
+    <device id="DALDEVICEID_SPMI_DEVICE">
+<!-- System props -->
+<props name="pmic_arb_base_addr" type=DALPROP_ATTR_TYPE_UINT32>
+    0x02000000
+</props>
+        <!-- User configurable props -->
+        <props name="owner" type=DALPROP_ATTR_TYPE_UINT32>
+            4
+        </props>
+        <props name="interrupt" type=DALPROP_ATTR_TYPE_UINT32>
+            48
+        </props>
+    </device>
+</driver>
+
+
+<driver name="NULL">
+  <global_def></global_def>
+  <device id="/core/mproc/smd">
+    <props name="smd_intr_enabled" type= DALPROP_ATTR_TYPE_BYTE_SEQ>
+      0x1, 
+      0x1, 
+      0x0, 
+      0x0, 
+      0x1, 
+      0x0, 
+      0x1, 
+      end
+    </props>
+  </device>
+</driver>
+
+<!-- NOTE: DAL config has trouble parsing multi-line comment, so please put -->
+<!--       proper comment tags on each line                                 -->
+<!--                                                                        -->
+<!-- Clock Driver Properties file                                           -->
+<!-- Note we depend on the include path for the following directories to be -->
+<!-- available to the DAL config compiler:                                  -->
+<!-- "${INC_ROOT}/core/systemdrivers/hal/clk/inc",                          -->
+<!-- "${INC_ROOT}/core/systemdrivers/clock/src",                            -->
+<!-- "${INC_ROOT}/core/systemdrivers/clock/config"                          -->
+<!-- "${INC_ROOT}/core/systemdrivers/clock/config/${CHIPSET}"               -->
+<driver name="Clock">
+  <device id=DALDEVICEID_CLOCK>
+<!-- Clock sources -->
+<props name="ClockSources" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  SourceConfig
+</props>
+<!-- RPM Clocks -->
+<props name="gcc_rpm_proc_fclk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  RPMClockConfig
+</props>
+<!-- System NOC Clocks -->
+<props name="gcc_sys_noc_axi_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  SystemNOCClockConfig
+</props>
+<!-- Peripheral Config NOC Clocks -->
+<props name="gcc_pcnoc_ahb_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  PCNOClockConfig
+</props>
+<!-- BIMC Clocks -->
+<props name="gcc_bimc_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  BIMCClockConfig
+</props>
+<!-- BIMC GPU Clock -->
+<props name="gcc_bimc_gpu_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  BIMCGPUClockConfig
+</props>
+<!-- APSS_TCU_ASYNC Clock -->
+<props name="gcc_apss_tcu_async_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  APSSTCUASYNCClockConfig
+</props>
+<!-- QDSS AT Clocks -->
+<props name="gcc_qdss_at_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  QDSSATClockConfig
+</props>
+<!-- QDSS Trace Clocks -->
+<props name="gcc_qdss_traceclkin_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  QDSSTraceClockConfig
+</props>
+<!-- QDSS STM Clocks -->
+<props name="gcc_qdss_stm_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  QDSSSTMClockConfig
+</props>
+<!-- QDSS TSCTR Div2 Clocks -->
+<props name="gcc_qdss_tsctr_div2_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  QDSSTSCTRDiv2ClockConfig
+</props>
+<!-- RBCPR Clocks -->
+<props name="gcc_rbcpr_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  RBCPRClockConfig
+</props>
+<!-- SPMI AHB Clocks -->
+<props name="gcc_spmi_ahb_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  SPMIAHBClockConfig
+</props>
+<!-- SPMI SER Clocks -->
+<props name="gcc_spmi_ser_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  SPMISERClockConfig
+</props>
+<!-- QPIC Clocks -->
+<props name="gcc_qpic_clk" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  QPICClockConfig
+</props>
+<!-- Clock Log Defaults -->
+<props name="ClockLogDefaults" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  ClockLogDefaultConfig
+</props>
+<!-- Clock Vreg level railway level mapping -->
+<props name="ClockVregRailMap" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+  ClockVregRailMapConfig
+</props>
+  </device>
+</driver>
+
+enum_header_path "pm_dal_prop_ids.h"
+<driver name=NULL>
+<device id="/rpm/pmic/common">
+<props id=1 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+clk_reg
+</props>
+<props id=2 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+smps_reg 
+</props>
+<props id=3 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ldo_reg
+</props>
+<props id=4 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+vs_reg 
+</props>
+<props id=5 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+boost_reg 
+</props>
+<props id=41 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+boost_byp_reg 
+</props>
+<props id=6 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+fts_volt 
+</props>
+<props id=30 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+fts2p5_volt 
+</props>
+<props id=7 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+hfs_volt 
+</props>
+<props id=8 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+boost_volt
+</props>
+<props id=42 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+boost_byp_volt
+</props>
+<props id=9 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+nmos_volt
+</props>
+<props id=10 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+n600_volt
+</props>
+<props id=11 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+n1200_volt 
+</props>
+<props id=12 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+pmos_volt 
+</props>
+<props id=13 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ln_volt 
+</props>
+<props id=14 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+fts_range 
+</props>
+<props id=31 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+fts2p5_range 
+</props>
+<props id=15 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+hfs_range 
+</props>
+<props id=16 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+boost_range 
+</props>
+<props id=40 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+boost_byp_range 
+</props>
+<props id=17 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+nmos_range 
+</props>
+<props id=18 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+n600_range 
+</props>
+<props id=19 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+n1200_range 
+</props>
+<props id=20 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+pmos_range 
+</props>
+<props id=21 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ln_range 
+</props>
+<props id=39 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ult_nmos_volt
+</props>
+<props id=37 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ult_pmos_volt
+</props>
+<props id=38 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ult_nmos_range
+</props>
+<props id=36 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ult_pmos_range
+</props>
+<props id=32 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ult_buck_range_1 
+</props>
+<props id=33 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ult_buck_volt_1 
+</props>
+<props id=34 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ult_buck_range_2 
+</props>
+<props id=35 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ult_buck_volt_2 
+</props>
+<props id=43 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ult_ldo_settling_time 
+</props> 
+<props id=44 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ult_smps_settling_time 
+</props>
+<props id=22 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ldo_settling_time 
+</props> 
+<props id=23 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+smps_settling_time 
+</props> 
+<props id=24 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+vs_settling_time 
+</props> 
+<props id=25 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+boost_settling_time
+</props>
+<props id=26 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+clk_sleep_reg 
+</props>
+<props id=27 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+clk_xo_reg 
+</props> 
+<props id=28 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+clk_common
+</props>
+</device> 
+</driver>
+
+<driver name=NULL>
+<device id="/rpm/pmic/target">
+<props id=101 type=DALPROP_ATTR_TYPE_STRUCT_PTR >
+num_of_smps 
+</props>
+<props id=103 type=DALPROP_ATTR_TYPE_STRUCT_PTR >
+num_of_ldo 
+</props>
+<props id=134 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ldo_rail
+</props>
+<props id=135 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+smps_rail
+</props>
+<props id=116 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+clk_info
+</props> 
+<props id=110 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+smps_dep
+</props>
+<props id=109 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+ldo_dep
+</props>
+<props id=113 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+clk_dep
+</props>
+<props id=301 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+pm_mpm_active_cfg
+</props>
+<props id=302 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+pm_mpm_sleep_cfg
+</props>
+<props id=303 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+pm_mpm_cmd_index
+</props>
+<props id=304 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+pm_mpm_rails_info
+</props>
+<props id=117 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+sleep_enter_info
+</props>
+<props id=118 type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+sleep_exit_info
+</props>
+</device>
+</driver>
+
+<driver name="Timetick">
+  <device id=DALDEVICEID_TIMETICK>
+     <props name="DEFAULT_FREQUENCY" type=DALPROP_ATTR_TYPE_UINT32>
+       19200000
+     </props>
+     <props name="QTIMER_AC_BASE" type=DALPROP_ATTR_TYPE_UINT32>
+       0x00082000
+     </props>
+     <props name="QTIMER_BASE" type=DALPROP_ATTR_TYPE_UINT32>
+       0x00084000
+     </props>
+  </device>
+</driver>
+
+</module>
+</dal>

@@ -1,0 +1,670 @@
+; ============================================================================
+;
+;  PMICPeek.cmm
+;
+;  Script to peek/poke PMIC register values.
+;
+;  Execution:
+;    PMICPeek.cmm [ address ] [ deviceid ] [ data ]
+;
+;  The deviceid is 0 for the first PMIC and 1 for the second. If address
+;  and deviceid are provided the script will peek the given
+;  address and print the result.  If "data" is also provided the data
+;  will be poked to the given address.
+;
+;  ====================================================================
+;
+;  Copyright (c) 2012 Qualcomm Technologies Incorporated.  All Rights Reserved.
+;  QUALCOMM Proprietary and Confidential.
+;
+;  ====================================================================
+;
+;  $Header: //components/rel/metascripts/3.0/tools/cmm/common/msm8909/pmicpeek.cmm#1 $
+;  $DateTime: 2014/09/24 11:59:28 $
+;  $Author: pwbldsvc $
+;
+; ============================================================================
+;
+
+ENTRY &addr &devid &data
+
+;-----------------------------------------------------------------------------
+; SPMI variables
+;-----------------------------------------------------------------------------
+
+&PMIC_ARB_CHNLn_CMD=0xFC4CF800
+&PMIC_ARB_CHNLn_STATUS=0xFC4CF808
+&PMIC_ARB_CHNLn_WDATA0=0xFC4CF810
+&PMIC_ARB_CHNLn_RDATA0=0xFC4CF818
+&CHNLn_OFFSET=0x80
+
+y.create.l HWIO_PMIC_ARB0_CHNL0_CMD_ADDR A:0x2400000
+y.create.l HWIO_PMIC_ARB0_CHNL0_STATUS_ADDR A:0x2400008
+y.create.l HWIO_PMIC_ARB0_CHNL0_RDATA0_ADDR A:0x2400018
+y.create.l HWIO_PMIC_ARB0_CHNL0_WDATA0_ADDR A:0x2400010
+y.create.l HWIO_PMIC_ARB_REG_CHNL0_ADDR A:0x200f800
+y.create.done
+
+&SPMIOwnerChannel=4  ; RPM Channel by default
+&wdog_data=0x0
+
+&MAX_CHANNEL=127
+&MAX_SLAVE=0x0F
+&MAX_OWNER=5
+&MAX_REGISTER_ADDRESS=0xFFFF
+&numBytes=1
+
+;-----------------------------------------------------------------------------
+; Default bus access mode
+;-----------------------------------------------------------------------------
+
+&BusAccessMode="A"
+
+;-----------------------------------------------------------------------------
+; Check for non-interactive mode.
+;-----------------------------------------------------------------------------
+
+IF "&addr"!=""
+(
+  IF "&devid"==""
+  (
+    &devid=0
+  )
+
+  IF "&data"==""
+  (
+    GOSUB PMICRead &addr &devid
+    ENTRY &status &data
+
+    IF ("&status"=="true")
+    (
+      PRINT "Address='0x" &addr "' Value='0x" &data
+    )
+    ELSE
+    (
+      PRINT "SPMI error"
+    )
+  )
+  ELSE
+  (
+    GOSUB PMICWrite &addr &devid &data
+    ENTRY &status
+
+    IF (&status==1)
+    (
+      PRINT "Write successful."
+    )
+    ELSE
+    (
+      PRINT "Write failed."
+    )
+  )
+
+  ENDDO
+)
+
+;-----------------------------------------------------------------------------
+; Create the dialog
+;-----------------------------------------------------------------------------
+
+DIALOG
+(
+  HEADER "PMIC Register Peek/Poke Tool"
+   
+  POS 0. 0. 25. 9.5
+  BOX "Configuration"
+  
+  POS 1. 1.5 10. 1.
+  TEXT "Address:"
+  POS 12. 1.5 12. 1.
+  ADDR: EDIT "" ""
+  
+  POS 1. 3. 10. 1.
+  TEXT10: TEXT "PMIC:"
+  POS 12. 3. 12. 1.
+  DEVID: PULLDOWN "Primary,Secondary"
+  (
+  )
+
+  POS 1. 4.5 10. 1.
+  TEXT20: TEXT "Data:"
+  POS 12. 4.5 12. 1.
+  DATA: EDIT "" ""
+
+  POS 1. 6. 10. 1.
+  TEXT20: TEXT "Owner:"
+  POS 12. 6. 12. 1.
+  OWNER: PULLDOWN "RPM,APCS,TZ,MPSS,WCNSS,LPASS"
+  (
+  )
+
+  POS 1. 7.5 10. 1.
+  TEXT20: TEXT "Access Mode:"
+  POS 12. 7.5 12. 1.
+  ACCESSMODE: PULLDOWN "A,EZAHB"
+  (
+  )
+
+  POS 2. 12. 25. 5.
+  BOX "PMIC Watch Dog"
+  POS 5. 13. 10. 3.
+  WDOGCTL: CHECKBOX "WDOG Disable"
+  (
+  )
+
+  ; Instructions Box
+  POS 26. 0. 35. 9.5
+  BOX "Instructions"
+  POS 27. 1. 30. 1.
+  TEXT "1. Fill in the address to peek/poke. For"
+  POS 27. 2. 30. 1.
+  TEXT "   the second PMIC slave use 0x1xxxx."
+  POS 27. 3. 30. 1.
+  TEXT "2. Set the PMIC device and optionally the"
+  POS 27. 4. 30. 1.
+  TEXT "   owner channel and access mode (EZAHB"
+  POS 27. 5. 30. 1.
+  TEXT "   can be used without breaking the CPU)"
+  POS 27. 6. 30. 1.
+  TEXT "3. Click 'Peek' to read from PMIC, or fill"
+  POS 27. 7. 30. 1.
+  TEXT "   in Data and click 'Poke' to write to PMIC"
+  
+  POS 12. 9.5 10. 1.5
+  DEFBUTTON "Peek" 
+  (
+    GOSUB SetOwnerChannel DIALOG.STRING(OWNER)
+
+    &BusAccessMode=DIALOG.STRING(ACCESSMODE)
+
+    IF DIALOG.STRING(DEVID)=="Secondary"
+    (
+      &devid=1
+    )
+    ELSE
+    (
+      &devid=0
+    )
+    &addr=DIALOG.STRING(ADDR)
+    IF "&addr"!=""
+    (
+      GOSUB PMICRead &addr &devid
+      ENTRY &status &data
+      IF ("&status"=="true")
+      (
+        DIALOG.SET DATA "&data"
+      )
+      ELSE
+      (
+        DIALOG.SET DATA "SPMI Error!"
+      )
+    )
+  )
+  POS 24.5 9.5 10. 1.5
+  DEFBUTTON "Poke" 
+  (
+    GOSUB SetOwnerChannel DIALOG.STRING(OWNER)
+
+    &BusAccessMode=DIALOG.STRING(ACCESSMODE)
+
+    IF DIALOG.STRING(DEVID)=="Secondary"
+    (
+      &devid=1
+    )
+    ELSE
+    (
+      &devid=0
+    )
+    &addr=DIALOG.STRING(ADDR)
+    &data=DIALOG.STRING(DATA)
+    IF ("&addr"!="")&&("&data"!="")
+    (
+      GOSUB PMICWrite &addr &devid &data
+      ENTRY &status
+      IF (&status==0)
+      (
+        DIALOG.SET DATA "SPMI Error!"
+      )
+    )
+  )
+
+  POS 17. 13.8 8. 1.5
+  DEFBUTTON "OK" 
+  (
+    GOSUB SetOwnerChannel DIALOG.STRING(OWNER)
+
+    &BusAccessMode=DIALOG.STRING(ACCESSMODE)
+    &devid=0
+    &addr=0x857
+    IF DIALOG.BOOLEAN(WDOGCTL)
+    (
+      &wdog_data=0x0
+      PRINT "PMIC WDOG Disables"
+    )
+    ELSE
+    (
+      &wdog_data=0x80
+      PRINT "PMIC WDOG Enabled"
+     )
+
+    IF ("&addr"!="")&&("&wdog_data"!="")
+    (
+      GOSUB PMICWrite &addr &devid &wdog_data
+      ENTRY &status
+      IF (&status==0)
+      (
+        DIALOG.SET DATA "SPMI Error!"
+      )
+    )
+  )
+
+  POS 37. 9.5 10. 1.5
+  BUTTON "Close" "JUMPTO winclose"
+  CLOSE "JUMPTO winclose"
+)
+STOP
+
+winclose:
+DIALOG.END
+ENDDO
+
+
+;=============================================================================
+;=============================================================================
+; SUBROUTINES
+;=============================================================================
+;=============================================================================
+
+
+;=============================================================================
+; SUB: SetOwnerChannel
+;=============================================================================
+
+SetOwnerChannel:
+
+  ENTRY &OwnerName
+
+  IF &OwnerName=="APCS"
+  (
+    &SPMIOwnerChannel=0
+  )
+  ELSE IF &OwnerName=="TZ"
+  (
+    &SPMIOwnerChannel=1
+  )
+  ELSE IF &OwnerName=="MPSS"
+  (
+    &SPMIOwnerChannel=2
+  )
+  ELSE IF &OwnerName=="LPASS"
+  (
+    &SPMIOwnerChannel=3
+  )
+  ELSE IF &OwnerName=="RPM"
+  (
+    &SPMIOwnerChannel=4
+  )
+  ELSE IF &OwnerName=="WCNSS"
+  (
+    &SPMIOwnerChannel=5
+  )
+
+  RETURN
+
+
+;=============================================================================
+; SUB: SPMIRead
+;=============================================================================
+
+SPMIRead:
+
+  ENTRY &RegisterAddress &SlaveId
+
+  &cmd=(0x1<<0x1B)|(&SlaveId<<0x14)|(&RegisterAddress<<0x4)
+
+  DATA.SET &BusAccessMode:&PMIC_ARB_CHNLn_CMD+&CHNLn_OFFSET*&SPMIOwnerChannel %LONG &cmd
+
+  &status=0
+  WHILE (&status==0)
+  (
+    WAIT 1.ms
+    &status=DATA.LONG(&BusAccessMode:&PMIC_ARB_CHNLn_STATUS+&CHNLn_OFFSET*&SPMIOwnerChannel)
+  )
+
+  &data=DATA.LONG(&BusAccessMode:&PMIC_ARB_CHNLn_RDATA0+&CHNLn_OFFSET*&SPMIOwnerChannel)
+
+  RETURN &status &data
+
+
+;=============================================================================
+; SUB: SPMIWrite
+;=============================================================================
+
+SPMIWrite:
+
+  ENTRY &RegisterAddress &SlaveId &Data
+
+  DATA.SET &BusAccessMode:&PMIC_ARB_CHNLn_WDATA0+&CHNLn_OFFSET*&SPMIOwnerChannel %LONG (&Data&0xFF)
+
+  &cmd=(0x0<<0x1B)|(&SlaveId<<0x14)|(&RegisterAddress<<0x4)
+
+  DATA.SET &BusAccessMode:&PMIC_ARB_CHNLn_CMD+&CHNLn_OFFSET*&SPMIOwnerChannel %LONG &cmd
+
+  &status=0
+  WHILE (&status==0)
+  (
+    WAIT 1.ms
+    &status=DATA.LONG(&BusAccessMode:&PMIC_ARB_CHNLn_STATUS+&CHNLn_OFFSET*&SPMIOwnerChannel)
+  )
+
+  RETURN &status
+
+
+;=============================================================================
+; SUB: PMICToSPMI
+;=============================================================================
+
+PMICToSPMI:
+
+  ENTRY &addr &devid
+  LOCAL &spmi_sid &spmi_addr
+
+  IF &devid==1
+  (
+    &spmi_sid=4
+  )
+  ELSE
+  (
+    &spmi_sid=0
+  )
+
+  &pmic_sid=&addr>>16.
+  IF &pmic_sid==1
+  (
+    &spmi_sid=&spmi_sid+1
+  )
+
+  &spmi_addr=&addr&0xFFFF
+
+  RETURN &spmi_sid &spmi_addr
+
+
+;=============================================================================
+; SUB: PMICRead
+;=============================================================================
+
+PMICRead:
+
+  ENTRY &addr &devid
+
+  GOSUB PMICToSPMI &addr &devid
+  ENTRY &spmi_sid &spmi_addr
+
+  GOSUB PMIC_READ &spmi_sid &SPMIOwnerChannel &spmi_addr
+  ENTRY &status &data
+
+  RETURN &status &data
+
+
+;=============================================================================
+; SUB: PMICWrite
+;=============================================================================
+
+PMICWrite:
+
+  ENTRY &addr &devid &data
+
+  GOSUB PMICToSPMI &addr &devid
+  ENTRY &spmi_sid &spmi_addr
+
+  GOSUB PMIC_WRITE &spmi_sid &SPMIOwnerChannel &spmi_addr &data
+  ENTRY &status
+
+  RETURN &status
+
+
+
+
+
+//*****************************************************************************
+// PARAMETER_CHECK - This is internal function
+//*****************************************************************************
+PARAMETER_CHECK: 
+    ENTRY &operation &slave &owner &registerOffset
+    &param_check_status="true"
+    if "&operation"=="" 
+    (
+          print "Error: Operation not specified!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if "&operation"!="Read"&&"&operation"!="READ"&&"&operation"!="read"&&"&operation"=="Write"&&"&operation"=="WRITE"&&"&operation"=="write" 
+    (
+          print "Error: Operation invalid!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if ("&slave"=="")
+    (
+          print "Error: Slave id not specified!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if (&slave>&MAX_SLAVE)||(&slave<0)
+    (
+          print "Error: Slave id invalid!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if ("&owner"=="")
+    (
+          print "Error: Owner not specified!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if (&owner>&MAX_OWNER)||(&owner<0)
+    (
+          print "Error: Owner invalid!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if ("&registerOffset"=="") 
+    (
+          print "Error: Register address not specified!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if (&registerOffset>&MAX_REGISTER_ADDRESS)||(&registerOffset<0)
+    (
+          print "Error: Register address invalid!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+
+PARAMETER_CHECK_RETURN:
+    RETURN
+
+//*****************************************************************************
+// GET_CHANNEL
+//*****************************************************************************
+GET_CHANNEL:
+    ENTRY &sid &periph
+    LOCAL &i &d
+    &i=0
+    
+    REPEAT (&MAX_CHANNEL+1)
+    (
+        &d=(&sid<<16.)|(&periph<<8.)
+        if (data.long(a:(HWIO_PMIC_ARB_REG_CHNL0_ADDR+(4.*&i)))==&d)
+        (
+            //print "SlaveId: &sid, Peripheral: &periph -> Channel: &i"
+            RETURN &i
+        )
+        
+        &i=&i+1
+    )
+    
+    print %error "Could not find channel for SlaveId: &sid, Peripheral: &periph"
+    ENDDO
+
+
+//*****************************************************************************
+// READ
+//*****************************************************************************
+PMIC_READ:
+   ENTRY &slave &owner &register
+   LOCAL &read &tmp &status &registerOffset &readValue &read_status
+   &read="READ"
+   
+   &read_status="true"
+
+   GOSUB PARAMETER_CHECK &read &slave &owner &register
+   if ("&param_check_status"=="false")
+   (
+      &read_status="false"
+      goto READ_RETURN
+   )
+   
+   &registerOffset=(&register)&0xFF
+   &tmp=&register>>8.
+   
+   GOSUB GET_CHANNEL &slave &tmp
+   ENTRY &channel
+      
+   &tmp=(0x1<<0x1B)|(&registerOffset<<0x4)|(&numBytes-1)
+   
+   //print "Reading SlaveId: &slave, Register: &register [channel &channel, Offset &registerOffset]"
+   
+   data.set a:(HWIO_PMIC_ARB0_CHNL0_CMD_ADDR+(0x1000*&owner)+(0x8000*&channel)) %LONG &tmp
+    
+   &status=0
+   while (&status==0) ;wait for status register to change to non zero value
+   (
+      // virtio
+      //g
+      //b
+      //wait !state.run()
+
+	  // silicon
+      wait 1.ms
+      &status=data.long(a:(HWIO_PMIC_ARB0_CHNL0_STATUS_ADDR+(0x1000*&owner)+(0x8000*&channel)))
+   )
+   
+   if (&status==1)
+   (
+      &readValue=data.long(a:(HWIO_PMIC_ARB0_CHNL0_RDATA0_ADDR+(0x1000*&owner)+(0x8000*&channel)))&0xFF
+      print "Value = &readValue"
+   )
+   else 
+   (
+      if ((&status&0x2)>0)
+      (
+        print "Read Failed"
+      )
+      else if ((&status&0x4)>0) 
+      (
+        print "Read Denied"
+      )
+      else if ((&status&0x8)>0) 
+      (
+        print "Read Dropped"
+      )
+      &read_status="false"
+      goto READ_RETURN
+   )
+
+READ_RETURN:
+    RETURN &read_status &readValue
+
+
+//*****************************************************************************
+// WRITE
+//*****************************************************************************
+PMIC_WRITE:
+   ENTRY &slave &owner &register &writeByte
+   LOCAL &tmp &status &registerOffset
+
+   &write_status=1
+
+   GOSUB PARAMETER_CHECK "Write" &slave &owner &register
+   
+   if ("&param_check_status"=="false")
+   (
+      &write_status="false"
+      goto WRITE_RETURN
+   )
+
+   if ("&writeByte"=="")
+   (
+      print "Error: Data byte not specified"
+      &write_status=0
+      goto WRITE_RETURN
+   )
+
+   if (&writeByte>0xFF)||(&writeByte<0)
+   (
+      print "Error: Data byte invalid"
+      &write_status=0
+      goto WRITE_RETURN
+   )
+   
+   &registerOffset=(&register)&0xFF
+   &tmp=&register>>8.
+   
+   GOSUB GET_CHANNEL &slave &tmp
+   ENTRY &channel
+   
+   print "Writing SlaveId: &slave, Register: &register [channel &channel, Offset &registerOffset]"
+   
+   data.set a:(HWIO_PMIC_ARB0_CHNL0_WDATA0_ADDR+(0x1000*&owner)+(0x8000*&channel)) %LONG (&writeByte&0xFF)
+   
+   &tmp=(0x0<<0x1B)|(&registerOffset<<0x4)|(&numBytes-1)
+   
+   data.set a:(HWIO_PMIC_ARB0_CHNL0_CMD_ADDR+(0x1000*&owner)+(0x8000*&channel)) %LONG &tmp
+
+   &status=0
+   while (&status==0) //wait for status register to change to non zero value
+   (
+      // virtio
+      //g
+      //b
+      //wait !state.run()
+
+	  // silicon
+      wait 1.ms
+      &status=data.long(a:(HWIO_PMIC_ARB0_CHNL0_STATUS_ADDR+(0x1000*&owner)+(0x8000*&channel)))
+   )
+   if (&status==1)
+   (
+      print "Write Successful"
+   )
+   else
+   (
+      if ((&status&0x2)>0)
+      (
+        print "Write Failed"
+      )
+      else if ((&status&0x4)>0)
+      (
+        print "Write Denied"
+      )
+      else if ((&status&0x8)>0)
+      (
+        print "Write Dropped"
+      )
+      &write_status=0
+      goto WRITE_RETURN
+   )
+
+WRITE_RETURN:
+    RETURN &write_status
+
+

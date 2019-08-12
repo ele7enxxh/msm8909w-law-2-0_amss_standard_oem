@@ -1,0 +1,426 @@
+;============================================================================
+;  Name:
+;    clk_init_9x45.cmm
+;
+;  Description:
+;    Setup GPLLs, bus, and APCS clocks as the clock SBL for MDM9X45.
+;    Usage:   clk_init_9x45.cmm  
+;    Example:  do clk_init_9x45 
+;
+;============================================================================
+;
+;      Copyright (c) 2014 by QUALCOMM Tehcnologies Inc.  All Rights Reserved.
+;      QUALCOMM Proprietary and Confidential.
+;
+;============================================================================
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/build/ms/clk_init_9x45.cmm#1 $
+; $DateTime: 2015/09/01 00:30:35 $
+; $Author: pwbldsvc $
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; when       who     what, where, why
+; ---------- ---     --------------------------------------------------------
+; 09/18/2014 pbitra     Created.
+;============================================================================;
+
+
+;-----------------------------------------------------------------------------
+; Local variables
+;-----------------------------------------------------------------------------
+
+local &pll_status
+
+;-----------------------------------------------------------------------------
+; Init_Constants
+;-----------------------------------------------------------------------------
+
+  ; HWIO mask
+  &HWIO_PLL_L_VAL_MASK=0xFFFF
+  &HWIO_PLL_ALPHA_VAL_MASK=0xFFFFFFFF
+  &HWIO_PLL_ALPHA_VAL_U_MASK=0xFF
+  &HWIO_PLL_VOTE_FSM_ENA_MASK=0x100000
+
+  ; GCC DDR BIMC Registers
+  &HWIO_GCC_PCNOC_DDR_CFG_CBCR_ADDR=0x01827020
+  &HWIO_GCC_DDR_DIM_CFG_CBCR_ADDR=0x0183201C
+  &HWIO_GCC_DDR_DIM_SLEEP_CBCR_ADDR=0x01832020
+  &HWIO_GCC_BIMC_XO_CBCR_ADDR=0x01831008
+  &HWIO_GCC_BIMC_CFG_AHB_CBCR_ADDR=0x0183100C
+  &HWIO_GCC_BIMC_SLEEP_CBCR_ADDR=0x01831010
+  &HWIO_GCC_BIMC_SYSNOC_AXI_CBCR_ADDR=0x01831014
+  &HWIO_GCC_BIMC_CBCR_ADDR=0x0183101C
+  &HWIO_GCC_BIMC_MISC_ADDR=0x01831018
+  &HWIO_GCC_BIMC_APSS_AXI_CBCR_ADDR=0x01831020
+  &HWIO_GCC_BIMC_DDR_CMD_RCGR_ADDR=0x01832004
+
+  ; GCC GPLL0 Registers
+  &HWIO_GCC_GPLL0_MODE_ADDR=0x01821000
+  &HWIO_GCC_GPLL0_L_VAL_ADDR=0x01821004
+  &HWIO_GCC_GPLL0_ALPHA_VAL_ADDR=0x01821008
+  &HWIO_GCC_GPLL0_ALPHA_VAL_U_ADDR=0x0182100C
+  &HWIO_GCC_GPLL0_USER_CTL_ADDR=0x01821010
+  &HWIO_GCC_GPLL0_CONFIG_CTL_ADDR=0x01821018
+  &HWIO_GCC_GPLL0_TEST_CTL_ADDR=0x0182101C
+
+  ; GCC GPLL1 Registers
+  &HWIO_GCC_GPLL1_MODE_ADDR=0x01820000
+  &HWIO_GCC_GPLL1_L_VAL_ADDR=0x01820004
+  &HWIO_GCC_GPLL1_ALPHA_VAL_ADDR=0x01820008
+  &HWIO_GCC_GPLL1_ALPHA_VAL_U_ADDR=0x0182000C
+  &HWIO_GCC_GPLL1_USER_CTL_ADDR=0x01820010
+  &HWIO_GCC_GPLL1_CONFIG_CTL_ADDR=0x01820018
+  &HWIO_GCC_GPLL1_TEST_CTL_ADDR=0x0182001C
+  
+  ; GCC GPLL2 Registers
+  &HWIO_GCC_GPLL2_MODE_ADDR=0x01825000
+  &HWIO_GCC_GPLL2_L_VAL_ADDR=0x01825004
+  &HWIO_GCC_GPLL2_ALPHA_VAL_ADDR=0x01825008
+  &HWIO_GCC_GPLL2_ALPHA_VAL_U_ADDR=0x0182500C
+  &HWIO_GCC_GPLL2_USER_CTL_ADDR=0x01825010
+  &HWIO_GCC_GPLL2_CONFIG_CTL_ADDR=0x01825018
+  &HWIO_GCC_GPLL2_TEST_CTL_ADDR=0x0182501C
+  
+  ; GCC GPLL3 Registers
+  &HWIO_GCC_GPLL3_MODE_ADDR=0x01823000
+  &HWIO_GCC_GPLL3_L_VAL_ADDR=0x01823004
+  &HWIO_GCC_GPLL3_ALPHA_VAL_ADDR=0x01823008
+  &HWIO_GCC_GPLL3_ALPHA_VAL_U_ADDR=0x0182300C
+  &HWIO_GCC_GPLL3_USER_CTL_ADDR=0x01823010
+  &HWIO_GCC_GPLL3_CONFIG_CTL_ADDR=0x01823018
+  &HWIO_GCC_GPLL3_TEST_CTL_ADDR=0x0182301C
+
+  ; GCC registers
+  &HWIO_GCC_PCNOC_BFDCD_CMD_RCGR_ADDR=0x01827000
+  &HWIO_GCC_PCNOC_BFDCD_CFG_RCGR_ADDR=0x01827004
+  &HWIO_GCC_SYSTEM_NOC_BFDCD_CMD_RCGR_ADDR=0x01826004
+  &HWIO_GCC_SYSTEM_NOC_BFDCD_CFG_RCGR_ADDR=0x01826008
+  &HWIO_GCC_SNOC_PCNOC_AHB_CBCR_ADDR=0x0182602C
+  &HWIO_GCC_PCNOC_AHB_CBCR_ADDR=0x0182701C
+  &HWIO_GCC_PCNOC_RPM_AHB_CBCR_ADDR=0x01827024
+  &HWIO_GCC_PCNOC_AT_CBCR_ADDR=0x01827028
+  &HWIO_GCC_SYS_NOC_AXI_CBCR_ADDR=0x01826020
+  &HWIO_GCC_SNOC_PCNOC_AHB_CBCR_ADDR=0x0182602C
+  &HWIO_GCC_RPM_GPLL_ENA_VOTE_ADDR=0x01836000
+  &HWIO_GCC_MSS_Q6_CLOCK_BRANCH_ENA_VOTE_ADDR=0x0181B004
+  &HWIO_GCC_APSS_AHB_CFG_RCGR_ADDR=0x01846004
+  &HWIO_GCC_APSS_AHB_CMD_RCGR_ADDR=0x01846000
+
+  ;TESLA_A7SS Registers
+  &HWIO_APCS_CPU_PWR_CTL_ADDR=0x0B008004  
+  &HWIO_APCS_CPU_PLL_MODE_ADDR=0x0B008018
+  &HWIO_APCS_CPU_PLL_L_VAL_ADDR=0x0B00801C
+  &HWIO_APCS_CPU_PLL_ALPHA_VAL_ADDR=0x0B008020
+  &HWIO_APCS_CPU_PLL_ALPHA_VAL_U_ADDR=0x0B008024
+  &HWIO_APCS_CPU_PLL_USER_CTL_ADDR=0x0B008028
+  &HWIO_APCS_CPU_PLL_TEST_CTL_ADDR=0x0B008034
+  &HWIO_APCS_CPU_PLL_STATUS_ADDR=0x0B00803C
+  &HWIO_APCS_CMD_RCGR_ADDR=0x0B010008
+  &HWIO_APCS_CFG_RCGR_ADDR=0x0B01000C
+  &HWIO_APCS_GLB_QGIC_CFG_ADDR=0x0B01002C
+
+  ; QPIC registers
+  &HWIO_GCC_QPIC_CBCR_ADDR=0x0183F018
+  &HWIO_GCC_QPIC_AHB_CBCR_ADDR=0x0183F01C
+  &HWIO_GCC_QPIC_SYSTEM_CBCR_ADDR=0x0183F020
+  &HWIO_GCC_QPIC_CFG_RCGR_ADDR=0x0183F008
+  &HWIO_GCC_QPIC_CMD_RCGR_ADDR=0x0183F004
+  &HWIO_GCC_TLMM_AHB_CBCR_ADDR=0x01834004
+  &HWIO_GCC_TLMM_CBCR_ADDR=0x01834008
+  &HWIO_GCC_RPM_CLOCK_BRANCH_ENA_VOTE_ADDR=0x01836004
+
+;-----------------------------------------------------------------------------
+; Configure PLLs
+;-----------------------------------------------------------------------------
+  gosub Configure_GPLL0 
+ ; gosub Configure_GPLL2 
+ ; gosub Configure_GPLL3
+;enddo
+;-----------------------------------------------------------------------------
+; Configure PCNOC @100MHz on GPLL0
+;-----------------------------------------------------------------------------
+PCNOC_init:
+
+  ; Read cfg register
+  &reg=data.long(ezaxi:&HWIO_GCC_PCNOC_BFDCD_CFG_RCGR_ADDR)
+  ; Set SRC and DIV
+  &reg=&reg|0x0000010B
+  ; Write cfg register
+  data.set ezaxi:&HWIO_GCC_PCNOC_BFDCD_CFG_RCGR_ADDR %LONG &reg
+  ; Trigger update
+  data.set ezaxi:&HWIO_GCC_PCNOC_BFDCD_CMD_RCGR_ADDR %LONG 0x1
+  wait 1.ms
+  while (data.long(ezaxi:&HWIO_GCC_PCNOC_BFDCD_CMD_RCGR_ADDR)&0x1)==1
+  (
+    wait 1.ms
+  )
+
+  data.set ezaxi:&HWIO_GCC_PCNOC_RPM_AHB_CBCR_ADDR %LONG 0x1 
+  wait 1.ms
+  while (data.long(ezaxi:&HWIO_GCC_PCNOC_RPM_AHB_CBCR_ADDR)&0x80000000)==0x80000000
+  (
+    wait 1.ms
+  )
+  data.set ezaxi:&HWIO_GCC_SNOC_PCNOC_AHB_CBCR_ADDR %LONG 0x1
+  wait 1.ms
+  while (data.long(ezaxi:&HWIO_GCC_SNOC_PCNOC_AHB_CBCR_ADDR)&0x80000000)==0x80000000
+  (
+    wait 1.ms
+  )
+  data.set ezaxi:&HWIO_GCC_PCNOC_AHB_CBCR_ADDR %LONG 0x1
+  wait 1.ms
+  while (data.long(ezaxi:&HWIO_GCC_PCNOC_AHB_CBCR_ADDR)&0x80000000)==0x80000000
+  (
+    wait 1.ms
+  )
+  data.set ezaxi:&HWIO_GCC_PCNOC_AT_CBCR_ADDR %LONG 0x1
+  wait 1.ms
+  while (data.long(ezaxi:&HWIO_GCC_PCNOC_AT_CBCR_ADDR)&0x80000000)==0x80000000
+  (
+    wait 1.ms
+  )
+
+;-----------------------------------------------------------------------------
+; Configure SYSNOC @200MHz on GPLL0
+;-----------------------------------------------------------------------------
+SYSNOC_init:
+  ; Read cfg register
+  &reg=data.long(ezaxi:&HWIO_GCC_SYSTEM_NOC_BFDCD_CFG_RCGR_ADDR)
+  ; Set SRC and DIV
+  &reg=&reg|0x00000105
+  ; Write cfg register
+  data.set ezaxi:&HWIO_GCC_SYSTEM_NOC_BFDCD_CFG_RCGR_ADDR %LONG &reg
+  ; Trigger update
+  data.set ezaxi:&HWIO_GCC_SYSTEM_NOC_BFDCD_CMD_RCGR_ADDR %LONG 0x1
+  wait 1.ms
+  while (data.long(ezaxi:&HWIO_GCC_SYSTEM_NOC_BFDCD_CMD_RCGR_ADDR)&0x1)==1
+  (
+    wait 1.ms
+  )
+
+  data.set ezaxi:&HWIO_GCC_SYS_NOC_AXI_CBCR_ADDR %LONG 0x1   ;;
+  data.set ezaxi:&HWIO_GCC_SNOC_PCNOC_AHB_CBCR_ADDR %LONG 0x1  ;;
+
+; ------------------------------------------------------------------------------
+; Configure QPIC clk at 100MHz on GPLL0
+; ------------------------------------------------------------------------------
+QPIC_init:
+
+  ; Read cfg register
+  &reg=data.long(ezaxi:&HWIO_GCC_QPIC_CFG_RCGR_ADDR)
+  ; Set SRC and DIV
+  &reg=&reg|0x0000010B
+  ; Write cfg register
+  data.set ezaxi:&HWIO_GCC_QPIC_CFG_RCGR_ADDR %LONG &reg
+
+  ; Trigger update
+  data.set ezaxi:&HWIO_GCC_QPIC_CMD_RCGR_ADDR %LONG 0x1
+  wait 1.ms
+  while (data.long(ezaxi:&HWIO_GCC_QPIC_CMD_RCGR_ADDR)&0x1)==1
+  (
+    wait 1.ms
+  )
+
+  ; GCC_QPIC_CBCR (at 0x0183F018)
+  PER.S.F AD:0x0183F018 %L 0x00004ff1
+    wait 1.ms
+    while (data.long(ezaxi:&HWIO_GCC_QPIC_CBCR_ADDR)&0x80000000)==0x80000000
+    (
+      wait 1.ms
+    )
+
+  ; GCC_QPIC_AHB_CBCR (at 0x0183F01C )
+  PER.S.F AD:0x0183F01C  %L 0x0000CFF1
+    wait 1.ms
+    while (data.long(ezaxi:&HWIO_GCC_QPIC_AHB_CBCR_ADDR)&0x80000000)==0x80000000
+    (
+      wait 1.ms
+    )
+
+  ; GCC_QPIC_SYSTEM_CBCR (at 0x0183F020)
+  PER.S.F AD:0x0183F020 %L 0x1
+    wait 1.ms
+    while (data.long(ezaxi:&HWIO_GCC_QPIC_SYSTEM_CBCR_ADDR)&0x80000000)==0x80000000
+    (
+      wait 1.ms
+    )
+
+;GCC_TLMM_AHB_CBCR
+
+  ; GCC_TLMM_AHB_CBCR (at GCC_TLMM_AHB_CBCR )
+  PER.S.F AD:0x01834004   %L 0x00008000
+    wait 1.ms
+    ;Enable Vote
+    data.set ezaxi:&HWIO_GCC_RPM_CLOCK_BRANCH_ENA_VOTE_ADDR %LONG data.long(ezaxi:&HWIO_GCC_RPM_CLOCK_BRANCH_ENA_VOTE_ADDR)|0x00000030
+    
+    while (data.long(ezaxi:&HWIO_GCC_TLMM_AHB_CBCR_ADDR)&0x80000000)==0x80000000
+    (
+      wait 1.ms
+    )
+
+;---------------------------------------------------------------------------
+; Switch A7 to source from  GPLL0 @600MHz.
+;---------------------------------------------------------------------------
+    ; HWIO_OUTF(APCS_CFG_RCGR, SRC_SEL, 0x1);  
+    data.set ezaxi:0x0B01000C %long (data.long(ezaxi:0x0B01000C)|(0x1<<8.))
+    
+    ; HWIO_OUTF(APCS_CFG_RCGR, SRC_DIV, 1); 
+    data.set ezaxi:0x0B01000C %long (data.long(ezaxi:0x0B01000C)|(0x1<<0.))
+    
+    ; HWIO_OUTF(APCS_CMD_RCGR, UPDATE, 1);    
+    data.set ezaxi:0x0B010008 %long (data.long(ezaxi:0x0B010008)|(0x1<<0.))
+    
+    ; Wait for UPDATE field to clear
+    while (data.long(ezaxi:0x0B010008)&(0x1<<0.))==(0x1<<0.)
+    (
+    )
+
+
+enddo
+
+;---------------------------------------------------------------------------
+; Configure GPLL0 @600MHz.
+;---------------------------------------------------------------------------
+Configure_GPLL0:
+
+    ; Do not re-configure GPLL if it is enabled already
+    &pll_status=data.long(ezaxi:&HWIO_GCC_GPLL0_MODE_ADDR)&0x40000000
+    if &pll_status!=0
+      return
+
+    ; FSM mode 
+    data.set ezaxi:&HWIO_GCC_GPLL0_MODE_ADDR %LONG 0x0
+    ; PLL_VOTE_FSM_RESET,
+    data.set ezaxi:&HWIO_GCC_GPLL0_MODE_ADDR %LONG 0x00200000
+
+
+    data.set ezaxi:&HWIO_GCC_GPLL0_L_VAL_ADDR %LONG 0x1f&(&HWIO_PLL_L_VAL_MASK)
+    data.set ezaxi:&HWIO_GCC_GPLL0_ALPHA_VAL_ADDR %LONG 0x0&(&HWIO_PLL_ALPHA_VAL_MASK)
+    data.set ezaxi:&HWIO_GCC_GPLL0_ALPHA_VAL_U_ADDR %LONG 0x40&(&HWIO_PLL_ALPHA_VAL_U_MASK)
+
+    ; set ALPHA_EN,LV_MAIN,LV_EARLY,LV_AUX, 0x00000010 GPLL0_USER_CTL 
+    data.set ezaxi:&HWIO_GCC_GPLL0_USER_CTL_ADDR %LONG 0x0120000B
+
+    ; CONFIG_CTL
+    ;data.set ezaxi:&HWIO_GCC_GPLL0_CONFIG_CTL_ADDR %LONG 0x4001051B
+
+    ;Bias Count, Lockcount PLL_VOTE_FSM_ENA, enable PLL
+    data.set ezaxi:&HWIO_GCC_GPLL0_MODE_ADDR %LONG 0x00382002
+
+    ;FSM Reset 
+    data.set ezaxi:&HWIO_GCC_GPLL0_MODE_ADDR %LONG 0x00182002
+	
+    ;Enable Vote
+    data.set ezaxi:&HWIO_GCC_RPM_GPLL_ENA_VOTE_ADDR %LONG data.long(ezaxi:&HWIO_GCC_RPM_GPLL_ENA_VOTE_ADDR)|0x00000001
+	
+    ; Wait for PLL_ACTIVE=1
+    &pll_status=data.long(ezaxi:&HWIO_GCC_GPLL0_MODE_ADDR)&0x40000000
+    wait 1ms
+    if &pll_status==0
+      wait 1ms
+	
+    ;vote for MSS_GPLL0_CLK_SRC_ENA 
+    data.set ezaxi:&HWIO_GCC_MSS_Q6_CLOCK_BRANCH_ENA_VOTE_ADDR %LONG 0x84000000
+	
+    ;delay 5us
+
+  return
+
+
+
+;---------------------------------------------------------------------------
+;  Configure GPLL2 @ 808.4MHz.
+;---------------------------------------------------------------------------
+Configure_GPLL2:
+
+    ; Do not re-configure GPLL if it is enabled already
+    &pll_status=data.long(ezaxi:&HWIO_GCC_GPLL2_MODE_ADDR)&0x40000000
+    if &pll_status!=0
+      return
+
+    ; FSM mode 
+    data.set ezaxi:&HWIO_GCC_GPLL2_MODE_ADDR %LONG 0x0
+    ; PLL_VOTE_FSM_RESET,
+    data.set ezaxi:&HWIO_GCC_GPLL2_MODE_ADDR %LONG 0x00200000
+
+
+    data.set ezaxi:&HWIO_GCC_GPLL2_L_VAL_ADDR %LONG 0x2A&(&HWIO_PLL_L_VAL_MASK)
+    data.set ezaxi:&HWIO_GCC_GPLL2_ALPHA_VAL_ADDR %LONG 0xAAAAAAAAAA&(&HWIO_PLL_ALPHA_VAL_MASK)
+    data.set ezaxi:&HWIO_GCC_GPLL2_ALPHA_VAL_U_ADDR %LONG 0x1A&(&HWIO_PLL_ALPHA_VAL_U_MASK)
+
+    ; set ALPHA_EN,LV_MAIN,LV_EARLY,LV_AUX, 0x00000010 GPLL0_USER_CTL 
+    data.set ezaxi:&HWIO_GCC_GPLL2_USER_CTL_ADDR %LONG 0x0120000B
+
+    ; CONFIG_CTL
+    ;data.set ezaxi:&HWIO_GCC_GPLL2_CONFIG_CTL_ADDR %LONG 0x4001051B
+
+    ;Bias Count, Lockcount PLL_VOTE_FSM_ENA, enable PLL
+    data.set ezaxi:&HWIO_GCC_GPLL2_MODE_ADDR %LONG 0x00382002
+
+    ;FSM Reset 
+    data.set ezaxi:&HWIO_GCC_GPLL2_MODE_ADDR %LONG 0x00182002
+	
+    ;Enable Vote
+    data.set ezaxi:&HWIO_GCC_RPM_GPLL_ENA_VOTE_ADDR %LONG data.long(ezaxi:&HWIO_GCC_RPM_GPLL_ENA_VOTE_ADDR)|0x00000004
+	
+    ; Wait for PLL_ACTIVE=1
+    &pll_status=data.long(ezaxi:&HWIO_GCC_GPLL2_MODE_ADDR)&0x40000000
+    wait 1ms
+    if &pll_status==0
+      wait 1ms
+
+    ;delay 5us
+
+  return
+
+
+;---------------------------------------------------------------------------
+;  Configure GPLL3 @ 1036.8MHz.
+;---------------------------------------------------------------------------
+Configure_GPLL3:
+
+    ; Do not re-configure GPLL if it is enabled already
+    &pll_status=data.long(ezaxi:&HWIO_GCC_GPLL3_MODE_ADDR)&0x40000000
+    if &pll_status!=0
+      return
+
+    ; FSM mode 
+    data.set ezaxi:&HWIO_GCC_GPLL3_MODE_ADDR %LONG 0x0
+    ; PLL_VOTE_FSM_RESET,
+    data.set ezaxi:&HWIO_GCC_GPLL3_MODE_ADDR %LONG 0x00200000
+
+
+    data.set ezaxi:&HWIO_GCC_GPLL3_L_VAL_ADDR %LONG 0x36&(&HWIO_PLL_L_VAL_MASK)
+    data.set ezaxi:&HWIO_GCC_GPLL3_ALPHA_VAL_ADDR %LONG 0x0&(&HWIO_PLL_ALPHA_VAL_MASK)
+    data.set ezaxi:&HWIO_GCC_GPLL3_ALPHA_VAL_U_ADDR %LONG 0x00&(&HWIO_PLL_ALPHA_VAL_U_MASK)
+
+    ; set ALPHA_EN,LV_MAIN,LV_EARLY,LV_AUX, 0x00000010 GPLL0_USER_CTL 
+    data.set ezaxi:&HWIO_GCC_GPLL3_USER_CTL_ADDR %LONG 0x0100000B
+
+    ; CONFIG_CTL
+    ;data.set ezaxi:&HWIO_GCC_GPLL3_CONFIG_CTL_ADDR %LONG 0x4001051B
+
+    ;Bias Count, Lockcount PLL_VOTE_FSM_ENA, enable PLL
+    data.set ezaxi:&HWIO_GCC_GPLL3_MODE_ADDR %LONG 0x00382002
+
+    ;FSM Reset 
+    data.set ezaxi:&HWIO_GCC_GPLL3_MODE_ADDR %LONG 0x00182002
+	
+    ;Enable Vote
+    data.set ezaxi:&HWIO_GCC_RPM_GPLL_ENA_VOTE_ADDR %LONG data.long(ezaxi:&HWIO_GCC_RPM_GPLL_ENA_VOTE_ADDR)|0x00000008
+
+	
+    ; Wait for PLL_ACTIVE=1
+    &pll_status=data.long(ezaxi:&HWIO_GCC_GPLL3_MODE_ADDR)&0x40000000
+    wait 1ms
+    if &pll_status==0
+      wait 1ms
+
+    ;delay 5us
+
+  return
+
+
+
+

@@ -1,0 +1,58 @@
+#===============================================================================
+#
+# Island Config
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2015 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:
+#  $DateTime: 2016/12/13 08:00:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985213 $
+#===============================================================================
+Import('env')
+
+#Algo list to be included in island mode
+#Comment algos out to exclude from Island mode
+
+if 'USES_ISLAND' in env:
+   env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_QMD"])
+   env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_PED"])
+   if "slpi_v2" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_SMD"])
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_CMC"])
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_QFUS"])
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_TILT"])
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_IOD"])
+      env.Append(CPPDEFINES = ["SNS_HIMEM_UIMG"])
+
+   #Options for manually including algorithm in island mode
+   #Build with '-f SNS_ISLAND_INCLUDE_ALGO_XXX' to include XXX algo in uImage
+   if "SNS_ISLAND_INCLUDE_ALGO_QMD" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_QMD"])
+   if "SNS_ISLAND_INCLUDE_ALGO_PED" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_PED"])
+   if "SNS_ISLAND_INCLUDE_ALGO_SMD" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_SMD"])
+   if "SNS_ISLAND_INCLUDE_ALGO_QFUS" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_QFUS"])
+   if "SNS_ISLAND_INCLUDE_ALGO_TILT" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_TILT"])
+   if "SNS_ISLAND_INCLUDE_ALGO_EGS" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_EGS"])
+   if "SNS_ISLAND_INCLUDE_ALGO_CMC" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_CMC"])
+   if "SNS_ISLAND_INCLUDE_ALGO_IOD" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_IOD"])
+#-------------------------------------------------------------------------------
+# Turn on uImage F3 messages
+#
+#  To enable this, compile with "-f SNS_UIMG_MSGS" argument to build.py
+#-------------------------------------------------------------------------------
+if 'SNS_UIMG_MSGS' in env:
+   env.Append(CPPDEFINES = ["SNS_DEBUG_UIMG"])

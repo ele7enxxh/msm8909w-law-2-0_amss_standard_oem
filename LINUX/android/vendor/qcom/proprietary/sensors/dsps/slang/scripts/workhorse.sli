@@ -1,0 +1,29 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub main( @argv)
+{
+    my ( $sensor, $rate, $seconds, $datatype) = @argv;
+
+    my $client = slopen();
+
+    my $add_req  = slnew_req( "smgr", "report", { report_id => 1, action => "add", report_rate => $rate,
+                                                  item.0, sensor_id => $sensor});
+    if ( defined( $datatype)) {
+        slset_req( $add_req, { datatype => $datatype});
+    }
+    my $timeout  = 3;
+    my $add_resp = slsend_recv( $client, $add_req, $timeout);
+
+    if ( defined( $add_resp)) {
+        sleep( $seconds);
+
+        my $del_req = slnew_req( "smgr", "report", { report_id => 1, action => "delete"});
+        my $del_resp = slsend_recv( $client, $del_req, $timeout);
+    }
+
+    slclose( $client);
+}
+

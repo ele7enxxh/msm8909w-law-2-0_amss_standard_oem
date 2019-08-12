@@ -1,0 +1,120 @@
+#===============================================================================
+#
+# DAL CONFIG Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2013 by Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/adsp/dev/mrohera.Q02_1/adsp_proc/core/dal/config/build/SConscript#1 $
+#  $DateTime: 2012/07/03 18:02:09 $
+#  $Author: coresvc $
+#  $Change: 2559645 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/23/12   aa      Create
+#
+#===============================================================================
+Import('env')
+import os
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Load dal config builders
+#-------------------------------------------------------------------------------
+env.Tool('dalconfig_builder', toolpath = ['.'])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${DAL_ROOT}/config"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External paths, NOTE: DALConfig is a special case as it may require any
+# ".h" file which may not be a public API
+#-------------------------------------------------------------------------------
+
+EXTERNAL_API = [
+   'MODEM_PMIC',                  #pm.h
+   'MODEM_API',
+]
+env.RequireExternalApi(EXTERNAL_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BUSES',
+   'HWENGINES',
+   'SYSTEMDRIVERS',
+   'SYSTEMDRIVERS_DALCONFIG',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'APTTESTS',
+   'KERNEL_MEMORYMANAGER',
+   'KERNEL'
+]
+
+env.PublishPrivateApi('DAL_CONFIGPATH', [
+])
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------   
+IMAGES = ['MBA_CORE_SW']
+
+if env.GetUsesFlag('USES_DEVCFG') is True:
+   # Source Code
+   DEVCFG_SOURCES =  ['${BUILDPATH}/src/mba/DALProps.c']  
+   if env.has_key('USES_QPIC_NAND') is True:
+      DEVCFG_IMG = ['DEVCFG_MBA_CORE_SW']
+      env.AddDevCfgInfo(DEVCFG_IMG, 
+      {
+         'soc_xml'    : ['${BUILD_ROOT}/core/dal/config/mba/dalsystem_mba.xml']
+      })
+   
+   devcfg_xml_tag_list = env.get('DEVCFG_XML_TAGS')
+   devcfg_gen_xml = '${BUILDPATH}/DevCfg_mba_master.xml'
+   devcfg_gen_env = '${BUILDPATH}/DevCfg_env_mba.txt'
+   dal_gen_src = ['${BUILDPATH}/DevCfg_mba.c', '${BUILDPATH}/devcfg_data_mba.c']
+   
+   # For UserPD, code and data is in same ELF, we force to build for one default tag
+   # FIX ME : Could be a suitation where userpd can have different config for chipset, then 
+   # we may have to split userpd
+   DALConfig_out = env.DevcfgBuilder([devcfg_gen_xml, devcfg_gen_env] , None, CONFIG=[env.get('MSM_ID')+ '_xml'], UPDATE_ENV=True)    
+   DALConfig_src = env.DALConfigSrcBuilder(dal_gen_src, [DALConfig_out[0]], CONFIG="")
+        
+   # Create DALModDir file
+   dal_mod_src = ['${BUILDPATH}/DALModDir_mba']
+   
+   # Devcfg master xml file
+   dalmoddir_gen_xml = '${BUILDPATH}/DALModDir_master.xml'
+   dalmoddir_gen_env = '${BUILDPATH}/DALModDir_env_mba.txt'
+   DALModDir_out = env.DevcfgBuilder([dalmoddir_gen_xml, dalmoddir_gen_env], None, CONFIG=devcfg_xml_tag_list, UPDATE_ENV=False)
+   
+   # FIX ME
+   DALModDir_src = env.DALModDirSrcBuilder(dal_mod_src, [DALModDir_out[0]])
+
+   DEVCFG_SOURCES.extend(DALModDir_src)
+   DEVCFG_SOURCES.extend(DALConfig_src)
+   if (os.path.exists(env.RealPath(devcfg_gen_env))) :
+    lines = [line.strip() for line in open(env.RealPath(devcfg_gen_env), 'r')]
+    env.get('CPPPATH').extend(lines)   
+   env.AddLibrary(IMAGES, '${BUILDPATH}/DALConfig', DEVCFG_SOURCES)

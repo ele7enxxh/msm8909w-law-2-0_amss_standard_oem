@@ -1,0 +1,236 @@
+#===============================================================================
+#
+# MCPM Common 
+#
+# GENERAL DESCRIPTION
+#    Build scirpt to generate MCPM common/shared library.
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mpower/mcpm/common/build/mcpm_cmn.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/21/14    sr      G + G DSDS multi-sim support.
+# 02/13/14    ls      LTE VoLTE and CDRX support.
+# 02/04/14    bd      Generating QDSS Events to $BUILDPATH
+# 01/17/14    ls      Support for LTE's MCPM request for TDD and FDD DATA on Bolt.
+# 12/16/13    bd      Generating QDSS Events Locally
+# 07/08/13    ls      Added QDSS support for new GSM APIs.
+# 02/13/13    vs      Initial version.
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+# QDSS Tracer definitions
+#-------------------------------------------------------------------------------
+if 'USES_QDSS_SWE' in env:
+  QDSS_IMG = ['QDSS_EN_IMG']
+  env.Append(CCFLAGS = " -DMCPM_TRACER_SW_EVT")
+
+  events = [['MCPM_1X_START_EVT','MCPM_1X_START_EVT'],
+        ['MCPM_1X_STOP_EVT','MCPM_1X_STOP_EVT'],
+        ['MCPM_1X_WAKE_UP_EVT','MCPM_1X_WAKE_UP_EVT'],
+        ['MCPM_1X_GO_TO_SLEEP_EVT','MCPM_1X_GO_TO_SLEEP_EVT'],
+        ['MCPM_1X_GO_TO_PSEUDO_SLEEP_EVT','MCPM_1X_GO_TO_PSEUDO_SLEEP_EVT'],
+        ['MCPM_1X_IDLE_EVT','MCPM_1X_IDLE_EVT'],
+        ['MCPM_1X_VOICE_EVT','MCPM_1X_VOICE_EVT'],
+        ['MCPM_1X_DATA_EVT','MCPM_1X_DATA_EVT'],
+        ['MCPM_1X_PARMS_UPDATE_EVT','MCPM_1X_PARMS_UPDATE_EVT'],
+        ['MCPM_DO_START_EVT','MCPM_DO_START_EVT'],
+        ['MCPM_DO_STOP_EVT','MCPM_DO_STOP_EVT'],
+        ['MCPM_DO_WAKE_UP_EVT','MCPM_DO_WAKE_UP_EVT'],
+        ['MCPM_DO_GO_TO_SLEEP_EVT','MCPM_DO_GO_TO_SLEEP_EVT'],
+        ['MCPM_DO_IDLE_EVT','MCPM_DO_IDLE_EVT'],
+        ['MCPM_DO_START_DATA_EVT','MCPM_DO_START_DATA_EVT'],
+        ['MCPM_DO_STOP_DATA_EVT','MCPM_DO_STOP_DATA_EVT'],
+        ['MCPM_DO_PARMS_UPDATE_EVT','MCPM_DO_PARMS_UPDATE_EVT'],
+        ['MCPM_GERAN_START_EVT','MCPM_GERAN_START_EVT'],
+        ['MCPM_GERAN_STOP_EVT','MCPM_GERAN_STOP_EVT'],
+        ['MCPM_GERAN_WAKE_UP_EVT','MCPM_GERAN_WAKE_UP_EVT'],
+        ['MCPM_GERAN_GO_TO_SLEEP_EVT','MCPM_GERAN_GO_TO_SLEEP_EVT'],
+        ['MCPM_GERAN_IDLE_EVT','MCPM_GERAN_IDLE_EVT'],
+        ['MCPM_GERAN_VOICE_START_EVT','MCPM_GERAN_VOICE_START_EVT'],
+        ['MCPM_GERAN_VOICE_STOP_EVT','MCPM_GERAN_VOICE_STOP_EVT'],
+        ['MCPM_GERAN_DATA_START_EVT','MCPM_GERAN_DATA_START_EVT'],
+        ['MCPM_GERAN_DATA_STOP_EVT','MCPM_GERAN_DATA_STOP_EVT'],
+        ['MCPM_GERAN_PARMS_UPDATE_EVT','MCPM_GERAN_PARMS_UPDATE_EVT'],
+        ['MCPM_GERAN1_START_EVT','MCPM_GERAN1_START_EVT'],
+        ['MCPM_GERAN1_STOP_EVT','MCPM_GERAN1_STOP_EVT'],
+        ['MCPM_GERAN1_WAKE_UP_EVT','MCPM_GERAN1_WAKE_UP_EVT'],
+        ['MCPM_GERAN1_GO_TO_SLEEP_EVT','MCPM_GERAN1_GO_TO_SLEEP_EVT'],
+        ['MCPM_GERAN1_IDLE_EVT','MCPM_GERAN1_IDLE_EVT'],
+        ['MCPM_GERAN1_VOICE_START_EVT','MCPM_GERAN1_VOICE_START_EVT'],
+        ['MCPM_GERAN1_VOICE_STOP_EVT','MCPM_GERAN1_VOICE_STOP_EVT'],
+        ['MCPM_GERAN1_DATA_START_EVT','MCPM_GERAN1_DATA_START_EVT'],
+        ['MCPM_GERAN1_DATA_STOP_EVT','MCPM_GERAN1_DATA_STOP_EVT'],
+        ['MCPM_GERAN1_PARMS_UPDATE_EVT','MCPM_GERAN1_PARMS_UPDATE_EVT'],
+        ['MCPM_LTE_START_EVT','MCPM_LTE_START_EVT'],
+        ['MCPM_LTE_STOP_EVT','MCPM_LTE_STOP_EVT'],
+        ['MCPM_LTE_ACQ_EVT','MCPM_LTE_ACQ_EVT'],
+        ['MCPM_LTE_WAKE_UP_EVT','MCPM_LTE_WAKE_UP_EVT'],
+        ['MCPM_LTE_GO_TO_SLEEP_EVT','MCPM_LTE_GO_TO_SLEEP_EVT'],
+        ['MCPM_LTE_IDLE_EVT','MCPM_LTE_IDLE_EVT'],
+        ['MCPM_LTE_DATA_START_EVT','MCPM_LTE_DATA_START_EVT'],
+        ['MCPM_LTE_FDD_DATA_START_EVT','MCPM_LTE_FDD_DATA_START_EVT'],
+        ['MCPM_LTE_TDD_DATA_START_EVT','MCPM_LTE_TDD_DATA_START_EVT'],
+        ['MCPM_LTE_FDD_VOLTE_DATA_START_EVT','MCPM_LTE_FDD_VOLTE_DATA_START_EVT'],
+        ['MCPM_LTE_TDD_VOLTE_DATA_START_EVT','MCPM_LTE_TDD_VOLTE_DATA_START_EVT'],
+        ['MCPM_LTE_GO_TO_LIGHT_SLEEP_EVT','MCPM_LTE_GO_TO_LIGHT_SLEEP_EVT'],
+        ['MCPM_LTE_GO_TO_LONG_LIGHT_SLEEP_EVT','MCPM_LTE_GO_TO_LONG_LIGHT_SLEEP_EVT'],
+        ['MCPM_LTE_GO_TO_LIGHT_SLEEP_NO_MODEM_FREEZE_EVT','MCPM_LTE_GO_TO_LIGHT_SLEEP_NO_MODEM_FREEZE_EVT'],
+        ['MCPM_LTE_DATA_STOP_EVT','MCPM_LTE_DATA_STOP_EVT'],
+        ['MCPM_LTE_PARMS_UPDATE_EVT','MCPM_LTE_PARMS_UPDATE_EVT'],
+        ['MCPM_TDSCDMA_START_EVT','MCPM_TDSCDMA_START_EVT'],
+        ['MCPM_TDSCDMA_STOP_EVT','MCPM_TDSCDMA_STOP_EVT'],
+        ['MCPM_TDSCDMA_ACQ_EVT','MCPM_TDSCDMA_ACQ_EVT'],
+        ['MCPM_TDSCDMA_WAKE_UP_EVT','MCPM_TDSCDMA_WAKE_UP_EVT'],
+        ['MCPM_TDSCDMA_GO_TO_SLEEP_EVT','MCPM_TDSCDMA_GO_TO_SLEEP_EVT'],
+        ['MCPM_TDSCDMA_IDLE_EVT','MCPM_TDSCDMA_IDLE_EVT'],
+        ['MCPM_TDSCDMA_VOICE_START_EVT','MCPM_TDSCDMA_VOICE_START_EVT'],
+        ['MCPM_TDSCDMA_VOICE_STOP_EVT','MCPM_TDSCDMA_VOICE_STOP_EVT'],
+        ['MCPM_TDSCDMA_DATA_START_EVT','MCPM_TDSCDMA_DATA_START_EVT'],
+        ['MCPM_TDSCDMA_DATA_STOP_EVT','MCPM_TDSCDMA_DATA_STOP_EVT'],
+        ['MCPM_TDSCDMA_PARMS_UPDATE_EVT','MCPM_TDSCDMA_PARMS_UPDATE_EVT'],
+        ['MCPM_WCDMA_START_EVT','MCPM_WCDMA_START_EVT'],
+        ['MCPM_WCDMA_STOP_EVT','MCPM_WCDMA_STOP_EVT'],
+        ['MCPM_WCDMA_WAKE_UP_EVT','MCPM_WCDMA_WAKE_UP_EVT'],
+        ['MCPM_WCDMA_GO_TO_SLEEP_EVT','MCPM_WCDMA_GO_TO_SLEEP_EVT'],
+        ['MCPM_WCDMA_IDLE_EVT','MCPM_WCDMA_IDLE_EVT'],
+	['MCPM_WCDMA_CDRX_GO_TO_LIGHT_SLEEP_EVT','MCPM_WCDMA_CDRX_GO_TO_LIGHT_SLEEP_EVT'],
+	['MCPM_WCDMA_EDRX_GO_TO_LIGHT_SLEEP_EVT','MCPM_WCDMA_EDRX_GO_TO_LIGHT_SLEEP_EVT'],
+	['MCPM_WCDMA_EDRX_GO_TO_SLEEP_EVT','MCPM_WCDMA_EDRX_GO_TO_SLEEP_EVT'],
+	['MCPM_WCDMA_EDRX_WAKEUP_EVT','MCPM_WCDMA_EDRX_WAKEUP_EVT'],
+        ['MCPM_WCDMA_VOICE_START_EVT','MCPM_WCDMA_VOICE_START_EVT'],
+        ['MCPM_WCDMA_VOICE_STOP_EVT','MCPM_WCDMA_VOICE_STOP_EVT'],
+        ['MCPM_WCDMA_DATA_START_EVT','MCPM_WCDMA_DATA_START_EVT'],
+        ['MCPM_WCDMA_DATA_STOP_EVT','MCPM_WCDMA_DATA_STOP_EVT'],
+        ['MCPM_WCDMA_PARMS_UPDATE_EVT','MCPM_WCDMA_PARMS_UPDATE_EVT'],
+        ['MCPM_GPS_STOP_EVT','MCPM_GPS_STOP_EVT'],
+        ['MCPM_GPS_ACQ_EVT','MCPM_GPS_ACQ_EVT'],
+        ['MCPM_GPS_NON_DPO_EVT','MCPM_GPS_NON_DPO_EVT'],
+        ['MCPM_GPS_DPO_ON_EVT','MCPM_GPS_DPO_ON_EVT'],
+        ['MCPM_GPS_PARMS_UPDATE_EVT','MCPM_GPS_PARMS_UPDATE_EVT'],
+        ['MCPM_RF_START_EVT','MCPM_RF_START_EVT'],
+        ['MCPM_RF_STOP_EVT','MCPM_RF_STOP_EVT'],
+        ['MCPM_A2_START_EVT','MCPM_A2_START_EVT'],
+        ['MCPM_A2_STOP_EVT','MCPM_A2_STOP_EVT'],
+        ['MCPM_GSM_CIPHERING_START_EVT','MCPM_GSM_CIPHERING_START_EVT'],
+        ['MCPM_GSM_CIPHERING_STOP_EVT','MCPM_GSM_CIPHERING_STOP_EVT'],
+        ['MCPM_GSM_CIPHERING1_START_EVT','MCPM_GSM_CIPHERING1_START_EVT'],
+        ['MCPM_GSM_CIPHERING1_STOP_EVT','MCPM_GSM_CIPHERING1_STOP_EVT'],]
+  env.AddSWEInfo(QDSS_IMG,events)
+
+if 'QDSS_TRACER_SWE' in env:
+  env.SWEBuilder(['${BUILDPATH}/mcpm_tracer_evt_ids.h'], None)
+  env.Append(CPPPATH = ['${BUILD_ROOT}/mpower/mcpm/common/build/$BUILDPATH'])
+  
+#-------------------------------------------------------------------------------
+# Necessary Public and Restricted API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+    'HWENGINES',
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'DAL',
+    'POWER',
+    'BUSES',
+    'MPROC',
+    'KERNEL',                             # needs to be last 
+    ], area='core')
+
+# Need to get access to Modem Public headers
+env.RequirePublicApi([
+    'ONEX',
+    'GPS',      
+    'HDR',      
+    'MCS',
+    'MMODE',    
+    'UTILS',
+    'RFA',      
+    'UIM',      
+    'GERAN',
+    'FW',
+    ])
+
+# Need get access to Modem Restricted headers
+env.RequireRestrictedApi([
+    'MMODE',    
+    'NAS',      
+    'RFA',      
+    'MDSP',     
+    'MDSPSVC',  
+    'GERAN',    
+    'GPS',      
+    'ONEX',     
+    'HDR',      
+    'UTILS',
+    'MCS',
+    'FW',
+    ])
+
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+MCPM_CMN_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                    for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+
+# Compile sources and convert to a binary library
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/mpower_mcpm_cmn', MCPM_CMN_SOURCES)
+
+
+#-------------------------------------------------------------------------------
+# Defining Sleep LPR
+#-------------------------------------------------------------------------------
+if 'USES_CORESLEEP_TOOL' in env:
+  xml_file = '${MPOWER_ROOT}/mcpm/doc/mcpm_lpr.xml'
+  env.AddCoreSleepLPR('CORE_QDSP6_SW', {'sleep_lpr_xml' : [xml_file]})
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for MPOWER MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_MPOWER_MCPM",
+])
+
+
+#-------------------------------------------------------------------------------
+#  RC INIT
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['MODEM_MODEM', 'CORE_QDSP6_SW']
+  env.AddRCInitFunc(       # Code Fragment in TMC: NO
+  RCINIT_IMG,              # define TMC_RCINIT_INIT_BUSYWAIT_INIT
+  {
+    'sequence_group'             : 'RCINIT_GROUP_3',       # required
+    'init_name'                  : 'mcpm',              # required
+    'init_function'              : 'MCPM_Init',         # required
+  })

@@ -1,0 +1,55 @@
+#===============================================================================
+#
+# FLASH HAL/DAL Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/rel/1.2/boot_images/core/storage/flash/build/SConscript#4 $
+#  $DateTime: 2012/02/09 11:06:14 $
+#  $Author: coresvc $
+#  $Change: 2195899 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/05/12   sv      Add interface layer path
+# 03/21/11   jz      Added include path for flash API files
+# 09/02/10   sv      NOR tools support
+# 10/13/09   jz      Cleaned up include paths in scons build
+# 09/08/09   eo      Update MDM9K SCONS scripts to new SCONS framework
+# 08/12/09   mh      Branched 
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Publish Protected APIs
+#-------------------------------------------------------------------------------
+env.PublishProtectedApi('STORAGE_FLASH', [
+   "${INC_ROOT}/core/storage/flash/inc",
+   "${INC_ROOT}/core/storage/flash/tools/src/nand",
+   "${INC_ROOT}/core/storage/flash/tools/src/nor",
+])
+
+env.PublishProtectedApi('FLASH_EXTDRV', [
+   "${INC_ROOT}/core/storage/flash/src/extdrv",
+])
+
+env.PublishProtectedApi('FLASH_IFACE', [
+   "${INC_ROOT}/core/storage/flash/src/iface",
+])
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits(level=1, dir_patterns=['../src/*/build', '../tools/src/*/build'])

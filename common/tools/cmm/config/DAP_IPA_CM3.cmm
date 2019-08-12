@@ -1,0 +1,63 @@
+;*****************************************************************************
+;**           AR_JTAG_IPA.CMM                                               **
+;**           29-01-2014   First version Adebnath                           **
+;*****************************************************************************
+// The script accepts two input arguments
+// ARG0 - Chipset name
+// ARG1 - Core number
+// Ideal case, the argument 'ARG0' would not have to be used
+// as the parameters for a sub-system should be the same
+// across the entire family of chipsets
+ENTRY &ARG0 &ARG1 &ARG2
+
+MAIN:
+		IF (("&ARG0"=="MSM8952")||("&ARG0"=="msm8952")||("&ARG0"=="MSM8976")||("&ARG0"=="msm8976"))
+		(	
+			SYStem.Reset
+			SYStem.CPU CortexM3
+			SYStem.JTAGCLOCK 1MHz
+			SYStem.OPTION WAITRESET OFF
+			SYStem.OPTION ENRESET OFF
+			SYStem.OPTION RESBREAK OFF
+			SYStem.CONFIG SLAVE ON
+			SYStem.CONFIG COREBASE	E:0xE000E000
+			;SYStem.CONFIG ITMBASE	E:0xE0000000
+			;SYStem.CONFIG DWTBASE	E:0xE0010000
+			;SYStem.CONFIG ETMBASE	E:0xE0041000
+			;SYStem.CONFIG.ETB.BASE DAP:0x80025000
+			;SYStem.CONFIG TPIUBASE	DAP:0x80020000
+			SYStem.CONFIG MEMORYACCESSPORT 4.
+			SYStem.CONFIG AXIACCESSPORT 0.
+			SYStem.CONFIG DEBUGACCESSPORT  1.
+			SYStem.CONFIG DAPIRPOST 16.
+			SYStem.CONFIG DAPDRPOST 2.
+			SYStem.MEMACCESS DAP
+			SYStem.Option softlong on
+			System.Option softword off
+			B.SEL PROGRAM AUTO
+			RADIX HEX
+			SETUP.VAR %HEX.ON
+			MODE.HLL
+			autostore , history
+			SYStem.STATE
+		)	
+		
+		
+	// Common settings for all chipsets
+	IF (("&ARG3"=="SWD")||("&ARG3"=="swd"))
+	(
+		SYSTEM.CONFIG SWDP ON 
+		SYSTEM.CONFIG DEBUGPORTTYPE SWD
+	)
+
+	// Launch startup scripts
+	IF (OS.ENV(STARTUPCMM)!="")
+	(
+        &STARTUPSCRIPT=OS.ENV(STARTUPCMM)
+	    do &STARTUPSCRIPT
+	)
+
+	GOTO EXIT
+EXIT:
+		ENDDO
+

@@ -1,0 +1,291 @@
+//============================================================================
+//  Name:                                                                     
+//    std_loadsim.cmm 
+//
+//  Description:                                                              
+//    Top level loadlogs script
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/10/2012 AJCheriyan    Created for B-family 
+
+// We support only one arguments for this chipset. Should not be used
+ENTRY &ARG0
+
+
+LOCAL &LOGTYPE &SUBSYS &BUILDPATH &LOGPATH &SUBSYSCRIPT
+LOCAL &LOGPATHVERIFIED &BUILDVERIFIED &HEADER
+MAIN:
+	
+    
+	// Create the dialog for the script
+	GOSUB CREATEDIALOG
+
+	// Wait for the person to do something
+	STOP
+
+LOADLOGS:
+	// We will not return to this script after this point
+	DIALOG.END
+
+
+
+	IF ("&SUBSYS"=="")||("&LOGTYPE"=="")||("&BUILDPATH"=="")||("&LOGPATH"=="")
+	(
+		PRINT %ERROR "Invalid arguments. System: &SUBSYS, Log type: &LOGTYPE, Build: &BUILDPATH, Log: &LOGPATH"
+		GOTO FATALEXIT
+	)
+	ELSE
+	(
+		// The subsystem has been choosen now. Make sure the paths for this sub-system's scripts are
+	    // added to the path
+		&SUBSCRIPT="&METASCRIPTSDIR/"+STR.LWR("&SUBSYS") 
+    	PATH + &SUBSCRIPT
+		
+		// Change the header name to make it pretty
+		TITLE "&ARG0 &SUBSYS - Build:&BUILDPATH Logs:&LOGPATH"
+
+	 	// Call the appropriate sub-system script
+		&SUBSYSCRIPT="std_loadsim_"+STR.LWR("&SUBSYS")
+		RUN &SUBSYSCRIPT &ARG0 &LOGTYPE &BUILDPATH &LOGPATH
+		GOTO EXIT
+	)
+
+	
+
+
+
+// Sub-routine to create the dialog
+CREATEDIALOG:
+	
+	// Check if the window existing
+	WINTOP LOADSIM
+	IF FOUND()
+       RETURN 
+	WINPOS ,,,,,, LOADSIM
+
+	DIALOG
+	(
+	    HEADER "Load Target Logs"
+
+		POS 0. 0. 31. 8.
+		BOX "Select Log Options"
+		POS 1. 1. 30. 1.
+		SOURCE.JTAG: CHOOSEBOX "Logs collected over JTAG"
+		(
+		   &LOGTYPE="JTAG"
+		)
+		SOURCE.USB: CHOOSEBOX "Logs collected over USB (Download Mode)"
+		(
+		   &LOGTYPE="USB"
+		)
+		SOURCE.AUTO: CHOOSEBOX "Autodetect"
+		(
+		   &LOGTYPE="AUTODETECT"
+		)
+		POS 1. 6. 5. 1.
+		DEFBUTTON "Help"
+	    (
+		   DIALOG.OK "Choose the option for the type of the log. Choose autodetect if you don't know the type"
+		)
+
+
+		POS 35. 0. 30. 8.
+		BOX "Choose Sub-system"
+		POS 36. 1. 30. 1.
+		SUBSYS.RPM: CHOOSEBOX "RPM - Power Manager"
+		(
+		   &SUBSYS="RPM"
+		)
+		SUBSYS.APPS: CHOOSEBOX "APPS - Applications"
+		(
+		   &SUBSYS="APPS"
+		)
+		SUBSYS.MPSS: CHOOSEBOX "MP - Q6 (FW / SW )"
+		(
+		   &SUBSYS="MPSS"
+		)
+		;SUBSYS.ADSP: CHOOSEBOX "ADSP - Applications DSP (Audio / Sensors)"
+		;(
+		 ;  &SUBSYS="ADSP"
+		;)
+		SUBSYS.WCNSS: CHOOSEBOX "WCNSS - Wireless Connectivity"
+		(
+		   &SUBSYS="WCNSS"
+		)
+   		POS 36. 6. 5. 1.
+		DEFBUTTON "Help"
+	    (
+		   DIALOG.OK "Choose the option for the type of the log. Choose autodetect if you don't know the type"
+		)
+	
+		POS 0. 9. 60. 8.
+		BOX "Build Options"
+		POS 1. 10. 58. 1.
+		BUILDTEXT: TEXT "Build Location"
+		BUILDEDIT: DEFEDIT "Build Location" "GOSUB VERIFYBUILD"
+		POS 1. 12. 58. 1.
+		LOGTEXT: TEXT "Log Location"
+		LOGEDIT: DEFEDIT "Log Location" "GOSUB VERIFYLOG"
+
+		POS 25. 15. 10. 1.
+		LOADBUTTON: DEFBUTTON "Load Logs" "GOSUB LOADLOGS"
+
+
+
+	)
+	// Set the defaults here
+	DIALOG.SET SOURCE.JTAG
+	&LOGTYPE="JTAG"
+	// Disable the QDSP6 options if this is an ARM simulator instance and vice-versa
+	IF (STRING.SCAN(OS.PEF(), "qdsp", 0)>0)
+	(
+	   DIALOG.DISABLE SUBSYS.RPM
+	   DIALOG.DISABLE SUBSYS.APPS
+	   DIALOG.DISABLE SUBSYS.WCNSS
+	   // Set the default subsystem
+	   DIALOG.SET SUBSYS.MPSS
+	   &SUBSYS="MPSS"
+	)
+	ELSE
+	(
+	   DIALOG.DISABLE SUBSYS.MPSS
+	  ; DIALOG.DISABLE SUBSYS.ADSP
+	   // Set the default sub-system
+	   DIALOG.SET SUBSYS.RPM
+	   &SUBSYS="RPM"
+	)
+	
+	// Disable the loading button
+	DIALOG.DISABLE LOADBUTTON
+
+	RETURN
+
+
+// Check for a valid sub-system build directory	    
+VERIFYBUILD:
+	LOCAL &DIR
+
+	IF ("&SUBSYS"=="RPM")
+	(
+		&DIR=DIALOG.STRING(BUILDEDIT)
+		IF !OS.DIR("&DIR/rpm_proc")
+		(
+			DIALOG.SET BUILDEDIT "Invalid &SUBSYS Build"
+		)
+		ELSE
+		(
+		    &BUILDPATH="&DIR"
+			&BUILDVERIFIED="TRUE"
+		)
+	)
+
+	IF ("&SUBSYS"=="MPSS")
+	(
+		&DIR=DIALOG.STRING(BUILDEDIT)
+		IF !OS.DIR("&DIR/modem_proc")
+		(
+			DIALOG.SET BUILDEDIT "Invalid &SUBSYS Build"
+		)
+		ELSE
+		(
+		    &BUILDPATH="&DIR"
+			&BUILDVERIFIED="TRUE"
+		)
+	)
+	;IF ("&SUBSYS"=="ADSP")
+	;(
+	;	&DIR=DIALOG.STRING(BUILDEDIT)
+	;	IF !OS.DIR("&DIR/adsp_proc")
+	;	(
+	;		DIALOG.SET BUILDEDIT "Invalid &SUBSYS Build"
+	;	)
+	;	ELSE
+	;	(
+	;	    &BUILDPATH="&DIR"
+	;		&BUILDVERIFIED="TRUE"
+	;	)
+	;)
+	IF ("&SUBSYS"=="WCNSS")
+	(
+		&DIR=DIALOG.STRING(BUILDEDIT)
+		IF !OS.DIR("&DIR/wcnss_proc")
+		(
+			DIALOG.SET BUILDEDIT "Invalid &SUBSYS Build"
+		)
+		ELSE
+		(
+		    &BUILDPATH="&DIR"
+			&BUILDVERIFIED="TRUE"
+		)
+	)
+    IF ("&SUBSYS"=="APPS")
+	(
+	  &DIR=DIALOG.STRING(BUILDEDIT)
+		IF !OS.DIR("&DIR/out")
+		(
+		 DIALOG.SET BUILDEDIT "Invalid &SUBSYS Build"
+		)
+		ELSE
+		(
+		&BUILDPATH="&DIR"
+	    &BUILDVERIFIED="TRUE"
+	    )
+	)
+	// We can enable load if all conditions are satisfied
+	IF (("&LOGPATHVERIFIED"=="TRUE")&&("&BUILDVERIFIED"=="TRUE"))
+	(
+		DIALOG.ENABLE LOADBUTTON
+	)
+
+	RETURN
+	
+
+// Verify log location. A simple verification process 
+// that guards against dummy / null entries
+VERIFYLOG:
+	LOCAL &LOCATION
+	&LOCATION=DIALOG.STRING(LOGEDIT)
+	
+	IF ("&LOCATION"!="")
+	(
+	   IF (OS.DIR(&LOCATION))
+	   (
+		   &LOGPATH=DIALOG.STRING(LOGEDIT)
+		   &LOGPATHVERIFIED="TRUE"
+	   )
+	   ELSE
+	   (
+	   		DIALOG.SET LOGEDIT "Invalid Log Location"
+	   )
+	)
+	ELSE
+	(
+	   DIALOG.SET LOGEDIT "Invalid Log Location"
+	)
+
+	// We can enable load if all conditions are satisfied
+	IF (("&LOGPATHVERIFIED"=="TRUE")&&("&BUILDVERIFIED"=="TRUE"))
+	(
+		DIALOG.ENABLE LOADBUTTON
+	)
+
+	RETURN
+
+
+
+
+FATALEXIT:
+    END
+
+EXIT:
+    ENDDO

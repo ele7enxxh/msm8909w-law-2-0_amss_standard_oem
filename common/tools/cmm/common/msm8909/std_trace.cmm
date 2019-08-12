@@ -1,0 +1,241 @@
+//============================================================================
+//  Name:                                                                     
+//    std_trace.cmm 
+//
+//  Description:                                                              
+//    Top level tracing script
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/10/2012 AJCheriyan    Created for B-family.
+
+// Following arguments are supported. 
+// ARG0 - Processor to debug. 
+// ARG1 - Tracing Type . Currently supports TPIU, ETB
+// ARGn - n > 1 - Any other arguments to be passed to the script 
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+LOCAL &FILENAME &WRITEPTR &READPTR &MODE
+LOCAL &HEAD &TAIL &DATA &ETBSIZE
+
+MAIN:
+
+    IF (("&ARG1"=="ETM")||("&ARG1"=="etm"))
+    (
+        print "Argument ETM is being transitioned to TPIU. Please use TPIU as ETM will soon be deprecated"
+        &ARG1="TPIU"
+    )
+    
+    
+	// Check the args for expected values
+	do std_utils CHECKARGS FATALEXIT &ARG0 RPM APPS MPSS ADSP WCNSS VSS
+	do std_utils CHECKARGS FATALEXIT &ARG1 TPIU tpiu SDCARD SDcard sdcard ETB etb SAVEETB saveetb
+    //do std_utils CHECKARGS FATALEXIT &ARG2 0 1 2 3 4bit 8bit 16bit
+    //do std_utils CHECKARGS FATALEXIT &ARG3 4bit 8bit 16bit
+
+COMMON:
+	// We always need HWIO
+	do hwio
+
+	
+
+	// For ETM tracing over TPIU, we need to configure the TLMM and this needs to happen just once
+	IF (("&ARG1"=="TPIU")||("&ARG1"=="tpiu"))
+	(
+	
+           Print "You need to turn on LD028 and bump QDSS clocks. Pls follow wiki instructions!"
+ 
+		
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 108. 0x1CB
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 107. 0x1CB
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 28. 0x1E3
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 35. 0x1EB
+
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 34. 0x1F3
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 33. 0x1EF
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 32. 0x1E7
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 31. 0x1E7
+		
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 38. 0x1E3 ;SD card
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 13. 0x1E3 ; CMMB Gpio
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 12. 0x1DB ; CMMB Gpio
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 66. 0x1DF ;sensor
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 65. 0x1e3 ;sensor
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 64. 0x1DF ; sensor
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 63. 0x1E3 ; sensor
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 62. 0x1DB ; sensor
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 5. 0x1D7 ;uim
+		do std_utils HWIO_OUTI TLMM_GPIO_CFG 4. 0x1D7 ;uim
+		;do std_utils HWIO_OUTI TLMM_GPIO_CFG 44. 0x1CF
+	
+
+		GOTO HANDLEPROC
+	)
+    
+	IF (("&ARG1"=="SDCARD")||("&ARG1"=="SDcard")||("&ARG1"=="sdcard"))
+	(
+        y.create.l TLMM_ETM_MODE           0xFD512014
+        y.create.l TLMM_SDC2_HDRV_PULL_CTL 0xFD512048
+        y.create.done
+
+        d.s eahb:TLMM_ETM_MODE %L 0x00000001
+        d.s eahb:TLMM_SDC2_HDRV_PULL_CTL %L 0x0000016D
+        
+        if ("&ARG0"=="APPS")
+        (
+            &ARG3="4bit"
+        )
+        else
+        (
+            &ARG2="4bit"
+        )
+        
+        GOTO HANDLEPROC
+    )
+
+	IF (("&ARG1"=="ETB")||("&ARG1"=="etb"))
+	(
+		GOTO HANDLEPROC
+	)
+	
+	IF (("&ARG1"=="SAVEETB")||("&ARG1"=="saveetb"))
+	(
+		// There is nothing image specific here
+		IF ("&ARG2"=="")
+		(
+			PRINT %ERROR "Invalid arguments. Provide path to save ETB"
+		 	GOTO FATALEXIT
+		)
+		
+		&FILENAME="&ARG2/"+"ETBDump.bin"
+		// Find the size of the ETB buffer
+		do std_utils HWIO_IN QDSS_ETFETB_RSZ
+		ENTRY &SIZE
+		// Access ETB by unlocking it
+		do std_utils HWIO_OUT QDSS_ETFETB_LAR 0xC5ACCE55
+		// Flush the system
+		do std_utils HWIO_OUTF QDSS_ETFETB_FFCR FLUSHMAN_W 0x1
+		// Disable ETB
+		do std_utils HWIO_OUT QDSS_ETFETB_CTL 0x0
+		// Not sure if we need to save other ETB regs here
+		// Right now, save mode and write PTR
+		// Set it to circular mode
+		do std_utils HWIO_IN QDSS_ETFETB_MODE
+		ENTRY &MODE
+		do std_utils HWIO_IN QDSS_ETFETB_RRP
+		ENTRY &READPTR
+		do std_utils HWIO_IN QDSS_ETFETB_RWP
+		ENTRY &WRITEPTR
+		// Check if the ETB has overflowed using the status bit
+		do std_utils HWIO_INF QDSS_ETFETB_STS FULL
+		ENTRY &FULL
+		// Set the head to start from top
+		&HEAD=0x0
+		IF (&FULL==0x1)
+		(
+			&TAIL=&SIZE
+		)
+		ELSE
+		(
+			&TAIL=&WRITEPTR
+		)
+
+		// Set the read pointer to the head
+		do std_utils HWIO_OUT QDSS_ETFETB_RRP &HEAD
+
+		// Loop until it reaches the write pointer
+		WHILE (&HEAD!=&TAIL)
+		(
+			// Read the data
+			do std_utils HWIO_IN QDSS_ETFETB_RRD
+			ENTRY &DATA
+			DATA.SET VM:(&HEAD) %LONG &DATA
+			&HEAD=&HEAD+0x4
+		)
+		// Check to make sure there is something in the buffer
+		IF (&TAIL!=0x0)
+		(
+			D.SAVE.BINARY &FILENAME (VM:0x0--(&TAIL))
+		)
+		ELSE
+		(
+			PRINT "No binary to write"
+		)
+		// Restore the read pointer 
+		do std_utils HWIO_OUT QDSS_ETFETB_RRP &READPTR
+		// Lock ETB now
+		do std_utils HWIO_OUT QDSS_ETFETB_LAR 0xF00DD00D
+	)
+	
+	// Done. Exit	
+	GOTO EXIT
+
+
+HANDLEPROC: 
+		IF ("&ARG0"=="RPM")
+		(
+			GOTO RPM_TRACE
+		)
+		IF ("&ARG0"=="APPS")
+		(
+			GOTO APPS_TRACE
+		)
+		IF ("&ARG0"=="MPSS")
+		(
+			GOTO MPSS_TRACE
+		)
+		IF ("&ARG0"=="ADSP")
+		(
+			GOTO ADSP_TRACE
+		)
+		IF ("&ARG0"=="WCNSS")
+		(
+			GOTO WCNSS_TRACE
+		)
+		IF ("&ARG0"=="VSS")
+		(
+			GOTO VSS_TRACE
+		)
+
+
+
+	// Now punt the arguments off to the lower level / image specific script
+RPM_TRACE:
+	RUN std_trace_rpm &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+
+APPS_TRACE:
+    RUN std_trace_apps &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+
+MPSS_TRACE:
+    RUN std_trace_mpss &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+
+ADSP_TRACE:
+    RUN std_trace_adsp &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+
+WCNSS_TRACE:
+    RUN std_trace_wcnss &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+
+SAVE_ETB:
+	
+
+EXIT:
+	ENDDO
+
+FATALEXIT:
+	END
+
+

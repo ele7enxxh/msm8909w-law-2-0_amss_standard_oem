@@ -1,0 +1,28 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub main( @argv)
+{
+    my $client = slopen();
+
+    my ( $seconds, $microsecs) = gettimeofday();
+    print( "\tseconds $seconds, microsecs $microsecs\n");
+
+    my $timeout = 3;
+    my $time_req = slnew_req( "time", "enable", { reg_report => 0});
+    my $time_resp = slsend_recv( $client, $time_req, $timeout);
+    if ( defined( $time_resp)) {
+        my ( $ssc_ts, $apps_ts, $error_code, $ssc_rollover_count, $apps_boottime)
+            = slget( $time_resp, { ssc_timestamp, apps_timestamp, error_code, ssc_rollover_count, apps_boottime});
+        print( "\ttime enable resp\n");
+        print( "\tssc_ts             $ssc_ts\n");
+        print( "\tapps_ts            $apps_ts \n");
+        print( "\terror_code         $error_code \n");
+        print( "\tssc_rollover_count $ssc_rollover_count \n");
+        print( "\tapps_boottime      $apps_boottime \n");
+        print( "\n");
+    }
+    slclose( $client);
+}

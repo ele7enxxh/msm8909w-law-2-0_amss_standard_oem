@@ -1,0 +1,74 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+platform_root = '${BUILD_ROOT}/platform'
+env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+
+env.RequirePublicApi([
+  'ADSP_AMDB',
+  'HAPSDK',
+  'HAPSDK_AUDIO',
+  'DLW',
+  'PLATFORM_LIBS',
+  'STDDEF',
+  'QAIC',
+  'REMOTE',
+  'A1STD',
+  'UTILS',
+  ])
+
+env.RequireRestrictedApi([
+  'ATOMIC',
+  'STDDEF',
+  ])
+
+core_public_apis = [
+   'KERNEL',
+   ]
+
+env.RequirePublicApi(core_public_apis, area='core')
+
+avs_public_apis = [
+   'AVS',
+   ]
+
+env.RequirePublicApi(avs_public_apis, area='avs')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${ADSP_PLATFORM_ROOT}/adsp_amdb/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# Register as static library
+env.PLRegister("adsp_amdb")
+# Register the qdi driver
+env.PLRegister("adsp_amdb_qdi")
+
+ADSP_AMDB_SOURCES =  [
+   env.AddQaicHeaderDep('${BUILDPATH}/adsp_amdb_init.c', "adsp_amdb"),
+   env.AddQaicHeaderDep('${BUILDPATH}/adsp_amdb.cpp', "adsp_amdb"),
+   env.QaicSkelFromIdl("adsp_amdb"),
+   '${BUILDPATH}/adsp_amdb_qdi_driver.c',
+   ]
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+adsp_amdb_lib = env.AddBinaryLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+    'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/adsp_amdb', ADSP_AMDB_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load Subunits (sys)
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+# Clean / pack rules
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.S', '*.h'], '${ADSP_PLATFORM_ROOT}/adsp_amdb/src'))
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+     'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)

@@ -1,0 +1,178 @@
+##===============================================================================
+# UIM SIMLOCK Subsystem build script
+# GENERAL DESCRIPTION
+#    build script for modem/uim/simlock
+#
+#                       COPYRIGHT INFORMATION
+#
+# Copyright (c) 2014 - 2016 QUALCOMM Technologies, Inc (QTI) and its licensors.
+# All Rights Reserved.  QUALCOMM Technologies Proprietary.
+# Export of this technology or software
+# is regulated by the U.S. Government. Diversion contrary to U.S. law prohibited.
+#
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/uim/simlock/build/main/latest/uim_simlock.scons#1
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/08/16   bcho    Support for multi-app policy in SimLock for OR condition
+# 04/12/16   bcho    Introduce support for SimLock fuse
+# 11/25/15   sp      Updated copyright
+# 07/08/15   bcho    Redundant checks for SIMLOCK
+# 05/15/15   vv      Support for RSU set configuration in simlock
+# 05/15/15   vv      Support for RSU in simlock
+# 05/15/15   stv     Add SIMLOCK time related files
+# 11/26/14   av      Changes to make sure task opts for inclusion in FTM mode
+# 11/10/14   vv      Add support for setting emergency mode for all the RATs
+# 09/29/14   kr      removing compiler warnings
+# 09/26/14   vv      Added support for the remote SFS
+# 08/29/14   vv      Added support for temporary unlock
+# 06/10/14   vv      Enable Simlock UT
+# 06/03/14   vv      Added support for OTA unlock
+# 05/21/14   vv      Increase the SIMLOCK stack size
+# 05/12/14   vv      Enable SIMLOCK test framework
+# 04/14/14   vv      Added support for identifying conflicting codes
+# 02/25/14   tl      Initial version
+#
+#===============================================================================
+
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+# Verify that USES_RUIM is set, otherwise bail out now
+if 'USES_RUIM' not in env:
+    Return()
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-----------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-----------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_RUIM",
+])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'DAL',
+    'SECUREMSM',
+    'MPROC',
+    'BOOT',
+    'KERNEL',
+    ]
+
+SIMLOCK_PUBLIC_APIS = [
+    'UIM',
+    'COMMON',
+    'UIMRMT',
+    ]
+
+# We need the UIM "inc" dirs
+env.RequireRestrictedApi(['UIM'])
+
+#------------------------------------------
+# Determine the chipset so that appropriate
+# HWIO macro header can be included
+#------------------------------------------
+if env['CHIPSET'] in ['msm8909']:
+   env.Append(CPPDEFINES = ['FEATURE_UIM_MSM8909_HWIO_MACROS'])
+elif env['CHIPSET'] in ['msm8937']:
+   env.Append(CPPDEFINES = ['FEATURE_UIM_MSM8937_HWIO_MACROS'])
+elif env['CHIPSET'] in ['mdm9607']:
+   env.Append(CPPDEFINES = ['FEATURE_UIM_MDM9607_HWIO_MACROS'])
+else:
+   env.PrintWarning("SimLock: Unknown Chipset!")
+   Exit(1)
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+SIMLOCK_C_SOURCES = [
+    '${BUILDPATH}/simlock_modem_lib.c',
+    '${BUILDPATH}/simlock_modem.c',
+    '${BUILDPATH}/simlock.c',
+    '${BUILDPATH}/simlocklib.c',
+    '${BUILDPATH}/simlock_3gpp.c',
+    '${BUILDPATH}/simlock_3gpp2.c',
+    '${BUILDPATH}/simlock_category.c',
+    '${BUILDPATH}/simlock_config.c',
+    '${BUILDPATH}/simlock_crypto.c',
+    '${BUILDPATH}/simlock_efs.c',
+    '${BUILDPATH}/simlock_file.c',
+    '${BUILDPATH}/simlock_sfs.c',
+    '${BUILDPATH}/simlock_sfs_remote.c',
+    '${BUILDPATH}/simlock_util.c',
+    '${BUILDPATH}/simlock_category_conflicts.c',
+    '${BUILDPATH}/simlock_modem_ota.c',
+    '${BUILDPATH}/simlock_timer.c',
+    '${BUILDPATH}/simlock_switch_sfs.c',
+    '${BUILDPATH}/simlock_cm.c',
+    '${BUILDPATH}/simlock_time.c',
+    '${BUILDPATH}/simlock_time_nitz.c',
+    '${BUILDPATH}/simlock_time_gps.c',
+    '${BUILDPATH}/simlock_rsu.c',
+    '${BUILDPATH}/simlock_rsu_key.c',
+    '${BUILDPATH}/simlock_rsu_config.c',
+    '${BUILDPATH}/simlock_temp_unlock.c',
+    '${BUILDPATH}/simlock_validity.c',
+    '${BUILDPATH}/simlock_fuse.c',
+    '${BUILDPATH}/simlock_policy.c'
+]
+
+# Add our library to the MODEM_AMSS image
+env.AddLibrary(['MODEM_MODEM','MOB_UIM'], '${BUILDPATH}/uim_simlock', SIMLOCK_C_SOURCES)
+
+# Load test units
+env.LoadSoftwareUnits()
+
+# Build image for which this task belongs
+RCINIT_SIMLOCK = ['MODEM_MODEM','MOB_UIM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_SIMLOCK = {
+            'sequence_group'      : 'RCINIT_GROUP_4',
+            'init_name'           : 'simlock_task_init',
+            'init_function'       : 'simlock_task_init',
+            'dependencies'        : [],
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_SIMLOCK= {
+            'thread_name'         : 'simlock',
+            'sequence_group'      : 'RCINIT_GROUP_4',
+            'stack_size_bytes'    : '4096',
+            'priority_amss_order' : 'GSDI_PRI_ORDER',
+            'stack_name'          : 'simlock_stack',
+            'thread_entry'        : 'simlock_main',
+            'tcb_name'            : 'simlock_tcb',
+            'cpu_affinity'        : env.subst('$MODEM_CPU_AFFINITY'),
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+  env.AddRCInitTask(RCINIT_SIMLOCK, RCINIT_TASK_SIMLOCK)
+  env.AddRCInitFunc(RCINIT_SIMLOCK, RCINIT_INIT_SIMLOCK)

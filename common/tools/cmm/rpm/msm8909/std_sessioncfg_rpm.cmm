@@ -1,0 +1,69 @@
+//============================================================================
+//  Name:                                                                     
+//    std_sessioncfg_rpm.cmm 
+//
+//  Description:                                                              
+//    Script to setup sub-system level features
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 09/12/2012 AJCheriyan	Reset the menu
+// 07/10/2012 AJCheriyan    Created for B-family 
+//
+
+// We support only one argument for all session config scripts
+// ARG0 - Chipset Name. Can be used to setup sub-system according to target if needed 
+// Using this argument should be avoided unless absolutely necessary
+ENTRY &ARG0
+
+MAIN:
+	// Do common environment setup
+	do std_setupenv.cmm
+	
+	// Clear the windows
+	WINCLEAR
+
+	// Now RPM specific setup
+	// RPM Build should be populated already
+	IF ("&RPM_BUILDROOT"!="")
+	(
+		// The assumption is that this script will be called only for a change in state of the debugging session
+		// Reset the menus to default values
+		MENU.RESET
+
+	 	// Load the relative path info for the build
+		do std_utils EXECUTESCRIPT EXIT &RPM_BUILDROOT/rpm_proc/core/products/scripts/std_toolsconfig.cmm
+		
+		// Program the menus for general debugging
+		do std_utils EXECUTESCRIPT EXIT &RPM_BUILDROOT/rpm_proc/core/products/scripts/std_scripts.men
+		
+		// Load the extensions for the system
+		do std_utils EXECUTESCRIPT EXIT &RPM_BUILDROOT/rpm_proc/core/products/scripts/std_extensions.cmm
+
+		
+	)
+	ELSE
+	(
+		PRINT %ERROR "RPM Build Information not populated"
+		GOTO FATALEXIT
+	)
+
+	GOTO EXIT
+
+
+FATALEXIT:
+	END
+
+EXIT:
+   ENDDO
+   
+

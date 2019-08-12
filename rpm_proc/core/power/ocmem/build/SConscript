@@ -1,0 +1,54 @@
+import os
+
+Import('env')
+env = env.Clone()
+
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPPATH = '../inc')
+env.Append(CFLAGS = '--c99')
+
+if env['MSM_ID'] == '8909W':
+	env['MSM_ID'] = '8909'
+
+CBSP_API = [
+   'POWER',
+   'SYSTEMDRIVERS',
+   'DAL',
+   'SERVICES',
+   'DEBUGTRACE',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+if env.has_key('HWIO_IMAGE'):
+    env.AddHWIOFile('HWIO', [
+        {
+            'filename': '${INC_ROOT}/core/power/ocmem/src/${MSM_ID}/ocmem_resource_hwio.h',
+            'modules': ['MMSS_OCMEM_CSR'],
+            'output-offsets': False,
+            'header':
+                '/*\n'
+                ' * HWIO base definitions\n'
+                ' */\n'
+                '#define MMSS_BASE 0xFD800000\n\n'
+        }
+    ])
+
+if env['MSM_ID'] == '8916':
+	OCMEM_SOURCES = [
+	'${BUILDPATH}/ocmem_resource.c',
+    '${BUILDPATH}/${MSM_ID}/ocmem_resource_config.c',
+	]
+
+	env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/rpm.lib', OCMEM_SOURCES)
+
+if 'USES_QDSS_SWE' in env:
+   QDSS_IMG = ['QDSS_EN_IMG']
+   events = [['OCMEM_APPLY=640','rpm_ocmem_apply: applying change for (client: %d) (region: %d) (bank: %d)'],
+             ['OCMEM_UPDATE_BANK_SETTING','rpm_ocmem_update_bank_setting: (old_vote: %d) (new_vote: %d) (active_votes: %d) (retention_votes: %d)'],
+             ['OCMEM_LAST=649','rpm_ocmem last'],
+            ]
+   env.AddSWEInfo(QDSS_IMG, events)

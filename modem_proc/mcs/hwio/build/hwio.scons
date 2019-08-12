@@ -1,0 +1,111 @@
+#===============================================================================
+#
+# MCS HWIO Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2015 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcs/hwio/build/hwio.scons#1 $
+#
+#===============================================================================
+from glob import glob
+from os.path import join, basename
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Necessary API's for test purposes
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(['QTF'], area='MOB')
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+# Construct the list of source files
+MCS_HWIO_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                    for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_MCS_COPPER'], 
+               '${BUILDPATH}/hwio', 
+               MCS_HWIO_SOURCES)
+
+#-------------------------------------------------------------------------------
+
+RCINIT_MODEM_CAPABILITY_INIT = {
+ 'sequence_group'             : env.subst('$MODEM_DRIVER'),   # required
+ 'init_name'                  : 'hwio_cap_init',              # required
+ 'init_function'              : 'hwio_cap_init',              # opt
+ 'dependencies'               : ['mcpm'],                     # opt [py list]
+ 'policy_optin'               : ['default', 'ftm', ],
+}
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_MODEM_CAPABILITY = ['MODEM_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitFunc(RCINIT_MODEM_CAPABILITY, RCINIT_MODEM_CAPABILITY_INIT)
+
+# Load test units
+env.LoadSoftwareUnits()
+
+#--------------------------------------------------------------------------------
+# HWIO
+#  ie. ./build/ms>build 9635.gen.test IMAGE=hwio --filter=mcs/hwio CHIPSET=mdm9x35
+#--------------------------------------------------------------------------------
+
+if env.has_key('HWIO_IMAGE'):
+
+  CHIPSET  = env.get('CHIPSET')
+  HWIOFILE = '$MCS_ROOT/hwio/inc/$CHIPSET/mcs_hwio_modem.h'
+
+  # Modem (Jolokia) registers
+  if (CHIPSET == 'msm8909' or CHIPSET == 'mdm9609' or CHIPSET == 'mdm9607' or CHIPSET == 'msm8937'):
+    env.AddHWIOFile('HWIO', [
+      {
+        'filename': HWIOFILE,
+        'bases': ['MSS_TOP'], 
+        'output-fvals' : True,
+        'output-phys': True,
+        'output-resets': True,
+        # if required... 'modules-exclude': ['MSS_NAV'],
+        'modules': ['TCSR_TCSR_MUTEX', 'TCSR_TCSR_REGS', 'SECURITY_CONTROL_CORE', 'GCC_CLK_CTL_REG','MPM2_SLP_CNTR'],
+        'module-filter-include': {'TCSR_TCSR_MUTEX': ['TCSR_MSS_MODEM'],
+                                  'TCSR_TCSR_REGS': ['TCSR_SOC_HW_VERSION'],
+                                  'SECURITY_CONTROL_CORE': ['QFPROM']},
+        'create-array': [
+          [ '^RXFE_ADC_\w+_ADC0$', { 'array-offset': 0x0100, 'max-index': 3, 'arg': 'a', 'arg-pos': -1 } ],
+          [ '^RXFE_WB_\w+_WB0$',   { 'array-offset': 0x1000, 'max-index': 3, 'arg': 'w', 'arg-pos': -1 } ],
+          [ '^RXFE_NB_\w+_NB0$',   { 'array-offset': 0x1000, 'max-index': 5, 'arg': 'n', 'arg-pos': -1 } ],
+          [ '^RXFE_CMNNOTCH_FILT0_CFG[0-1]$', { 'array-offset': 0x0008, 'max-index': 3, 'arg': 'n', 'arg-pos': -6 } ],
+          [ '^MSS_BBRX0_MUX_SEL$', { 'array-offset': 0x0004, 'max-index': 3, 'arg': 'a', 'arg-pos': -9 } ],
+          [ '^MSS_BBRX0_MISC$', { 'array-offset': 0x0004, 'max-index': 3, 'arg': 'a', 'arg-pos': -6 } ],
+          [ '^TXR_\w+_A0$', { 'array-offset': 0x2000, 'max-index' : 1, 'arg': 'n', 'arg-pos': -1 } ],
+          [ '^(?!TXC_TECH_SEL_A0|TXC_DP_CFG_2_A0|TXC_DP_ENV_SCALE_VAL_IMM_A0|TXC_DP_IQ_GAIN_A0|TXC_DP_IQ_GAIN_SET2_A0|TXC_DP_IQMC_A0|TXC_DP_IQMC_SET2_A0|TXC_DP_PEQ1_A0|TXC_DP_PEQ1_SET2_A0|TXC_DP_PEQ2_A0|TXC_DP_PEQ2_SET2_A0|TXC_DP_DCOC_A0|TXC_DP_DCOC_SET2_A0|TXC_DP_IQ_GAIN_IMM_A0|TXC_DP_IQMC_IMM_A0|TXC_DP_DCOC_IMM_A0|TXC_DP_PEQ1_Q_A0|TXC_DP_PEQ1_Q_SET2_A0|TXC_EP_PEQ1_A0|TXC_EP_PEQ1_SET2_A0|TXC_EP_PEQ2_A0|TXC_DP_IQ_GAIN_LATCHED_A0|TXC_DP_IQMC_LATCHED_A0|TXC_DP_PEQ1_LATCHED_A0|TXC_DP_PEQ2_LATCHED_A0|TXC_DP_DCOC_LATCHED_A0|TXC_EP_PEQ1_LATCHED_A0|TXC_EP_PEQ2_LATCHED_A0|TXC_DP_CFG_2_LATCHED_A0|TXC_DP_PEQ1_Q_LATCHED_A0)^TXC_\w+_A0$', { 'array-offset': 0x2000, 'max-index': 1, 'arg': 'n', 'arg-pos': -1 } ],
+          [ '^TX_STMR_TRIG_\w+_0$', { 'array-offset': 0x4, 'max-index': 1, 'arg': 'c', 'arg-pos': -1 } ],
+          [ '^MCDMA_TS_DMA_CH0_WORD[0-2]$', { 'array-offset': 0x100, 'max-index': 3, 'arg': 'n', 'arg-pos': -7 } ],
+        ],
+      }
+    ])

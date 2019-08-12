@@ -1,0 +1,157 @@
+/*==========================================================================
+  Name:
+    mba_link_script.txt
+
+  Description:
+    Controls memory layout, and linking options for Modem mba. 
+
+ Copyright 2011 by QUALCOMM, Incorporated.  All Rights Reserved.
+----------------------------------------------------------------------------
+============================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+ $Header: $
+
+ when       who     what, where, why
+ -------    ---     --------------------------------------------------------
+ 12/02/11   mm      Initial revision for MSM8974
+============================================================================*/
+
+OUTPUT_FORMAT ("elf32-littleqdsp6",
+               "elf32-bigqdsp6",
+	       "elf32-littleqdsp6")
+OUTPUT_ARCH (qdsp6)
+ENTRY (start)
+SEARCH_DIR("/prj/dsp/qdsp6/austin/builds/hexbuild/branch-3.0/hexframe/16759/linux64/install/BT_201108251930_lnx64/gnu/qdsp6/lib");
+SECTIONS
+{
+  __mba_lma_ddr__ = 0x8ea00000;
+  
+  /* Code starts. */  
+  .start          : 
+  AT ( __mba_lma_ddr__ )
+  {
+    KEEP (*(.start))
+  } =0x00c0007f
+  .init           :
+  {
+    KEEP (*(.init))
+  } =0x00c0007f
+   .text : { *(.text) }
+
+
+/* TCM sections */   
+
+  __tcm_qurt_pa_load_start__ = ALIGN ((DEFINED (TCM_VA_START)? TCM_VA_START : . ), 4K);
+  __tcm_qurt_pa_run_start__ = 0xd8000000;
+  __tcm_va_start__ = 0xd8000000;
+  . = __tcm_va_start__;
+  __va_start__ = .;
+  .tcm_qurt : AT (__tcm_qurt_pa_load_start__ + __va_start__ - __tcm_va_start__)
+  { 
+    /**(.QURTK.*) */
+    *(QURTK.SCHEDULER.text)
+    *(QURTK.USER_LIB.text)
+    
+    /**(QURTK.*) */
+  }
+  . = ALIGN (8);
+  __tcm_qurt_pa_load_end__ = __tcm_qurt_pa_load_start__ + . - __tcm_va_start__;
+
+
+
+  . = ALIGN (DEFINED (TEXTALIGN)? (TEXTALIGN * 1K) : 4096);
+
+  .data 0X4444000 :  AT ( __mba_lma_ddr__ + 0x2D000){ *(.data*) }
+  /*. = ALIGN (64);*/
+  __bss_start = .;
+  .bss : { *(.bss*) }
+  . = ALIGN (64);
+  _end = .;
+  . = ALIGN (64);
+  
+     .rodata  :
+	 { *(.rodata) }
+     .ctors : { *(.ctors) }
+     .dtors : {  *(.dtors) }
+	 .eh_frame : {  *(.eh_frame) }
+	 /* Data start. */
+
+
+/* Small data start. */
+  . = ALIGN (DEFINED (DATAALIGN)? (DATAALIGN * 1K) : 64K);
+  .SDATA : {}
+  . = ALIGN (64);
+  .sdata          :
+  {
+    __default_sda_base__ = .;
+    PROVIDE (_SDA_BASE_ = .);
+     *(.sdata*)
+     *(.scommon*)
+     *(.lit*)
+     *(.gnu.linkonce*)
+  }
+  . = ALIGN (64);
+  .sbss           :
+  {
+    PROVIDE (__sbss_start = .);
+    PROVIDE (___sbss_start = .);
+     *(.sbss*)
+    *(.scommon .scommon.*)
+    . = ALIGN (. != 0 ? 64 : 1);
+    PROVIDE (__sbss_end = .);
+    PROVIDE (___sbss_end = .);
+  }
+  . = ALIGN(64);
+  PROVIDE (end = .);
+  
+  .tcm_qurt_data :
+  {
+  *(QURTK.SCHEDULER.data 
+    QURTK.VECTOR.data 
+    QURTK.FUTEX.data 
+    QURTK.INTERRUPT.data 
+    QURTK.CONTEXTS.data 
+    )
+  }
+  
+
+
+
+/* Stabs debugging sections.  */
+  .stab          0 : { *(.stab) }
+  .stabstr       0 : { *(.stabstr) }
+  .stab.excl     0 : { *(.stab.excl) }
+  .stab.exclstr  0 : { *(.stab.exclstr) }
+  .stab.index    0 : { *(.stab.index) }
+  .stab.indexstr 0 : { *(.stab.indexstr) }
+  .comment       0 : { *(.comment) }
+/* DWARF debug sections.
+     Symbols in the DWARF debugging sections are relative to the beginning
+     of the section so we begin them at 0.  */
+  /* DWARF 1 */
+  .debug          0 : { *(.debug) }
+  .line           0 : { *(.line) }
+  /* GNU DWARF 1 extensions */
+  .debug_srcinfo  0 : { *(.debug_srcinfo) }
+  .debug_sfnames  0 : { *(.debug_sfnames) }
+  /* DWARF 1.1 and DWARF 2 */
+  .debug_aranges  0 : { *(.debug_aranges) }
+  .debug_pubnames 0 : { *(.debug_pubnames) }
+  /* DWARF 2 */
+  .debug_info     0 : { *(.debug_info .gnu.linkonce.wi.*) }
+  .debug_abbrev   0 : { *(.debug_abbrev) }
+  .debug_line     0 : { *(.debug_line) }
+  .debug_frame    0 : { *(.debug_frame) }
+  .debug_str      0 : { *(.debug_str) }
+  .debug_loc      0 : { *(.debug_loc) }
+  .debug_macinfo  0 : { *(.debug_macinfo) }
+  /* SGI/MIPS DWARF 2 extensions */
+  .debug_weaknames 0 : { *(.debug_weaknames) }
+  .debug_funcnames 0 : { *(.debug_funcnames) }
+  .debug_typenames 0 : { *(.debug_typenames) }
+  .debug_varnames  0 : { *(.debug_varnames) }
+  /* DWARF 3 */
+  .debug_pubtypes 0 : { *(.debug_pubtypes) }
+}

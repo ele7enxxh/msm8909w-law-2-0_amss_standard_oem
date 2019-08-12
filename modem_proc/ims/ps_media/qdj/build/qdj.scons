@@ -1,0 +1,138 @@
+#===============================================================================
+
+#
+
+# TMC Libs
+
+#
+
+# GENERAL DESCRIPTION
+
+#    build script
+
+#
+
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+
+# All Rights Reserved.
+
+# QUALCOMM Proprietary/GTDR
+
+#
+
+#-------------------------------------------------------------------------------
+
+#
+
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/ps_media/qdj/build/qdj.scons#1 $
+
+#  $DateTime: 2016/12/13 08:00:34 $
+
+#  $Author: mplcsds1 $
+
+#  $Change: 11985224 $
+
+#                      EDIT HISTORY FOR FILE
+
+#
+
+#  This section contains comments describing changes made to the module.
+
+#  Notice that changes are listed in reverse chronological order.
+
+#
+
+# when       who     what, where, why
+
+# --------   ---     ---------------------------------------------------------
+
+#
+
+#===============================================================================
+
+Import('env')
+
+if 'USES_IMS_RTP_JITTERBUFFER' not in env:
+  Return()
+	
+#-------------------------------------------------------------------------------
+
+# Source PATH
+
+#-------------------------------------------------------------------------------
+
+SRCPATH = '../src'
+
+
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+
+env.PublishPublicApi('IMS_QDJ_INC', [ 
+
+"${INC_ROOT}/modem/ims/ps_media/qdj/inc",
+
+])
+
+
+
+#-------------------------------------------------------------------------------
+
+# Internal depends within IMS
+
+#-------------------------------------------------------------------------------
+
+IMS_API = [
+
+   'IMS_PS_MEDIA_COMMON_INC',
+   'IMS_PS_MEDIA_QDJ',
+
+]
+
+
+
+env.RequireProtectedApi(IMS_API)
+
+
+
+IMS_PUBLIC_API = [
+
+   'IMS_PS_MEDIA_RTP_CORE',
+
+   'IMS_PS_MEDIA_RTP_PROFILE',
+
+   'IMS_PS_MEDIA_RTP_JITTER_BUFFER',
+
+]
+
+
+
+env.RequirePublicApi(IMS_PUBLIC_API)
+
+#-------------------------------------------------------------------------------
+
+# Sources, libraries
+
+#-------------------------------------------------------------------------------
+
+
+
+LIB_QDJ_C_SOURCES=[
+
+	'${BUILDPATH}/qdj.c',
+
+	'${BUILDPATH}/qdjtest.c',
+
+	'${BUILDPATH}/qdtx.c',
+
+]
+
+
+
+
+
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Modem Image
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/qdj', [LIB_QDJ_C_SOURCES])
+

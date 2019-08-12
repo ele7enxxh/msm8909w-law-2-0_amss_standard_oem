@@ -1,0 +1,341 @@
+#===============================================================================
+#
+# MMODE Subsystem build script
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: 2012/05/02 18:32:49 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/15/10   pm      Initial revision
+#
+#===============================================================================
+Import('env')
+
+# Load cleanpack script:
+import os
+if os.path.exists('mmcp_cleanpack.py'):
+   env.LoadToolScript('mmcp_cleanpack.py')
+    
+	
+   
+
+if env.PathExists('${BUILD_ROOT}/mmcp'):
+    env.Replace(MMCP_ROOT = '${INC_ROOT}/mmcp')
+else:    
+    env.Replace(MMCP_ROOT = '${INC_ROOT}/mmcp')
+
+
+env.RequirePublicApi([
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'MCS',
+        ],
+        area='MCS')
+
+env.RequirePublicApi([
+        'DAL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='LTE')
+
+env.RequirePublicApi([
+        'DEBUGTOOLS',
+        'MEMORY',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'UIM',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'OSYS',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'SERVICES',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MVS',
+        ],
+        area='AVS')
+
+env.RequirePublicApi([
+        'SYSTEMDRIVERS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'TDSCDMA',
+        ],
+        area='TDSCDMA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'MPROC',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'ONEX',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'HDR',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'A2',
+        ],
+        area='UTILS')
+		
+env.RequirePublicApi([
+        'QSH',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'STORAGE',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'GPS',
+        ],
+        area='GPS')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_WCDMA',
+        ],
+        area='FW_WCDMA')
+
+env.RequirePublicApi([
+        'CDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'CFM',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'WIREDCONNECTIVITY',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='TDSCDMA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'COMMON',
+        'PUBLIC',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'MEAS',
+        'GSM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'DATAMODEM',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'RF',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_CCS',
+        ],
+        area='FW_CCS')
+	
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'WCDMA',
+        'LTE',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='FW')
+	
+env.RequirePublicApi([
+        'FW_GERAN',
+        ],
+        area='FW_GERAN')	
+env.RequirePublicApi([
+        'LM',
+        'GNSS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'NAS',
+        'VOICE',
+        'WMS',
+        ],
+        area='QMIMSGS')
+
+env.RequirePublicApi([
+        'FC',
+        ],
+        area='UTILS')
+
+
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+
+
+
+# cust file relocation
+# Protected is "private within the SU" vs. Restricted with is visible to other SUs
+env.PublishProtectedApi('MMCP', [
+        '${MMCP_ROOT}/nas/services/inc',
+        '${MMCP_ROOT}/nas/mm/inc',
+        '${MMCP_ROOT}/cust/inc',
+        '${MMCP_ROOT}/nas/mm/src',
+        '${MMCP_ROOT}/nas/cnm/inc',
+        '${MMCP_ROOT}/mmode/cm/src',
+        '${MMCP_ROOT}/nas/mn/inc',
+        '${MMCP_ROOT}/nas/reg/inc',
+        '${MMCP_ROOT}/variation/inc',
+        '${MMCP_ROOT}/mmode/qmi/src',
+        '${MMCP_ROOT}/nas/sm/inc',
+        '${MMCP_ROOT}/wms/inc_deprecated',
+        '${MMCP_ROOT}/nas/sm/src',
+        '${MMCP_ROOT}/wms/src/WMSE',
+        '${MMCP_ROOT}/nas/reg/src',
+        '${MMCP_ROOT}/mmode/sd/src',
+        '${MMCP_ROOT}/mmode/sd/inc',
+        '${MMCP_ROOT}/mmode/cm/inc',
+        '${MMCP_ROOT}/nas/rabm/inc',
+        '${MMCP_ROOT}/nas/cb/src',
+        '${MMCP_ROOT}/wms/src/CMCNas/inc',
+        '${MMCP_ROOT}/nas/tc/src',
+        '${MMCP_ROOT}/nas/cnm/src',
+        '${MMCP_ROOT}/mmode/mmoc/src',
+        '${MMCP_ROOT}/wms/src/qmi_wms/inc',
+        '${MMCP_ROOT}/wms/src/qmi_wms/src',
+         ])
+
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+
+env.RequireProtectedApi(['MMCP'])
+env.RequirePublicApi(['MMCP'], area='MMCP')
+env.RequireRestrictedApi(['MMCP'])
+
+#-------------------------------------------------------------------------------
+# An Attempt to make MMCP software Compiler-Warnings free
+# Override CCFLAGS for this Module. Make all Warnings to Errors!
+# Enable warnings -> errors for all
+#-------------------------------------------------------------------------------
+env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror") 
+env = env.Clone(HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")
+
+#-------------------------------------------------------------------------------
+# This change allows mmcp to gate on high and medium warnings.  
+# And, it also allows 'low' warnings to be emitted
+#-------------------------------------------------------------------------------
+#env.Append(HEXAGON_WARN = '-Werror-high -Werror-medium -Wlow') 
+
+env.LoadSoftwareUnits()

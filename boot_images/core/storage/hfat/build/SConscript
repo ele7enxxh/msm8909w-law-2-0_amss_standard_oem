@@ -1,0 +1,111 @@
+#===============================================================================
+#
+# HFAT Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2013 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$#  $DateTime$ $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who  what, where, why
+# ----------  ---  -------------------------------------------------------------
+# 2013-01-31  dks  Fixed history comment for adding dal dependency.
+# 2012-05-09  wek  Add the include path for build config script.
+# 2012-03-27  wek  Add BOOT to the restricted API list.
+# 2012-03-08  wek  Rename macros and remove header files to compile for boot.
+# 2011-06-02  dks  Migrate from TMC to rcinit.
+# 2011-03-25  dks  Support Golden-Copy in RAM for fusion.
+# 2011-03-03  dks  Add device setup calls.
+# 2010-12-21  dks  Add HFAT lib to modem libraries.
+# 2010-12-03  rp   Featurize FS-TAR module.
+# 2010-10-14  vr   Remove default inclusion of HOTPLUG for boot.
+# 2010-08-26  rp   Enable HFAT for BOOT module based on flag.
+# 2010-07-12  dks  Fix USES flag for HFAT feature.
+# 2010-06-28  wek  Supress EFS1 related warnings.
+# 2010-06-14  vr   Hotplug to compile without EFS for 8660 SBL1.
+# 2010-05-10  dks  Added DAL dependency.
+# 2010-03-19  wek  Unify features defined for boot in all sconscripts.
+# 2010-03-05  vr   Add support for QEFS2 in BOOT
+# 2010-02-26  yog  Map legacy messages to MSG_SSID_FS
+# 2010-02-01  wek  Chaged source path to use core/storage.
+#===============================================================================
+# Import methods to get compile time configuration.
+import sys
+Import('env')
+env = env.Clone()
+efs_scripts_path = env.RealPath('${BUILD_ROOT}/core/storage/efs/build/')
+sys.path.append(efs_scripts_path)
+
+from fs_build_config import *
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/hfat/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'STORAGE',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequirePrivateApi(['STORAGE'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+HFAT_SOURCES = [
+   '${BUILDPATH}/hfat_chkfat.c',
+   '${BUILDPATH}/hfat_common.c',
+   '${BUILDPATH}/hfat_interface.c',
+   '${BUILDPATH}/hfat_lfn.c',
+   '${BUILDPATH}/hfat_m.c',
+   '${BUILDPATH}/hfat_port_f.c'
+]
+
+hfat_obj = env.Object(HFAT_SOURCES)
+hfat_lib = env.Library('${BUILDPATH}/hfat', hfat_obj)
+
+#----------------------------------------------------------------------------
+# Get the build configuration flags and add them to the environment
+#----------------------------------------------------------------------------
+fs_add_cpp_defines (env)
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+if 'USES_FS_HFAT' in env:
+  env.AddLibsToImage(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'APPS_IMAGE',
+                      'CBSP_APPS_IMAGE', 'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+                      'SBL3_BOOT_IMAGE'], hfat_lib)
+
+env.AddLibsToImage(['OSBL_BOOT_IMAGE'], hfat_lib)
+env.AddLibsToImage(['FS_BOOT_DRIVER'], hfat_lib)

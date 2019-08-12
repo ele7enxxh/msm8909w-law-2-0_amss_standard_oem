@@ -1,0 +1,38 @@
+
+<!-- NOTE: DAL config has trouble parsing multi-line comment, so please put -->
+<!--       proper comment tags on each line                                 -->
+<!--                                                                        -->
+<!-- Clock Driver Properties file                                           -->
+<!-- Note we depend on the include path for the following directories to be -->
+<!-- available to the DAL config compiler:                                  -->
+<!-- "${INC_ROOT}/core/systemdrivers/hal/clk/inc",                          -->
+<!-- "${INC_ROOT}/core/systemdrivers/clock/src",                            -->
+<!-- "${INC_ROOT}/core/systemdrivers/clock/config"                          -->
+<!-- "${INC_ROOT}/core/systemdrivers/clock/config/${CHIPSET}"               -->
+
+
+<driver name="Clock">
+  #if DAL_CONFIG_TARGET_ID==0x9607
+    #include "mdm9x07/ClockChipsetGlobal.xml"
+  #endif
+  <device id=DALDEVICEID_CLOCK>
+    #if DAL_CONFIG_TARGET_ID==0x8916
+      #include "msm8916/ClockChipset.xml"
+    #elif DAL_CONFIG_TARGET_ID==0x8936
+      #include "msm8936/ClockChipset.xml"
+    #elif DAL_CONFIG_TARGET_ID==0x9645
+      #include "mdm9x45/ClockChipset.xml"
+    #elif DAL_CONFIG_TARGET_ID==0x8909
+      #include "msm8909/ClockChipset.xml"
+    #elif DAL_CONFIG_TARGET_ID==0x8952
+      #include "msm8952/ClockChipset.xml"
+    #elif DAL_CONFIG_TARGET_ID==0x8976
+      #include "msm8976/ClockChipset.xml"
+    #elif DAL_CONFIG_TARGET_ID==0x9607
+      #include "mdm9x07/ClockChipset.xml"
+    #else
+      #error No Clock Properties for this target
+    #endif
+  </device>
+</driver>
+

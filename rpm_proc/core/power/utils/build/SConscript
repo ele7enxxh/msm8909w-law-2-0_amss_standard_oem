@@ -1,0 +1,62 @@
+#===============================================================================
+#
+# Core Utils Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$
+#  $DateTime$
+#  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/05/10   yz      Added CoreAtomicOps.s
+# 12/22/09   ajf     Added CoreIntrinsics.s
+# 11/16/09   rks     Initial version.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/power/utils/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Include dependencies
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(['SERVICES','DEBUGTOOLS','STORAGE','KERNEL'])
+env.RequireRestrictedApi(['POWER','DAL','SERVICES','DEBUGTOOLS','KERNEL'])
+env.RequireProtectedApi(['POWER_UTILS'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+env.Append(CPPDEFINES=['FEATURE_CORE_LOW_MEM',
+                       'FEATURE_NO_WORKLOOPS'])
+
+CORE_UTILS_SOURCES = [
+    '${BUILDPATH}/CoreConfig.c',
+    '${BUILDPATH}/CorePool.c',
+    '${BUILDPATH}/CoreWorkContainer.c',
+    '${BUILDPATH}/CoreWorkQueue.c',
+]
+
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/utils', CORE_UTILS_SOURCES)
+

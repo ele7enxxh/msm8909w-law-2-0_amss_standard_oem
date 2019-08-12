@@ -1,0 +1,102 @@
+#===============================================================================
+#
+# Security Checker Service
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# Qualcomm Technologies Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/09/14    rk     Moved out of tzdrm
+# 04/09/13    ck     Created.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/common/security_checker/shared"
+
+#if env.has_key('USES_NO_DEBUG'):
+#   env.Replace(DBUG_MODE = "NoDebug")
+#else:
+#   env.Replace(DBUG_MODE = "Debug")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --arm')
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES'
+]
+
+env.RequirePublicApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within TZ Common Libs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('SECUREMSM', [
+   "${COREBSP_ROOT}/api/services/",
+   "${COREBSP_ROOT}/api/securemsm/trustzone/qsee",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/applib/qsee/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/common/security_checker/shared/src/",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/inc/",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/scheduler/shared/src/",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/scheduler/shared/inc/",
+])
+
+#----------------------------------------------------------------------------
+# TZCOMMON Shared Library
+#----------------------------------------------------------------------------   
+
+SME_TZCOMMON_SECURITY_CHECKER_SHARED_LIB_SOURCES = [
+        '${BUILDPATH}/src/security_stream_checker.c',
+]
+
+sme_tzcommon_security_checker_shared_lib = '${BUILDPATH}/sme_tzcommon_security_checker_shared'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary (
+['PLAYREADY_IMAGE', 'WIDEVINE_IMAGE', 'DXHDCP2_IMAGE', 'DXHDCP2DBG_IMAGE'],
+sme_tzcommon_security_checker_shared_lib,
+[SME_TZCOMMON_SECURITY_CHECKER_SHARED_LIB_SOURCES]
+)
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+NOSHIP_SOURCES = SRCPATH + "/src/security_stream_checker.h"
+env.CleanPack(
+['PLAYREADY_IMAGE', 'WIDEVINE_IMAGE' 'DXHDCP2_IMAGE', 'DXHDCP2DBG_IMAGE'],
+NOSHIP_SOURCES
+)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

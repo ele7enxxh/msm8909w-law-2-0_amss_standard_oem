@@ -1,0 +1,495 @@
+#===============================================================================
+#
+# SECBOOT3 Common Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/17/14   sve	 Code changes for merging firehose DeviceProgrammer into SBL
+# 11/03/14   yps     remove boot_ddr_debug.c because it dosen't exsit.
+# 09/18/14   lm      Moved raw partition dump feature only for eMMC
+# 08/05/14   sk      8909 SBL NAND changes
+# 06/06/14   lm      Added Power driver to compilation
+# 06/02/14   ck      Added boot_statistics.c to compilation
+# 04/10/14   ck      Added APT driver to compilation
+# 03/21/14   ck      Added boot_sbl_qsee_interface.c to compilation
+# 03/17/14   ck      Renamed securemsm to seccfg
+# 02/28/14   ck      Added UART logger support
+# 01/14/14   ck      Added boot_a53_asm.s to compilation
+# 12/16/13   ck      Removed boot_qfprom_test.c as it's not needed in Bear family.
+# 12/06/13   ck      Replaced boot_krait.c with boot_a53.c
+# 09/09/13   ck      Initial reversion
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/boot/secboot3/src"
+
+env.VariantDir("${BUILDPATH}", SRCPATH,  duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'SECUREMSM',
+   'HWENGINES',
+   'APT',
+   'POWER',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['BOOT'])
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Boot util lib
+#-------------------------------------------------------------------------------
+BOOT_UTIL_SOURCES = [
+   '${BUILDPATH}/boot_util.c',
+   '${BUILDPATH}/boot_util_asm.s',
+   '${BUILDPATH}/boot_visual_indication.c',
+   '${BUILDPATH}/boot_sbl_qsee_interface.c',
+   '${BUILDPATH}/boot_statistics.c',
+]
+
+boot_util_obj = env.Object([
+   BOOT_UTIL_SOURCES
+])
+
+boot_util_lib = env.Library('${BUILDPATH}/boot_util', boot_util_obj)
+
+env.AddLibsToImage(['SBL1_BOOT'], [boot_util_lib])
+   
+#-------------------------------------------------------------------------------
+# Boot MMU lib
+#-------------------------------------------------------------------------------
+BOOT_MMU_SOURCES = [
+   '${BUILDPATH}/boot_page_table.c',
+   '${BUILDPATH}/boot_armv7_mmu.s',
+]
+
+boot_mmu_obj = env.Object([
+   BOOT_MMU_SOURCES
+])
+
+boot_mmu_lib = env.Library('${BUILDPATH}/boot_mmu', boot_mmu_obj)
+
+env.AddLibsToImage(['SBL1_BOOT'], [boot_mmu_lib])
+
+#-------------------------------------------------------------------------------
+# Boot Target Hareware lib
+#-------------------------------------------------------------------------------
+BOOT_TARGET_HW_SOURCES = [
+   '${BUILDPATH}/boot_a53_asm.s',
+   '${BUILDPATH}/boot_a53.c',
+   '${BUILDPATH}/boot_thermal_management.c',
+   '${BUILDPATH}/boot_pbl_v1.c',
+]
+
+boot_target_hw_obj = env.Object([
+   BOOT_TARGET_HW_SOURCES
+])
+
+boot_target_hw_lib = env.Library('${BUILDPATH}/boot_target_hw', boot_target_hw_obj)
+
+env.AddLibsToImage(['SBL1_BOOT'], [boot_target_hw_lib])
+
+#-------------------------------------------------------------------------------
+# Boot error and dload lib
+#-------------------------------------------------------------------------------
+BOOT_ERROR_DLOAD_SOURCES = [
+   '${BUILDPATH}/boot_error_handler.c',
+   '${BUILDPATH}/boot_dload.c',
+   '${BUILDPATH}/boot_dload_debug.c',
+   '${BUILDPATH}/boot_sd_ramdump.c',
+ ]
+
+if env.has_key('USES_SAHARA_BOOT'):
+  BOOT_ERROR_DLOAD_SOURCES += [
+    '${BUILDPATH}/boot_sahara.c',
+    '${BUILDPATH}/boot_hash_buffer.c',     
+    '${BUILDPATH}/boot_hash.c',     
+]
+
+boot_error_dload_obj = env.Object([
+   BOOT_ERROR_DLOAD_SOURCES
+])
+
+boot_error_dload_lib = env.Library('${BUILDPATH}/boot_error_dload', boot_error_dload_obj)   
+
+env.AddLibsToImage(['SBL1_BOOT'], [boot_error_dload_lib])
+
+#-------------------------------------------------------------------------------
+# Boot Logger lib
+#-------------------------------------------------------------------------------
+BOOT_LOGGER_SOURCES = [
+   '${BUILDPATH}/boot_logger.c',
+]
+
+if env.has_key('USES_BOOT_LOGGER_RAM'):
+  BOOT_LOGGER_SOURCES += [
+    '${BUILDPATH}/boot_logger_ram.c'
+]
+
+if env.has_key('USES_BOOT_LOGGER_TIMER'):
+  BOOT_LOGGER_SOURCES += [
+     '${BUILDPATH}/boot_logger_timer.c'
+]
+
+if env.has_key('USES_BOOT_LOGGER_JTAG'):
+  BOOT_LOGGER_SOURCES += [
+    '${BUILDPATH}/boot_logger_jtag.c'
+]
+
+if env.has_key('USES_BOOT_LOGGER_UART'):
+  BOOT_LOGGER_SOURCES += [
+    '${BUILDPATH}/boot_logger_uart.c'
+]
+
+boot_logger_obj = env.Object([
+   BOOT_LOGGER_SOURCES
+])
+
+boot_logger_lib = env.Library('${BUILDPATH}/boot_logger', boot_logger_obj)
+
+env.AddLibsToImage(['SBL1_BOOT'], [boot_logger_lib])
+
+
+#-------------------------------------------------------------------------------
+# Boot extern driver interface lib
+#-------------------------------------------------------------------------------
+BOOT_EXTERN_DRIVER_INTERFACE_SOURCES = []
+
+if env.has_key('USES_BOOT_EXTERN_DAL_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_dal_interface.c',
+  ]
+  
+if env.has_key('USES_BOOT_EXTERN_FLASH_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_flash_interface.c',
+  ]   
+  
+if env.has_key('USES_BOOT_EXTERN_PMIC_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_pmic_interface.c',
+  ]
+  
+if env.has_key('USES_BOOT_EXTERN_SMEM_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_smem_interface.c',
+  ]
+  
+if env.has_key('USES_BOOT_EXTERN_EFS_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_efs_interface.c',
+  ] 
+
+if env.has_key('USES_BOOT_EXTERN_CLK_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_clk_interface.c',
+  ]
+  
+if env.has_key('USES_BOOT_EXTERN_HSUSB_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_hsusb_interface.c',
+  ]
+  
+if env.has_key('USES_BOOT_EXTERN_DDR_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_ddr_interface.c',
+  ]
+if env.has_key('USES_BOOT_EXTERN_PLATFORMINFO_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_platforminfo_interface.c',
+  ]
+
+if env.has_key('USES_BOOT_EXTERN_TLMM_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_tlmm_interface.c',
+  ]
+
+if env.has_key('USES_BOOT_EXTERN_BUSYWAIT_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_busywait_interface.c',
+  ]
+
+if env.has_key('USES_BOOT_EXTERN_TSENSOR_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_tsensor_interface.c',
+  ]  
+
+if env.has_key('USES_BOOT_EXTERN_BUS_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_bus_interface.c',
+  ]  
+  
+if env.has_key('USES_BOOT_EXTERN_CRYPTO_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_crypto_interface.c',
+  ] 
+  
+if env.has_key('USES_BOOT_EXTERN_SECBOOT_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_secboot_interface.c',
+  ]  
+
+if env.has_key('USES_BOOT_EXTERN_SECCFG_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_seccfg_interface.c',
+  ]    
+
+if env.has_key('USES_BOOT_EXTERN_APT_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_apt_interface.c',
+  ]    
+
+if env.has_key('USES_BOOT_EXTERN_BAM_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_bam_interface.c',
+  ]
+  
+if env.has_key('USES_BOOT_EXTERN_HOTPLUG_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+	'${BUILDPATH}/boot_extern_hotplug_interface.c',
+ ]
+
+if env.has_key('USES_BOOT_EXTERN_UART_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_uart.c',
+    ]
+
+if env.has_key('USES_BOOT_EXTERN_POWER_COMPLETED'):
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+    '${BUILDPATH}/boot_extern_power_interface.c',
+    ]
+
+if "firehose" in env['IMAGE_NAME'].lower():
+  if "lite" in env['IMAGE_NAME'].lower():
+    BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+      '${BUILDPATH}/boot_extern_deviceprogrammer_lite_interface.c',
+    ]
+  else:
+    BOOT_EXTERN_DRIVER_INTERFACE_SOURCES += [
+      '${BUILDPATH}/boot_extern_deviceprogrammer_ddr_interface.c',
+    ]
+
+boot_extern_driver_interface_obj = env.Object([
+  BOOT_EXTERN_DRIVER_INTERFACE_SOURCES
+  ])
+
+# only create the lib if at least one interface is implemented
+if BOOT_EXTERN_DRIVER_INTERFACE_SOURCES:  
+  boot_extern_driver_interface_lib = env.Library('${BUILDPATH}/boot_extern_driver_interface', 
+                                                 boot_extern_driver_interface_obj)
+
+  env.AddLibsToImage(['SBL1_BOOT'], [boot_extern_driver_interface_lib])
+
+
+#-------------------------------------------------------------------------------
+# Boot flash common lib
+#-------------------------------------------------------------------------------
+BOOT_FLASH_COMMON_SOURCES = [
+   '${BUILDPATH}/boot_clobber_prot.c',
+   '${BUILDPATH}/boot_clobber_prot_local.c',
+   '${BUILDPATH}/boot_flash.c',
+   '${BUILDPATH}/boot_flash_target.c',
+   '${BUILDPATH}/boot_flash_dev_if.c',
+]
+
+
+boot_flash_common_obj = env.Object([
+   BOOT_FLASH_COMMON_SOURCES
+])
+
+boot_flash_common_lib = env.Library('${BUILDPATH}/boot_flash_common', boot_flash_common_obj)
+
+env.AddLibsToImage(['SBL1_BOOT'], [boot_flash_common_lib])
+
+#-------------------------------------------------------------------------------
+# Boot sdcc lib
+#-------------------------------------------------------------------------------
+if env.has_key('USES_SDCC_BOOT'):
+
+  BOOT_SDCC_SOURCES = [
+    '${BUILDPATH}/boot_flash_trans_sdcc.c',
+    '${BUILDPATH}/boot_flash_dev_sdcc_if.c',
+    '${BUILDPATH}/boot_flash_dev_sdcc.c',
+	'${BUILDPATH}/boot_sdcc_hotplug.c',
+	'${BUILDPATH}/boot_raw_partition_ramdump.c',
+  ]
+  
+  boot_sdcc_obj = env.Object([
+    BOOT_SDCC_SOURCES
+  ])
+
+  boot_sdcc_lib = env.Library('${BUILDPATH}/boot_sdcc', boot_sdcc_obj)
+
+  env.AddLibsToImage(['SBL1_BOOT'], [boot_sdcc_lib])
+
+#-------------------------------------------------------------------------------
+# Boot nand lib
+#-------------------------------------------------------------------------------
+if env.has_key('USES_NAND_BOOT'):
+
+  BOOT_NAND_SOURCES = [
+     '${BUILDPATH}/boot_flash_trans_nand.c',
+     '${BUILDPATH}/boot_flash_dev_dal.c',
+     '${BUILDPATH}/boot_flash_dev_nand.c',
+     '${BUILDPATH}/boot_flash_dev_nand_if.c',
+     '${BUILDPATH}/boot_flash_partition.c',
+  ]
+    
+  boot_nand_obj = env.Object([
+    BOOT_NAND_SOURCES
+  ])
+
+  boot_nand_lib = env.Library('${BUILDPATH}/boot_nand', boot_nand_obj)
+
+  env.AddLibsToImage(['SBL1_BOOT'], [boot_nand_lib])  
+  
+
+#-------------------------------------------------------------------------------
+# Boot image loading lib
+#-------------------------------------------------------------------------------
+
+BOOT_IMAGE_LOADING_SOURCES = [
+  '${BUILDPATH}/boot_mc.c',
+  '${BUILDPATH}/boot_loader.c',
+  '${BUILDPATH}/boot_config.c',
+  '${BUILDPATH}/boot_gpt_partition_id.c',
+]
+
+if env.has_key('CPPDEFINES'):
+  if 'FEATURE_BOOT_LOAD_ELF' in env['CPPDEFINES']:
+    BOOT_IMAGE_LOADING_SOURCES += [
+      '${BUILDPATH}/boot_elf_loader.c',
+      '${BUILDPATH}/boot_hash_buffer.c',           
+      '${BUILDPATH}/boot_hash.c',      
+    ]
+
+boot_image_loading_obj = env.Object([
+  BOOT_IMAGE_LOADING_SOURCES
+])
+
+boot_image_loading_lib = env.Library('${BUILDPATH}/boot_image_loading', boot_image_loading_obj)
+
+env.AddLibsToImage(['SBL1_BOOT'], [boot_image_loading_lib])
+
+
+#-------------------------------------------------------------------------------
+# Boot CDT lib
+#-------------------------------------------------------------------------------
+
+BOOT_CDT_SOURCES = [
+  '${BUILDPATH}/boot_config_data.c',
+]
+
+if env.has_key('USES_CDT_ON_EEPROM'):
+  BOOT_CDT_SOURCES += [
+    '${BUILDPATH}/boot_config_eeprom.c',
+  ]
+else:
+  BOOT_CDT_SOURCES += [
+    '${BUILDPATH}/boot_config_emmc.c',
+  ]
+
+boot_cdt_obj = env.Object([
+  BOOT_CDT_SOURCES
+])
+
+boot_cdt_lib = env.Library('${BUILDPATH}/boot_cdt', boot_cdt_obj)
+
+env.AddLibsToImage(['SBL1_BOOT'], [boot_cdt_lib])
+
+
+#-------------------------------------------------------------------------------
+# Boot memory management lib
+#-------------------------------------------------------------------------------
+
+BOOT_MEM_MANAGE_SOURCES = [
+  '${BUILDPATH}/boot_smem.c',
+  '${BUILDPATH}/boot_ram_init.c',
+  '${BUILDPATH}/boot_ddr_info.c',
+  '${BUILDPATH}/boot_ram_partition.c',
+]
+  
+boot_mem_manage_obj = env.Object([
+  BOOT_MEM_MANAGE_SOURCES
+])
+
+boot_mem_manage_lib = env.Library('${BUILDPATH}/boot_mem_manage', boot_mem_manage_obj)
+
+env.AddLibsToImage(['SBL1_BOOT'], [boot_mem_manage_lib])
+
+
+#-------------------------------------------------------------------------------
+# Boot security lib
+#-------------------------------------------------------------------------------
+BOOT_SECURITY_SOURCES = [
+   '${BUILDPATH}/boot_authenticator.c',
+]
+
+if env.has_key('USES_BOOT_VERSION_ROLL_BACK'):
+  BOOT_SECURITY_SOURCES += [
+    '${BUILDPATH}/boot_rollback_version.c'
+]
+
+
+boot_security_obj = env.Object([
+   BOOT_SECURITY_SOURCES
+])
+
+boot_security_lib = env.Library('${BUILDPATH}/boot_security', boot_security_obj)
+
+env.AddLibsToImage(['SBL1_BOOT'], [boot_security_lib])
+
+
+#-------------------------------------------------------------------------------
+# Boot secure watchdog lib
+#-------------------------------------------------------------------------------
+
+BOOT_SECURE_WATCHDOG_SOURCES = [
+  '${BUILDPATH}/boot_secure_watchdog.c',
+]
+
+boot_secure_watchdog_obj = env.Object([
+  BOOT_SECURE_WATCHDOG_SOURCES
+])
+
+boot_secure_watchdog_lib = env.Library('${BUILDPATH}/boot_secure_watchdog', boot_secure_watchdog_obj)
+
+env.AddLibsToImage(['SBL1_BOOT'], [boot_secure_watchdog_lib])

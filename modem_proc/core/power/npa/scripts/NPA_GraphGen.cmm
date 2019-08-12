@@ -1,0 +1,646 @@
+; NPA_GraphGen.cmm
+; ------------------------------------------------------------------
+;
+; Copyright (c) 2009-2013 Qualcomm Technologies Incorporated.
+; All Rights Reserved.
+; QUALCOMM Proprietary
+;
+; When to use this script 
+; -----------------------
+; This script should be used to dump resource graph
+; 
+; How to use this script
+; ----------------------
+;
+; do NPA_GraphGen [Resource name]
+
+;Parameters:
+;<logPath> -> This parameter is mandatory and specifies the path where result of the debugscan should be stored
+;TODO: Plotting a graph for particular resource when resource name is passed (Add resource name parameter to the script)
+
+
+ENTRY &logPath
+
+	//Global variables used for checking and splitting resource graph into chunks for better display
+	GLOBAL &str_Leaf_Resource &str_Root_Resource 
+	GLOBAL &index_Leaf_Resource &index_Resource_Ptr &index_Independent_Resource &index_Client_Name 
+	GLOBAL &count_Dummy_Nodes
+	Var.NEWGLOBAL char[10000][128] \array_Leaf_Resource
+	Var.NEWGLOBAL char[10000][128] \array_Root_Resource
+	Var.NEWGLOBAL char[10000][128] \array_Independent_Resource
+	VAr.NEWGLOBAL char[100][128] \array_Client_Name
+	Var.NEWGLOBAL int[10000] \array_Resource_Ptr
+
+	ON ERROR JUMPTO error
+
+	//initialize all global variables
+	&str_Leaf_Resource=""
+	&str_Root_Resource=""
+	&index_Leaf_Resource=0
+	&index_Resource_Ptr=0
+	&index_Independent_Resource=0
+	&index_Client_Name=0
+	&count_Dummy_Nodes=0
+
+	//Code to check if user has entered path for LogFile
+	AREA.Create IO-Window
+	AREA.Select IO-Window
+	AREA.View IO-Window
+Start:
+	if "&logPath"==""
+	(
+		PRINT "Please enter the log path:"
+		ENTER &logPath
+		GOTO Start
+	)
+
+	// Validate logPath string
+	IF string.char("&(logPath)", string.len("&(logPath)")-1)=='\'
+	(
+		&logPath=string.cut("&(logPath)", -1)
+	)
+
+	PRINT "Dumping Resource Graph."
+
+	//Create NPAResourceGraph.gv: This file is input to the GraphViz to create Resource graph
+	OPEN #1 "&(logPath)\NPAResourceGraph.gv" /Create
+
+	GOSUB initialize_Graph
+	GOSUB render_Graph
+	GOSUB close_Graph
+
+	PRINT "Resource Graph dump completed."
+	PRINT ""
+	PRINT "Steps to create Graph from the generated NPAResourceGraph.gv file:"
+	PRINT "1. Navigate to a directory where NPAResourceGraph.gv is created"
+	PRINT "2. Run the following command"
+	PRINT "ccomps -Cx NPAResourceGraph.gv | dot | gvpack -array_1 | neato -n2 -Tpng > NPAResourceGraph.png"
+
+error:
+	CLOSE #1
+	Area.Reset
+
+ENDDO
+
+
+
+
+//Function to initialize graph with parameters
+initialize_Graph:
+	//intialize graph
+	WRITE #1 "digraph G {"
+
+	//node connection will be left to right instead of top to bottom
+	WRITE #1 "rankdir=LR;"
+
+	//Parameters for node separation 
+	WRITE #1 "ranksep=1.0;"
+	WRITE #1 "nodesep=1.0;"
+
+	RETURN
+
+
+
+
+//Function to close graph
+close_Graph:
+	WRITE #1 "}"
+	
+	RETURN
+
+
+
+
+//Subroutine to render resource graph
+//This routine is entry point for plotting a resource graph
+render_Graph:
+
+	LOCAL &npa_Link 
+	LOCAL &resource_Link &resource_Name &resource_Definition &resource_Attribute &resource_State
+	LOCAL &str_ResourceState
+	LOCAL &flag
+	LOCAL &temp_Str &temp_Calc
+	
+	&str_ResourceState=""
+	
+	&npa_Link=V.VALUE(npa.resources)
+	
+	//traverse npa link to get root resource for the graph
+	WHILE &npa_Link!=0
+	(
+		&strGraphEdge=""
+		&resource_Link=V.VALUE(((npa_link *)&npa_Link).resource)
+		&resource_Name=DATA.STRING(D:V.VALUE(((npa_link *)&npa_Link).name))
+
+		//store root source in a global variable 'str_Root_Resource'
+		//(Please Note: &tempStr variable is designed to be uniform across the code.
+		//Please keep &tempStr value uniform everywhere in the code for proper functioning)
+		&tempStr="                                        "
+		&tempStr=string.cut("&tempStr", string.len("&resource_Name"))
+		&resource_Name="&(resource_Name) &(tempStr)"
+		&str_Root_Resource="&resource_Name"
+		
+		//Get active state for scalar resource and append it to resource name
+		GOSUB get_Resource_State &resource_Link
+		ENTRY &str_ResourceState &flag
+		if "&str_ResourceState"=="NULL"
+		(
+			&str_ResourceState=""
+		)
+		&str_Root_Resource="&resource_Name"+"&str_ResourceState"
+		
+		//Goto 'add_Resource_To_Graph' function to traverse dependent resources recursively
+		GOSUB add_Resource_To_Graph &resource_Link
+		
+		&npa_Link=V.VALUE(((npa_link *)&npa_Link).next)
+	)
+	
+	//Goto 'split_Graph' function to re-arrange generated graph for better visualization of dependent resources in graphviz 
+	GOSUB split_Graph
+	
+	//Goto 'split_Graph_Independent_Resource' function to re-arrange generated graph for better visualization of independent resources in graphviz 
+	GOSUB split_Graph_Independent_Resource
+	
+	RETURN
+
+
+
+
+//This function traverses resource dependencies recursively to produce resource graph
+add_Resource_To_Graph:
+	ENTRY &resource_Ptr
+	LOCAL &resource_Definition &resource_Attribute &resource_State &resource_Name &resource_Link &dependent_Resource_Name 
+	LOCAL &npa_Node &npa_Node_Dependency 
+	LOCAL &npa_Link
+	LOCAL &npa_Client &client_Name &client_Dependency
+	LOCAL &tempStr &strSymbol &count
+	LOCAL &str_Length &str_Client_Request &str_Resource_State
+	LOCAL &temp_Calc &flag_Scalar_Resource
+	
+	&count=0
+
+	//Find resource name by traversing NPA link
+	//Resource name is found from npa link (instead of resource definition) to keep consistency in the resource name (in case of aliases)
+	&npa_Link=V.VALUE(npa.resources)
+	WHILE &npa_Link!=0
+	(
+		&resource_Link=V.VALUE(((npa_link *)&npa_Link).resource)
+		if &resource_Link==&resource_Ptr
+		(
+			&resource_Name=DATA.STRING(D:V.VALUE(((npa_link *)&npa_Link).name))
+			GOTO jump_Loop
+		)
+		&npa_Link=V.VALUE(((npa_link *)&npa_Link).next)
+	)
+		
+jump_Loop:	
+
+	//Normalize length of 'resource name' string
+	&tempStr="                                        "
+	&tempStr=string.cut("&tempStr", string.len("&resource_Name"))
+	&resource_Name="&(resource_Name) &(tempStr)"
+	
+	//Get active state for scalar resource and append it to resource name
+	&str_Resource_State=""
+	GOSUB get_Resource_State &resource_Ptr
+	ENTRY &str_Resource_State &flag_Scalar_Resource 
+	if "&str_Resource_State"=="NULL"
+	(
+		&str_Resource_State=""
+	)
+	&resource_Name="&resource_Name"+"&str_Resource_State"
+	
+	//'array_Resource_Ptr' variable stores all the resources which are already traversed
+	//Check current resource against this array to verify if resource has already been traversed
+	WHILE &count<&index_Resource_Ptr
+	(
+		if (&resource_Ptr&0x00000000FFFFFFFF)==(Var.Value(\array_Resource_Ptr[&count])&0x00000000FFFFFFFF)
+		(
+			GOTO exit_Function
+		)
+		&count=&count+1
+	)
+	
+	//Resource has not been traversed earlier in resource dependency
+	//Store the resource pointer in an array for future comparisons
+	if &count==&index_Resource_Ptr
+	(
+		Var.Set \array_Resource_Ptr[&count]=&resource_Ptr
+		&index_Resource_Ptr=&index_Resource_Ptr+1
+		
+		GOSUB write_NodeName_To_File "&resource_Name" "[shape = box]"
+		
+		//Obtain all clients of the resource
+		&npa_Client=V.VALUE(((npa_resource *)&resource_Ptr).clients)
+		
+		&index_Client_Name=0
+		WHILE &npa_Client!=0
+		(
+			&client_Name=DATA.STRING(D:V.VALUE(((npa_client *)&npa_Client).name))
+			
+			//Compare clients with array of client names to remove duplicates for the same resource (prevents multiple edges between resource and client)
+			&count=0
+			WHILE &count<&index_Client_Name
+			(
+				if Var.STRing(\array_Client_Name[&count])=="&client_Name"
+				(
+					GOTO jump_Client_Loop
+				)
+				&count=&count+1
+			)
+			
+jump_Client_Loop:
+
+			if &count==&index_Client_Name
+			(
+				//Code to check if client name contains "/node" string
+				&str_Length=(string.len("&(client_Name)")-5)*(-1)
+			
+				if "/node"!=string.cut("&(client_Name)", &str_Length)
+				(
+					Var.Set \array_Client_Name[&count]="&client_Name"
+					
+					//Normalize length of 'client name' string
+					&tempStr="                                        "
+					&tempStr=string.cut("&tempStr", string.len("&client_Name"))
+					&client_Name="&(client_Name) &(tempStr)"
+				
+					//Annotate client edge with 'client request' if resource is scalar
+					&str_Client_Request=""
+					if &(flag_Scalar_Resource)==1
+					(
+						GOSUB get_Client_Request &npa_Client
+						ENTRY &str_Client_Request
+					)
+					GOSUB write_Edge_To_File "&(client_Name)" "&(resource_Name)" "[weight=7]&(str_Client_Request)"
+					&index_Client_Name=&index_Client_Name+1
+				)
+			)
+			&npa_Client=V.VALUE(((npa_client *)&npa_Client).next)
+		)
+	)
+	
+	&npa_Node=V.VALUE(((npa_resource *)&resource_Ptr).node)
+	if &npa_Node!=0
+	(
+		&npa_Node_Dependency=V.VALUE(((npa_node_definition *)&npa_Node).dependencies)
+		
+		if &npa_Node_Dependency!=0
+		(
+			&dependent_Resource_Name=DATA.STRING(D:V.VALUE((((npa_node_definition *)&npa_Node).dependencies).name))
+			
+			&tempStr="                                        "
+			&tempStr=string.cut("&tempStr", string.len("&dependent_Resource_Name"))
+			&dependent_Resource_Name="&(dependent_Resource_Name) &(tempStr)"	
+		)
+	)
+	else
+	(
+		&npa_Node_Dependency=0
+	)
+	
+	if &npa_Node_Dependency!=0
+	(
+		&npa_Client=V.VALUE(((npa_node_dependency *)&npa_Node_Dependency).handle)
+		if &npa_Client!=0
+		(
+			&client_Dependency=V.VALUE(((npa_client *)&npa_Client).resource)
+			if &client_Dependency!=0
+			(			
+				//Annotate client edge with 'client request' if resource is scalar
+				//This annotation is for scalar resource dependent edge
+				&str_Client_Request=""
+				if &flag_Scalar_Resource==1
+				(
+					GOSUB get_Client_Request &npa_Client
+					ENTRY &str_Client_Request
+				)
+				
+				//Get state of a resource on which current resource is dependent
+				&str_Resource_State=""
+				GOSUB get_Resource_State &client_Dependency
+				ENTRY &str_Resource_State &flag_Scalar_Resource
+				
+				if "&str_Resource_State"=="NULL"
+				(
+					&str_Resource_State=""
+				)
+				&dependent_Resource_Name="&(dependent_Resource_Name)"+"&str_Resource_State"
+				
+				GOSUB write_Edge_To_File "&(resource_Name)" "&(dependent_Resource_Name)" "&(str_Client_Request)"
+				
+				//Call 'add_Resource_To_Graph' function recursively to traverse resource dependencies
+				GOSUB add_Resource_To_Graph &client_Dependency
+			)
+			else
+			(
+				//Else condition can never occur as client cannot be created without resource. Code written just to cover the else case
+				if "&str_Root_Resource"!="&resource_Name"
+				(
+					GOSUB store_Root_Leaf_Node "&resource_Name"
+				)
+				else
+				(
+					&strGraphEdge=CONVert.char(0x22)+"&(resource_Name)"+CONVert.char(0x22)
+					WRITE #1 "&strGraphEdge"
+					//Store independent resources in an array. This array will be used for proper placement of independent resources in graph
+					Var.Set \array_Independent_Resource[&index_Independent_Resource]="&resource_Name"
+					&index_Independent_Resource=&index_Independent_Resource+1
+				)
+			)
+		)
+		else
+		(		
+			//Current resource is leaf node in the graph
+			//Goto 'store_Root_Leaf_Node' function to store root and leaf resource in an array
+			//Root and leaf resources will be used in 'split_Graph' function for placing resource dependencies properly in graphviz
+			if "&str_Root_Resource"!="&resource_Name"
+			(
+				GOSUB store_Root_Leaf_Node "&resource_Name"
+			)
+			else
+			(
+				&strGraphEdge=CONVert.char(0x22)+"&(resource_Name)"+CONVert.char(0x22)
+				WRITE #1 "&strGraphEdge"
+				//Store independent resources in an array. This array will be used for proper placement of independent resources in graph
+				Var.Set \array_Independent_Resource[&index_Independent_Resource]="&resource_Name"
+				&index_Independent_Resource=&index_Independent_Resource+1
+			)
+		)
+	)
+	else
+	(
+		//'npa_Node_Dependency'=0 implies that resource has no dependencies	
+		//Current resource is leaf node in the graph
+		//Check if current resource in the function is the root resource.
+		//current resource = root resource implies - Do not store root and leaf resource in 'store_Root_Leaf_Node' function as current resource is the only resource in the dependency graph (Single resource - No dependencies)
+		//current resource <> root resource implies that this resource has been traversed after calling 'add_Resource_To_Graph' function recursively. Thus, this resource is leaf resource and needs to be stored in an array.
+		if "&str_Root_Resource"!="&resource_Name"
+		(
+			GOSUB store_Root_Leaf_Node "&resource_Name"
+		)
+		else
+		(
+			&strGraphEdge=CONVert.char(0x22)+"&(resource_Name)"+CONVert.char(0x22)
+			WRITE #1 "&strGraphEdge"
+			//Store independent resources in an array. This array will be used for proper placement of independent resources in graph
+			Var.Set \array_Independent_Resource[&index_Independent_Resource]="&resource_Name"
+			&index_Independent_Resource=&index_Independent_Resource+1
+		)
+
+	)
+exit_Function:
+
+	RETURN 
+
+	
+
+
+//This subroutine outputs client request string to annotate client->resource edge for scalar resources
+get_Client_Request:
+	ENTRY &client_Handle
+	LOCAL &index_Active_Request &npa_Work_Request &npa_Resource_State
+	LOCAL &str_Client_Request
+	
+	&str_Client_Request=""
+	&index_Active_Request=V.VALUE(((npa_client *)&client_Handle).index)
+	//&npa_Work_Request=V.VALUE(((npa_client *)&client_Handle).work[&index_Active_Request])
+	&npa_Resource_State=V.VALUE((((npa_client *)&client_Handle).work[&index_Active_Request]).state)
+	&npa_Resource_State=FORMAT.DECIMAL(0,&npa_Resource_State)
+	&str_Client_Request="[label="+"&npa_Resource_State"+"]"
+	
+	RETURN &str_Client_Request
+
+	
+	
+
+//This subroutine checks if resource is scalar. Dump active state for resource in node name if resource is scalar
+//Check if resource is scalar suppressible. Dump required state for resource in node name if resource is scalar/suppressible
+//Return resource state and flag stating if resource is scalar or NOT
+get_Resource_State:
+	ENTRY &resource_Handle
+	LOCAL &resource_Def &resource_Attr &active_State &required_State
+	LOCAL &str_State
+	LOCAL &flag
+	LOCAL &temp_Cal
+	&str_State=""
+	&flag=0
+	
+	&resource_Def=V.VALUE(((npa_resource *)&resource_Handle).definition)
+	if &resource_Def!=0
+	(
+		&resource_Attr=V.VALUE(((npa_resource_definition *)&resource_Def).attributes)
+		
+		//Check if resource is scalar
+		&temp_Cal=(&resource_Attr)&(0x04)
+		if &temp_Cal==0
+		(
+			&flag=1
+			&active_State=FORMAT.DECIMAL(0,V.VALUE(((npa_resource *)&resource_Handle).active_state))
+			//&str_State="[active_state:"+"&active_State"+"]"
+			&str_State="&active_State"
+			//Check if resource is scalar suppressible
+			&temp_Cal=(&resource_Attr)&(0x80)
+			if &temp_Cal!=0
+			(
+				&required_State=FORMAT.DECIMAL(0,V.VALUE(((npa_resource *)&resource_Handle).required_state))
+				&str_State="&str_State"+"/"+"&required_State"
+			)
+		)
+		else
+		(
+			&flag=0
+			&str_State="NULL"
+		)
+	)
+	
+	RETURN &str_State &flag
+	
+	
+	
+	
+write_NodeName_To_File:
+    ENTRY &name &attribs
+    LOCAL &temptext
+    &attribs=string.cut("&(attribs)", -1)  //remove the end quotes
+    &attribs=string.cut("&(attribs)", 1)  //remove the starting quotes
+    &temptext="&(name) &(attribs)"
+	WRITE #1 "&temptext"
+	
+	RETURN
+
+
+
+
+write_Edge_To_File:
+    ENTRY &fromName &toName &attribs
+    LOCAL &temptext
+	&attribs=string.cut("&(attribs)", -1)  //remove the end quotes
+    &attribs=string.cut("&(attribs)", 1)  //remove the starting quotes
+    &temptext="&(fromName) -> &(toName) &(attribs)"
+	WRITE #1 "&temptext"
+	
+	RETURN
+
+
+
+
+//This function is used to store root and leaf resources in the dependency graph in arrays.
+//These arrays will be used in 'split_Graph' function to properly place resources in the graph for better visualization
+store_Root_Leaf_Node:
+	ENTRY &leaf_Resource
+	LOCAL &count &temp_Str
+	
+	&count=0
+	
+	//Check if current leaf node is already present in an array
+	//If YES, do not store leaf and root nodes in an array.
+	WHILE &count<&index_Leaf_Resource
+	(
+		&temp_Str=Var.STRing(\array_Leaf_Resource[&count])
+		if "&temp_Str"==&leaf_Resource
+		(
+			GOTO exit_Func_Store_Root_Leaf_Node
+		)	
+		&count=&count+1
+	)
+	Var.Set \array_Leaf_Resource[&index_Leaf_Resource]=&leaf_Resource
+	Var.Set \array_Root_Resource[&index_Leaf_Resource]="&str_Root_Resource"
+	&index_Leaf_Resource=&index_Leaf_Resource+1		
+
+exit_Func_Store_Root_Leaf_Node:
+
+	RETURN
+
+
+
+
+//This function uses root and leaf resource arrays stored in function 'store_Root_Leaf_Node' to properly place resource dependencies in graphviz for better visualization
+split_Graph:
+	LOCAL &count
+	LOCAL &str_Temp
+	LOCAL &str_Dummy_Node
+	
+	&count=0
+	&str_Temp=""
+	
+	//Loop through array to place 5 independent resources in a single line
+	WHILE &count<(&index_Leaf_Resource-2)
+	(
+		//Reset str_Temp when resource count is 5
+		if &count%5==4
+		(
+			&str_Temp=""
+		)
+		else if &count%5==3
+		(
+			//Write first dummy node to file
+			&count_Dummy_Nodes=&count_Dummy_Nodes+1
+			&str_Dummy_Node="Dummy_Node"+"&count_Dummy_Nodes"
+			GOSUB write_NodeName_To_File "&str_Dummy_Node" "[style=invis]"
+	
+			&str_Temp="&str_Temp"+CONVert.char(0x22)+Var.STRing(\array_Leaf_Resource[&count])+CONVert.char(0x22)+" -> "+CONVert.char(0x22)+"&str_Dummy_Node"+CONVert.char(0x22)+" -> "
+			
+			//Write second dummy node to file
+			&count_Dummy_Nodes=&count_Dummy_Nodes+1
+			&str_Dummy_Node="Dummy_Node"+"&count_Dummy_Nodes"
+			GOSUB write_NodeName_To_File "&str_Dummy_Node" "[style=invis]"
+			
+			&str_Temp="&str_Temp"+CONVert.char(0x22)+"&str_Dummy_Node"+CONVert.char(0x22)+" -> "+CONVert.char(0x22)+Var.STRing(\array_Root_Resource[&count+1])+CONVert.char(0x22)+"[style=invis][weight=100]"
+			WRITE #1 "&str_Temp"
+		)
+		else
+		(
+			//Write first dummy node to file
+			&count_Dummy_Nodes=&count_Dummy_Nodes+1
+			&str_Dummy_Node="Dummy_Node"+"&count_Dummy_Nodes"
+			GOSUB write_NodeName_To_File "&str_Dummy_Node" "[style=invis]"
+			
+			&str_Temp="&str_Temp"+CONVert.char(0x22)+Var.STRing(\array_Leaf_Resource[&count])+CONVert.char(0x22)+" -> "+CONVert.char(0x22)+"&str_Dummy_Node"+CONVert.char(0x22)+" -> "
+			
+			//Write second dummy node to file
+			&count_Dummy_Nodes=&count_Dummy_Nodes+1
+			&str_Dummy_Node="Dummy_Node"+"&count_Dummy_Nodes"
+			GOSUB write_NodeName_To_File "&str_Dummy_Node" "[style=invis]"
+			
+			&str_Temp="&str_Temp"+CONVert.char(0x22)+"&str_Dummy_Node"+CONVert.char(0x22)+" -> "+CONVert.char(0x22)+Var.STRing(\array_Root_Resource[&count+1])+CONVert.char(0x22)+" -> "
+		)
+		&count=&count+1
+	)
+	
+	//Need to write str_Temp to file with proper termination if number of array elements are not multiple of 5
+	if (&count%5!=4)&&(&count%5!=0)
+	(
+			//Write first dummy node to file
+			&count_Dummy_Nodes=&count_Dummy_Nodes+1
+			&str_Dummy_Node="Dummy_Node"+"&count_Dummy_Nodes"
+			GOSUB write_NodeName_To_File "&str_Dummy_Node" "[style=invis]"
+	
+			&str_Temp="&str_Temp"+CONVert.char(0x22)+Var.STRing(\array_Leaf_Resource[&count])+CONVert.char(0x22)+"->"+CONVert.char(0x22)+"&str_Dummy_Node"+CONVert.char(0x22)+"->"
+			
+			//Write second dummy node to file
+			&count_Dummy_Nodes=&count_Dummy_Nodes+1
+			&str_Dummy_Node="Dummy_Node"+"&count_Dummy_Nodes"
+			GOSUB write_NodeName_To_File "&str_Dummy_Node" "[style=invis]"
+			
+			&str_Temp="&str_Temp"+CONVert.char(0x22)+"&str_Dummy_Node"+CONVert.char(0x22)+"->"+CONVert.char(0x22)+Var.STRing(\array_Root_Resource[&count+1])+CONVert.char(0x22)+"[style=invis][weight=100]"
+			WRITE #1 "&str_Temp"
+	)
+
+	RETURN
+
+
+
+
+//This function is used to properly place resource which are not dependent on any other resource (Independent resources/stand-alone resources)
+split_Graph_Independent_Resource:
+	LOCAL &count
+	LOCAL &str_Temp
+	LOCAL &str_Dummy_Node
+	
+	&count=0
+	&str_Temp=""
+	
+	//Loop through array to place 5 independent resources in a single line
+	WHILE &count<(&index_Independent_Resource-1)
+	(
+		//Reset str_Temp when resource count is 5
+		if &count%5==0
+		(
+			&str_Temp=""
+		)
+		
+		//Write str_Temp to file
+		if &count%5==4
+		(
+			&str_Temp="&str_Temp"+CONVert.char(0x22)+Var.STRing(\array_Independent_Resource[&count])+CONVert.char(0x22)+"[style=invis][weight=100]"
+			WRITE #1 "&str_Temp"
+		)
+		else
+		(
+			//Write first dummy node to file
+			&count_Dummy_Nodes=&count_Dummy_Nodes+1
+			&str_Dummy_Node="Dummy_Node"+"&count_Dummy_Nodes"
+			GOSUB write_NodeName_To_File "&str_Dummy_Node" "[style=invis]"
+			
+			&str_Temp="&str_Temp"+CONVert.char(0x22)+Var.STRing(\array_Independent_Resource[&count])+CONVert.char(0x22)+" -> "+CONVert.char(0x22)+"&str_Dummy_Node"+CONVert.char(0x22)+"->"
+			
+			//Write second dummy node to file
+			&count_Dummy_Nodes=&count_Dummy_Nodes+1
+			&str_Dummy_Node="Dummy_Node"+"&count_Dummy_Nodes"
+			GOSUB write_NodeName_To_File "&str_Dummy_Node" "[style=invis]"
+			
+			&str_Temp="&str_Temp"+CONVert.char(0x22)+"&str_Dummy_Node"+CONVert.char(0x22)+" -> "
+		)
+		&count=&count+1
+	)
+	
+	//Need to write str_Temp to file with proper termination if number of array elements are not multiple of 5
+	if &count%5!=0
+	(
+		&str_Temp="&str_Temp"+CONVert.char(0x22)+Var.STRing(\array_Independent_Resource[&count])+CONVert.char(0x22)+"[style=invis][weight=100]"
+		WRITE #1 "&str_Temp"
+	)
+
+	RETURN
+

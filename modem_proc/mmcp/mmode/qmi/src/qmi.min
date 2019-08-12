@@ -1,0 +1,33 @@
+
+#-------------------------------------------------------------------------------
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/mmode/qmi/src/qmi.min#1 $
+# MMODE_QMI 
+#-------------------------------------------------------------------------------
+MMODE_QMI_SOURCES=\
+	qmi_nas.c \
+  qmi_nas_hdr.c \
+  qmi_nas_mmgsdi.c \
+	qmi_nas_msg.c \
+  qmi_nas_nw_name.c\
+  qmi_nas_utils.c \
+  qmi_voice.c \
+  qmi_voice_call_list.c \
+  qmi_voice_cm_if.c \
+  qmi_voice_cm_sups.c \
+  qmi_voice_cm_util.c \
+  qmi_voice_cmd_list.c
+	
+MMODE_QMI_OBJS :=  $(addprefix $(TARGETDIR)/, $(MMODE_QMI_SOURCES:%.c=%.o))
+vpath %.c $(MMODE_QMI)	
+
+### Start Lint block ###
+ifeq ($(DO_LINT),yes)
+
+MMODE_QMI_LINT_OBJS := $(addprefix $(LINTDIR)/, $(MMODE_QMI_SOURCES:%.c=%.lint))
+
+# Specify group target for linting MMODE QMI subsystem
+$(LINTDIR)/mmode_qmi_lint : $(MMODE_QMI_LINT_OBJS)
+
+endif
+### End Lint block ###
+

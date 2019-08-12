@@ -1,0 +1,40 @@
+#-------------------------------------------------------------------------------
+# UIMDRV
+#-------------------------------------------------------------------------------
+RUIM_SOURCES=\
+	uim.c \
+	uimgen.c \
+	uimcdma.c \
+	uimgsm.c \
+	uimdrv.c \
+	uimgnusr.c \
+	uimtk.c \
+	uimt1.c \
+	uimutil.c \
+	uimmflo.c \
+	uimusb.c \
+	uimusim.c \
+	uimisim.c \
+        uimglobals.c
+
+vpath %.c $(UIMDRV_SRC)
+
+ifeq ($(BIG),yes)
+  RUIM_OBJS := $(TARGETDIR)/ruim.lib
+else
+  RUIM_OBJS := $(addprefix $(TARGETDIR)/, $(RUIM_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/ruim.lib : $(RUIM_SOURCES)
+	$(group_c_compile)
+
+### Start Lint block ###
+ifeq ($(DO_LINT),yes)
+
+RUIM_LINT_OBJS := $(addprefix $(LINTDIR)/, $(RUIM_SOURCES:%.c=%.lint))
+
+# Specify group target for linting UIMDRV unit
+$(LINTDIR)/uim_lint : $(RUIM_LINT_OBJS)
+
+endif
+### End Lint block ###

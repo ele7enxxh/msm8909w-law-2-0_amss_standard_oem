@@ -1,0 +1,344 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/data/1x/1xatcop/complete/rel/10.02.02/build/data_1x_1xatcop.scons#4 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/06/14   tk      Updated with USES_FEATURE_DYNAMIC_LOADING_DSAT.
+# 06/26/14   tk      Added support for Dynamic ATCoP.
+# 08/10/12   tk      Deprecated ATCoP - DIAG interface.
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+	
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+    'IODEVICES',
+    'DAL',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+env.RequirePublicApi(['IMSVOLTEPUBLIC'], area='IMS_VOLTE')
+env.RequirePublicApi(['NAS','AUTH','CSVT','DMS','WDA','WDS','OTDT','IMSDCM', 'IMSRTP'], area='QMIMSGS')
+env.RequirePublicApi(['IMSPUBLIC'], area='IMS')
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'NAS',
+    'GERAN',
+    'WCDMA',
+    'UTILS',
+    'RFA',
+    'GPS',
+    'ECALL',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+segment_load_public_api_list = [
+       ('MCFG',                'MCFG'),
+       ('GPS',                 'GPS'),
+       ('RFA',                 'CDMA'),
+       ('RFA',                 'MEAS'),
+       ('FW',                  'GERAN'),
+       ('RFA',                 'LM'),
+       ('RFA',                 'GSM'),
+       ('RFA',                 'GNSS'),
+       ('RFA',                 'LTE'),
+       ('FW',                  'RF'),
+       ('FW',                  'COMMON'),
+       ]
+
+for api_area,api_name in segment_load_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'UTILS',
+    'MDSP',
+    'GPS',
+    'FW',
+    'LTE',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Multimedia Public API's
+#-------------------------------------------------------------------------------
+MM_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+    ]
+
+env.RequirePublicApi(MM_PUBLIC_APIS, area='multimedia')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_PROTECTED_APIS = [
+    'DATA_ATCOP',
+    ]
+env.RequireProtectedApi(MODEM_PROTECTED_APIS)
+
+#-------------------------------------------------------------------------------
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#-------------------------------------------------------------------------------
+REQUIRED_NON_SCONS_APIS = [
+    'WCONNECT', 
+    'BREW',
+    ]
+
+if REQUIRED_NON_SCONS_APIS != []:
+  env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Non-compliant Private Header Include Paths (Must be removed for CRM builds)
+#-------------------------------------------------------------------------------
+#if ARGUMENTS.get('SCONS_VIOLATIONS_LEVEL',0) > 99:
+#print "SCONS VIOLATIONS enabled" 
+
+#env.PublishPrivateApi('VIOLATIONS',[
+#   '${INC_ROOT}/modem/data/1x/707/src',
+#   '${INC_ROOT}/modem/data/1x/bcmcs/src',
+#   '${INC_ROOT}/core/systemdrivers/clk/inc',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/nv/src',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/core/src',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/rfc/src',
+#   '${INC_ROOT}/modem/rfa/rf/device/rtr8600_1x/inc',
+#   '${INC_ROOT}/modem/rfa/rf/device/rfdev_intf/inc',
+#   '${INC_ROOT}/modem/rfa/rf/hal/p2_1x/inc',
+#   '${INC_ROOT}/modem/rfa/rf/hal/common/inc',
+#   '${INC_ROOT}/modem/rfa/rf/wcdma/rf/mc/inc',
+#   '${INC_ROOT}/modem/rfa/rf/wcdma/rf/nv/inc',
+#   '${INC_ROOT}/modem/rfa/rf/gsm/rf/core/src',
+#   '${INC_ROOT}/modem/utils/oss/oss_asn1_rvds21/include',
+#   '${INC_ROOT}/modem/gps/gnss/inc',
+#   '${INC_ROOT}/modem/uim/gstk/src',
+#   '${INT_ROOT}/modem/mmcp/nas/mm/src/',
+#   ])
+
+#env.RequirePrivateApi('VIOLATIONS')
+#-------------------------------------------------------------------------------
+#  OffTarget/QTF
+#-------------------------------------------------------------------------------
+if 'USES_MOB' in env:
+  env.RequireRestrictedApi(['DATAMODEM_QTF_OFT'])
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+MODEM_DATAMODEM_ATCOP_SOURCES_STATIC = []
+MODEM_DATAMODEM_ATCOP_SOURCES_DYNAMIC = []
+
+ATCOP_CDMA_SOURCES_STATIC = [
+                             '${BUILDPATH}/src/dsat707extctab_ex.c',
+                             '${BUILDPATH}/src/dsat707faxctab_ex.c',
+                             '${BUILDPATH}/src/dsat707hdrctab_ex.c',
+                             '${BUILDPATH}/src/dsat707mipctab_ex.c',
+                             '${BUILDPATH}/src/dsat707pstatsctab_ex.c',
+                             '${BUILDPATH}/src/dsat707smsa_ex.c',
+                             '${BUILDPATH}/src/dsat707smsctab_ex.c',
+                             '${BUILDPATH}/src/dsat707smsu_ex.c',
+                             '${BUILDPATH}/src/dsat707util_ex.c',
+                             '${BUILDPATH}/src/dsat707ext_ex.c',
+                             '${BUILDPATH}/src/dsat707vendctab_ex.c',
+                            ]
+
+ATCOP_CDMA_SOURCES_DYNAMIC = [
+                              '${BUILDPATH}/src/dsat707ext.c',
+                              '${BUILDPATH}/src/dsat707extctab.c',
+                              '${BUILDPATH}/src/dsat707fax.c',
+                              '${BUILDPATH}/src/dsat707faxctab.c',
+                              '${BUILDPATH}/src/dsat707hdr.c',
+                              '${BUILDPATH}/src/dsat707hdrctab.c',
+                              '${BUILDPATH}/src/dsat707mip.c',
+                              '${BUILDPATH}/src/dsat707mipctab.c',
+                              '${BUILDPATH}/src/dsat707pstats.c',
+                              '${BUILDPATH}/src/dsat707pstatsctab.c',
+                              '${BUILDPATH}/src/dsat707smsa.c',
+                              '${BUILDPATH}/src/dsat707smsc.c',
+                              '${BUILDPATH}/src/dsat707smsctab.c',
+                              '${BUILDPATH}/src/dsat707smsu.c',
+                              '${BUILDPATH}/src/dsat707util.c',
+                              '${BUILDPATH}/src/dsat707vend.c',
+                              '${BUILDPATH}/src/dsat707vendctab.c',
+                             ]
+
+ATCOP_COMMON_SOURCES_STATIC = [
+                               '${BUILDPATH}/src/dsatact_ex.c',
+                               '${BUILDPATH}/src/dsatclient_ex.c',
+                               '${BUILDPATH}/src/dsatcmdp_ex.c',
+                               '${BUILDPATH}/src/dsatcmif_ex.c',
+                               '${BUILDPATH}/src/dsatctab_ex.c',
+                               '${BUILDPATH}/src/dsatdl_ex.c',
+                               '${BUILDPATH}/src/dsatme_ex.c',
+                               '${BUILDPATH}/src/dsatprep_ex.c',
+                               '${BUILDPATH}/src/dsatrsp_ex.c',
+                               '${BUILDPATH}/src/dsatsms_ex.c',
+                               '${BUILDPATH}/src/dsatsmsu_ex.c',
+                               '${BUILDPATH}/src/dsatutil_ex.c',
+                               '${BUILDPATH}/src/dsatvoice_ex.c',
+                               '${BUILDPATH}/src/dsatmmtgt_ex.c',
+                              ]
+
+ATCOP_COMMON_SOURCES_DYNAMIC = [
+                                '${BUILDPATH}/src/dsatact.c',
+                                '${BUILDPATH}/src/dsatclient.c',
+                                '${BUILDPATH}/src/dsatcmdp.c',
+                                '${BUILDPATH}/src/dsatcmif.c',
+                                '${BUILDPATH}/src/dsatctab.c',
+                                '${BUILDPATH}/src/dsatdl.c',
+                                '${BUILDPATH}/src/dsatme.c',
+                                '${BUILDPATH}/src/dsatpar.c',
+                                '${BUILDPATH}/src/dsatparm.c',
+                                '${BUILDPATH}/src/dsatprep.c',
+                                '${BUILDPATH}/src/dsatrsp.c',
+                                '${BUILDPATH}/src/dsatsms.c',
+                                '${BUILDPATH}/src/dsatsmsu.c',
+                                '${BUILDPATH}/src/dsatutil.c',
+                                '${BUILDPATH}/src/dsatvend.c',
+                                '${BUILDPATH}/src/dsatvoice.c',
+                                '${BUILDPATH}/src/dsatmmtgt.c',
+                               ]
+
+ATCOP_UMTS_SOURCES_STATIC = [
+                             '${BUILDPATH}/src/dsatetsicall_ex.c',
+   	                         '${BUILDPATH}/src/dsatetsicmif_ex.c',
+   	                         '${BUILDPATH}/src/dsatetsime_ex.c',
+   	                         '${BUILDPATH}/src/dsatetsictab_ex.c',
+                             '${BUILDPATH}/src/dsatetsipkt_ex.c',
+                             '${BUILDPATH}/src/dsatetsismsa_ex.c',
+                             '${BUILDPATH}/src/dsatgsmfax_ex.c',
+                            ]
+
+ATCOP_UMTS_SOURCES_DYNAMIC = [
+                              '${BUILDPATH}/src/dsatetsicall.c',
+                              '${BUILDPATH}/src/dsatetsicmif.c',
+                              '${BUILDPATH}/src/dsatetsictab.c',
+  	                          '${BUILDPATH}/src/dsatetsime.c',
+  	                          '${BUILDPATH}/src/dsatetsipkt.c',
+  	                          '${BUILDPATH}/src/dsatetsismsa.c',
+  	                          '${BUILDPATH}/src/dsatetsismsc.c',
+  	                          '${BUILDPATH}/src/dsatetsismsu.c',
+  	                          '${BUILDPATH}/src/dsatgsmfax.c',
+                             ]
+
+MODEM_DATAMODEM_ATCOP_SOURCES_STATIC += ATCOP_COMMON_SOURCES_STATIC
+
+if 'USES_CDMA' in env:
+     MODEM_DATAMODEM_ATCOP_SOURCES_STATIC += ATCOP_CDMA_SOURCES_STATIC
+
+if 'USES_GSM' in env or ('USES_WPLT' not in env and 'USES_UMTS' in env):
+     MODEM_DATAMODEM_ATCOP_SOURCES_STATIC += ATCOP_UMTS_SOURCES_STATIC
+  
+MODEM_DATAMODEM_ATCOP_SOURCES_DYNAMIC += ATCOP_COMMON_SOURCES_DYNAMIC
+
+if 'USES_CDMA' in env:
+     MODEM_DATAMODEM_ATCOP_SOURCES_DYNAMIC += ATCOP_CDMA_SOURCES_DYNAMIC
+
+if 'USES_GSM' in env or ('USES_WPLT' not in env and 'USES_UMTS' in env):
+     MODEM_DATAMODEM_ATCOP_SOURCES_DYNAMIC += ATCOP_UMTS_SOURCES_DYNAMIC
+
+if 'USES_FEATURE_DYNAMIC_LOADING_DSAT' in env:
+  #define library name
+  SHARED_LIBRARY='atcop'
+
+  #define a pair of version files to be auto-generated for UUID match
+  VERSION_FILES = [
+      '${BUILDPATH}/' + 'shlib_version_info_' + SHARED_LIBRARY + '.c',
+      '${BUILDPATH}/' + 'modem_version_info_' + SHARED_LIBRARY + '.c',
+  ]
+  env.AddSharedLibraryVersion(VERSION_FILES, MODEM_DATAMODEM_ATCOP_SOURCES_DYNAMIC, SHARED_LIB=SHARED_LIBRARY)
+  MODEM_DATAMODEM_ATCOP_SOURCES_DYNAMIC.append(VERSION_FILES[0])
+  MODEM_DATAMODEM_ATCOP_SOURCES_STATIC.append(VERSION_FILES[1])
+
+  #create dynamic library
+  env.AddSharedLibrary(['MODEM_MODEM', 'MOB_DATAMODEM'], '${BUILDPATH}/'+SHARED_LIBRARY, [MODEM_DATAMODEM_ATCOP_SOURCES_DYNAMIC,])
+  
+  #add static libary to MPSS image
+  env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM'], '${BUILDPATH}/atcop', [MODEM_DATAMODEM_ATCOP_SOURCES_STATIC,])
+else:
+  #add static libary to MPSS image with both static and dynamic files
+  env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM'], '${BUILDPATH}/atcop', [MODEM_DATAMODEM_ATCOP_SOURCES_STATIC,MODEM_DATAMODEM_ATCOP_SOURCES_DYNAMIC,])
+

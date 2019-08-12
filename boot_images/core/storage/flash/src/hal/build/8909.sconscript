@@ -1,0 +1,62 @@
+#===============================================================================
+#
+# 9x35 Target Specific Scons file for Flash HAL
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/src/hal/build/8909.sconscript#1 $
+#  $DateTime: 2015/09/01 00:30:35 $
+#  $Author: pwbldsvc $
+#  $Change: 8935858 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/19/14   sb      Update to support 8909
+#===============================================================================
+
+Import('env')
+
+nandc_dcpu_reduced_images = [
+   ]
+
+nandc_dcpu_images = [
+   'EHOSTDL_IMAGE',
+   ]
+
+nandc_bam_reduced_images = [
+   'NAND_BOOT_DRIVER',
+   ]
+   
+nandc_bam_images = [
+   'HOSTDL_IMAGE', 'NAND_TOOLS_IMAGE',
+   ]
+
+dictionary_keys = set(env.Dictionary())
+
+# Find the intersection
+nandc_bam_images_result_keys = set(nandc_bam_images) & dictionary_keys
+nandc_bam_reduced_images_result_keys = set(nandc_bam_reduced_images) & dictionary_keys
+nandc_dcpu_images_result_keys = set(nandc_dcpu_images) & dictionary_keys
+nandc_dcpu_reduced_images_result_keys = set(nandc_dcpu_reduced_images) & dictionary_keys
+
+if len(nandc_dcpu_reduced_images_result_keys) != 0 :
+   env.Replace(ENABLE_NANDC_QPIC_DCPU_REDUCED = 'yes')
+elif len(nandc_dcpu_images_result_keys) != 0 :
+   env.Replace(ENABLE_NANDC_QPIC_DCPU = 'yes')
+elif len(nandc_bam_reduced_images_result_keys) != 0 :
+   env.Replace(ENABLE_NANDC_QPIC_BAM_REDUCED = 'yes')
+elif len(nandc_bam_images_result_keys) != 0 :
+   env.Replace(ENABLE_NANDC_QPIC_BAM = 'yes')
+
+env.Append(CPPDEFINES = "FLASH_HAL_HWIO_INCLUDE_H=\\\"flash_hal_hwio_8909.h\\\"")  

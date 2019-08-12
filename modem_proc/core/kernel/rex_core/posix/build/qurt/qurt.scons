@@ -1,0 +1,121 @@
+#===============================================================================
+#                    Copyright 2011 Qualcomm Technologies Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+# REX Libs for QuRT
+#-------------------------------------------------------------------------------
+import os
+Import('env')
+env = env.Clone()
+
+env.Replace(OS_NAME = "qurt")
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#################################
+#Platform specific OS defines:
+#################################
+#Defines the number of CPUs.
+env.Append(CPPDEFINES = ["REX_OS_NUM_CPUS=3"])
+#This define is used in rex_def_task_internal to specify the bitmask for any CPU affinity.
+env.Append(CPPDEFINES = ["REX_OS_ANY_CPU_AFFINITY_BITMASK=0x07"])
+#This define is used in rex_def_task_internal to specify the bitmask for single CPU affinity.
+env.Append(CPPDEFINES = ["REX_OS_SINGLE_CPU_AFFINITY_BITMASK=0x04"])
+
+# Starting with 9K 3.0+ PLs by default all the
+# application threads (Modem SW) creating mutexes want to
+# default this to Priority Inheritance (PI) type
+# mutexes. The feature flag mentioned below enables this
+# functionality.   
+#
+# At this time this feature is only required for
+# certain PLs so before enabling this on other PLs please
+# check with the kernel team. Check if 
+# CONFIG_PRIORITY_INHERITANCE is enabled internally in 
+# BLAST, QuRT as these need to be paired.
+#   
+# dependencies
+# BLAST 2.3+
+# VU_CORE_KERNEL_REXEMU.00.00.30+
+env.Append(CPPDEFINES = ["FEATURE_BLAST_PI_MUTEX"])
+
+# This feature is needed for MDM FW profiling (FW-PMU).
+# This is REX on Q6 MDM feature only. 
+# This feature needs to be defined for all MDM targets 
+# 8960 and above as FW-PMU is only implemented on these
+# targets.
+env.Append(CPPDEFINES = ["FEATURE_MDM_FW_PMU"])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DEBUGTOOLS',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'DAL',
+   'KERNEL',
+   'POWER',   
+]
+
+#-------------------------------------------------------------------------------
+# Private depends within REX CORE OS
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('REX_POSIX_PRIVATE_API', [
+  "${INC_ROOT}/core/kernel/rex_core/posix/common/src",
+  "${INC_ROOT}/core/kernel/rex_core/posix/os/${OS_NAME}",
+])
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequirePrivateApi(['REX_POSIX_PRIVATE_API'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+REX_POSIX_COMMON_SOURCES =  [
+   '${BUILDPATH}/common/src/rex_common_def_task.c',
+   '${BUILDPATH}/common/src/rex_context.c',
+   '${BUILDPATH}/common/src/rex_dog.c',
+   '${BUILDPATH}/common/src/rex_init.c',
+   '${BUILDPATH}/common/src/rex_kill_task.c',
+   '${BUILDPATH}/common/src/rex_platform.c',
+   '${BUILDPATH}/common/src/rex_signals.c',
+   '${BUILDPATH}/common/src/rex_task_list.c',
+   '${BUILDPATH}/common/src/rex_tcb.c',
+   '${BUILDPATH}/common/src/rex_tp.c',
+]
+
+REX_POSIX_OS_SOURCES =  [
+   '${BUILDPATH}/os/${OS_NAME}/rex_os_crit_sect_pimutex.c',
+   #'${BUILDPATH}/os/${OS_NAME}/rex_os_dog.c',
+   '${BUILDPATH}/os/${OS_NAME}/rex_os_init.c',
+   #'${BUILDPATH}/os/${OS_NAME}/rex_os_kill_all.c',
+   #'${BUILDPATH}/os/${OS_NAME}/rex_os_lock.c',
+   '${BUILDPATH}/os/${OS_NAME}/rex_os_platform.c',
+   #'${BUILDPATH}/os/${OS_NAME}/rex_os_self.c',
+   #'${BUILDPATH}/os/${OS_NAME}/rex_os_stat.c',
+   #'${BUILDPATH}/os/${OS_NAME}/rex_os_task_prof.c',
+   #'${BUILDPATH}/os/${OS_NAME}/rex_os_tcb.c',
+   '${BUILDPATH}/os/${OS_NAME}/rex_os_thread.c',
+   '${BUILDPATH}/os/${OS_NAME}/rex_os_tp.c',
+   '${BUILDPATH}/os/${OS_NAME}/rex_os_pmon.c',
+]
+
+REX_POSIX_OS_OBJ_SOURCES =  [
+   '${BUILDPATH}/os/${OS_NAME}/rex_os_context.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+IMAGES = ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+env.AddLibrary(IMAGES, '${BUILDPATH}/rex_core/rex_posix', [REX_POSIX_COMMON_SOURCES, REX_POSIX_OS_SOURCES])
+env.AddObject(IMAGES, REX_POSIX_OS_OBJ_SOURCES)
+

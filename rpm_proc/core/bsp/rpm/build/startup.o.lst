@@ -1,0 +1,55 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;*******************************************************
+                       **********************
+    2 00000000         ; * @file:    startup.s
+    3 00000000         ; * @purpose: Startup File for Bear RPM
+    4 00000000         ;
+    5 00000000         ;            Copyright (c) 2014 Qualcomm Technologies In
+                       corporated.
+    6 00000000         ;                   All Rights Reserved.
+    7 00000000         ;             QUALCOMM Proprietary and Confidential
+    8 00000000         ; ******************************************************
+                       ***********************
+    9 00000000                 IMPORT           ||Image$$INIT_DATA_RAM_STACK_EN
+D$$Base||
+   10 00000000         ; Vector Table Mapped to Address 0 at Reset
+   11 00000000         ;                AREA    RESET, DATA, READONLY
+   12 00000000                 AREA             RPM_ENTRY, DATA, READONLY
+   13 00000000 FFFFFFFC 
+                       __Vectors
+                               DCD              (||Image$$INIT_DATA_RAM_STACK_E
+ND$$Base|| - 4)
+   14 00000004         ; Initial Main SP
+   15 00000004 00000000        DCD              Reset_Handler ; Reset Handler
+   16 00000008                 AREA             |.text|, CODE, READONLY
+   17 00000000         ; Reset Handler
+   18 00000000         Reset_Handler
+   19 00000000                 EXPORT           Reset_Handler
+   20 00000000                 IMPORT           __main
+   21 00000000 4800            LDR              R0, =__main
+   22 00000002 4700            BX               R0
+   23 00000004                 END
+              00000000 
+Command Line: --debug --dwarf2 --cpu=Cortex-M3 --apcs=/noswst/interwork -oZ:\b\
+rpm_proc\core\bsp\rpm\build\startup.o -IZ:\b\rpm_proc\core\bsp\rpm\build -IZ:\b
+\rpm_proc\core\bsp\rpm\src -Icust -Ims -IZ:\b\rpm_proc\core\bsp\rpm\inc -IZ:\b\
+rpm_proc\core\api\boot -IZ:\b\rpm_proc\core\buses\api\spmi -IZ:\b\rpm_proc\core
+\buses\api\icb -IZ:\b\rpm_proc\core\api\dal -IZ:\b\rpm_proc\core\api\debugtools
+ -IZ:\b\rpm_proc\core\api\mproc -IZ:\b\rpm_proc\core\api\power -IZ:\b\rpm_proc\
+core\api\systemdrivers -IZ:\b\rpm_proc\core\api\systemdrivers\pmic -IZ:\b\rpm_p
+roc\core\api\systemdrivers\hwio\msm8909 -IZ:\b\rpm_proc\core\api\debugtrace -IZ
+:\b\rpm_proc\core\api\services -IZ:\b\rpm_proc\core\boot\ddr\common -IZ:\b\rpm_
+proc\core\dal\framework\inc -IZ:\b\rpm_proc\core\dal\framework\sys\inc -IZ:\b\r
+pm_proc\core\dal\config\8909 -IZ:\b\rpm_proc\core\debugtools\version\src -IZ:\b
+\rpm_proc\core\mproc\smem\inc -IZ:\b\rpm_proc\core\power\mpm\inc -IZ:\b\rpm_pro
+c\core\power\mpm\hal\include -IZ:\b\rpm_proc\core\power\mpm\hal\bsp\include -IZ
+:\b\rpm_proc\core\power\sleep\inc -IZ:\b\rpm_proc\core\power\utils\inc -IZ:\b\r
+pm_proc\core\power\rpm\server -IZ:\b\rpm_proc\core\power\rpm\inc -IZ:\b\rpm_pro
+c\core\power\system_db\inc -IZ:\b\rpm_proc\core\systemdrivers\busywait\inc -IZ:
+\b\rpm_proc\core\systemdrivers\timetick\inc --list=Z:\b\rpm_proc\core\bsp\rpm\b
+uild\startup.o.lst --sitelicense Z:\b\rpm_proc\core\bsp\rpm\build\startup.o.i

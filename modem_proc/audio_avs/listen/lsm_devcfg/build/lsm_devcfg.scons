@@ -1,0 +1,83 @@
+#===============================================================================
+#
+# Copyright (c) 2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/18/14	roverma	 Created
+#===============================================================================
+Import('env')
+
+from glob import glob
+from os.path import join, basename
+
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_API,area='core')
+env.RequireRestrictedApi('AVS')
+env.RequireProtectedApi('AVS')
+
+env.PublishPrivateApi('AVS',[
+   '${AVS_ROOT}/listen/lsm_devcfg/devcfg/inc',   
+   '${AVS_ROOT}/listen/lsm_devcfg/target/inc',
+   ])
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${AVS_ROOT}/listen/lsm_devcfg"
+LIBNAME_COMMON = 'lsm_devcfg_common'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+srcpath = env.RealPath(SRCPATH, posix=True)
+
+common_devcfg_sources = env.GlobFiles([srcpath+'/devcfg/src/*.cpp', srcpath+'/devcfg/src/*.c'], posix=True)
+common_devcfg_sources = [source.replace(srcpath, '${BUILDPATH}') for source in common_devcfg_sources]
+
+env.AddLibrary(['AVS_ADSP'], '${BUILDPATH}/'+LIBNAME_COMMON, common_devcfg_sources)
+
+
+#-------------------------------------------------------------------------------
+# Device CFG data
+#-------------------------------------------------------------------------------
+LIBNAME_DEVCFG = 'lsm_target_devcfg'
+
+if 'USES_DEVCFG' in env:
+    DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+    env.AddDevCfgInfo(DEVCFG_IMG, 
+    {
+      '8974_xml' : ['${AVS_ROOT}/listen/lsm_devcfg/target/config/lsm_target_devcfg.xml',
+                   '${AVS_ROOT}/listen/lsm_devcfg/target/src/lsm_target_devcfg_8974.c'],
+      '8x26_xml' : ['${AVS_ROOT}/listen/lsm_devcfg/target/config/lsm_target_devcfg.xml',
+                   '${AVS_ROOT}/listen/lsm_devcfg/target/src/lsm_target_devcfg_8x26.c'],				   
+      '8084_xml' : ['${AVS_ROOT}/listen/lsm_devcfg/target/config/lsm_target_devcfg.xml',
+                   '${AVS_ROOT}/listen/lsm_devcfg/target/src/lsm_target_devcfg_8084.c'],
+      '8916_xml' : ['${AVS_ROOT}/listen/lsm_devcfg/target/config/lsm_target_devcfg.xml',
+                   '${AVS_ROOT}/listen/lsm_devcfg/target/src/lsm_target_devcfg_8916.c'],
+      '8936_xml' : ['${AVS_ROOT}/listen/lsm_devcfg/target/config/lsm_target_devcfg.xml',
+                   '${AVS_ROOT}/listen/lsm_devcfg/target/src/lsm_target_devcfg_8936.c'],
+      '8909_xml' : ['${AVS_ROOT}/listen/lsm_devcfg/target/config/lsm_target_devcfg.xml',
+                   '${AVS_ROOT}/listen/lsm_devcfg/target/src/lsm_target_devcfg_8909.c'],
+    })

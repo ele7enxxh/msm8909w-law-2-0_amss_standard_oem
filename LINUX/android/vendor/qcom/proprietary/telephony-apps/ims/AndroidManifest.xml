@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+      coreApp="true"
+      package="org.codeaurora.ims"
+      android:sharedUserId="android.uid.phone"
+      android:versionCode="1"
+      android:versionName="1.0">
+    <uses-sdk android:minSdkVersion="10"/>
+
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_PRECISE_PHONE_STATE" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL" />
+    <uses-permission android:name="android.permission.SUBSTITUTE_NOTIFICATION_APP_NAME" />
+
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="com.qti.permission.DIAG"/>
+    <uses-permission android:name="com.qti.permission.AUDIO"/>
+
+
+    <permission android:name="com.qti.permission.DIAG"
+                android:protectionLevel="signatureOrSystem" />
+    <permission android:name="com.qti.permission.AUDIO"
+                android:protectionLevel="signatureOrSystem" />
+
+
+    <application android:directBootAware="true">
+        <uses-library android:name="com.qti.vzw.ims.internal" />
+
+      <receiver android:name="ImsServiceAutoboot">
+         <intent-filter>
+            <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED"/>
+            <action android:name="android.intent.action.SIM_STATE_CHANGED"/>
+         </intent-filter>
+      </receiver>
+      <service android:name=".ImsService"
+               android:exported="true"
+               android:enabled="true"
+               android:persistent="true"
+               android:singleUser="true"
+               android:process="com.android.phone">
+      </service>
+      <receiver android:name="org.codeaurora.ims.WifiCallingQuickSettingsReceiver"
+         android:exported="false"
+         android:label="WifiCallingQuickSettingsReceiver">
+         <intent-filter>
+            <action android:name="android.intent.action.BOOT_COMPLETED" />
+            <action android:name="org.codeaurora.qs.tiles.wificallingtile.ONCLICK" />
+            <action android:name="org.codeaurora.qs.tiles.wificallingtile.QS_ONLAUNCH_ACTION" />
+         </intent-filter>
+      </receiver>
+    </application>
+</manifest>

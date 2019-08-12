@@ -1,0 +1,148 @@
+#===============================================================================
+#
+# HOSTDL Tools build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012, 2014 QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/rel/1.2/boot_images/core/storage/flash/tools/src/hostdl/build/SConscript#3 $
+#  $DateTime: 2011/09/23 16:04:35 $
+#  $Author: coresvc $
+#  $Change: 1948714 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/30/14   sb       Watchdog changes for 9x45
+# 06/23/14   sb       Add support to 9x45, 8909
+# 10/19/12   sv       Update watchdog address for 9x25
+# 09/17/12   eo       Ehostdl/hostdl support for 9x25
+# 09/16/11   sv       Modified to run Ehostdl on Sparrow
+# 08/16/11   jz       Support ehostdl on 9x15, removed sbuffer layer
+# 05/27/11   sv       Optimize scons script in including libraries
+# 10/01/10   sv       Disable watchdog for RUMI builds
+# 07/13/10   bb       Added support for 6615
+# 11/00/09   jz       Handle USES_USB_ONLY flag
+# 11/04/09   jz       Use UART_BOOT API for download over UART
+# 10/16/09   eo       Updates to support Hostdl on Voyager
+# 10/13/09   jz       Cleaned up include paths in scons build 
+# 09/21/09   jz       Moved handling of USES_PRINTF to image level sconscript
+# 09/18/09   jz       Fixed to handle USES_PRINTF properly
+# 09/08/09   eo       Update MDM9K SCONS scripts to new SCONS framework
+# 08/12/09   mh       Branched and updated to generate libraries only
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+HOSTDL_USES_USB_ONLY = False
+if env['MSM_ID'] in ['9x00', '9x15', '9x25', '9x35', '9x45', '8909','8909w']:
+   HOSTDL_USES_USB_ONLY = True
+
+
+# Disable Watchdog for RUMI builds
+if env.has_key('USES_RUMI') :
+   env.Append(CPPDEFINES = ["FLASH_WATCHDOG_DISABLED"])
+
+# Define watchdog reset register for given target.
+if env['MSM_ID'] in ['9x25', '9x35']:
+   env.Append(CPPDEFINES = ["FLASH_WATCHDOG_RESET_ADDR=0xFC4AA000"]) 
+
+if env['MSM_ID'] in ['9x45', '8909','8909w']:
+   env.Append(CPPDEFINES = ["FLASH_WATCHDOG_RESET_ADDR=0x004AA000"])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/flash/tools/src/hostdl"
+
+if not env.SubstPathExists(SRCPATH):
+   SRCPATH = "${BUILD_ROOT}/drivers/flash/tools/src/hostdl"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BOOT',
+   'BUSES',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+  'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+# For include files from tools/src/nand
+env.RequireProtectedApi(['STORAGE_FLASH'])
+
+env.PublishPrivateApi('STORAGE_FLASH_HOSTDL', [
+   "${INC_ROOT}/core/storage/flash/tools/src/hostdl",
+   "${INC_ROOT}/core/storage/flash/tools/src/hostdl/config_v2",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+HOSTDL_STARTUP_SOURCES = [
+   '${BUILDPATH}/hostdl_startup.s',
+]
+
+HOSTDL_SPARROW_STARTUP_SOURCES = [
+   '${BUILDPATH}/hostdl_sparrow_startup.s',
+]
+
+HOSTDL_SOURCES = [
+   '${BUILDPATH}/hostdl.c',
+   '${BUILDPATH}/hostdl_packet.c',
+   '${BUILDPATH}/hostdl_flash.c',
+]
+
+HOSTDL_CONFIG_V1_SOURCES = [
+   '${BUILDPATH}/config_v1/hostdl_config.c',
+]
+
+HOSTDL_CONFIG_V2_SOURCES = [
+   '${BUILDPATH}/config_v2/hostdl_config.c',
+]
+
+# Note: when UART_BOOT API becomes available, hostdl_uart_boot.c should be used.
+if not HOSTDL_USES_USB_ONLY:
+  HOSTDL_CONFIG_V1_SOURCES += [
+   '${BUILDPATH}/config_v1/hostdl_uart.c',
+  ]
+  HOSTDL_CONFIG_V2_SOURCES += [
+   '${BUILDPATH}/config_v2/hostdl_uart_boot.c',
+  ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['9x15'] :
+   env.AddObject(['EHOSTDL_IMAGE'],HOSTDL_SPARROW_STARTUP_SOURCES)
+   env.AddObject(['HOSTDL_IMAGE'],HOSTDL_STARTUP_SOURCES)
+else :
+   env.AddObject(['HOSTDL_IMAGE', 'EHOSTDL_IMAGE'], HOSTDL_STARTUP_SOURCES)
+
+env.AddLibrary(['HOSTDL_IMAGE', 'EHOSTDL_IMAGE'],
+   '${BUILDPATH}/hostdl', HOSTDL_SOURCES)
+
+if env['MSM_ID'] in ['9x00', '9x15', '9x25', '9x35', '9x45', '8909','8909w'] :
+   env.AddLibrary(['HOSTDL_IMAGE', 'EHOSTDL_IMAGE',],
+   '${BUILDPATH}/hostdl_config_v2', HOSTDL_CONFIG_V2_SOURCES)

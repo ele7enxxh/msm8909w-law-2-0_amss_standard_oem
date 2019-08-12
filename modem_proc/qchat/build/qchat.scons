@@ -1,0 +1,111 @@
+#===============================================================================
+#
+# Modem QCHAT SCons wrapper script
+#
+# GENERAL DESCRIPTION
+#    build script to load API's for qchat
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/qchat/common/scons/nikel_3.0/build/qchat.scons#1 $
+#  $DateTime: 2010/08/05 09:58:04 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/29/13   suren     Updated QC-Scons-based pack mechanism
+# 03/12/12   suren     Included integrated client for QChat DLA.
+# 08/14/11   suren     Updated SCons scripts to compile UPK libs from source.
+# 08/30/10   suren     Initial revision
+#
+#===============================================================================
+import os
+Import('env')
+
+env.Append(CDEFINES = [
+    "FEATURE_QCHAT_USES_MODEM_HEAP",
+    "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+   ])
+
+env.Append(CPPDEFINES = [
+   "FEATURE_QCHAT_USES_MODEM_HEAP",
+   "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+   ])
+
+if env.PathExists('${BUILD_ROOT}/qchat'):
+    env.Replace(QCHAT_ROOT = '${INC_ROOT}/qchat')
+else:    
+    env.Replace(QCHAT_ROOT = '${INC_ROOT}/modem/qchat')
+
+
+env.PublishRestrictedApi('QCHAT', ["${INC_ROOT}/modem/qchat/api"])
+env.PublishPublicApi('QCHAT', ["${INC_ROOT}/modem/qchat/api"])
+
+#------------------------------------------------------------------------------------------
+# Load cleanpack script to remove private files etc. for targets which have QChat disabled.
+#------------------------------------------------------------------------------------------
+if 'USES_QCHAT' not in env:
+    if os.path.exists('qchat_cleanpack.py'):
+        env.LoadToolScript('qchat_cleanpack.py')
+    Return()
+    
+#----------------------------------------------------------------------------#
+# Added RCINIT related task functions - QCHAT
+#----------------------------------------------------------------------------#
+# Build image for which this task belongs
+RCINIT_QCHAT = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_QCHAT = {
+        'sequence_group'      : 'RCINIT_GROUP_7',
+        'init_name'           : 'qchat_init',
+        'init_function'       : 'qchat_init',
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_QCHAT = {
+        'thread_name'         : 'qchat',
+        'sequence_group'      : 'RCINIT_GROUP_7',
+        'stack_size_bytes'    : '8048',
+        'priority_amss_order' : 'PWRDB_PRI_ORDER',
+        'stack_name'          : 'qchat_stack',
+        'thread_entry'        : 'qchat_task',
+        'tcb_name'            : 'qchat_tcb'        
+    }
+
+if 'USES_MODEM_RCINIT' in env:
+    RCINIT_TASK_QCHAT = {
+        'thread_name'         : 'qchat',
+        'sequence_group'      : 'RCINIT_GROUP_4',
+        'stack_size_bytes'    : '8048',
+        'priority_amss_order' : 'PWRDB_PRI_ORDER',
+        'stack_name'          : 'qchat_stack',
+        'thread_entry'        : 'qchat_task',
+        'tcb_name'            : 'qchat_tcb',
+        'cpu_affinity'	      : env.subst('$MODEM_CPU_AFFINITY'),
+        'dependencies'        : ['ds', 'ps']
+    }
+    
+# Add init function to RCInit
+if 'USES_QCHAT_QMI' in env:
+    #env.AddRCInitFunc(RCINIT_QCHAT, RCINIT_INIT_QCHAT)
+    env.AddRCInitTask(RCINIT_QCHAT, RCINIT_TASK_QCHAT)
+
+#-------------------------------------------------------------------------------
+# Load cleanpack script to remove private files etc. from customer builds
+#-------------------------------------------------------------------------------
+if os.path.exists('qchat_cleanpack.py'):
+    env.LoadToolScript('qchat_cleanpack.py')
+
+#----------------------------------------------------------------------------#
+# Recurse through the sub-units
+#----------------------------------------------------------------------------#
+env.LoadSoftwareUnits()

@@ -1,0 +1,95 @@
+#===============================================================================
+#
+# Utils Common
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/21/10    ae     Initial version.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_UTILS_COMMON",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Public and Restricted API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+    'HWENGINES',
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'DAL',
+    'POWER',
+    'BUSES',
+    'KERNEL',                             # needs to be last 
+    ], area='core')
+
+# Need to get access to Modem Public headers
+env.RequirePublicApi([
+    'ONEX',
+    'GPS',      
+    'HDR',      
+    'MCS',
+    'MMODE',    
+    'RFA',      
+    'UIM',      
+    ])
+
+# Need get access to Modem Restricted headers
+env.RequireRestrictedApi([
+    'MMODE',    
+    'NAS',      
+    'RFA',      
+    'MDSP',     
+    'MDSPSVC',  
+    'GERAN',    
+    'GPS',      
+    'ONEX',     
+    'HDR',      
+    'UTILS',
+    'MCS',
+    ])
+
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+UTILS_COMMON_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                   for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Compile the LTE RRC source and convert to a binary library
+env.AddBinaryLibrary(['MODEM_MODEM','MOB_UTILS'], '${BUILDPATH}/utils_common', UTILS_COMMON_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])

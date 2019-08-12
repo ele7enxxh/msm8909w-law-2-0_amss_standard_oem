@@ -1,0 +1,19 @@
+
+/* Build this component into a library */
+#include <lib.qbd>
+rule hdr_driver_compile : c_compile
+{
+  command compiler += -DIMAGE_MODEM_PROC;
+  command compiler += -DFEATURE_HDR_NO_DBIF;
+}
+
+/* Build the tests of this component */
+if( $(RTOS_QUBE) == True )
+{
+  #include <add_tests.qbd>
+}
+
+if( $(RTOS_CS) == True )
+{
+  build test_cs/test using test.qbd;
+}

@@ -1,0 +1,726 @@
+;============================================================================
+;  Name:
+;    NOR_DUMP.CMM
+;
+;  Description:
+;    TRACE32 script to dump a partition 
+;
+;  Execution:
+;    Inside the debugger, type at the command line: "do nor_dump"
+;
+;    Command line args handled by NOR_DUMP:
+;
+;    NOR_DUMP [NOMENU] [WHICHPARTITION] [TRUSTMODE] [FILENAME] [DEVICETYPE] [USETYPE]
+;
+;      NOMENU is optional and will be used by NOR_DUMP script to dump
+;             EFS2APPS or EFS2 partitions.
+;
+;      Following arguments are optional but require NOMENU to be passed in
+;      as argument first:
+;
+;      WHICHPARTITION[0:EFS2] will be used to dump the EFS2 partition.
+;
+;      TRUSTMODE[TRUSTED] will be used to set indicated security mode of
+;             partition.
+;
+;      FILENAME is used to pass the filename to store the data dump of the
+;               specified partition.
+;
+;       BUSTYPE is a type of BUS a device is attached to:
+;		  1: I2C EEPROM
+;		  2: SPI NOR
+;		  
+;       DEVICEUSETYPE is a device usage type if I2C EEPROM is selected:
+;		  1: CDT
+;		  2: RF
+;               3;OEM custom EEPROM
+;
+;  Copyright (c) 2010-2011, 2014 Qualcomm Technologies, Incorporated.  
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nor/nor_dump.cmm#1 $
+; $DateTime: 2015/09/01 00:30:35 $ 
+; $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------.
+; 03/19/14   whc     Added multiple device support
+; 03/21/11   jz      Updated to support new T32 versions
+; 09/08/10   sv      Created
+;============================================================================;
+
+
+;============================================================================
+; Declare variables used
+;============================================================================
+&MenuMode="STD"        ; Present normal NOR menu
+LOCAL &Verbose
+LOCAL &ClearWin
+LOCAL &CurrentCmd
+LOCAL &BlockSize
+LOCAL &CurrentBlock
+LOCAL &TempDir
+LOCAL &FileSpec
+LOCAL &InFileSpec
+
+LOCAL &VRAM_BASE
+LOCAL &VRAM_OFFSET
+LOCAL &Offset
+LOCAL &BlockEnd
+
+LOCAL &DateStart
+LOCAL &DateEnd
+LOCAL &TimeStart
+LOCAL &TimeEnd
+
+LOCAL &PartiChoice
+LOCAL &RangeStart
+LOCAL &PartitionStart
+LOCAL &RangeEnd
+LOCAL &PartitionEnd
+LOCAL &EndBlock
+LOCAL &PartitionSize
+LOCAL &CopyData
+LOCAL &TrustMode
+LOCAL &tmode
+LOCAL &buildId
+
+;============================================================================
+; Get the arguments passed in.
+;============================================================================
+ENTRY &arg1 &arg2 &arg3 &arg4 &arg5 &arg6
+
+;============================================================================
+; Set up some defaults for some variables
+;============================================================================
+&Verbose="no"         ; Do not present status messages as we process
+&ClearWin="yes"       ; Remove all windows before starting
+&Offset=0x0           ; Offset into partition
+&TempDir=OS.ENV(TEMP) ; Get the temperory directory
+&FileSpec="&TempDir/image.bin" ; default file to save to
+&TrustMode="TRUSTED"     ; Only TRUSTED mode supported
+
+;============================================================================
+; Process the command line arguments and create image names or wildcards
+;============================================================================
+gosub ProcessCmdLine
+
+;============================================================================
+; For normal use set up the screen with only area window for reports
+; For debug purposes, don't clear
+; In both cases, make sure we have an area window
+;============================================================================
+if "&ClearWin"=="yes"
+(
+  WinCLEAR
+  WinPage.Reset
+  WINPOS 0. 0. 50% 100%
+)
+
+area
+
+if "&ClearWin"=="yes"
+(
+  area.RESET
+)
+
+;============================================================================
+; Initialze PATH with Current directory only. Other directory paths will be 
+; appended later in respective modules
+;============================================================================
+PATH .
+
+;============================================================================
+; Set some MSM specific variables used later in flash.target command
+;    &NorCodeAddr=
+;    &NorParamAddr=
+;    &NorCpuType=
+;============================================================================
+;do nor_param
+
+
+;============================================================================
+; 1) Set variables used to set up the JTAG debugger for this MSM
+; 2) Init important MSM/ASB registers
+;    use existing external script that is MSM specific
+;============================================================================
+;do &NorConfigDir/nor_msm_init
+
+;-------------------------------------------------------------------------------
+; Set some variables used later on to peek and poke parameter block
+;-------------------------------------------------------------------------------
+;do nor_init.cmm
+
+;============================================================================
+; Possibly put up terminal window
+;============================================================================
+if "&UseTerm"=="YES"
+(
+  term.close
+  winclear MYTERM
+  term.size 60 1000
+  term.scroll on
+  WinPOS 50% 0% 50%100% ,, MYTERM
+  term.view
+  ;term.write term.out
+)
+
+;======================================================
+; Load our flash programming routine and prepare flash
+;======================================================
+;data.load.elf "nor_tools.elf"
+;data.load.elf "nor_tools.elf" /VERIFY
+
+
+; need this breakpoint as per Lauterbach Spec so that we
+; can hand back control to the Debugger
+;break.delete /ALL
+;break.set swbp /onchip /program
+
+;============================================================================
+; Invoke the correct menu
+; NOMENU - Menu already set by calling script: norimage.cmm
+; STD - Set this script's menu selections.
+;============================================================================
+if "&MenuMode"=="NOMENU"
+(
+  gosub DoNoMenu
+  enddo
+)
+else if "&MenuMode"=="STD"
+(
+  gosub DetectDeviceType
+  gosub MainMenu
+)
+else
+(
+  print "Invalid menu mode &MenuMode selected"
+  end
+)
+
+MainMenu:
+  print
+  print
+  print "-----------------------------------------------"
+  print "|           _   _    _  _    _ _ _            |"
+  print "|          | \ | |  / /\ \  | | \ \           |"
+  print "|          |  \| | | |  | | | | / /           |"
+  print "|          | |\  | | |  | | | |\ \            |"
+  print "|          |_| \_/  \_\/_/  \_| \_|           |"
+  print "|                                             |"
+  print "|         Flash Partition Dump Utility        |"
+  print "|                                             |"
+  print "|     Copyright (c) 2010 by QUALCOMM, Inc.    |"
+  print "|                                             |"
+  print "-----------------------------------------------"
+  print
+  print
+  print "  0: Exit"
+  print "  1: Dump Partition"
+  print
+  print " Please make a choice: "
+
+  &t32_cmm_stopped=1
+  enter &Choice
+  &t32_cmm_stopped=0
+  print
+  print
+  if "&ClearWin"=="yes"
+  (
+    area.RESET
+  )
+
+  if "&Choice"=="0"
+  (
+    print "...exiting Partition -Image Dump Tool"
+    enddo
+  )
+
+  if "&Choice"=="1"
+  (
+    gosub GetFilespec
+    print "Enter which partition to be dumped ..."
+    print "ex 0:EFS2,0:ALL etc"
+    print "Look in flash_nor_partition_tbl.h for the list of partition names"
+    print " > "
+    enter &PartiChoice
+    print "You have selected partition &PartiChoice"
+
+    gosub InitDumpParti
+    print " Number of blocks : &PartitionSize "
+    print
+    gosub DumpPartitionSubMenu
+    goto MainMenu
+  )
+
+  goto MainMenu
+
+  return  ; MainMenu
+
+;=====================================================
+; Access the partition data from arguments passed by
+; the calling wrapper script.
+;=====================================================
+DoNoMenu:
+  &Choice="1"   ;Set to 1 to dump entire partition
+
+  if "&TrustMode"=="TRUSTED"
+  (
+    &EndBlock=4
+    &tmode=1
+  )
+  else
+  (
+    &EndBlock=5
+    &tmode=0
+  )
+
+  gosub InitDumpParti
+  gosub DumpPartition
+
+  return ; DoNoMenu
+
+;=====================================================
+; --- Sub Menu with dump options
+;=====================================================
+DumpPartitionSubMenu:
+  print " 0: Go back to Main Menu"
+  print " 1: Read Entire partition "
+  print " 2: Read a range of blocks in the specified partition "
+  print
+  print " Please make a choice: "
+  enter &Choice
+
+  if "&Choice"=="0"
+  (
+    return  ; back to MainMenu
+  )
+
+  if "&Choice"=="1"
+  (
+    print " Reading the Entire &PartiChoice Partition "
+    gosub DumpPartition
+    return
+  )
+
+  if "&Choice"=="2"
+  (
+    print " Enter the range of blocks to be read (Both included ) "
+    gosub EnterRange
+    if "&RangeEnd">"&PartitionSize"
+    (
+      print " Block not in the partition "
+      gosub EnterRange
+    )
+    gosub DumpPartition
+    return
+  )
+
+  print " Wrong Choice "
+  goto DumpPartitionSubMenu
+
+
+EnterRange:
+  print " Enter the Range to be read (0 : End)"
+  print " Enter the Start: "
+  enter &RangeStart
+
+  print " Enter the End:  "
+  enter &RangeEnd
+  return
+
+;-------------------------------------------------------------------------------
+; Get name of file for saving trace records or use default
+;-------------------------------------------------------------------------------
+GetFilespec:
+  if "&TrustMode"=="TRUSTED"
+  (
+    &EndBlock=4
+    &tmode=1
+  )
+  else
+  (
+    &EndBlock=5
+    &tmode=0
+  )
+
+  print " "
+  print " "
+  print "  ++++ File Spec for data storage may be relative or absolute +++ "
+  print
+  print " Please enter filespec for storing dump [default: &FileSpec] >  "
+  print " > "
+  enter &InFileSpec
+
+  if "&InFileSpec"!=""
+  (
+    &FileSpec="&InFileSpec"
+  )
+ 
+  print "  "
+  print "  "
+  print "  "
+
+  return ; GetFilespec
+
+;=====================================================
+; --- Function to setup the dump for file system area
+;=====================================================
+InitDumpParti:
+
+  ;--------------------------------------------------------
+  ; Open the partition and get number of blocks
+  ;--------------------------------------------------------
+  ;
+  &Command="Initializing for dump"
+  data.set &ParmCmd %LONG &PartiDumpInit
+  ;Pass the partition info to nor
+  data.set &ParmData "&PartiChoice" 0x0
+  data.set &ParmSize %LONG &tmode
+  &CurrentCmd=&PartiDumpInit
+  r.s pc &StartAddr
+
+  go
+  gosub check_status  ;; will not return if error
+
+  &PartitionStart=data.long(A:&ParmSize)
+  &PartitionEnd=data.long(A:&ParmWidth)
+
+  &PartitionSize=data.long(A:&ParmAddr)
+  &BlockSize=data.long(A:&ParmOffset)
+
+  return ; InitDumpParti
+
+;=====================================================
+; --- Function to dump partition
+;=====================================================
+DumpPartition:
+
+  &DateStart=CLOCK.DATE()
+  &TimeStart=CLOCK.TIME()
+  PRINT " "
+  PRINT "Start at &DateStart at &TimeStart"
+  print "Save location : &FileSpec"
+  print " "
+
+  ;Read the entire partition
+  if "&Choice"=="1"
+  (
+    &CurrentBlock=0
+    &EndBlock=&PartitionSize-1
+  )
+
+  ;Read the range in the partition
+  if "&Choice"=="2"
+  (
+    &CurrentBlock=&RangeStart
+    &EndBlock=&RangeEnd
+  )
+
+  ;--------------------------------------------------------
+  ; Read blocks
+  ;--------------------------------------------------------
+  &Offset=0
+  &VRAM_BASE=0x00000000 ; Base of virtual RAM for data spool
+
+  ; set constant value for end of block of data
+  &BlockEnd=&ParmData+&BlockSize
+
+  while &CurrentBlock<=&EndBlock
+  (
+    &Command="Read Block"
+    data.set &ParmCmd %LONG &DumpParti
+    data.set &ParmAddr %LONG &CurrentBlock
+    &CurrentCmd=&DumpParti
+    r.s pc &StartAddr
+    go
+
+    gosub check_status  ;; will not return if error
+    &CurrentBlock=data.long(A:&ParmAddr)
+    &CopyData=data.long(A:&ParmWidth)
+
+    if "&CopyData"=="0x1"
+    (
+      &VRAM_OFFSET=&VRAM_BASE+&Offset
+      data.copy &ParmData--(&BlockEnd-1) vm:&VRAM_OFFSET /long
+      &Offset=&Offset+&BlockSize
+    )
+
+    &CurrentBlock=&CurrentBlock+1
+  )
+
+  ; Save the virtual memory image we have been building
+  data.save.binary &FileSpec vm:&VRAM_BASE--(&Offset-1)
+
+  &DateEnd=CLOCK.DATE()
+  &TimeEnd=CLOCK.TIME()
+  PRINT " "
+  PRINT "End at &DateEnd at &TimeEnd"
+  print " "
+  print "Dump is saved to &FileSpec"
+
+  return  ; DumpPartition
+
+;=====================================================
+; --- Function to check command status return
+;       and exit if 0x100
+;=====================================================
+check_status:
+  wait !run()
+
+  &Result=data.long(A:&ParmStatus)
+  if &Result==0x100
+  (
+    print " "
+    print "---- &Command failed"
+    &Result=data.long(A:&ParmReserved)
+    print "     Extended status is &Result"
+    print " "
+    print "EXITING due to failed command:: &Command"
+    end
+  )
+  else
+  (
+    if (&Result==&CurrentCmd)
+    (
+      print " "
+      print "----  DID NOT COMPLETE &Command"
+      print " "
+      print "EXITING due to failed command:: &Command"
+      end
+    )
+    else
+    (
+      if "&Verbose"=="yes"
+      (
+        print "+++++ &Command Succeeded"
+      )
+    )
+  )
+  return
+
+;=====================================================
+; Detect bus type to program
+;=====================================================
+DetectDeviceType:
+  local &Choice
+  print
+  print
+  print "Select Device Type"
+  print
+  print " 1. I2C EEPROM"
+  print " 2. SPI NOR"
+  print "-----------------------------------"
+  print " Please make a choice: "
+  
+  enter &Choice
+
+  print "-----------------------------------"
+
+  print
+  print
+  
+  if &Choice==1
+  (
+     gosub LoadI2C
+     gosub SelectEEPROM
+  )
+
+   if &Choice==2
+  (
+    gosub LoadSPI
+  )
+
+  return
+
+;=====================================================
+; Load I2c nor tool
+;===================================================== 
+LoadI2C:
+     do nor_param
+    do &NorConfigDir/nor_msm_init
+    do nor_init.cmm
+    d.load.elf "nor_tools.elf"
+    d.load.elf "nor_tools.elf" /VERIFY
+    ; need this breakpoint as per Lauterbach Spec so that we
+    ; can hand back control to the Debugger
+    break.delete /ALL
+    break.set swbp /onchip /program
+   
+    return
+    
+;=====================================================
+; Load I2c nor tool
+;===================================================== 
+LoadSPI:
+    do nor_param_spi
+    do &NorConfigDir/nor_msm_init
+    do nor_init.cmm
+    d.load.elf "nor_tools_spi.elf"
+    d.load.elf "nor_tools_spi.elf" /VERIFY
+    ; need this breakpoint as per Lauterbach Spec so that we
+    ; can hand back control to the Debugger
+    break.delete /ALL
+    break.set swbp /onchip /program
+    
+    return
+    
+;=====================================================
+; Select EEPROM to program
+;=====================================================  
+SelectEEPROM:
+  local &Choice
+  
+  print
+  print
+  print "Select EEPROM"
+  print
+  print " 1. CDT"
+  print " 2. RF"
+  print " 3. 3rd I2C EEPROM"
+  print
+  print "-----------------------------------"
+  print " Please make a choice: "
+
+  enter &Choice
+
+  print "-----------------------------------"
+
+  print
+  print
+
+  if &Choice==1
+  (
+    gosub SelectCDT
+  )
+
+  if &Choice==2
+  (
+    gosub SelectRF
+  )
+
+  if &Choice==3
+  (
+    gosub Select3rd
+  )
+  
+  ;area.reset
+  ;area
+  
+  return
+
+;=====================================================
+; Select NOR EEPROM to program
+;=====================================================  
+SelectCDT:
+  local &device_id
+
+  &device_id=v.address("dev_id")
+  data.set &device_id %LONG 0x0200013F
+  
+  print " RF selected"
+  print "NOR selected"
+  
+  ;V dev_id=0x0200013F
+  
+  return
+
+;=====================================================
+; Select RF EEPROM to program
+;=====================================================  
+SelectRF:
+  local &device_id
+
+  &device_id=v.address("dev_id")
+  data.set &device_id %LONG 0x02000140
+  
+  print " RF selected"
+  
+  ;V dev_id=0x02000140 
+  
+  return
+
+  ;=====================================================
+; Select RF EEPROM to program
+;=====================================================  
+Select3rd:
+  local &device_id
+
+  &device_id=v.address("dev_id")
+  data.set &device_id %LONG 0x0200014D
+  
+  print " RF selected"
+  
+  ;V dev_id=0x0200014D 
+  
+  return
+
+
+;============================================================================
+; Process the arguments and set modes accordingly
+;============================================================================
+ProcessCmdLine:
+  if "&arg1"=="NOMENU"
+  (
+    ; NOMENU mode requires partition name and filespec arguments
+    &MenuMode="&arg1"
+    &PartiChoice="&arg2"
+    &TrustMode="&arg3"
+    &FileSpec="&arg4"
+
+    if "&arg2"==""||"&arg3"==""||"&arg4"==""||"&arg5"==""
+    (
+      print "Fatal Error:  Input parameters arg2, arg3, arg4, arg5 are missing."
+      gosub ExitNorDump
+    )
+
+    if "&PartiChoice"!="0:EFS2"
+    (
+      print "Fatal Error:  Input parameters arg2 not EFS2 images."
+      gosub ExitNorDump
+    )
+    &Verbose="no"
+    if "&arg5"=="1"
+    (
+      gosub LoadI2C
+ 
+      if "&arg6"=="1"
+      (
+        gosub SelectCDT
+      )
+      else if "&arg6"=="2"
+      (
+        gosub SelectRF
+      )
+      else if "&arg6"=="3"
+      (
+        gosub Select3rd
+      )
+      else
+      (
+        print "Fatal Error:  unsupported device"
+        gosub ExitNorDump
+      )
+    )
+    else if "&arg5"=="2"
+    (
+      gosub LoadSPI
+    )
+    else
+    (
+      print "Fatal Error:  unsupported device type"
+      gosub ExitNorDump
+    )
+  )
+
+  return  ; ProcessCmdLine
+
+
+ExitNorDump:
+  print "Goodbye..."
+  enddo

@@ -1,0 +1,93 @@
+#===============================================================================
+#
+# Power INC PATHs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2015 by QUALCOMM Technologies, Inc. (QTI)
+# All Rights Reserved.
+# QUALCOMM Technologies Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/mpss/rel/1.1/modem_proc/core/power/build/paths.sconscript#4 $
+#  $DateTime: 2011/10/04 11:51:47 $
+#  $Author: coresvc $
+#  $Change: 1964834 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/28/11    sg     Added MSM specific paths for MPM API.
+# 04/19/11   mda     Added include paths for RPM driver on sensors proc
+# 03/25/11   clm     Added include paths for remoted thermal power API.
+# 06/25/10   tau     Added include paths for SPM.
+# 02/16/10   tau     Updated sleep common include path.
+# 10/08/09   bjs     Adding core\power\utils 
+# 08/13/09   taw     Initial version.
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# these are accecible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+power_public_apis = [
+   "${INC_ROOT}/core/api/power",
+]
+
+# Adding appropriate Sleep include directory based on Sleep version. Once
+# all targets on this PW starts to support sleep2.0 and hence sleep2.0 
+# becomes default sleep, header files can be moved into main power\api.
+if env['MSM_ID'] in ['8952','8976','8937','9607']:
+  print 'Using Sleep2.0 in public power APIs'
+  power_public_apis.append("${INC_ROOT}/core/api/power/sleep2.0")
+else:
+  # default to pre sleep2.0 apis.
+  power_public_apis.append("${INC_ROOT}/core/api/power/sleep")
+
+env.PublishPublicApi('POWER', power_public_apis)
+
+#-------------------------------------------------------------------------------
+# Publish Restricted APIs
+# these are accecible only within CoreBSP
+#-------------------------------------------------------------------------------
+
+power_restricted_apis = [
+   "${INC_ROOT}/core/power/mpm/inc",
+   "${INC_ROOT}/core/power/mpm/inc/asic/${MSM_ID}",
+   "${INC_ROOT}/core/power/mpm/hal/include",
+   "${INC_ROOT}/core/power/mpm/hal/bsp/include",
+   "${INC_ROOT}/core/power/spm/inc",
+   "${INC_ROOT}/core/power/spm/hal/include",
+   "${INC_ROOT}/core/power/sleepctl/inc",
+   "${INC_ROOT}/core/power/dcvs/inc",
+   "${INC_ROOT}/core/power/clm/inc",
+   "${INC_ROOT}/core/power/dbgmgr/inc",
+   "${INC_ROOT}/core/power/dem/inc",
+   "${INC_ROOT}/core/power/rpm/common",
+   "${INC_ROOT}/core/power/rpm/client",
+   "${INC_ROOT}/core/power/utils/inc",
+   "${INC_ROOT}/core/api/rapi/power/inc",
+   "${INC_ROOT}/core/power/thermal/inc",
+   "${INC_ROOT}/core/power/system_db/inc",
+]
+
+# Adding appropriate Sleep include directory based on Sleep version. Once
+# all targets on this PW starts to support sleep2.0 and hence sleep2.0 
+# becomes default sleep, sleep/inc can be directly added to above list.
+if env['MSM_ID'] in ['8952','8976','8937','9607']:
+  print 'Using Sleep2.0 in Restricted Power APIs'
+  power_restricted_apis.append("${INC_ROOT}/core/power/sleep2.0/inc")
+else:
+  # default to pre sleep2.0 apis.
+  power_restricted_apis.append("${INC_ROOT}/core/power/sleep/inc")
+  
+
+env.PublishRestrictedApi('POWER', power_restricted_apis)
+

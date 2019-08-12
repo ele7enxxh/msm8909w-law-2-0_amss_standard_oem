@@ -1,0 +1,1872 @@
+; NPADebugScan.cmm
+; ------------------------------------------------------------------
+;
+; Copyright (c) 2009-2013 Qualcomm Technologies Incorporated.
+; All Rights Reserved.
+; QUALCOMM Proprietary
+;
+; When to use this script 
+; -----------------------
+; This script should be used to debug and scan memory alignment of various pools and to dump resource graph
+; 
+; How to use this script
+; ----------------------
+;
+; do NPADebugScan <logPath> [Resource pool to be checked]
+;Parameters:
+;<logPath> -> This parameter is mandatory and specifies the path where result of the debugscan should be stored
+;
+
+
+ENTRY &logPath
+//Global variables used for setting pool parameters
+GLOBAL &pBlockList &uBlockSize &uBlockCount &pFreeList &uElemSize &uElemCount &resource_Link &elem_PerBlock
+
+//Global variables used for converting pool parameters in decimal format
+GLOBAL &decimal_pBlockList &decimal_uBlockSize &decimal_uBlockCount &decimal_uElemSize &decimal_uElemCount &decimal_elem_PerBlock
+
+//Global parameters to accumulate total memory and free memory of all pools
+GLOBAL &total_Memory_All_Pool &free_Memory_All_Pools 
+
+//Global parameters to find resource/client count
+GLOBAL &client_Count &vector_Resource_Count &suppress_Resource_Count &total_Resource_Count
+
+//Global string parameters
+GLOBAL &str_Resource_Pool &str_Client_Pool &str_Event_Pool &str_Link_Pool &str_Transaction_Pool &str_Internal_Pool &str_List_Pool &str_Summary &str_Pool_Util 
+
+LOCAL  &tempString
+
+ON ERROR JUMPTO error
+
+//intialize all global variables
+&total_Memory_All_Pool=0
+&free_Memory_All_Pools=0
+&client_Count=0
+&vector_Resource_Count=0
+&total_Resource_Count=0
+&suppress_Resource_Count=0
+
+//intialize all local variables
+&tempString=""
+
+//'str_Summary' string stores summary of memory allocation and result for memory check of all pools
+&str_Summary="------------------------------------------------ Memory allocation check result summary: All pools  -------------------------------------------------------------"+CONVert.CHAR(0x0D0A)+CONVert.CHAR(0x0D0A)+""
+&str_Summary="&str_Summary"+"*********************************************************************"+CONVert.CHAR(0x0D0A)+""
+
+PRINT "Memory allocation check started."
+
+// Code to check if user has entered path for LogFile
+AREA.Create IO-Window
+AREA.Select IO-Window
+AREA.View IO-Window
+
+Start:
+if "&logPath"==""
+(
+  PRINT "Please enter the log path:"
+  ENTER &logPath
+  GOTO Start
+)
+
+// Validate logPath string
+IF string.char("&(logPath)", string.len("&(logPath)")-1)=='\'
+(
+    &logPath=string.cut("&(logPath)", -1)
+)
+
+//Create logFile 'Temp.txt' at given LogPath
+//This file is later copied to 'NPAMemInfo.txt' for final output 
+OPEN #1 "&(logPath)\Temp.txt" /Create
+
+//Goto function to start checking all pools for memory alignment
+GOSUB start_Mem_Check_All_Pools
+
+//Print legends for client type used in client pool
+GOSUB legends_For_Client_Type
+
+//'$$$' is used as identifier for end of file
+WRITE #1 "$$$"
+CLOSE #1
+
+//Open Temp.txt in read mode and NPAMemInfo.txt in write mode.
+OPEN #2 "&(logPath)\Temp.txt" /Read
+OPEN #1 "&(logPath)\NPAMemInfo.txt" /Create
+
+//'summaryMemAllocation' function summarizes result of memory check and dump it in 'NPAMemInfo.txt'
+GOSUB summaryMemAllocation
+
+//Copy Temp.txt to NPAMemInfo.txt
+while "&tempString"!="$$$"
+(
+  READ #2 %line &tempString
+  WRITE #1 "&tempString"
+)
+
+CLOSE #2
+CLOSE #1
+
+PRINT "Memory allocation check completed."
+
+//Error handling code
+error:
+  
+  CLOSE #2
+  CLOSE #1
+  Area.Reset
+ENDDO
+
+
+
+
+//This subroutine sets parameter used in data structure "CorePoolType" to be used in the script
+setParameters:
+  ENTRY &corePoolType
+  
+  if &corePoolType=="RESOURCE_POOL"
+  (
+    &pBlockList=V.VALUE((npa.resource_pool).pBlockList)
+    &uBlockSize=V.VALUE((npa.resource_pool).uBlockSize)
+    &uBlockCount=V.VALUE((npa.resource_pool).uBlockCount)
+    &pFreeList=V.VALUE((npa.resource_pool).pFreeList)
+    &uElemSize=V.VALUE((npa.resource_pool).uElemSize)
+    &uElemCount=V.VALUE((npa.resource_pool).uElemCount)  
+  )
+
+  if &corePoolType=="CLIENT_POOL"
+  (
+    &pBlockList=V.VALUE((npa.client_pool).pBlockList)
+    &uBlockSize=V.VALUE((npa.client_pool).uBlockSize)
+    &uBlockCount=V.VALUE((npa.client_pool).uBlockCount)
+    &pFreeList=V.VALUE((npa.client_pool).pFreeList)
+    &uElemSize=V.VALUE((npa.client_pool).uElemSize)
+    &uElemCount=V.VALUE((npa.client_pool).uElemCount)
+  )
+
+  if &corePoolType=="EVENT_POOL"
+  (
+    &pBlockList=V.VALUE((npa.event_pool).pBlockList)
+    &uBlockSize=V.VALUE((npa.event_pool).uBlockSize)
+    &uBlockCount=V.VALUE((npa.event_pool).uBlockCount)
+    &pFreeList=V.VALUE((npa.event_pool).pFreeList)
+    &uElemSize=V.VALUE((npa.event_pool).uElemSize)
+    &uElemCount=V.VALUE((npa.event_pool).uElemCount)  
+  )
+
+  if &corePoolType=="LINK_POOL"
+  (
+    &pBlockList=V.VALUE((npa.link_pool).pBlockList)
+    &uBlockSize=V.VALUE((npa.link_pool).uBlockSize)
+    &uBlockCount=V.VALUE((npa.link_pool).uBlockCount)
+    &pFreeList=V.VALUE((npa.link_pool).pFreeList)
+    &uElemSize=V.VALUE((npa.link_pool).uElemSize)
+    &uElemCount=V.VALUE((npa.link_pool).uElemCount)
+
+  )
+  
+  if &corePoolType=="LIST_POOL"
+  (
+    &pBlockList=V.VALUE((npa.list_pool).pBlockList)
+    &uBlockSize=V.VALUE((npa.list_pool).uBlockSize)
+    &uBlockCount=V.VALUE((npa.list_pool).uBlockCount)
+    &pFreeList=V.VALUE((npa.list_pool).pFreeList)
+    &uElemSize=V.VALUE((npa.list_pool).uElemSize)
+    &uElemCount=V.VALUE((npa.list_pool).uElemCount)
+
+  )
+  
+  if &corePoolType=="TRANSACTION_POOL"
+  (
+    &pBlockList=V.VALUE((npa.resource_pool).pBlockList)
+    &uBlockSize=V.VALUE((npa.resource_pool).uBlockSize)
+    &uBlockCount=V.VALUE((npa.resource_pool).uBlockCount)
+    &pFreeList=V.VALUE((npa.resource_pool).pFreeList)
+    &uElemSize=V.VALUE((npa.resource_pool).uElemSize)
+    &uElemCount=V.VALUE((npa.resource_pool).uElemCount)  
+
+  )
+  
+  if &corePoolType=="INTERNAL_POOL"
+  (
+    &pBlockList=V.VALUE((npa.internal_pool).pBlockList)
+    &uBlockSize=V.VALUE((npa.internal_pool).uBlockSize)
+    &uBlockCount=V.VALUE((npa.internal_pool).uBlockCount)
+    &pFreeList=V.VALUE((npa.internal_pool).pFreeList)
+    &uElemSize=V.VALUE((npa.internal_pool).uElemSize)
+    &uElemCount=V.VALUE((npa.internal_pool).uElemCount)  
+
+  )
+  if &corePoolType=="SCHEDULER_POOL"
+  (
+    &pBlockList=V.VALUE((npa_scheduler.data_pool).pBlockList)
+    &uBlockSize=V.VALUE((npa_scheduler.data_pool).uBlockSize)
+    &uBlockCount=V.VALUE((npa_scheduler.data_pool).uBlockCount)
+    &pFreeList=V.VALUE((npa_scheduler.data_pool).pFreeList)
+    &uElemSize=V.VALUE((npa_scheduler.data_pool).uElemSize)
+    &uElemCount=V.VALUE((npa_scheduler.data_pool).uElemCount)
+  )
+  
+  //'elem_PerBlock' specifies total number of elements that can occupy memory from one block
+  &elem_PerBlock=((&uBlockSize)-V.VALUE(sizeof(unsigned int))-V.VALUE(sizeof(CorePoolBlockType *)))/&uElemSize
+  
+  //Convert hex values to decimal for better readability in report
+  &decimal_pBlockList=FORMAT.DECIMAL(2,&pBlockList)
+  &decimal_uBlockSize=FORMAT.DECIMAL(2,&uBlockSize)
+  &decimal_uBlockCount=FORMAT.DECIMAL(2,&uBlockCount)
+  &decimal_uElemSize=FORMAT.DECIMAL(2,&uElemSize)
+  &decimal_uElemCount=FORMAT.DECIMAL(2,&uElemCount)
+  &decimal_elem_PerBlock=FORMAT.DECIMAL(2,&elem_PerBlock)  
+RETURN
+
+
+
+
+//Subroutine to summarize memory allocation report
+summaryMemAllocation:
+  LOCAL &used_Memory_All_Elems &pool_Utilization
+  LOCAL &decimal_total_Memory_All_Pool &decimal_used_Memory_All_Elems &decimal_free_Memory_All_Pools
+  
+  &used_Memory_All_Elems=&total_Memory_All_Pool-&free_Memory_All_Pools
+  
+  &decimal_total_Memory_All_Pool=FORMAT.DECIMAL(2,&total_Memory_All_Pool)
+  &decimal_used_Memory_All_Elems=FORMAT.DECIMAL(2,&used_Memory_All_Elems)
+  &decimal_free_Memory_All_Pools=FORMAT.DECIMAL(2,&free_Memory_All_Pools)
+  &pool_Utilization=FORMAT.DECIMAL(2,V.Value(&(used_Memory_All_Elems)*100)/&(total_Memory_All_Pool))
+  
+  &str_Summary="&str_Summary"+"*********************************************************************"+CONVert.CHAR(0x0D0A)+""
+  &str_Summary="&str_Summary"+CONVert.CHAR(0x0D0A)+"------------------------------------------------ Summary of Memory allocation: All pools ------------------------------------------------------------------------"
+  &str_Summary="&str_Summary"+CONVert.CHAR(0x0D0A)+CONVert.CHAR(0x0D0A)+""
+  &str_Summary="&str_Summary"+"*********************************************************************"+CONVert.CHAR(0x0D0A)+""
+  &str_Summary="&str_Summary"+"Total pool memory (All pools)                             :    &(decimal_total_Memory_All_Pool)"+" Bytes"+CONVert.CHAR(0x0D0A)+""
+  &str_Summary="&str_Summary"+"Used pool memory in Bytes (All pools)                     :    &(decimal_used_Memory_All_Elems)"+" Bytes"+CONVert.CHAR(0x0D0A)+""
+  &str_Summary="&str_Summary"+"Free pool memory in Bytes (All pools)                     :    &(decimal_free_Memory_All_Pools)"+" Bytes"+CONVert.CHAR(0x0D0A)+""
+  &str_Summary="&str_Summary"+"Pool utilization                                          :    &(pool_Utilization)%"+CONVert.CHAR(0x0D0A)+""
+  &str_Summary="&str_Summary"+"*********************************************************************"
+  &str_Summary="&str_Summary"+CONVert.CHAR(0x0D0A)+CONVert.CHAR(0x0D0A)+""
+  
+  //Enter client count, vector resource count and suppressible resource count to summary string
+  &client_Count=FORMAT.DECIMAL(2,&client_Count)
+  &vector_Resource_Count=FORMAT.DECIMAL(2,&vector_Resource_Count)
+  &suppress_Resource_Count=FORMAT.DECIMAL(2,&suppress_Resource_Count)
+  &total_Resource_Count=FORMAT.DECIMAL(2,&total_Resource_Count)
+
+  &str_Summary="&str_Summary"+"------------------------------------------------ Summary of Resource/Client count -------------------------------------------------------------------------------"+CONVert.Char(0x0D0A)+CONVert.Char(0x0D0A)+""
+  &str_Summary="&str_Summary"+"*********************************************************************"+CONvert.Char(0x0D0A)+""
+  &str_Summary="&str_Summary"+"Client Count                                              :    &client_Count"+CONvert.Char(0x0D0A)+""
+  &str_Summary="&str_Summary"+"Resource Count                                            :    &total_Resource_Count"+CONvert.Char(0x0D0A)+""
+  &str_Summary="&str_Summary"+"Vector Resource Count                                     :    &vector_Resource_Count"+CONvert.Char(0x0D0A)+""
+  &str_Summary="&str_Summary"+"Suppressible Vector Resource Count                        :    &suppress_Resource_Count"+CONvert.Char(0x0D0A)+""
+  &str_Summary="&str_Summary"+"*********************************************************************"+CONvert.Char(0x0D0A)+""                                             
+
+  WRITE #1 "&str_Summary"
+RETURN
+
+
+
+
+//Subroutine to write legends for client type used in client pool
+legends_For_Client_Type:
+  WRITE #1 ""
+  WRITE #1 "------------------------------------------------------------- Legends for Client Type --------------------------------------------------------------------------"
+  WRITE #1 ""
+  WRITE #1 "Type 00 : NPA_NO_CLIENT"
+  WRITE #1 "Type 01 : NPA_CLIENT_RESERVED1"
+  WRITE #1 "Type 02 : NPA_CLIENT_RESERVED2"
+  WRITE #1 "Type 03 : NPA_CLIENT_CUSTOM1"
+  WRITE #1 "Type 04 : NPA_CLIENT_CUSTOM2"
+  WRITE #1 "Type 05 : NPA_CLIENT_CUSTOM3"
+  WRITE #1 "Type 06 : NPA_CLIENT_CUSTOM4"
+  WRITE #1 "Type 07 : NPA_CLIENT_REQUIRED"
+  WRITE #1 "Type 08 : NPA_CLIENT_ISOCHRONOUS"
+  WRITE #1 "Type 09 : NPA_CLIENT_IMPULSE"
+  WRITE #1 "Type 10 : NPA_CLIENT_LIMIT_MAX"
+  WRITE #1 "Type 11 : NPA_CLIENT_VECTOR"
+  WRITE #1 "Type 12 : NPA_CLIENT_SUPPRESSIBLE"
+  WRITE #1 "Type 13 : NPA_CLIENT_SUPPRESSIBLE_VECTOR"
+  WRITE #1 ""
+  WRITE #1 "----------------------------------------------------------------------------------------------------------------------------------------------------------------"  
+RETURN  
+
+
+
+
+//Subroutine to start checking all pools for memory alignment
+start_Mem_Check_All_Pools:
+//Check all memory allocations for all pools
+
+  PRINT "Memory allocation check for RESOURCE_POOL.."
+  GOSUB setParameters "RESOURCE_POOL"
+  GOSUB checkMemoryAllocation "RESOURCE_POOL"
+  
+  PRINT "Memory allocation check for CLIENT_POOL.."
+  GOSUB setParameters "CLIENT_POOL"
+  GOSUB checkMemoryAllocation "CLIENT_POOL"
+  
+  PRINT "Memory allocation check for EVENT_POOL.."
+  GOSUB setParameters "EVENT_POOL"
+  GOSUB checkMemoryAllocation "EVENT_POOL"
+  
+  PRINT "Memory allocation check for LINK_POOL.."
+  GOSUB setParameters "LINK_POOL"
+  GOSUB checkMemoryAllocation "LINK_POOL"
+  
+  PRINT "Memory allocation check for TRANSACTION_POOL.."
+  GOSUB setParameters "TRANSACTION_POOL"
+  GOSUB checkMemoryAllocation "TRANSACTION_POOL"
+  
+  PRINT "Memory allocation check for INTERNAL_POOL.."
+  GOSUB setParameters "INTERNAL_POOL"
+  GOSUB checkMemoryAllocation "INTERNAL_POOL"
+  
+  PRINT "Memory allocation check for LIST_POOL.."
+  GOSUB setParameters "LIST_POOL"
+  GOSUB checkMemoryAllocation "LIST_POOL"
+  
+  //Check scheduler memory pool if scheduler is implemented
+  if y.exist(npa_scheduler)
+  (
+    PRINT "Memory allocation check for SCHEDULER_DATA_POOL.."
+    GOSUB setParameters "SCHEDULER_POOL"
+    GOSUB checkMemoryAllocation "SCHEDULER_POOL"
+  )
+RETURN
+
+
+
+  
+//This subroutine checks memory allocation/alignment for various memory pools
+checkMemoryAllocation:
+  ENTRY &poolType
+  
+  //Local parameters (Generic across all pools)
+  LOCAL &pool_ElemPointer &actual_ElemPointer &startAddr &endAddr &total_Pool_Memory &free_Pool_Memory &used_Pool_Memory &pool_Utilization &range 
+  
+  //Local parameters for resource
+  LOCAL &resource_Link &resource_Name &resource_Definition &resource_Attribute &resource_State_Size &resource_Type &resource_Alternate_Name
+  
+  //Local parameters for link
+  LOCAL &npa_Link &link_Name
+  
+  //Local parameters for event
+  LOCAL &npa_Event &event_Name &event_Type &event_Type_Name
+  
+  //Local parameters for client
+  LOCAL &npa_Client &client_Name &client_Type
+  
+  //Local parameters for transaction
+  LOCAL &transaction_Link &transaction_Name &transaction
+  
+  //Local parameters for internal pool
+  LOCAL &internal_Data_Link
+  
+  //Local parameters for list pool
+  LOCAL &resource_List_Link &active_Resouce_List_Link &locked_Resource_List_Link &pending_Client_List_Link
+  
+  //Local parameters for scheduler pool
+  LOCAL &npa_Schedule_Client
+  
+  //Local string parameters
+  LOCAL &str_resource_State_Size &str_Actual_ElemPointer &str_Block_Index
+  
+  //Local parameters for indexing array/counters/flags
+  LOCAL &index &index_1 &decimal_Index &count &count_1 &flag_Result       
+  
+  //Local parameters for temporary data
+  LOCAL &tempVar1 &tempVar2 &tempCount &tempCalc
+
+  //Array to store start address of block in memory pool
+  Var.New int[100] \startAddress
+  
+  //Array to store end address of block in memory pool
+  Var.New int[100] \endAddress
+  
+  //Array to store free list pointers
+  Var.New int[100] \freeList_Ptr_Array
+  
+  //Flag to check if overall test case result for pool memory allocation is pass/fail
+  //flag_Result=0 implies test case fails.
+  &flag_Result=1
+  &count=0      
+
+  WRITE #1 ""
+  WRITE #1 "-------------------------------------------------- Memory allocation check for &poolType ------------------------------------------------------------------"
+  WRITE #1 ""
+  WRITE #1 "*********************************************************************"
+  WRITE #1 "Block size                                                :    &(decimal_uBlockSize)"+" Bytes"
+  WRITE #1 "Block count                                               :    &(decimal_uBlockCount)"
+  WRITE #1 "Element size                                              :    &(decimal_uElemSize)"+" Bytes"
+  WRITE #1 "Element count                                             :    &(decimal_uElemCount)"
+  WRITE #1 "Elements per block                                        :    &(decimal_elem_PerBlock)"
+  WRITE #1 "*********************************************************************"
+  WRITE #1 ""
+  
+  WRITE #1 "----------------------------------------------------- Pool block address range for &poolType --------------------------------------------------------------"
+  WRITE #1 ""
+  
+  //This loop stores start and end address of pool blocks in arrays
+  //These arrays will be used to check alignment of element pointers in the pool blocks
+  &index=0
+  &pool_ElemPointer=&pBlockList
+  WHILE &pool_ElemPointer!=0
+  (  
+    &decimal_Index=FORMAT.DECIMAL(2,&index)
+    &range=&pool_ElemPointer+V.VALUE(((CorePoolBlockType *)&pool_ElemPointer).uSize)
+    
+    //Code to properly format strings to be printed in output file
+    &tempStr="                                                         "
+    &tempStr=string.cut("&tempStr", string.len("Pool Block Range -- Block &(decimal_Index)"))
+    &str_Block_Range="Pool Block Range -- Block &(decimal_Index) &(tempStr)"
+    
+    WRITE #1 "&(str_Block_Range)"+":    &(pool_ElemPointer) -- &(range)"
+    
+    //'startAddress' array stores start address for pool blocks
+    Var.Set \startAddress[&(index)]=&pool_ElemPointer
+    
+    //'endAddress' array stores end address for pool blocks
+    Var.Set \endAddress[&(index)]=&range
+    
+    &pool_ElemPointer=V.VALUE(((CorePoolBlockType *)&pool_ElemPointer).pNext)
+    &index=&index+1
+  )
+  
+  //Code to check freeList
+  WRITE #1 ""
+  WRITE #1 ""
+  WRITE #1 "------------------------------------------------ Free List Check for &poolType (Ensure items on the Free List are correctly contained in pool blocks) -----"
+  WRITE #1 ""
+  WRITE #1 ""
+  
+  WRITE #1 "FreeList pointer    |  Pool Block        |  Check"
+
+  &actual_ElemPointer=&pFreeList
+  &tempCount=0
+  &index_1=0
+  WHILE &actual_ElemPointer!=0
+  (
+    WRITE #1 "--------------------|--------------------|--------------------"
+        
+    &tempStr="                "
+    &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+    &str_Actual_ElemPointer="&actual_ElemPointer"
+    &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+    &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+        
+    //Loop through pool block range to find if element pointer is present in pool block range
+    &count=0
+    WHILE &count<=&index
+    (
+      &startAddr=Var.Value(\startAddress[&(count)])
+      &startAddr=&startAddr&0x00000000FFFFFFFF
+      &endAddr=Var.Value(\endAddress[&(count)])
+      &endAddr=&endAddr&0x00000000FFFFFFFF
+          
+      &tempStr="                "  
+      &decimal_Index=FORMAT.DECIMAL(2,&count)
+      &str_Block_Index="&decimal_Index"
+      &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+      &str_Block_Index="&(str_Block_Index) &(tempStr)"
+          
+      if ((&endAddr)-&(actual_ElemPointer))>0
+      (
+        if (&(actual_ElemPointer)-&(startAddr))>0
+        (
+          //Logic to check if element pointer is properly aligned to the block
+          if ((&endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+          (
+            WRITE #1 "&(str_Actual_ElemPointer)   |  &str_Block_Index |  PASS"
+            Var.Set \freeList_Ptr_Array[&(index_1)]=&(actual_ElemPointer)
+            &index_1=&index_1+1
+
+            &tempCount=&tempCount+1
+            GOTO exitLoop_5
+          )
+          else
+          (
+            //Logic to check that element pointer is present in block but not aligned properly
+            WRITE #1 "&(str_Actual_ElemPointer)   |  &str_Block_Index |  FAIL (Element pointer NOT aligned)"
+            &flag_Result=0
+            GOTO exitLoop_5
+          )
+        )
+      )
+      &count=&count+1
+    )
+        
+exitLoop_5:
+    //Logic to check if element pointer is out of pool block range
+    if &count>&index
+    (
+      &tempStr="                "
+      &str_Block_Index="----"
+      &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+      &str_Block_Index="&(str_Block_Index) &(tempStr)"
+      WRITE #1 "&(str_Actual_ElemPointer)   |  &str_Block_Index |  FAIL (Element pointer NOT in pool block)"
+      &flag_Result=0
+    )    
+    &actual_ElemPointer=V.VALUE(((CorePoolElementType *)&actual_ElemPointer).pNext)
+  )
+  
+  WRITE #1 ""
+  WRITE #1 "------------------------------------------------ Memory map check against Pool block for &poolType --------------------------------------------------------"
+  WRITE #1 ""
+  
+
+  //Pool Type: Resource pool
+  //Code to check memory allocation of element pointer against pool block
+  if &poolType=="RESOURCE_POOL"
+  (
+    WRITE #1 "Note: Resource names with ** represent placeholders"
+    WRITE #1 ""
+    WRITE #1 "Resource                                 |  Pointer                |  Pool Block             |  Type                   |  State size             |  Check"
+    
+    &npa_Link=V.VALUE(npa.resources)
+    WHILE &npa_Link!=0
+    (
+      &tempStr="                                        "
+      &resource_Link=V.VALUE(((npa_link *)&npa_Link).resource)
+      &resource_Definition=V.VALUE(((npa_resource *)&resource_Link).definition)
+      &resource_Alternate_Name=""
+        
+      if &resource_Definition!=0
+      (
+        &resource_Alternate_Name=DATA.STRING(D:V.VALUE(((npa_resource_definition *)&resource_Definition).name))
+      )
+      &resource_Name=DATA.STRING(D:V.VALUE(((npa_link *)&npa_Link).name))
+        
+      //Resource is a placeholder if resource definition name is blank
+      if "&resource_Alternate_Name"==""
+      (
+        &resource_Name="&resource_Name**"
+      )
+        
+      &tempStr=string.cut("&tempStr", string.len("&resource_Name"))
+      &resource_Name="&(resource_Name) &(tempStr)"
+
+      if "&resource_Alternate_Name"!="marker resource"
+      (
+        WRITE #1 "-----------------------------------------|-------------------------|-------------------------|-------------------------|-------------------------|---------------------"
+
+        &actual_ElemPointer=&resource_Link
+        
+        //Count total number of resources in the pool
+        &total_Resource_Count=&total_Resource_Count+1
+          
+        &resource_Attribute=V.VALUE(((npa_resource_definition *)&resource_Definition).attributes)
+          
+        //Check if resource is a vector resource
+        &tempCalc=(&resource_Attribute)&(0x04)
+        IF &tempCalc!=0
+        (
+          &resource_Type="Vector"
+          &vector_Resource_Count=&vector_Resource_Count+1
+              
+          &tempCalc=(&resource_Attribute)&(0x80)
+          IF &tempCalc!=0
+          (
+            &resource_Type="&resource_Type"+"/Suppressible"
+            &suppress_Resource_Count=&suppress_Resource_Count+1
+                
+            &tempCalc=(&resource_Attribute)&(0x100)
+            IF &tempCalc!=0
+            (
+              &resource_Type="&resource_Type"+"/Suppressible_Dependent"
+              &resource_State_Size=V.VALUE(((npa_resource_definition *)&resource_Definition).max)*V.VALUE(sizeof(npa_resource_state))*3
+            )
+            ELSE
+            (
+              &resource_State_Size=V.VALUE(((npa_resource_definition *)&resource_Definition).max)*V.VALUE(sizeof(npa_resource_state))*2
+            )
+          )
+          ELSE
+          (
+            &resource_State_Size=V.VALUE(((npa_resource_definition *)&resource_Definition).max)*V.VALUE(sizeof(npa_resource_state))
+          )
+        )
+        ELSE
+        (
+          &resource_Type="Scalar"
+          &tempCalc=(&resource_Attribute)&(0x80)
+          IF &tempCalc!=0
+          (
+            &resource_Type="&resource_Type"+"/Suppressible"
+          )
+          &resource_State_Size=V.VALUE(sizeof(npa_resource_state))
+        )
+          
+        &tempStr="                      "
+        &tempStr=string.cut("&tempStr", string.len("&resource_Type"))
+        &resource_Type="&(resource_Type) &(tempStr)"
+          
+        &resource_State_Size=FORMAT.DECIMAL(2,&resource_State_Size)
+        &tempStr="                      "
+        &str_resource_State_Size="&resource_State_Size"+" Bytes"
+        &tempStr=string.cut("&tempStr", string.len("&str_resource_State_Size"))
+        &str_resource_State_Size="&(str_resource_State_Size) &(tempStr)"
+          
+        &tempStr="                      "
+        &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+        &str_Actual_ElemPointer="&actual_ElemPointer"
+        &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+        &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+          
+        //Loop through pool block range to find if element pointer is present in pool block range
+        &count=0
+        WHILE &count<=&index
+        (
+          &startAddr=Var.Value(\startAddress[&(count)])
+          &startAddr=&startAddr&0x00000000FFFFFFFF
+          &endAddr=Var.Value(\endAddress[&(count)])
+          &endAddr=&endAddr&0x00000000FFFFFFFF
+            
+          &tempStr="                      "
+          &decimal_Index=FORMAT.DECIMAL(2,&count)
+          &str_Block_Index="&decimal_Index"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+            
+          if (&(endAddr)-&(actual_ElemPointer))>0
+          (
+            if (&(actual_ElemPointer)-&(startAddr))>0
+            (
+              //Logic to check if element pointer is properly aligned to the block
+              if ((&endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+              (
+                //Loop through freelist pointer array to check if element pointer is aligned to freelist pointer
+                &count_1=0
+                WHILE &count_1<=&index_1
+                (
+                  if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                  (
+                    WRITE #1 "&(resource_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  &resource_Type|  &str_resource_State_Size|  FAIL (Element pointer aligned with freeList pointer)"
+                    &flag_Result=0
+                    GOTO exitLoop_1
+                  )
+                  &count_1=&count_1+1
+                )
+                WRITE #1 "&(resource_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  &resource_Type|  &str_resource_State_Size|  PASS"
+                GOTO exitLoop_1
+              )
+              else
+              (
+                //Logic to check that element pointer is present in block but not aligned properly
+                WRITE #1 "&(resource_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  &resource_Type|  &str_resource_State_Size|  FAIL (Element pointer NOT aligned)"
+                &flag_Result=0
+                GOTO exitLoop_1
+              )
+            )
+          )
+          &count=&count+1
+        )
+      //}
+        
+exitLoop_1:
+        //Logic to check if element pointer is out of pool block range
+        if &count>&index
+        (
+          &tempStr="                      "
+          &str_Block_Index="----"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+              
+          WRITE #1 "&(resource_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  &resource_Type|  &str_resource_State_Size|  FAIL (Element pointer NOT in pool block)"
+          &flag_Result=0
+        )
+      )
+      &npa_Link=V.VALUE(((npa_link *)&npa_Link).next)
+    )
+  )
+  
+  
+  //Pool Type: Client pool
+  //Code to check memory allocation of element pointer against pool block
+  if &poolType=="CLIENT_POOL"
+  (
+    WRITE #1 "Note: Legends for Client type are mentioned at the end of the file"
+    WRITE #1 ""
+    WRITE #1 "Client                                   |  Resource                                 |  Pointer                |  Pool Block             |  Type                   |  Check"
+
+    &npa_Link=V.VALUE(npa.resources)
+    
+    WHILE &npa_Link!=0
+    (
+      &tempStr="                                        "
+      &resource_Link=V.VALUE(((npa_link *)&npa_Link).resource)
+      &resource_Name=DATA.STRING(D:V.VALUE(((npa_link *)&npa_Link).name))
+      
+      &tempStr=string.cut("&tempStr", string.len("&resource_Name"))
+      &resource_Name="&(resource_Name) &(tempStr)"
+      
+      &npa_Client=V.VALUE(((npa_resource *)&resource_Link).clients)
+      
+      &actual_ElemPointer=&npa_Client
+      WHILE &actual_ElemPointer!=0
+      (
+        WRITE #1 "-----------------------------------------|-------------------------------------------|-------------------------|-------------------------|-------------------------|-------------------------"
+        
+        //Keep track of total client count
+        &client_Count=&client_Count+1
+        
+        &tempStr="                                        "
+        &client_Name=DATA.STRING(D:V.VALUE(((npa_client *)&actual_ElemPointer).name))
+        &tempStr=string.cut("&tempStr", string.len("&client_Name"))
+        &client_Name="&(client_Name) &(tempStr)"
+        
+        &client_Type=V.VALUE(((npa_client *)&actual_ElemPointer).type)
+        
+        if &client_Type==0x7fffffff
+        (
+          &client_Type=0
+        )
+        else if &client_Type==0x1
+        (
+          &client_Type=1
+        )
+        else if &client_Type==0x2
+        (
+          &client_Type=2
+        )
+        else if &client_Type==0x4
+        (
+          &client_Type=3
+        )
+        else if &client_Type==0x8
+        (
+          &client_Type=4
+        )
+        else if &client_Type==0x10
+        (
+          &client_Type=5
+        )
+        else if &client_Type==0x20
+        (
+          &client_Type=6
+        )
+        else if &client_Type==0x40
+        (
+          &client_Type=7
+        )
+        else if &client_Type==0x80
+        (
+          &client_Type=8
+        )
+        else if &client_Type==0x100
+        (
+          &client_Type=9
+        )
+        else if &client_Type==0x200
+        (
+          &client_Type=0x0A
+        )
+        else if &client_Type==0x400
+        (
+          &client_Type=0x0B
+        )
+        else if &client_Type==0x800
+        (
+          &client_Type=0x0C
+        )
+        else if &client_Type==0x1400
+        (
+          &client_Type=0x0D
+        )
+        
+        &client_Type=FORMAT.DECIMAL(2,&client_Type)
+        &tempStr="                      "
+        &tempStr=string.cut("&tempStr", string.len("&client_Type"))
+        &client_Type="&client_Type &tempStr"
+        
+        &tempStr="                      "
+        &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+        &str_Actual_ElemPointer="&actual_ElemPointer"
+        &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+        &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+        
+        //Loop through pool block range to find if element pointer is present in pool block range
+        &count=0
+        WHILE &count<=&index
+        (
+          &startAddr=Var.Value(\startAddress[&(count)])
+          &startAddr=&startAddr&0x00000000FFFFFFFF
+          &endAddr=Var.Value(\endAddress[&(count)])
+          &endAddr=&endAddr&0x00000000FFFFFFFF
+
+          &tempStr="                      "
+          &decimal_Index=FORMAT.DECIMAL(2,&count)
+          &str_Block_Index="&decimal_Index"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+          
+          if (&(endAddr)-&(actual_ElemPointer))>0
+          (
+            if (&(actual_ElemPointer)-&(startAddr))>0
+            (
+              //Logic to check if element pointer is properly aligned to the block
+              if (&(endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+              (
+                //Loop through freelist pointer array to check if element pointer is aligned to freelist pointer
+                &count_1=0
+                WHILE &count_1<=&index_1
+                (
+                  if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                  (
+                    WRITE #1 "&client_Name|  &(resource_Name)|  &(str_Actual_ElemPointer)|  &(str_Block_Index)|  &client_Type|  FAIL (Element pointer aligned with freeList pointer)"
+                    &flag_Result=0
+                    GOTO exitLoop_2
+                      
+                  )
+                &count_1=&count_1+1
+                )
+                WRITE #1 "&client_Name|  &(resource_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  &client_Type|  PASS"
+                GOTO exitLoop_2
+              )
+              else
+              (
+                //Logic to check that element pointer is present in block but not aligned properly                
+                WRITE #1 "&client_Name|  &(resource_Name)|  &(str_Actual_ElemPointer)|  &(str_Block_Index)|  &client_Type|  FAIL (Element pointer NOT aligned)"
+                &flag_Result=0
+                GOTO exitLoop_2
+              )
+            )
+          )
+          &count=&count+1
+        )
+        
+exitLoop_2:
+        //Logic to check if element pointer is out of pool block range
+        if &count>&index
+        (
+          &tempStr="                      "
+          &str_Block_Index="----"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Start_End_Address) &(tempStr)"
+            
+          WRITE #1 "&client_Name|  &(resource_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  &client_Type|  FAIL (Element pointer NOT in pool block)"
+          &flag_Result=0
+        )
+
+        &actual_ElemPointer=V.VALUE(((npa_client *)&actual_ElemPointer).next)
+      )
+      &npa_Link=V.VALUE(((npa_link *)&npa_Link).next)
+    )  
+  )
+
+  
+  //Pool Type: Event pool
+  //Code to check memory allocation of element pointer against pool block
+  if &poolType=="EVENT_POOL"
+  (
+    WRITE #1 "Event                                    |  Type                                     |  Resource                                 |  Pointer                |  Pool Block             |  Check"    
+    
+    &npa_Link=V.VALUE(npa.resources)
+    
+    WHILE &npa_Link!=0
+    (
+      &tempStr="                                        "
+      
+      &resource_Link=V.VALUE(((npa_link *)&npa_Link).resource)
+      &resource_Definition=V.VALUE(((npa_resource *)&resource_Link).definition)
+      &resource_Name=DATA.STRING(D:V.VALUE(((npa_link *)&npa_Link).name))
+      
+      &tempStr=string.cut("&tempStr", string.len("&resource_Name"))
+      &resource_Name="&(resource_Name) &(tempStr)"
+      
+      if &resource_Definition==0
+      (
+        &npa_Event=V.VALUE((((npa_resource *)&resource_Link).events).creation_event)
+      )
+      else
+      (
+        if 0!=V.VALUE(((npa_resource *)&resource_Link).events.header)
+        (
+          &npa_Event=V.VALUE(((npa_resource *)&resource_Link).events.header.reg_event)
+        )
+        else
+        (
+          &npa_Event=0
+        )
+      )
+      
+      &actual_ElemPointer=&npa_Event
+      WHILE &actual_ElemPointer!=0
+      (
+        WRITE #1 "-----------------------------------------|-------------------------------------------|-------------------------------------------|-------------------------|-------------------------|-------------------------"
+        
+        &tempStr="                                        "
+        &event_Name=DATA.STRING(D:V.VALUE(((npa_event *)&actual_ElemPointer).name))
+        &tempStr=string.cut("&tempStr", string.len("&event_Name"))
+        &event_Name="&(event_Name) &(tempStr)"
+        
+        &event_Type=V.VALUE(((npa_event *)&actual_ElemPointer).trigger_type)
+        &event_Type=(&event_Type)&(0x0000ffff)
+        
+        if &event_Type==0
+        (
+          &event_Type_Name="NPA_TRIGGER_RESOURCE_AVAILABLE"
+        )
+        else if &event_Type==1
+        (
+          &event_Type_Name="NPA_TRIGGER_SYSTEM_EVENT"
+        )
+        else if &event_Type==2
+        (
+          &event_Type_Name="NPA_TRIGGER_SYNC_EVENT"
+        )
+        else if &event_Type==3
+        (
+          &event_Type_Name="NPA_TRIGGER_CHANGE_EVENT"
+        )
+        else if &event_Type==4
+        (
+          &event_Type_Name="NPA_TRIGGER_WATERMARK_EVENT"
+        )
+        else if &event_Type==5
+        (
+          &event_Type_Name="NPA_TRIGGER_THRESHOLD_EVENT"
+        )
+        else if &event_Type==0x0000ffff
+        (
+          &event_Type_Name="NPA_TRIGGER_MAX_EVENT"
+        )
+        else if &event_Type==0x40000000
+        (
+          &event_Type_Name="NPA_TRIGGER_DISABLED_FLAG"
+        )
+        else if &event_Type==0x80000000
+        (
+          &event_Type_Name="NPA_TRIGGER_DESTROY_FLAG"
+        )
+        else
+        (
+          &event_Type_Name="NPA_TRIGGER_CUSTOM_EVENT?"
+        )
+        
+        &tempStr="                                        "
+        &tempStr=string.cut("&tempStr", string.len("&event_Type_Name"))
+        &event_Type_Name="&(event_Type_Name) &(tempStr)"
+        
+        &tempStr="                      "
+        &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+        &str_Actual_ElemPointer=&actual_ElemPointer
+        &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+        &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+        
+        //Loop through pool block range to find if element pointer is present in pool block range
+        &count=0
+        WHILE &count<=&index
+        (
+          &startAddr=Var.Value(\startAddress[&(count)])
+          &startAddr=&startAddr&0x00000000FFFFFFFF
+          &endAddr=Var.Value(\endAddress[&(count)])
+          &endAddr=&endAddr&0x00000000FFFFFFFF
+          
+          &tempStr="                      "
+          &decimal_Index=FORMAT.DECIMAL(2,&count)
+          &str_Block_Index="&decimal_Index"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+                    
+          if (&(endAddr)-&(actual_ElemPointer))>0
+          (
+            if (&(actual_ElemPointer)-&(startAddr))>0
+            (
+              //Logic to check if element pointer is properly aligned to the block
+              if (&(endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+              (
+                //Loop through freelist pointer array to check if element pointer is aligned to freelist pointer
+                &count_1=0
+                WHILE &count_1<=&index_1
+                (
+                  if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                  (
+                    WRITE #1 "&(event_Name)|  &event_Type_Name|  &(resource_Name)|  &(str_Actual_ElemPointer)|  &(str_Block_Index)|  FAIL (Element pointer aligned with freeList pointer)"
+                    &flag_Result=0
+                    GOTO exitLoop_3
+                      
+                  )
+                  &count_1=&count_1+1
+                )
+                WRITE #1 "&(event_Name)|  &event_Type_Name|  &(resource_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  PASS"
+                GOTO exitLoop_3
+              )
+              else
+              (
+                //Logic to check that element pointer is present in block but not aligned properly                
+                WRITE #1 "&(event_Name)|  &event_Type_Name|  &(resource_Name)|  &(str_Actual_ElemPointer)|  &(str_Block_Index)|  FAIL (Element pointer NOT aligned)"
+                &flag_Result=0
+                GOTO exitLoop_3
+              )
+            )
+          )
+          &count=&count+1
+        )
+        
+exitLoop_3:
+        //Logic to check if element pointer is out of pool block range
+        if &count>&index
+        (
+          &tempStr="                      "
+          &str_Block_Index="----"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+          
+          WRITE #1 "&(event_Name)|  &event_Type_Name|  &(resource_Name)|  &(str_Actual_ElemPointer)|  &(str_Block_Index)|  FAIL (Element pointer NOT in pool block)"
+          &flag_Result=0
+        )
+        &actual_ElemPointer=V.VALUE(((npa_event *)&actual_ElemPointer).next)
+      )
+    &npa_Link=V.VALUE(((npa_link *)&npa_Link).next)
+    )
+  )
+  
+
+  //Pool Type: Link pool
+  //Code to check memory allocation of element pointer against pool block
+  if &poolType=="LINK_POOL"
+  (
+    WRITE #1 "Link                                     |  Pointer                |  Pool Block             |  Check"
+    
+    &actual_ElemPointer=V.VALUE(npa.resources)
+    
+    WHILE &actual_ElemPointer!=0
+    (
+      &tempStr="                                        "
+      &link_Name=DATA.STRING(D:V.VALUE(((npa_link *)&actual_ElemPointer).name))
+      &tempStr=string.cut("&tempStr", string.len("&link_Name"))
+      &link_Name="&(link_Name) &(tempStr)"
+
+      &tempStr="                      "
+      &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+      &str_Actual_ElemPointer="&actual_ElemPointer"
+      &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+      &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+        
+      WRITE #1 "-----------------------------------------|-------------------------|-------------------------|-------------------------"
+        
+      //Loop through pool block range to find if element pointer is present in pool block range
+      &count=0
+      WHILE &count<=&index
+      (
+        &startAddr=Var.Value(\startAddress[&(count)])
+        &startAddr=&startAddr&0x00000000FFFFFFFF
+        &endAddr=Var.Value(\endAddress[&(count)])
+        &endAddr=&endAddr&0x00000000FFFFFFFF
+          
+        &tempStr="                      "
+        &str_Start_Address="&startAddr"
+        &str_End_Address="&endAddr"
+        &decimal_Index=FORMAT.DECIMAL(2,&count)
+        &str_Block_Index="&decimal_Index"
+        &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+        &str_Block_Index="&(str_Block_Index) &(tempStr)"
+        
+        if (&(endAddr)-&(actual_ElemPointer))>0
+        (
+          if (&(actual_ElemPointer)-&(startAddr))>0
+          (
+            //Logic to check if element pointer is properly aligned to the block      
+            if (&(endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+            (
+              //Loop through freelist pointer array to check if element pointer is aligned to freelist pointer
+              &count_1=0
+              WHILE &count_1<=&index_1
+              (
+                if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                (
+                  WRITE #1 "&(link_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer aligned with freeList pointer)"
+                  &flag_Result=0
+                  GOTO exitLoop_4
+                )
+                &count_1=&count_1+1
+              )
+              WRITE #1 "&(link_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  PASS"
+              GOTO exitLoop_4
+            )
+            else
+            (
+              //Logic to check that element pointer is present in block but not aligned properly                
+              WRITE #1 "&(link_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT aligned)"
+              &flag_Result=0
+              GOTO exitLoop_4
+            )
+          )
+        )
+        &count=&count+1
+      )
+        
+exitLoop_4:
+      //Logic to check if element pointer is out of pool block range
+      if &count>&index
+      (
+        &tempStr="                      "
+        &str_Block_Index="----"
+        &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+        &str_Block_Index="&(str_Block_Index) &(tempStr)"
+        
+        WRITE #1 "&(link_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT in pool block)"
+        &flag_Result=0
+      )
+      &actual_ElemPointer=V.VALUE(((npa_link *)&actual_ElemPointer).next)
+    )
+  )
+  
+  
+  //Pool Type: Transaction pool
+  //Code to check memory allocation of element pointer against pool block
+  if &poolType=="TRANSACTION_POOL"
+  (
+    WRITE #1 "Transaction                              |  Pointer                |  Pool Block             |   Check"
+    
+    &transaction_Link=V.VALUE(npa_transaction_list.head)
+    
+    WHILE &transaction_Link!=0
+    (
+      &tempStr="                                        "
+      &transaction_Name=DATA.STRING(D:V.VALUE(((npa_transaction_handle)((npa_list_elem *)&transaction_Link).data).name))
+      &tempStr=string.cut("&tempStr", string.len("&transaction_Name"))
+      &transaction_Name="&(transaction_Name) &(tempStr)"
+        
+      &actual_ElemPointer=V.VALUE((npa_transaction_handle)((npa_list_elem *)&transaction_Link).data)
+        
+      if &actual_ElemPointer!=0
+      (
+        WRITE #1 "-----------------------------------------|-------------------------|-------------------------|-------------------------"
+
+        &tempStr="                      "
+        &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+        &str_Actual_ElemPointer="&actual_ElemPointer"
+        &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+        &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+        
+        //Loop through pool block range to find if element pointer is present in pool block range
+        &count=0
+        WHILE &count<=&index
+        (
+          &startAddr=Var.Value(\startAddress[&(count)])
+          &startAddr=&startAddr&0x00000000FFFFFFFF
+          &endAddr=Var.Value(\endAddress[&(count)])
+          &endAddr=&endAddr&0x00000000FFFFFFFF
+            
+          &tempStr="                      "
+          &str_Start_Address="&startAddr"
+          &str_End_Address="&endAddr"
+          &decimal_Index=FORMAT.DECIMAL(2,&count)
+          &str_Block_Index="&decimal_Index"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+            
+          if (&(endAddr)-&(actual_ElemPointer))>0
+          (
+            if (&(actual_ElemPointer)-&(startAddr))>0
+            (
+              //Logic to check if element pointer is properly aligned to the block      
+              if (&(endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+              (
+                //Loop through freelist pointer array to check if element pointer is aligned to freelist pointer
+                &count_1=0
+                WHILE &count_1<=&index_1
+                (
+                  if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                  (
+                    WRITE #1 "&(transaction_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer aligned with freeList pointer)"
+                    &flag_Result=0
+                    GOTO exitLoop_6                        
+                  )
+                  &count_1=&count_1+1
+                )
+                WRITE #1 "&(transaction_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  PASS"            
+                GOTO exitLoop_6
+              )
+              else
+              (
+                //Logic to check that element pointer is present in block but not aligned properly                
+                WRITE #1 "&(transaction_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT aligned)"
+                &flag_Result=0
+                GOTO exitLoop_6
+              )
+            )
+          )
+          &count=&count+1
+        )
+          
+exitLoop_6:
+        //Logic to check if element pointer is out of pool block range
+        if &count>&index
+        (
+          &tempStr="                      "
+          &str_Block_Index="----"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+            
+          WRITE #1 "&(transaction_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT in pool block)"
+          &flag_Result=0
+        )
+      )
+    &transaction_Link=V.VALUE(((npa_list_elem *)&transaction_Link).next)  
+    )  
+  )
+  
+  
+  //Pool Type: Internal pool
+  //Code to check memory allocation of element pointer against pool block
+  if &poolType=="INTERNAL_POOL"
+  (
+  
+    WRITE #1 "Resource                                 |  Pointer                |  Pool Block Range       |  Check"
+    
+    &npa_Link=V.VALUE(npa.resources)
+    
+    WHILE &npa_Link!=0
+    (
+      
+      &tempStr="                                        "
+      &resource_Link=V.VALUE(((npa_link *)&npa_Link).resource)
+      &resource_Definition=V.VALUE(((npa_resource *)&resource_Link).definition)
+      &resource_Name=DATA.STRING(D:V.VALUE(((npa_link *)&npa_Link).name))
+        
+      &tempStr=string.cut("&tempStr", string.len("&resource_Name"))
+      &resource_Name="&(resource_Name) &(tempStr)"
+        
+      &internal_Data_Link=V.VALUE(((npa_resource *)&resource_Link)._internal)
+        
+      &actual_ElemPointer=&internal_Data_Link
+      if &internal_Data_Link!=0
+      (
+        WRITE #1 "-----------------------------------------|-------------------------|-------------------------|-------------------------"
+
+        &tempStr="                      "
+        &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+        &str_Actual_ElemPointer="&actual_ElemPointer"
+        &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+        &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+        
+        //Loop through pool block range to find if element pointer is present in pool block range
+        &count=0
+        WHILE &count<=&index
+        (
+          &startAddr=Var.Value(\startAddress[&(count)])
+          &startAddr=&startAddr&0x00000000FFFFFFFF
+          &endAddr=Var.Value(\endAddress[&(count)])
+          &endAddr=&endAddr&0x00000000FFFFFFFF
+            
+          &tempStr="                      "
+          &str_Start_Address="&startAddr"
+          &str_End_Address="&endAddr"
+          &decimal_Index=FORMAT.DECIMAL(2,&count)
+          &str_Block_Index="&decimal_Index"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+            
+          if (&(endAddr)-&(actual_ElemPointer))>0
+          (
+            if (&(actual_ElemPointer)-&(startAddr))>0
+            (
+              //Logic to check if element pointer is properly aligned to the block      
+              if (&(endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+              (
+                //Loop through freelist pointer array to check if element pointer is aligned to freelist pointer
+                &count_1=0
+                WHILE &count_1<=&index_1
+                (
+                  if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                  (
+                    WRITE #1 "&(resource_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer aligned with freeList pointer)"
+                    &flag_Result=0
+                    GOTO exitLoop_7                
+                  )
+                  &count_1=&count_1+1
+                )
+                WRITE #1 "&(resource_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  PASS"
+                GOTO exitLoop_7
+              )
+              else
+              (
+                //Logic to check that element pointer is present in block but not aligned properly                
+                WRITE #1 "&(resource_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT aligned)"
+                &flag_Result=0
+                GOTO exitLoop_7
+              )
+            )            
+          )
+          &count=&count+1
+        )
+          
+exitLoop_7:
+        //Logic to check if element pointer is out of pool block range
+        if &count>&index
+        (
+          &tempStr="                      "
+          &str_Block_Index="----"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+            
+          WRITE #1 "&(resource_Name)|  &(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT in pool block)"
+          &flag_Result=0
+        )
+      )
+    &npa_Link=V.VALUE(((npa_link *)&npa_Link).next)
+    )
+  )
+  
+  
+  //Pool Type: List pool
+  //Code to check memory allocation of element pointer against pool block
+  if &poolType=="LIST_POOL"
+  (
+  
+    WRITE #1 "Pointer                |  Pool Block             |  Check"
+
+    &transaction_Link=V.VALUE(npa_transaction_list.head)
+    
+    WHILE &transaction_Link!=0
+    (
+      &actual_ElemPointer=&transaction_Link
+        
+      if &actual_ElemPointer!=0
+      (
+        WRITE #1 "-----------------------|-------------------------|-------------------------"
+          
+        &tempStr="                      "
+        &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+        &str_Actual_ElemPointer="&actual_ElemPointer"
+        &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+        &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+          
+        //Loop through pool block range to find if element pointer is present in pool block range
+        &count=0
+        WHILE &count<=&index
+        (
+          &startAddr=Var.Value(\startAddress[&(count)])
+          &startAddr=&startAddr&0x00000000FFFFFFFF
+          &endAddr=Var.Value(\endAddress[&(count)])
+          &endAddr=&endAddr&0x00000000FFFFFFFF
+            
+          &tempStr="                      "
+          &str_Start_Address="&startAddr"
+          &str_End_Address="&endAddr"
+          &decimal_Index=FORMAT.DECIMAL(2,&count)
+          &str_Block_Index="&decimal_Index"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+                                
+          if (&(endAddr)-&(actual_ElemPointer))>0
+          (          
+            if (&(actual_ElemPointer)-&(startAddr))>0
+            (
+              //Logic to check if element pointer is properly aligned to the block      
+              if (&(endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+              (
+                //Loop through freelist pointer array to check if element pointer is aligned to freelist pointer
+                &count_1=0
+                WHILE &count_1<=&index_1
+                (
+                  if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                  (
+                    WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer aligned with freeList pointer)"
+                    &flag_Result=0
+                    GOTO exitLoop_8                        
+                  )
+                  &count_1=&count_1+1
+                )
+                WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  PASS"        
+                GOTO exitLoop_8
+              )
+              else
+              (
+                //Logic to check that element pointer is present in block but not aligned properly                
+                WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT aligned)"
+                &flag_Result=0
+                GOTO exitLoop_8
+              )
+            )
+          )
+          &count=&count+1
+        )
+          
+exitLoop_8:
+        //Logic to check if element pointer is out of pool block range
+        if &count>&index
+        (
+          &tempStr="                      "
+          &str_Block_Index="----"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+            
+          WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT in pool block)"
+          &flag_Result=0
+        )
+      )
+        
+      &transaction=V.VALUE((npa_transaction_handle)((npa_list_elem *)&transaction_Link).data)
+        
+      //Obtain head pointers of linked list of list pools
+      &resource_List_Link=V.VALUE((((npa_transaction_handle)&transaction).resource_list).head)
+      &active_Resouce_List_Link=V.VALUE((((npa_transaction_handle)&transaction).active_resources).head)
+      &locked_Resource_List_Link=V.VALUE((((npa_transaction_handle)&transaction).locked_resources).head)
+      &pending_Client_List_Link=V.VALUE((((npa_transaction_handle)&transaction).pending_clients).head)
+        
+      //Check memory allocation check for resource list pool
+      &actual_ElemPointer=&resource_List_Link
+          
+      while &actual_ElemPointer!=0
+      (
+        WRITE #1 "-----------------------|-------------------------|-------------------------"
+        &tempStr="                      "
+        &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+        &str_Actual_ElemPointer="&actual_ElemPointer"
+        &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+        &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+            
+        &count=0
+        WHILE &count<=&index
+        (
+          &startAddr=Var.Value(\startAddress[&(count)])
+          &startAddr=&startAddr&0x00000000FFFFFFFF
+          &endAddr=Var.Value(\endAddress[&(count)])
+          &endAddr=&endAddr&0x00000000FFFFFFFF
+              
+          &tempStr="                      "
+          &str_Start_Address="&startAddr"
+          &str_End_Address="&endAddr"
+          &decimal_Index=FORMAT.DECIMAL(2,&count)
+          &str_Block_Index="&decimal_Index"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+                                    
+          if (&(endAddr)-&(actual_ElemPointer))>0
+          (
+            if (&(actual_ElemPointer)-&(startAddr))>0
+            (
+              if (&(endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+              (
+                &count_1=0
+                WHILE &count_1<=&index_1
+                (
+                  if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                  (
+                    WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer aligned with freeList pointer)"
+                    &flag_Result=0
+                    GOTO exitLoop_9
+                  )
+                  &count_1=&count_1+1
+                )
+                WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  PASS"
+                GOTO exitLoop_9
+              )
+              else
+              (
+                WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT aligned)"
+                &flag_Result=0
+                GOTO exitLoop_9
+              )
+            )
+          )
+          &count=&count+1
+        )
+            
+exitLoop_9:
+        if &count>&index
+        (
+          &tempStr="                      "
+          &str_Block_Index="----"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+              
+          WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT in pool block)"
+          &flag_Result=0
+        )
+        &actual_ElemPointer=V.VALUE(((npa_list_elem *)&actual_ElemPointer).next)
+      )
+          
+      //Check memory allocation check for active resource list pool
+      &actual_ElemPointer=&active_Resouce_List_Link
+          
+      while &actual_ElemPointer!=0
+      (
+        WRITE #1 "-----------------------|-------------------------|-------------------------"
+
+        &tempStr="                      "
+        &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+        &str_Actual_ElemPointer="&actual_ElemPointer"
+        &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+        &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+            
+        &count=0
+        WHILE &count<=&index
+        (
+          &startAddr=Var.Value(\startAddress[&(count)])
+          &startAddr=&startAddr&0x00000000FFFFFFFF
+          &endAddr=Var.Value(\endAddress[&(count)])
+          &endAddr=&endAddr&0x00000000FFFFFFFF
+              
+          &tempStr="                      "
+          &str_Start_Address="&startAddr"
+          &str_End_Address="&endAddr"
+          &decimal_Index=FORMAT.DECIMAL(2,&count)
+          &str_Block_Index="&decimal_Index"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+              
+          if (&(endAddr)-&(actual_ElemPointer))>0
+          (
+            if (&(actual_ElemPointer)-&(startAddr))>0
+            (
+              if (&(endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+              (
+                &count_1=0
+                WHILE &count_1<=&index_1
+                (
+                  if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                  (
+                    WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer aligned with freeList pointer)"
+                    &flag_Result=0
+                    GOTO exitLoop_10
+                  )
+                  &count_1=&count_1+1
+                )
+                WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  PASS"    
+                GOTO exitLoop_10
+              )
+              else
+              (
+                WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT aligned)"
+                &flag_Result=0
+                GOTO exitLoop_10
+              )
+            )  
+          )
+          &count=&count+1
+        )
+            
+exitLoop_10:
+        if &count>&index
+        (
+          &tempStr="                      "
+          &str_Block_Index="----"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+              
+          WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT in pool block)"
+          &flag_Result=0
+        )
+        &actual_ElemPointer=V.VALUE(((npa_list_elem *)&actual_ElemPointer).next)
+      )
+          
+      //Check memory allocation check for locked resource list pool
+      &actual_ElemPointer=&locked_Resource_List_Link
+          
+      while &actual_ElemPointer!=0
+      (
+        WRITE #1 "-----------------------|-------------------------|-------------------------"
+            
+        &tempStr="                      "
+        &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+        &str_Actual_ElemPointer="&actual_ElemPointer"
+        &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+        &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+            
+        &count=0
+        WHILE &count<=&index
+        (
+          &startAddr=Var.Value(\startAddress[&(count)])
+          &startAddr=&startAddr&0x00000000FFFFFFFF
+          &endAddr=Var.Value(\endAddress[&(count)])
+          &endAddr=&endAddr&0x00000000FFFFFFFF
+              
+          &tempStr="                      "
+          &str_Start_Address="&startAddr"
+          &str_End_Address="&endAddr"
+          &decimal_Index=FORMAT.DECIMAL(2,&count)
+          &str_Block_Index="&decimal_Index"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+              
+          if (&(endAddr)-&(actual_ElemPointer))>0
+          (
+            if (&(actual_ElemPointer)-&(startAddr))>0
+            (
+              if (&(endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+              (
+                &count_1=0
+                WHILE &count_1<=&index_1
+                (
+                  if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                  (
+                    WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer aligned with freeList pointer)"
+                    &flag_Result=0
+                    GOTO exitLoop_11
+                  )
+                  &count_1=&count_1+1
+                )
+                WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  PASS"
+                GOTO exitLoop_11
+              )
+              else
+              (
+                WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT aligned)"
+                &flag_Result=0
+                GOTO exitLoop_11
+              )
+            )
+          )
+          &count=&count+1
+        )
+            
+exitLoop_11:
+        if &count>&index
+        (
+          &tempStr="                      "
+          &str_Block_Index="----"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+              
+          WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT in pool block)"
+          &flag_Result=0
+        )
+        &actual_ElemPointer=V.VALUE(((npa_list_elem *)&actual_ElemPointer).next)
+      )
+          
+      //Check memory allocation check for client list pool
+      &actual_ElemPointer=&pending_Client_List_Link
+          
+      while &actual_ElemPointer!=0
+      (
+        WRITE #1 "-----------------------|-------------------------|-------------------------"
+        
+        &tempStr="                      "
+        &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+        &str_Actual_ElemPointer="&actual_ElemPointer"
+        &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+        &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+            
+        &count=0
+        WHILE &count<=&index
+        (
+          &startAddr=Var.Value(\startAddress[&(count)])
+          &startAddr=&startAddr&0x00000000FFFFFFFF
+          &endAddr=Var.Value(\endAddress[&(count)])
+          &endAddr=&endAddr&0x00000000FFFFFFFF
+              
+          &tempStr="                      "
+          &str_Start_Address="&startAddr"
+          &str_End_Address="&endAddr"
+          &decimal_Index=FORMAT.DECIMAL(2,&count)
+          &str_Block_Index="&decimal_Index"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+              
+          if (&(endAddr)-&(actual_ElemPointer))>0
+          (
+            if (&(actual_ElemPointer)-&(startAddr))>0
+            (
+              if (&(endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+              (
+                &count_1=0
+                WHILE &count_1<=&index_1
+                (
+                  if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                  (
+                    WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer aligned with freeList pointer)"
+                    &flag_Result=0
+                    GOTO exitLoop_12
+                  )
+                  &count_1=&count_1+1
+                )
+                WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  PASS
+                GOTO exitLoop_12
+              )
+              else
+              (
+                WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT aligned)"
+                &flag_Result=0
+                GOTO exitLoop_12
+              )
+            )              
+          )
+          &count=&count+1
+        )
+            
+exitLoop_12:
+        if &count>&index
+        (
+          &tempStr="                      "
+          &str_Block_Index="----"
+          &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+          &str_Block_Index="&(str_Block_Index) &(tempStr)"
+              
+          WRITE #1 "&(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT in pool block)"
+          &flag_Result=0
+        )
+        &actual_ElemPointer=V.VALUE(((npa_list_elem *)&actual_ElemPointer).next)
+      )        
+    &transaction_Link=V.VALUE(((npa_list_elem *)&transaction_Link).next)  
+    )
+  )
+  
+  //Pool Type: Scheduler pool
+  //Code to check memory allocation of element pointer against pool block
+  if &poolType=="SCHEDULER_POOL"
+  (
+  
+    WRITE #1 "Client                                   |  Pointer                |  Pool Block             |  Check"
+    
+    &npa_Link=V.VALUE(npa.resources)
+    
+    WHILE &npa_Link!=0
+    (
+      &tempStr="                                        "
+      &resource_Link=V.VALUE(((npa_link *)&npa_Link).resource)
+      &resource_Name=DATA.STRING(D:V.VALUE(((npa_link *)&npa_Link).name))
+      
+      &tempStr=string.cut("&tempStr", string.len("&resource_Name"))
+      &resource_Name="&(resource_Name) &(tempStr)"
+      
+      &npa_Client=V.VALUE(((npa_resource *)&resource_Link).clients)
+      WHILE &npa_Client!=0
+      (
+        
+        &npa_Schedule_Client=&npa_Client
+        WHILE &npa_Schedule_Client!=0
+        (
+          &actual_ElemPointer=V.VALUE(((npa_client *)&npa_Schedule_Client).request_ptr)
+
+          if &actual_ElemPointer!=0
+          (
+            WRITE #1 "-----------------------------------------|-------------------------|-------------------------|-------------------------"
+            
+            &tempStr="                                        "
+            &client_Name=DATA.STRING(D:V.VALUE(((npa_client *)&npa_Schedule_Client).name))
+            &tempStr=string.cut("&tempStr", string.len("&client_Name"))
+            &client_Name="&(client_Name) &(tempStr)"
+
+            &tempStr="                      "
+            &actual_ElemPointer=&actual_ElemPointer&0x00000000FFFFFFFF
+            &str_Actual_ElemPointer="&actual_ElemPointer"
+            &tempStr=string.cut("&tempStr", string.len("&str_Actual_ElemPointer"))
+            &str_Actual_ElemPointer="&(str_Actual_ElemPointer) &(tempStr)"
+            
+            &count=0
+            WHILE &count<=&index
+            (
+              &startAddr=Var.Value(\startAddress[&(count)])
+              &startAddr=&startAddr&0x00000000FFFFFFFF
+              &endAddr=Var.Value(\endAddress[&(count)])
+              &endAddr=&endAddr&0x00000000FFFFFFFF
+
+              &tempStr="                      "
+              &str_Start_Address="&startAddr"
+              &str_End_Address="&endAddr"
+              &decimal_Index=FORMAT.DECIMAL(2,&count)
+              &str_Block_Index="&decimal_Index"
+              &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+              &str_Block_Index="&(str_Block_Index) &(tempStr)"
+              
+              if (&(endAddr)-&(actual_ElemPointer))>0
+              (
+                if (&(actual_ElemPointer)-&(startAddr))>0
+                (
+                  //Logic to check if element pointer is properly aligned to the block      
+                  if (&(endAddr)-&(actual_ElemPointer))%&(uElemSize)==0
+                  (
+                    //Loop through freelist pointer array to check if element pointer is aligned to freelist pointer
+                    &count_1=0
+                    WHILE &count_1<=&index_1
+                    (
+                      if &(actual_ElemPointer)==(Var.Value(\freeList_Ptr_Array[&(count_1)]))
+                      (
+                        WRITE #1 "&client_Name|  &(str_Actual_ElemPointer)|  &(str_Block_Index)|  FAIL (Element pointer aligned with freeList pointer)"
+                        &flag_Result=0
+                        GOTO exitLoop_13  
+                      )
+                      &count_1=&count_1+1
+                    )
+                    WRITE #1 "&client_Name|  &(str_Actual_ElemPointer)|  &str_Block_Index|  PASS"
+                    GOTO exitLoop_13
+                  )
+                  else
+                  (
+                    //Logic to check that element pointer is present in block but not aligned properly                
+                    WRITE #1 "&client_Name|  &(str_Actual_ElemPointer)|  &(str_Block_Index)|  FAIL (Element pointer NOT aligned)"
+                    &flag_Result=0
+                    GOTO exitLoop_13
+                  )
+                )
+              )
+              &count=&count+1
+            )
+            
+exitLoop_13:
+            //Logic to check if element pointer is out of pool block range
+            if &count>&index
+            (
+              &tempStr="                      "
+              &str_Block_Index="----"
+              &tempStr=string.cut("&tempStr", string.len("&str_Block_Index"))
+              &str_Block_Index="&(str_Block_Index) &(tempStr)"
+              
+              WRITE #1 "&client_Name|  &(str_Actual_ElemPointer)|  &str_Block_Index|  FAIL (Element pointer NOT in pool block)"
+              &flag_Result=0
+            )
+            &npa_Schedule_Client=V.VALUE(((npa_scheduler_data *)&actual_ElemPointer).next)
+          )
+          else
+          (
+            &npa_Schedule_Client=0
+          )
+        )
+        &npa_Client=V.VALUE(((npa_client *)&npa_Client).next)
+      )
+      &npa_Link=V.VALUE(((npa_link *)&npa_Link).next)
+    )
+  )
+  
+  WRITE #1 ""
+  WRITE #1 ""
+  WRITE #1 "------------------------------------------------ Pool utilization parameters for &(poolType) -------------------------------------------------------------"
+  WRITE #1 ""  
+  WRITE #1 ""
+  
+  &total_Pool_Memory=((&uBlockSize)-V.VALUE(sizeof(unsigned int))-V.VALUE(sizeof(CorePoolBlockType *)))*(&(uBlockCount)-1)+V.VALUE(((CorePoolBlockType *)&pBlockList).uSize)
+  &free_Pool_Memory=&(tempCount)*&(uElemSize)
+  &used_Pool_Memory=&(total_Pool_Memory)-&(free_Pool_Memory)
+  
+  &decimal_total_Pool_Memory=FORMAT.DECIMAL(2,&total_Pool_Memory)
+  &decimal_free_Pool_Memory=FORMAT.DECIMAL(2,&free_Pool_Memory)
+  &decimal_used_Pool_Memory=FORMAT.DECIMAL(2,&used_Pool_Memory)
+  
+  &pool_Utilization=FORMAT.DECIMAL(2,V.Value(&(used_Pool_Memory)*100)/&(total_Pool_Memory))
+    
+  WRITE #1 "*********************************************************************"
+  WRITE #1 "Total pool memory                                         :    &(decimal_total_Pool_Memory)"+" Bytes"
+  WRITE #1 "Used pool memory                                          :    &(decimal_used_Pool_Memory)"+" Bytes"
+  WRITE #1 "Free pool memory                                          :    &(decimal_free_Pool_Memory)"+" Bytes"
+  WRITE #1 "Pool utilization                                          :    &(pool_Utilization)%"
+  WRITE #1 "*********************************************************************"
+  WRITE #1 ""
+  
+  if &flag_Result==0
+  (
+    &tempStr="                                                         "
+    &tempStr=string.cut("&tempStr", string.len("OVERALL VALIDATION RESULTS FOR &poolType"))
+    &tempStr="OVERALL VALIDATION RESULTS FOR &poolType &(tempStr)"
+    
+    &str_Summary="&str_Summary"+"&tempStr"+":    FAIL"+CONVert.CHAR(0x0D0A)+""
+  )
+  else
+  (
+    &tempStr="                                                         "
+    &tempStr=string.cut("&tempStr", string.len("OVERALL VALIDATION RESULTS FOR &poolType"))
+    &tempStr="OVERALL VALIDATION RESULTS FOR &poolType &(tempStr)"
+    
+    &str_Summary="&str_Summary"+"&tempStr"+":    PASS"+CONVert.CHAR(0x0D0A)+""
+  )
+  
+  WRITE #1 ""
+  WRITE #1 ""
+  WRITE #1 "--------------------------------------------- Memory allocation check for &(poolType) ends here------------------------------------------------------------"
+  WRITE #1 ""
+  
+  if (&poolType!="TRANSACTION_POOL")
+  (
+    &total_Memory_All_Pool=&total_Memory_All_Pool+(&(total_Pool_Memory)+V.VALUE(sizeof(unsigned int))+V.VALUE(sizeof(CorePoolBlockType *)))
+    &free_Memory_All_Pools=&free_Memory_All_Pools+&(free_Pool_Memory)
+  )  
+RETURN

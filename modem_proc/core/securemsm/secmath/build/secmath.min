@@ -1,0 +1,27 @@
+#-------------------------------------------------------------------------------
+# SECMATH (secmath rsa driver)
+#-------------------------------------------------------------------------------
+SECMATH_SOURCES=\
+        secmath_mod_exp.c \
+        secmath_montmul_ref.c \
+        secmath_montmul_utils.c \
+        secmath_barrett_reduce.c \
+        secmath_BIGINT_read_radix.c \
+        secmath_BIGINT_read_unsigned_bin.c \
+        secmath_BIGINT_to_radix.c \
+        secmath_BIGINT_to_unsigned_bin.c \
+        secmath_bin_to_hex_str.c \
+        secmath_hex_str_to_bin.c
+
+SECMATH_TEST_SOURCES=\
+        secboot_rsa_test.c
+              
+SECMATH_ALL_SOURCES= $(SECMATH_SOURCES)
+              
+SECMATH_OBJS :=  $(addprefix $(TARGETDIR)/, $(SECMATH_ALL_SOURCES:%.c=%.o))
+ifeq ($(SUB_SYS),APPS)
+$(SECMATH_OBJS): CFLAGS := $(CFLAGS) --restrict -O3 -OTime
+endif
+
+vpath %.c $(SECMATH)/src
+#vpath %.c $(SECMATH)/test

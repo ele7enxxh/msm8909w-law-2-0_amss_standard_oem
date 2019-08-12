@@ -1,0 +1,148 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/data/1x/1xrlp/complete/rel/10.02.02/build/data_1x_1xrlp.scons#4 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env or 'USES_CDMA' not in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+	
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_DS",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+	 'DAL',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'RFA',
+    'ECALL',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WMS',
+    'MDSP',
+    'FW',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#env.PublishPrivateApi('VIOLATIONS',[
+#   '${INC_ROOT}/modem/datamodem/3gpp2/hdrdata/src',
+#   '${INC_ROOT}/core/systemdrivers/clk/inc',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/nv/src',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/core/src',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/rfc/src',
+#   '${INC_ROOT}/modem/rfa/rf/device/rtr8600_1x/inc',
+#   '${INC_ROOT}/modem/rfa/rf/device/rfdev_intf/inc',
+#   '${INC_ROOT}/modem/rfa/rf/hal/p2_1x/inc',
+#   '${INC_ROOT}/modem/rfa/rf/hal/common/inc',
+#   '${INC_ROOT}/modem/rfa/rf/wcdma/rf/mc/inc',
+#   '${INC_ROOT}/modem/rfa/rf/wcdma/rf/nv/inc',
+#   '${INC_ROOT}/modem/rfa/rf/gsm/rf/core/src',
+#   ])
+
+#env.RequirePrivateApi('VIOLATIONS')
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+DATA_RLP_FILES = glob(SRCPATH + '/src/*.c')
+DATA_RLP_SOURCES = []
+
+for filename in DATA_RLP_FILES:
+   DATA_RLP_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/1xrlp',[DATA_RLP_SOURCES,])

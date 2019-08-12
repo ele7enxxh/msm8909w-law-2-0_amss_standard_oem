@@ -1,0 +1,83 @@
+; rpm_dwt_config.cmm
+; ------------------------------------------------------------------
+;
+; What this script does
+; -----------------------
+; This script will first enable the DWT module on Cortex-M3.
+; Only when T32 runs,  the written value has effect on the DWT module.
+; The rest of the DWT registers get write access.
+;
+; The required address needs to be set up in 0xE0001030 (DWT_COMP1) register
+; If a direct match to the address is being watched, then the mask value is
+; not required.
+;    eg. To watch address 0x90CDC
+;            d.s 0xE0001030 %long 0x90CDC
+;
+; If a range of addresses need to be watched, then the mask value needs to be 
+; set. The mask value (max value 0x0F) is used to ignore that many LSBs
+;
+;   eg To watch address range from 0x90CD0 to 0x90CDF
+;            d.s 0xE0001030 %long 0x90CD0
+;            d.s 0xE0001034 %long 0x4
+;
+; How to use this script
+; ----------------------
+; Set the values required (the address and mask) in the variables dwt_cmp1_value
+; and dwt_mask1_value. On loading the cmm file, the T32 should break and show
+; stopped by data breakpoint in status. 
+; ------------------------------------------------------------------
+
+
+break
+
+LOCAL &dwt_cmp1_value &dwt_mask1_value
+LOCAL &demcr_old_value &demcr_new_value
+LOCAL &dwt_fn1_old_value &dwt_fn1_new_value
+
+;----------------------------------------------------------------------------
+; set the below values as required
+;----------------------------------------------------------------------------
+&dwt_cmp1_value= 0x90CD8
+&dwt_mask1_value= 0x3
+
+;----------------------------------------------------------------------------
+; enable bit in DEMCR
+;----------------------------------------------------------------------------
+&demcr_old_value= Data.Long(D:0xE000EDFC)
+&demcr_new_value= &demcr_old_value|0x01000000
+d.s 0xE000EDFC %long &demcr_new_value
+PRINT "---- &demcr_new_value" 
+
+;----------------------------------------------------------------------------
+; let the M3 run to get the DWT module enabled
+;----------------------------------------------------------------------------
+go
+
+;----------------------------------------------------------------------------
+; break to set the rest of the registers
+;----------------------------------------------------------------------------
+break
+
+;----------------------------------------------------------------------------
+; set required address in DWT_COMP1
+;----------------------------------------------------------------------------
+d.s 0xE0001030 %long &dwt_cmp1_value
+
+;----------------------------------------------------------------------------
+; set mask if required in DWT_MASK1
+;----------------------------------------------------------------------------
+d.s 0xE0001034 %long &dwt_mask1_value
+
+;----------------------------------------------------------------------------
+; set watchpoint on read/write address in DWT_FUNCTION1
+; bits[3:0] for FUNCTION can be configured for one of the following:
+;   b0101 - Watchpoint for read
+;   b0110 - Watchpoint for write
+;   b0111 - Watchpoint for read or write
+;----------------------------------------------------------------------------
+&dwt_fn1_old_value= Data.Long(D:0xE0001038)
+&dwt_fn1_new_value= &dwt_fn1_old_value|0x07
+d.s 0xE0001038 %long &dwt_fn1_new_value
+PRINT "---- &dwt_fn1_new_value"
+
+go

@@ -1,0 +1,219 @@
+# -------------------------------------------------------------------------------- #
+#                       T D S C D M A _ R L C. S C O N S
+#
+# DESCRIPTION
+#       Scons file for the W subsytem. Defines the existence of RLC
+#
+#
+# INITIALIZATION AND SEQUENCING REQUIREMENTS
+#       None.
+#
+#
+# Copyright (c) 2010 Qualcomm Technologies Incorporated.
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //source/qcom/qct/modem/wcdma/rlc/main/latest/build/wcdma_rlc.scons#12 $
+# $DateTime: 2011/01/07 11:11:25 $
+#
+#  when        who     what, where, why
+# ---------    ---     ------------------------------------------------------------
+#  12/22/10    stk     Removed including WCDMA as Protected API.
+#  12/22/10    stk     Added MPROC under CORE_PUBLIC_APIS
+#  12/21/10    stk     Grouped AUDIO and MVS under Multimedia public APIs
+#  12/20/10    stk     Added MVS under public API
+#  11/11/10    rmsd    Replaced RETURN() with Return()
+#  10/19/10    rmsd    Added UTILS,GERAN,GPS Violations changes
+#  10/14/10    rmsd    Made changes to USES_FLAG,MBMS files and VIOLATIONS
+#  09/01/10    rmsd    Initial Cut
+#
+#===================================================================================#
+
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------------
+# USES_FLAG :: Do not compile WCDMA_RLC subsystem if
+#              USES_TDSCDMA are not defined.Need to add for PLT also
+#------------------------------------------------------------------------------------
+if 'USES_TDSCDMA' not in env:
+   Return()
+
+# ------------------------------------------------------------------------------
+# Include Paths
+#-------------------------------------------------------------------------------
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'DAL',
+    'DEBUGTOOLS',
+    'SYSTEMDRIVERS',
+    'SERVICES',
+    'MPROC',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+MODEM_PUBLIC_APIS = [
+    'ONEX', #GPS needs a 1x file
+    'DATA',
+    'DATACOMMON',
+    'GPS',
+    'NAS',
+    'TDSCDMA',
+    'MCS',
+    'UTILS',
+    'MMODE',
+    'UIM',
+    'WCDMA',
+    ]
+
+MODEM_RESTRICTED_APIS =[
+    'GPS',
+    'DATA',
+    'DATACOMMON',
+    'MCS',
+    'NAS',
+    'MDSP',
+    'UIM',
+    'UTILS',
+    'TDSCDMA',
+    'MMODE',
+    'FW',
+    'LTE',
+    'GERAN',
+    'WCDMA', # we r right now accessing rrcmmif.h
+    ]
+
+MULTIMEDIA_APIS = [
+    'AUDIO',
+    ]
+
+MULTIMEDIA_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+]
+
+#-------------------------------------------------------------------------------
+# We need the Multimedia API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MULTIMEDIA_PUBLIC_APIS, area="MULTIMEDIA")
+
+#----------------------------------------------------------------------------#
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#----------------------------------------------------------------------------#
+REQUIRED_NON_SCONS_APIS = [
+    'BREW',
+    'BASE_PATHS', #mdsp/cdma/inc
+    ]
+
+#-------------------------------------------------------------------------------
+# We need the Core BSP API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+#-------------------------------------------------------------------------------
+# We need MODEM PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need different restricted API's within MODEM
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#pdb.set_trace()
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Images that this VU is added .
+#-------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM', 'MOB_TDSCDMA']
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+TDSCDMA_RLC_C_SOURCES = [
+	 '${BUILDPATH}/tdsrlcdl.c',
+        '${BUILDPATH}/tdsrlcdltm.c',
+        '${BUILDPATH}/tdsrlcul.c',
+        '${BUILDPATH}/tdsrlcultm.c',
+]
+TDSCDMA_RLC_PRIVATE_SOURCES=[
+	 '${BUILDPATH}/tdsrlcdlam.c',
+        '${BUILDPATH}/tdsrlcdllog.c',
+        '${BUILDPATH}/tdsrlcdlsubtask.c',
+        '${BUILDPATH}/tdsrlcdlum.c',
+        '${BUILDPATH}/tdsrlculam.c',
+        '${BUILDPATH}/tdsrlcullog.c',
+        '${BUILDPATH}/tdsrlculsubtask.c',
+        '${BUILDPATH}/tdsrlculum.c',
+        '${BUILDPATH}/tdsrlcfc.c',
+
+]
+
+
+
+#-------------------------------------------------------------------------------
+# Compile the source
+#-------------------------------------------------------------------------------
+# For HCH
+if env.has_key('USES_CUST_1'):
+  env.AddLibrary(IMAGES, '${BUILDPATH}/tdscdma/rlc', TDSCDMA_RLC_C_SOURCES)
+else:
+    #change 8708-2165
+    env.AddBinaryLibrary(IMAGES, '${BUILDPATH}/tdscdma/rlc', TDSCDMA_RLC_C_SOURCES,
+                      pack_exception=['USES_COMPILE_TDSCDMA_AND_ALL_L1_PROTECTED_LIBS','USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'] )
+# Regular build
+
+
+
+
+if TDSCDMA_RLC_PRIVATE_SOURCES != []:
+  env_private = env.Clone()
+  env_private.Append(CPPDEFINES = [
+    'FEATURE_LIBRARY_ONLY'
+  ])
+
+if env.has_key('USES_CUST_1'):
+  env_private.AddLibrary(IMAGES,'${BUILDPATH}/lib_tdscdma_rlc',TDSCDMA_RLC_PRIVATE_SOURCES)
+else:
+  env_private.AddBinaryLibrary(IMAGES,'${BUILDPATH}/lib_tdscdma_rlc',TDSCDMA_RLC_PRIVATE_SOURCES)
+

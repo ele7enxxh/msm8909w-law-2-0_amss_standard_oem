@@ -1,0 +1,1405 @@
+//============================================================================
+//  Name:                                                                     
+//    std_utils.cmm
+//
+//  Description:                                                              
+//    Script to house common utilities or macros
+//
+//  Usage
+//  do std_utils < Name of utility > < Arguments for the utlity >
+//
+//	e.g. do std_utils removeslash exit c:\dropbox\ will return c:\dropbox to the caller
+//	e.g  do std_utils executecmm exit std_memorymap will execute std_memorymap.cmm or exit if not found.
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when         who     	what, where, why
+// --------     ---        --------------------------------------------------------
+// 10/30/2013 JBILLING     Added cti functions
+// 09/12/2013 AJCheriyan   Fixed few practice errors
+// 07/03/2013 AJCheriyan   Fixed typo in SAVEBIN
+// 04/10/2013 AJCheriyan   Added support for QDSS Gen 2
+// 10/19/2012 AJCheriyan   Fixed bug in CHECKARGS. Added one more arg
+// 09/12/2012 AJCheriyan   Fixed menu option in EXECUTESCRIPT
+// 07/19/2012 AJCheriyan   Added HWIO utilities
+// 07/14/2012 AJCheriyan   Added new utilities - LOADBIN, SAVEBIN, CHECKARGS
+// 07/09/2012 AJCheriyan   Added 2 extra arguments to execute cmm util
+// 03/15/2011 AJCheriyan   Added util to remove slash, execute cmm file
+// 03/15/2011 AJCheriyan   Created for MSM8660 
+//
+
+
+ENTRY &UTILITY &OPTION &IARG0 &IARG1 &IARG2 &IARG3 &IARG4 &IARG5 &IARG6 &IARG7 &IARG8 &IARG9 &IARG10 &IARG11 &IARG12
+
+//	Locals: Local Variables
+//	Input Arguments
+//LOCAL &UTILITY &OPTION &IARG0 &IARG1 &IARG2 &IARG3 &IARG4
+
+//	Return values to the caller along with success / fail value specific to utility
+LOCAL &PASS &RVAL0 &RVAL1 &RVAL2
+
+// Name of the utility we are calling
+LOCAL &SUBROUTINE
+
+// Any subroutine specific options
+// Default exists for each subroutine
+
+
+// Input Argument 0 is the name of the utility
+&SUBROUTINE="&UTILITY"
+
+IF ("&SUBROUTINE"=="")
+(
+	PRINT %ERROR "WARNING: UTILITY &UTILITY DOES NOT EXIST."
+	GOTO EXIT
+)
+ELSE
+(
+	// This should be created by some top level script. The setupenv for each proc would
+	// set this up
+ 	AREA.SELECT
+
+ 	// Debug Print Statement
+	// PRINT "&SUBROUTINE &OPTION &IARG0 &IARG1 &IARG2 &IARG3 &IARG5 &IARG6 &IARG7"
+    // Call the required utility
+	GOSUB &SUBROUTINE &OPTION &IARG0 &IARG1 &IARG2 &IARG3 &IARG4 &IARG5 &IARG6 &IARG7 &IARG8 &IARG9 &IARG10 &IARG11 &IARG12
+	ENTRY &PASS &RVAL0 &RVAL1 &RVAL2
+
+	GOTO EXIT
+	
+)
+
+// Function: REMOVESLASH
+// Removes a trailing backslash or forward slash from the string
+//
+// First argument determines to the number of arguments to process.
+REMOVESLASH:
+	LOCAL &OPTION &ARG0 &ARG1 &ARG2
+	ENTRY &OPTION &ARG0 &ARG1 &ARG2
+	
+	LOCAL &COUNT
+	&COUNT=0x0
+	
+	IF (("&ARG0"!="")&&((STRING.CUT("&ARG0",STRING.LEN("&ARG0")-1)=="\")||(STRING.CUT("&ARG0",STRING.LEN("&ARG0")-1)=="/")))
+	(
+		&RVAL0=STRING.CUT("&ARG0",-1)
+		&COUNT=&COUNT+1.
+	)
+	ELSE
+	(
+		&RVAL0="&ARG0"
+	)
+	
+	IF (("&ARG1"!="")&&((STRING.CUT("&ARG1",STRING.LEN("&ARG1")-1)=="\")||(STRING.CUT("&ARG1",STRING.LEN("&ARG1")-1)=="/")))
+	(
+		&RVAL1=STRING.CUT("&ARG1",-1)
+		&COUNT=&COUNT+1.
+	)
+	ELSE
+	(
+		&RVAL1="&ARG1"
+	)
+	
+	IF (("&ARG2"!="")&&((STRING.CUT("&ARG2",STRING.LEN("&ARG2")-1)=="\")||(STRING.CUT("&ARG2",STRING.LEN("&ARG2")-1)=="/")))
+	(
+		&RVAL2=STRING.CUT("&ARG2",-1)
+		&COUNT=&COUNT+1.
+	)
+	ELSE
+	(
+		&RVAL2="&ARG2"
+	)
+	
+	// Return the values to caller
+	RETURN &COUNT &RVAL0 &RVAL1 &RVAL2
+
+// Function: CHECKARGS
+// Checks an argument value against a list of possible values
+// Typically used
+CHECKARGS:
+	LOCAL &ACTION &ARGVAL &POSS1 &POSS2 &POSS3 &POSS4 &POSS5 &POSS6 &POSS7 &POSS8 &POSS9 &POSS10 &POSS11 &POSS12
+	ENTRY &ACTION &ARGVAL &POSS1 &POSS2 &POSS3 &POSS4 &POSS5 &POSS6 &POSS7 &POSS8 &POSS9 &POSS10 &POSS11 &POSS12
+
+	LOCAL &RVALUE
+	&RVALUE="FALSE"
+
+	// Check if all the possibilities are empty
+	IF	(("&POSS1"!="")||("&POSS2"!="")||("&POSS3"!="")||("&POSS4"!="")||("&POSS5"!="")||("&POSS6"!="")||("&POSS7"!="")||("&POSS8"!="")||("&POSS9"!="")||("&POSS10"!="")||("&POSS11"!="")||("&POSS12"!=""))
+	(
+		IF ("&ARGVAL"=="&POSS1")
+		(
+			&RVALUE="TRUE"
+		)
+	    IF ("&ARGVAL"=="&POSS2")
+	    (
+	    	&RVALUE="TRUE"
+	    )
+        IF ("&ARGVAL"=="&POSS3")
+	    (
+	    	&RVALUE="TRUE"
+	    )
+		IF ("&ARGVAL"=="&POSS4")
+	    (
+	    	&RVALUE="TRUE"
+	    )
+		IF ("&ARGVAL"=="&POSS5")
+	    (
+	    	&RVALUE="TRUE"
+	    )
+		IF ("&ARGVAL"=="&POSS6")
+	    (
+	    	&RVALUE="TRUE"
+	    )
+		IF ("&ARGVAL"=="&POSS7")
+	    (
+	    	&RVALUE="TRUE"
+	    )
+		IF ("&ARGVAL"=="&POSS8")
+	    (
+	    	&RVALUE="TRUE"
+	    )
+        IF ("&ARGVAL"=="&POSS9")
+	    (
+	    	&RVALUE="TRUE"
+	    )
+        IF ("&ARGVAL"=="&POSS10")
+	    (
+	    	&RVALUE="TRUE"
+	    )
+        IF ("&ARGVAL"=="&POSS11")
+	    (
+	    	&RVALUE="TRUE"
+	    )
+			IF ("&ARGVAL"=="&POSS12")
+	    (
+	    	&RVALUE="TRUE"
+	    )
+	)
+	// The check failed. We want to know how to exit 
+	IF (("&ACTION"!="EXIT")&&("&RVALUE"!="TRUE"))
+	(
+		PRINT %ERROR "&ARGVAL does not match values: &POSS1 &POSS2 &POSS3 &POSS4 &POSS5 &POSS6 &POSS7 &POSS8 &POSS9 &POSS10 &POSS11 &POSS12"
+		GOTO &ACTION
+	)
+	// Else, return gracefully
+	RETURN &RVALUE
+
+
+// Function: SAVEMMU
+// Saves the MMU for a particular type of processor
+SAVEMMU:
+	LOCAL &PROCTYPE &DIRNAME &FILENAME
+	ENTRY &PROCTYPE &DIRNAME &FILENAME
+	
+	LOCAL &FULLPATH
+	&FULLPATH="&DIRNAME"+"/&FILENAME"
+	
+	// We always append to an existing file
+	OPEN #1 "&FULLPATH" /CREATE
+	
+	IF ("&PROCTYPE"=="ARM")
+	(
+	 	WRITE #1 "// MMU Settings for ARM Processor"
+	 	WRITE #1 "PER.S C15:0x3 %LONG " "0x"+FORMAT.HEX(8,DATA.LONG(C15:0x3))
+		WRITE #1 "PER.S C15:0x2 %LONG " "0x"+FORMAT.HEX(8,DATA.LONG(C15:0x2))
+		WRITE #1 "PER.S C15:0x102 %LONG " "0x"+FORMAT.HEX(8,DATA.LONG(C15:0x102))
+		WRITE #1 "PER.S C15:0x202 %LONG " "0x"+FORMAT.HEX(8,DATA.LONG(C15:0x202))
+		WRITE #1 "PER.S C15:0x1 %LONG " "0x"+FORMAT.HEX(8,DATA.LONG(C15:0x1))
+		WRITE #1 "ENDDO"
+	)
+
+	CLOSE #1
+
+	RETURN
+
+
+// Function: LOADBIN
+// Loads a binary in some directory to a specified address
+// Other arguments not used
+LOADBIN:
+	LOCAL &DIRNAME &FILENAME &STARTADDR &OFFSET &SIZE
+	ENTRY &DIRNAME &FILENAME &STARTADDR &OFFSET &SIZE
+	
+	PRINT "&DIRNAME &FILENAME &STARTADDR &OFFSET &SIZE"
+	
+	LOCAL &FULLPATH 
+	&FULLPATH="&DIRNAME"+"/&FILENAME"
+	IF ("&OFFSET"=="")
+	(	
+		D.LOAD.BINARY &FULLPATH &STARTADDR 
+	)
+	ELSE
+	(
+	 	IF (OS.FILE.SIZE("&FULLPATH")<&OFFSET)
+		(
+			D.LOAD.BINARY &FULLPATH &STARTADDR
+		)
+		ELSE
+		(
+			D.LOAD.BINARY &FULLPATH &STARTADDR++&SIZE /SKIP &OFFSET
+		)		
+	)
+
+	RETURN "TRUE"
+
+// Functions: MEMCOPY
+// Copies a chunk of memory from one location to another	
+MEMCOPY:
+	LOCAL &DEST_ADDR &SOURCE_ADDR &SIZE
+	ENTRY &DEST_ADDR &SOURCE_ADDR &SIZE
+
+	DATA.COPY &SOURCE_ADDR++&SIZE &DEST_ADDR
+
+	RETURN "TRUE"
+
+// Function: SAVEBIN
+// Saves a binary at some specified address to a directory
+SAVEBIN:
+	LOCAL &DIRNAME &FILENAME &STARTADDR &SIZE
+	ENTRY &DIRNAME &FILENAME &STARTADDR &SIZE
+	
+	PRINT "&DIRNAME &FILENAME &STARTADDR &SIZE"
+	
+	LOCAL &FULLPATH 
+	&FULLPATH="&DIRNAME"+"/&FILENAME"
+SECURE_DAP:
+	ON ERROR GOTO NSECURE_DAP
+        if ("&CHIPSET"=="msm8909")
+        (
+	D.SAVE.BINARY &FULLPATH E&ACCESS:&STARTADDR++(&SIZE-1)
+        )
+        else
+        (
+	D.SAVE.BINARY &FULLPATH EZ&ACCESS:&STARTADDR++(&SIZE-1)
+         )
+	GOTO EXIT_SAVEBIN
+NSECURE_DAP:
+	ON ERROR
+	D.SAVE.BINARY &FULLPATH E&ACCESS:&STARTADDR++(&SIZE-1)
+	GOTO EXIT_SAVEBIN
+EXIT_SAVEBIN:
+	RETURN "TRUE"
+
+// Function: ATTACHPROC
+// Attach to a T32 session after it checks
+ATTACHPROC:
+entry &dontgo
+LOCAL &RETRYCOUNT
+&RETRYCOUNT=0
+	IF (SYSTEM.UP())
+	(
+		IF (!STATE.RUN()&&("&dontgo"==""))
+		(
+			GO
+		)
+	)
+	ELSE
+	(
+		// Bring the system up and reset registers to be safe
+		// Set up a handler to trap an error
+		ON ERROR GOSUB
+		(
+			&RETRYCOUNT=&RETRYCOUNT+1
+			WAIT 1s
+			RETURN			
+		)
+		RETRY:
+
+			SYS.MODE ATTACH
+			IF (!STATE.RUN()&&("&dontgo"==""))
+			(
+				GO
+			)
+			IF ((SYSTEM.MODE()<6)&&(&RETRYCOUNT<10))
+			(
+				GOTO RETRY
+			)
+			// We are here because we attached or timed out.
+			// Remove the error handler and continue
+			ON ERROR
+
+	)
+
+	RETURN
+
+// Function: DETACHPROC
+// Disconnect a T32 session
+DETACHPROC:
+	IF (SYSTEM.UP())
+	(
+		SYS.DOWN
+	)
+
+	RETURN
+
+// Function: BREAKPROC
+// Attach and stop a T32 session
+BREAKPROC:
+	// Attach to the processor
+	// Add second attach to prevent fickle behavior because of JTAG clock issues
+        
+LOCAL &RETRYCOUNT
+&RETRYCOUNT=0
+
+
+ON ERROR GOTO retry
+
+retry:
+
+    WAIT.1s
+
+    IF (&RETRYCOUNT<10)
+    (
+        &RETRYCOUNT=&RETRYCOUNT+1
+    )
+    ELSE
+    (
+        RETURN
+    )
+    SYS.M.A
+    BREAK
+    ON ERROR
+
+RETURN
+
+
+
+// Function: SAVEREGS
+// Stores a processors registers to a particular file
+SAVEREGS:
+	LOCAL &DIRNAME &FILENAME
+    ENTRY &DIRNAME &FILENAME
+
+	LOCAL &FULLPATH
+	&FULLPATH="&DIRNAME"+"/&FILENAME"
+	STORE &FULLPATH HEX REGSET
+
+	RETURN "TRUE"
+
+// Macros for reading and writing to registers
+// Warning: The symbols used must exist and must conform
+// to the expected format. No error checking here
+//
+// Write to a particular register
+// Format: HWIO_OUT <register> <value>
+HWIO_OUT:
+ 	ENTRY &REG &VALUE
+
+	LOCAL &REGNAME
+	
+	&REGNAME="HWIO_"+"&REG"+"_ADDR"
+ON ERROR GOTO NSECURE_HWIO_OUT
+SECURE_HWIO_OUT:
+        if ("&CHIPSET"=="msm8909")
+        (
+ 	DATA.SET E&ACCESS:&REGNAME %LONG &VALUE
+        )
+        else
+        (
+ 	DATA.SET EZ&ACCESS:&REGNAME %LONG &VALUE
+         )
+	GOTO EXIT_HWIO_OUT
+NSECURE_HWIO_OUT:
+	ON ERROR
+ 	DATA.SET E&ACCESS:&REGNAME %LONG &VALUE
+EXIT_HWIO_OUT:
+ RETURN
+
+// Write to a particular register field
+// Format: HWIO_OUTF <register> <field> <value>
+HWIO_OUTF:
+ 	ENTRY &REG &FIELD &VALUE
+ 
+ 	LOCAL &REGNAME &READ &DATA &MASK &SHFT
+ 	
+	&REGNAME="HWIO_"+"&REG"+"_ADDR"
+ 	&MASK="HWIO_"+"&REG"+"_&FIELD"+"_BMSK"
+ 	&SHFT="HWIO_"+"&REG"+"_&FIELD"+"_SHFT"
+ON ERROR GOTO NSECURE_HWIO_OUTF
+SECURE_HWIO_OUTF:
+        if ("&CHIPSET"=="msm8909")
+        (
+	&READ=DATA.LONG(E&ACCESS:&REGNAME)
+ 	&DATA=(&READ&~address.offset(&MASK))|(&VALUE<<address.offset(&SHFT))
+ 	DATA.SET E&ACCESS:&REGNAME %LONG &DATA
+        )
+        else
+        (
+	&READ=DATA.LONG(EZ&ACCESS:&REGNAME)
+ 	&DATA=(&READ&~address.offset(&MASK))|(&VALUE<<address.offset(&SHFT))
+ 	DATA.SET EZ&ACCESS:&REGNAME %LONG &DATA
+        )
+	GOTO EXIT_HWIO_OUTF
+NSECURE_HWIO_OUTF:
+	ON ERROR
+	&READ=DATA.LONG(E&ACCESS:&REGNAME)
+ 	&DATA=(&READ&~address.offset(&MASK))|(&VALUE<<address.offset(&SHFT))
+ 	DATA.SET E&ACCESS:&REGNAME %LONG &DATA
+EXIT_HWIO_OUTF:
+
+ RETURN
+
+// Read a register
+// Format: HWIO_IN <register> <field>
+HWIO_IN:
+	ENTRY &REG
+	
+	LOCAL &REGNAME &DATA
+	
+	&REGNAME="HWIO_"+"&REG"+"_ADDR"
+ON ERROR GOTO NSECURE_HWIO_IN
+SECURE_HWIO_IN:
+        if ("&CHIPSET"=="msm8909")
+        (
+	&DATA=DATA.LONG(E&ACCESS:&REGNAME)
+        ) 
+        else
+        (
+	&DATA=DATA.LONG(EZ&ACCESS:&REGNAME)
+         )
+	GOTO EXIT_HWIO_IN
+NSECURE_HWIO_IN:
+	ON ERROR
+	&DATA=DATA.LONG(E&ACCESS:&REGNAME)
+EXIT_HWIO_IN:
+ RETURN &DATA
+
+// Read a particular register field 
+// Format: HWIO_INF <register> <field> <value>
+HWIO_INF:
+ 	ENTRY &REG &FIELD
+	
+	LOCAL &REGNAME &READ &DATA &MASK &SHFT
+	
+	&REGNAME="HWIO_"+"&REG"+"_ADDR"
+	&MASK="HWIO_"+"&REG"+"_&FIELD"+"_BMSK"
+ 	&SHFT="HWIO_"+"&REG"+"_&FIELD"+"_SHFT"
+ON ERROR GOTO NSECURE_HWIO_INF
+SECURE_HWIO_INF:
+        if ("&CHIPSET"=="msm8909")
+        (
+	&READ=DATA.LONG(E&ACCESS:&REGNAME)
+         ) 
+        else
+         (
+	&READ=DATA.LONG(EZ&ACCESS:&REGNAME)
+         )
+    &DATA=(&READ&address.offset(&MASK))>>address.offset(&SHFT)
+	GOTO EXIT_HWIO_INF
+NSECURE_HWIO_INF:
+	ON ERROR
+	&READ=DATA.LONG(E&ACCESS:&REGNAME)
+    &DATA=(&READ&address.offset(&MASK))>>address.offset(&SHFT)
+EXIT_HWIO_INF:
+ RETURN &DATA
+
+// Returns the address of a particular register
+// Format: HWIO_ADDR <register>
+HWIO_ADDR:
+	ENTRY &REG
+	LOCAL &VAR
+	&VAR="HWIO_"+"&REG"+"_ADDR"
+	&VAR=address.offset(&VAR)
+	RETURN &VAR
+
+// Performs an indexed write to a register
+// Format: HWIO_OUTI <base register> <index> <value>
+HWIO_OUTI:
+	ENTRY &REG &INDEX &DATA
+	LOCAL &REG1 &REG2 &SIZE &REGADDR
+	&REG1="HWIO_"+"&REG"+"0_ADDR"
+	&REG2="HWIO_"+"&REG"+"1_ADDR"
+	&SIZE=address.offset(&REG2)-address.offset(&REG1)
+	&REGADDR=address.offset(&REG1)+(&SIZE*&INDEX)
+ON ERROR GOTO NSECURE_HWIO_OUTI
+SECURE_HWIO_OUTI:
+        if ("&CHIPSET"=="msm8909")
+        (
+	DATA.SET E&ACCESS:&REGADDR %LONG &DATA
+        )
+        else
+        (
+	DATA.SET EZ&ACCESS:&REGADDR %LONG &DATA
+         )
+	GOTO EXIT_HWIO_OUTI
+NSECURE_HWIO_OUTI:
+	ON ERROR
+	DATA.SET E&ACCESS:&REGADDR %LONG &DATA
+EXIT_HWIO_OUTI:
+	RETURN
+	
+// Function: FILEXIST
+// Checks if a file exists in a particular location
+// First Arg - Action in case of failure
+// Second Arg - Directory name 
+// Third Arg - Filename
+// Other Args - not used
+FILEXIST:
+	LOCAL &ACTION &DIRNAME &FILENAME &ARG0 &ARG1
+    ENTRY &ACTION &DIRNAME &FILENAME &ARG0 &ARG1
+	
+	LOCAL &FULLPATH &RVALUE
+	&RVALUE="FALSE"
+	IF ("&FILENAME"=="")
+	(
+		// Assume user has given the full path to the file
+		// in the directory name
+		&FULLPATH="&DIRNAME"
+	)
+	ELSE
+	(
+		&FULLPATH="&DIRNAME"+"/&FILENAME"
+	)
+
+	IF (OS.FILE(&FULLPATH))
+    (
+		&RVALUE="TRUE"
+	)
+	ELSE
+	(
+        PRINT %ERROR "File &FULLPATH does not exist"
+		&RVALUE="FALSE"
+	)
+
+	// The check failed. We want to know how to exit 
+	IF (("&ACTION"!="EXIT")&&("&RVALUE"!="TRUE"))
+	(
+		GOTO &ACTION
+	)
+	// Else, return gracefully
+	RETURN &RVALUE
+
+
+
+
+
+//	Function: EXECUTESCRIPT
+//	If a cmm script exists, it will execute it.
+//
+// 	Second argument determines course of action to be taken in case of error. 
+//	EXIT - Normal exit. End that particular script
+//	FATALEXIT - Fatalexit. End the entire program.
+EXECUTESCRIPT:
+	LOCAL &ACTION &SCRIPTNAME &ARG0 &ARG1 &ARG2 &ARG3
+	ENTRY &ACTION &SCRIPTNAME &ARG0 &ARG1 &ARG2 &ARG3
+	
+	LOCAL &EXTENSION
+	LOCAL &FILENAME
+	LOCAL &CWDIR
+	
+	IF (("&SCRIPTNAME"!=""))
+	(
+		&EXTENSION=OS.FILE.EXTENSION("&SCRIPTNAME")
+		IF ("&EXTENSION"=="")
+		(
+			// Assume it is a cmm script.
+			&EXTENSION=".cmm"
+			// Append the extension to the scriptname then
+			&FILENAME="&SCRIPTNAME"+"&EXTENSION"
+		)
+		ELSE
+		(
+			// The utility was used with the full filename. So filename is same as scriptname
+			&FILENAME="&SCRIPTNAME"
+		)
+	)
+	
+	
+	// Check if CMM and execute
+	IF (OS.FILE("&FILENAME")&&("&EXTENSION"==".cmm"))
+	(
+		&CWDIR=OS.PWD()
+	 	CD.DO "&FILENAME" &ARG0 &ARG1 &ARG2 &ARG3
+		&PASS=0x1
+		CD &CWDIR
+
+		// Take the action based on the input
+		GOTO &ACTION
+	)
+
+	// Check if MEN and execute
+	IF (OS.FILE("&FILENAME")&&("&EXTENSION"==".men"))
+	(
+		// First delete
+	 	MENU.DELETE "&FILENAME"
+		// Then add
+	 	MENU.REPROGRAM "&FILENAME"
+	 	&PASS=0x1
+		
+		// Take the action based on the input
+		GOTO &ACTION
+	
+	)
+	
+	// Check if T32 extension and execute
+	IF (OS.FILE("&FILENAME")&&("&EXTENSION"==".t32"))
+	(
+	 	TASK.CONFIG "&FILENAME" 
+		&PASS=0x1
+
+		// Take the action based on the input
+		GOTO &ACTION
+	)
+
+	// Check if emm and execute
+	IF (OS.FILE("&FILENAME")&&("&EXTENSION"==".emm"))
+	(
+		// We assume the encrypted script is using the script name as the encryption key
+		// This saves us one argument
+		&CWDIR=OS.PWD()
+		DODECRYPT "&FILENAME" "&SCRIPTNAME" &ARG0 &ARG1 &ARG2 &ARG3
+		&PASS=0x1
+		CD &CWDIR
+
+		// Take the action based on the input
+		GOTO &ACTION
+	)
+	ELSE
+	(
+		// Will enter this section only if the file did not exist / error condition
+		&PASS=0x0
+		PRINT "&SCRIPTNAME not found"
+		GOTO &ACTION
+	)
+	
+	// Not required as input determines the return path
+	RETURN
+
+        
+        
+;----------------------------------------------------
+;Function: EnableCTI
+;Input param: <subsystem>
+;----------------------------------------------------
+
+EnableCTI:
+
+		entry &subsystem
+		LOCAL &ctireg 
+
+		GOSUB UnLockCTI &subsystem
+
+		&ctireg="&subsystem"+"_CTICONTROL"
+
+		GOSUB HWIO_OUT &ctireg 0x1
+
+		GOSUB LockCTI &subsystem
+
+RETURN 
+
+;----------------------------------------------------
+
+;----------------------------------------------------
+;Function: DisableCTI
+;Input param: <subsystem>
+;----------------------------------------------------
+
+DisableCTI:
+
+		entry &subsystem
+		LOCAL &ctireg 
+
+		GOSUB UnLockCTI &subsystem
+
+		&ctireg="&subsystem"+"_CTICONTROL"
+
+		GOSUB HWIO_OUT &ctireg 0x0
+
+
+		GOSUB LockCTI &subsystem
+
+RETURN 
+
+;----------------------------------------------------
+;Subroutine: ClearCTITrig - clears all cti in and cti out registers
+;Input param: <subsystem>
+;----------------------------------------------------
+
+ClearCTITrig:
+
+
+		entry &subsystem
+
+		IF !y.exist(HWIO_QDSS_CTI0_CTICONTROL_ADDR)
+		(
+			do hwio
+		)
+		
+		GOSUB UnLockCTI &subsystem
+
+
+		;-----clear all cti in triggers---------
+
+		&ctireg="&subsystem"+"_CTIINEN0"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIINEN1"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIINEN2"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIINEN3"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIINEN4"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIINEN5"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIINEN6"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIINEN7"
+		GOSUB HWIO_OUT &ctireg 0
+
+		;---clear all cti out triggers----
+
+		&ctireg="&subsystem"+"_CTIOUTEN0"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIOUTEN1"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIOUTEN2"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIOUTEN3"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIOUTEN4"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIOUTEN5"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIOUTEN6"
+		GOSUB HWIO_OUT &ctireg 0
+
+		&ctireg="&subsystem"+"_CTIOUTEN7"
+		GOSUB HWIO_OUT &ctireg 0
+
+		;acknowledge halt signals so that no processors look mysteriously hung
+		IF (("&subsystem"!="MPSS")||("&subsystem"!="ADSP"))
+		(
+		  GOSUB AcknowledgeHaltSignal &subsystem 0
+		  
+		)
+
+		GOSUB DisableCTI &subsystem
+		GOSUB LockCTI &subsystem
+
+RETURN 
+
+
+;----------------------------------------------------
+;Function: UnLockCTI
+;Input param: <physical address>
+;----------------------------------------------------
+UnLockCTI:
+
+        entry &subsystem
+        &ctireg="&subsystem"+"_LAR"
+        GOSUB HWIO_OUT &ctireg 0xC5ACCE55
+
+RETURN
+
+
+
+;----------------------------------------------------
+;Function: LockCTI
+;Input param: <physical address>
+;----------------------------------------------------
+LockCTI:
+
+        entry &subsystem
+        &ctireg="&subsystem"+"_LAR"
+        GOSUB HWIO_OUT &ctireg 0x0
+
+RETURN
+
+
+;----------------------------------------------------
+;Function: AcknowledgeHaltSignal
+;Input param: <physical address> <CTI channel number>
+;----------------------------------------------------
+
+AcknowledgeHaltSignal:
+
+    entry &subsys &cti_channel
+    &ctireg="&subsys"+"_CTIINTACK"
+    GOSUB HWIO_OUT &ctireg 0x1
+
+RETURN
+
+;----------------------------------------------------
+;Function: CTI_Trigger_Broadcast:
+;Input param: <Name of Subsystem> <CTI Action to set> <CTM Channel to connect action to>
+;----------------------------------------------------
+
+CTI_Trigger_Broadcast:
+        entry &subsystem &connects_cti_IN_action &to_ctm_rail
+        LOCAL &cti_in_number
+
+        if "&connects_cti_IN_action"=="NONE"
+        (
+            RETURN
+        )
+		IF !y.exist(HWIO_QDSS_CTI0_CTICONTROL_ADDR)
+		(
+			do hwio
+		)
+		
+        GOSUB EnableCTI &subsystem
+        GOSUB UnLockCTI &subsystem
+
+
+
+        if &connects_cti_IN_action==0x0
+        (
+            &cti_in_number="CTIINEN0"
+        )
+        else if &connects_cti_IN_action==0x1
+        (
+            &cti_in_number="CTIINEN1"
+        )
+        else if &connects_cti_IN_action==0x2
+        (
+            &cti_in_number="CTIINEN2"
+        )
+        else if &connects_cti_IN_action==0x3
+        (
+            &cti_in_number="CTIINEN3"
+        )
+        else if &connects_cti_IN_action==0x4
+        (
+            &cti_in_number="CTIINEN4"
+        )
+        else if &connects_cti_IN_action==0x5
+        (
+            &cti_in_number="CTIINEN5"
+        )
+        else if &connects_cti_IN_action==0x6
+        (
+            &cti_in_number="CTIINEN6"
+        )
+        else if &connects_cti_IN_action==0x7
+        (
+            &cti_in_number="CTIINEN7"
+        )
+        else
+        (
+          print %error "Unknown value for trigout channel number(expected:0 to 7)"
+          end
+        )
+
+        if ((&to_ctm_rail<0)&&(&to_ctm_rail>3))
+        (
+         print %error "CTM channel out of range(expected: 0 to 3)"
+         end
+        )
+
+
+
+        &ctireg="&subsystem"+"_"+"&cti_in_number"
+        GOSUB HWIO_OUT &ctireg (1<<&to_ctm_rail)
+
+
+        GOSUB LockCTI &subsystem
+
+RETURN
+
+;----------------------------------------------------
+;Function: CTI_Trigger_Receive:
+;Input param: <physical address> <CTM channel num> <CTI TRIGOUT channel>
+;----------------------------------------------------
+
+CTI_Trigger_Receive:
+
+        entry &subsystem &connects_cti_OUT_action &to_ctm_rail
+        LOCAL &cti_out_number
+
+
+        if "&connects_cti_OUT_action"=="NONE"
+        (
+            RETURN
+        )
+		IF !y.exist(HWIO_QDSS_CTI0_CTICONTROL_ADDR)
+		(
+			do hwio
+		)
+		
+        GOSUB EnableCTI &subsystem
+        GOSUB UnLockCTI &subsystem
+
+        if &connects_cti_OUT_action==0x0
+        (
+            &cti_out_number="CTIOUTEN0"
+        )
+        else if &connects_cti_OUT_action==0x1
+        (
+            &cti_out_number="CTIOUTEN1"
+        )
+        else if &connects_cti_OUT_action==0x2
+        (
+            &cti_out_number="CTIOUTEN2"
+        )
+        else if &connects_cti_OUT_action==0x3
+        (
+            &cti_out_number="CTIOUTEN3"
+        )
+        else if &connects_cti_OUT_action==0x4
+        (
+            &cti_out_number="CTIOUTEN4"
+        )
+        else if &connects_cti_OUT_action==0x5
+        (
+            &cti_out_number="CTIOUTEN5"
+        )
+        else if &connects_cti_OUT_action==0x6
+        (
+            &cti_out_number="CTIOUTEN6"
+        )
+        else if &connects_cti_OUT_action==0x7
+        (
+            &cti_out_number="CTIOUTEN7"
+        )
+        else
+        (
+          print %error "Unknown value for trigout channel number(expected:0 to 7)"
+          end
+        )
+
+        if ((&to_ctm_rail<0)&&(&to_ctm_rail>3))
+        (
+         print %error "CTM channel out of range(expected: 0 to 3)"
+         end
+        )
+
+        &ctireg="&subsystem"+"_"+"&cti_out_number"
+        GOSUB HWIO_OUT &ctireg (0x1<<&to_ctm_rail)
+
+
+        if (("&subsystem"!="MPSS")||("&subsystem"!="ADSP"))
+        (
+          GOSUB AcknowledgeHaltSignal &subsystem &connects_cti_OUT_action
+        )
+
+        GOSUB LockCTI &subsystem
+
+RETURN
+
+;----------------------------------------------------
+;Function: InsertTrigPulseOnChannel
+;Input param: <subsystem> <CTM channel number>
+;This will insert a pulse from the subsystem of choice onto the CTM rail of choice
+;----------------------------------------------------
+
+InsertTrigPulseOnChannel:
+
+		entry &subsystem &ctm_channel
+		LOCAL &ctm_channellocal
+		&ctm_channellocal=&ctm_channel
+
+		IF !y.exist(HWIO_QDSS_CTI0_CTICONTROL_ADDR)
+		(
+			do hwio
+		)
+
+		IF "&ctm_channel"==""
+		(
+			&ctm_channel=0x0
+		)
+		if ((&ctm_channellocal<0)&&(&ctm_channellocal>3))
+		(
+		 print %error "CTM channel out of range(expected: 0 to 3)"
+		 end
+		)
+		
+		GOSUB EnableCTI &subsystem
+		GOSUB UnLockCTI &subsystem
+
+		&ctireg="&subsystem"+"_CTIAPPULSE"
+		GOSUB HWIO_OUT &ctireg (1<<&ctm_channel)
+
+		GOSUB LockCTI &subsystem
+
+
+RETURN
+				
+;----------------------------------------------------
+;Function: TrigSetChannel
+;Input param: <subsystem> <CTM channel number>
+;not yet verified
+;----------------------------------------------------
+
+TrigSetChannel:
+
+		entry &subsystem &ctm_channel
+
+		LOCAL &ctm_channellocal
+		&ctm_channellocal=&ctm_channel
+
+		IF !y.exist(HWIO_QDSS_CTI0_CTICONTROL_ADDR)
+		(
+			do hwio
+		)
+
+		IF "&ctm_channel"==""
+		(
+			&ctm_channel=0x0
+		)
+		if ((&ctm_channellocal<0)&&(&ctm_channellocal>3))
+		(
+		 print %error "CTM channel out of range(expected: 0 to 3)"
+		 end
+		)
+
+
+
+		GOSUB EnableCTI &subsystem
+		GOSUB UnLockCTI &subsystem
+
+		&ctireg="&subsystem"+"_CTIAPPSET"
+		GOSUB HWIO_OUT &ctireg (1<<&ctm_channel)
+
+		GOSUB LockCTI &subsystem
+
+RETURN
+
+;----------------------------------------------------
+;Function: TrigClearChannel
+;Input param: <subsystem> <CTM channel number>
+;not yet verified
+;----------------------------------------------------
+
+TrigClearChannel:
+
+		entry &subsystem &ctm_channel
+
+		LOCAL &ctm_channellocal
+		&ctm_channellocal=&ctm_channel
+
+		IF !y.exist(HWIO_QDSS_CTI0_CTICONTROL_ADDR)
+		(
+			do hwio
+		)
+
+		IF "&ctm_channel"==""
+		(
+			&ctm_channel=0x0
+		)
+		if ((&ctm_channellocal<0)&&(&ctm_channellocal>3))
+		(
+		 print %error "CTM channel out of range(expected: 0 to 3)"
+		 end
+		)
+		
+		GOSUB EnableCTI &subsystem
+		GOSUB UnLockCTI &subsystem
+
+		&ctireg="&subsystem"+"_CTIAPPCLEAR"
+		GOSUB HWIO_OUT &ctireg (1<<&ctm_channel)
+
+		GOSUB LockCTI &subsystem
+
+
+
+RETURN
+
+;----------------------------------------------------
+;Function:DisableCTIChannelGate
+;Input: <phys addr> <channel to disable>
+;----------------------------------------------------
+DisableCTIChannelGate:
+
+		entry &subsystem &ctm_channel
+		LOCAL &ctm_channellocal
+		&ctm_channellocal=&ctm_channel
+
+		IF !y.exist(HWIO_QDSS_CTI0_CTICONTROL_ADDR)
+		(
+			do hwio
+		)
+		IF "&ctm_channel"==""
+		(
+			&ctm_channel=0x0
+		)
+		if ((&ctm_channellocal<0)&&(&ctm_channellocal>3))
+		(
+		 print %error "CTM channel out of range(expected: 0 to 3)"
+		 end
+		)
+
+		GOSUB EnableCTI &subsystem
+		GOSUB UnLockCTI &subsystem
+		&ctireg="&subsystem"+"_CTIGATE"
+
+		GOSUB HWIO_IN &ctireg
+		entry &currentregvalue
+
+		&valuetowrite=&currentregvalue&(~(1<<&ctm_channel))
+		GOSUB HWIO_OUT &ctireg &valuetowrite
+
+		GOSUB LockCTI &subsystem
+		
+RETURN
+
+// Function: SetBreakpoints
+// Set a series of breakpoints
+SetBreakpoints:
+        entry &Option &IARG0 &IARG1 &IARG2 &IARG3 &IARG4 &IARG5 &IARG6 &IARG7 &IARG8 &IARG9 &IARG10 &IARG11
+        //add onchip or soft options
+		Local &implementation
+		
+		//to caps
+		&OPTION=string.upr("&Option")
+		
+		//select implementation, onchip or soft breakpoint
+		IF (("&OPTION"=="ONCHIP")||("&OPTION"=="O"))
+		(
+			&implementation="onchip"
+		)
+		ELSE
+		(
+			&implementation="soft"
+		)	
+		
+		//if Option isn't 'ONCHIP' or 'soft', user is using Option as a breakpoint. default to soft
+        IF y.exist("&Option")
+        (
+            b.s &Option /&implementation
+        )
+
+		
+        IF ("&IARG0"!="")
+		(
+			IF y.exist(&IARG0)
+			(
+				b.s &IARG0 /&implementation		
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG0"
+			)
+		)
+
+        IF ("&IARG1"!="")
+		(
+			IF y.exist(&IARG1)
+			(
+				b.s &IARG1 /&implementation
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG1"
+			)
+		)
+		
+		//only two bp's can be onchip. 
+		//If user used Option as a bp, then implementation is soft so won't get to 3 bp's
+        IF ("&IARG2"!="")
+		(
+			IF y.exist(&IARG2)
+			(
+				b.s &IARG2 /soft		
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG2"
+			)			
+		)
+
+        IF ("&IARG3"!="")
+		(
+			IF y.exist(&IARG3)
+			(
+				b.s &IARG3 /soft		
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG3"
+			)				
+		)
+		
+        IF ("&IARG4"!="")
+		(
+			IF y.exist(&IARG4)
+			(
+				b.s &IARG4 /soft		
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG4"
+			)				
+		)
+		
+        IF ("&IARG5"!="")
+		(
+			IF y.exist(&IARG5)
+			(
+				b.s &IARG5 /soft		
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG5"
+			)				
+		)
+		
+        IF ("&IARG6"!="")
+		(
+			IF y.exist(&IARG6)
+			(
+				b.s &IARG6 /soft		
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG6"
+			)		
+		)
+		
+        IF ("&IARG7"!="")
+		(
+			IF y.exist(&IARG7)
+			(
+				b.s &IARG7 /soft		
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG7"
+			)	
+		)
+		
+		IF ("&IARG8"!="")
+		(
+			IF y.exist(&IARG8)
+			(
+				b.s &IARG8 /soft		
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG8"
+			)		
+		)
+		
+		IF ("&IARG9"!="")
+		(
+			IF y.exist(&IARG9)
+			(
+				b.s &IARG9 /soft		
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG9"
+			)		
+		)
+		IF ("&IARG10"!="")
+		(
+			IF y.exist(&IARG10)
+			(
+				b.s &IARG10 /soft		
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG10"
+			)		
+		)
+		
+		IF ("&IARG11"!="")
+		(
+			IF y.exist(&IARG11)
+			(
+				b.s &IARG11 /soft		
+			)
+			ELSE
+			(
+				Print "SetBreakpoint: Could not find symbol &IARG11"
+			)
+		)
+			
+        RETURN
+
+		
+DeleteBreakpoint:
+        entry &OPTION &IARG0
+        
+        //if Option isn't 'ONCHIP' or 'soft', user is using Option as a breakpoint. default to soft
+		if (y.exist(&OPTION))
+		(
+			b.delete &OPTION
+			RETURN
+		)
+        
+		IF y.exist(&IARG0)
+		(
+			b.delete &IARG0
+		)
+		ELSE
+		(
+			Print "DeleteBreakpoint: Could not find symbol &IARG0"
+		)
+        
+        RETURN
+
+;----------------------------------------------------
+;Function:EnableCTIChannelGate  - All channel gates enabled on RESET
+;Input: <subsystem> <channel to disable>
+;not yet verified
+;----------------------------------------------------
+EnableCTIChannelGate:
+
+		entry &subsystem &ctm_channel
+		LOCAL &ctm_channellocal
+		&ctm_channellocal=&ctm_channel
+
+		IF !y.exist(HWIO_QDSS_CTI0_CTICONTROL_ADDR)
+		(
+			do hwio
+		)
+		IF "&ctm_channel"==""
+		(
+			&ctm_channel=0x0
+		)
+		if ((&ctm_channellocal<0)&&(&ctm_channellocal>3))
+		(
+		 print %error "CTM channel out of range(expected: 0 to 3)"
+		 end
+		)
+		
+		GOSUB EnableCTI &subsystem
+		GOSUB UnLockCTI &subsystem
+		
+		
+		&ctireg="&subsystem"+"_CTIGATE"
+
+		GOSUB HWIO_IN &ctireg
+		entry &currentregvalue
+
+		&valuetowrite=&currentregvalue|(1<<&ctm_channel)
+		GOSUB HWIO_OUT &ctireg &valuetowrite
+		
+		
+		GOSUB LockCTI &subsystem
+
+RETURN    
+	
+//	Function: Exit
+//	Return with return values	
+EXIT:
+	ENDDO &PASS &RVAL0 &RVAL1 &RVAL2
+
+//	Function: Fatalexit
+//	Return without return values	
+FATALEXIT:
+	END
+
+    
+    

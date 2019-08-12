@@ -1,0 +1,110 @@
+#===============================================================================
+# UIM ESTK Subsystem build script
+# GENERAL DESCRIPTION
+#    build script for modem/uim/estk
+#
+# Copyright (c) 2010- 2011, 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/uim/estk/build/main/latest/uim_estk.scons#3 $ $DateTime: 2010/08/15 23:58:06 $ $Author: amitp $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/23/13   vr      qtf-crm MOB migration
+# 09/18/12   nk      Changes to support modem folder removal
+# 04/28/11   nk      Updated includes needed for including gstk.h in estk
+# 04/20/11   adp     Moving ESTK logging under UIM
+# 03/17/11   adp     Adding restricted API's 
+# 12/15/10   nk      Updated to include DAL Public APIs
+# 10/22/10   nk      Moved location of USES_GSTK check to have env.Clone()
+# 10/11/10   nk      Updated with header and UESES Flag Check
+#
+#===============================================================================
+
+from glob import glob
+from os.path import join, basename
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+# Verify that USES_GSTK is set, otherwise bail out now
+if 'USES_GSTK' not in env:
+    Return()
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-----------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-----------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_RUIM",
+])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+env.RequirePublicApi([
+    'DEBUGTOOLS',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'DAL',
+    'MPROC',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ], area='core')
+
+# Get Required Public API's
+env.RequirePublicApi(['DATA',
+                      'DATACOMMON',
+                      'HDR',
+                      'MMODE',
+                      'MCS',
+                      'UIM',
+                      'WMS'
+                      ])
+
+
+# We need our "inc" dir too + other UIM "inc" dirs
+# We need our MCS Restricted dirs needed for dsm_init.h included by dsm.h
+# We need our NAS Restricted dirs needed for mn_cm_exp.h
+env.RequireRestrictedApi(['GERAN',
+                          'LTE',
+                          'MCS',
+                          'MMODE',
+                          'NAS',
+                          'UIM',
+                          'UTILS',
+                          'WCDMA'])
+
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(['BREW'])
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+# Construct the list of source files by looking for *.c
+ESTK_C_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                 for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Add our library to the Modem image
+env.AddLibrary( ['MODEM_MODEM','MOB_UIM'], '${BUILDPATH}/uim_estk', [ESTK_C_SOURCES] )
+#env.AddLibrary( ['MODEM_AMSS'], '${BUILDPATH}/uim_estk', [ESTK_C_SOURCES] )

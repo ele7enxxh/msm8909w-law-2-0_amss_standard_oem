@@ -1,0 +1,135 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub process_sample( $indication, $ind_num, $sample_num)
+{
+    my ( $srvc_num) = slget( $indication, { srvc_num});
+    if ( $srvc_num == 20) {
+        my ( $sscts, $gravx, $gravy, $gravz) = slget( $indication, { sscts, gravx, gravy, gravz});
+        my ( $linax, $linay, $linaz, $accuracy) = slget( $indication, {linaccx, linaccy, linaccz, accuracy});
+        my( $motion_state) = slget( $indication, { motion_state});
+        print( "$ind_num.$sample_num: gravity $gravx, $gravy, $gravz, linacc $linax, $linay, $linaz, sscts $sscts, accuracy $accuracy, motion_state $motion_state\n");
+    }
+}
+
+sub process_ind( $indication, $ind_num)
+{
+    my $samples;
+    my ( $msg_id) = slget( $indication, {msg_id});
+    if ( $msg_id == 34) {                                   // batch indication ?
+        ( $samples) = slget( $indication, {report});        // + yes. get number of samples
+
+        my $i = 0;
+        while ( $i < $samples) {
+            slset( $indication, { report.$i});              // set sample number
+            process_sample( $indication, $ind_num);
+        }
+    }
+    else {
+        process_sample( $indication, $ind_num, 0);          // report indication
+    }
+}
+
+sub main( @argv)
+{
+    my ( $report_rate, $sample_rate, $duration, $batch_period, $notify_suspend) = @argv;
+
+    my $service = "grav";
+
+    my $report_period = 0;
+    if ( $report_rate) {
+        $report_period = 1 / $report_rate;   // report_period in seconds / report_rate in hz
+    }
+
+    if ( !defined( $duration)) {
+        $duration = 10;                         // seconds
+    }
+
+    my $enable_req = slnew_req( $service, "enable", { report_period => $report_period} );
+    if ( !defined( $enable_req)) {
+        ;   // stub sllast_error
+        return;
+    }
+
+    if ( defined( $sample_rate)) {
+        slset_req( $enable_req, { sample_rate => $sample_rate} );
+    }
+    if ( defined( $notify_suspend)) {
+        slset_req( $enable_req, { notify_suspend => $notify_suspend} );
+    }
+
+
+    my $client = slopen();
+    my $timeout = 3;
+
+    my $enable_resp = slsend_recv( $client, $enable_req, $timeout);
+    if ( defined( $enable_resp)) {
+        my ( $instance_id) = slget( $enable_resp, { instance_id});
+        print( "\$instance_id $instance_id\n");
+
+        my $quantity  = $duration * $report_rate;
+
+        if ( defined( $batch_period)) {
+            my $batch_req = slnew_req( $service, "batch", { instance_id => $instance_id, batch_period => $batch_period});
+            my $batch_resp = slsend_recv( $client, $batch_req, $timeout);
+            if ( !defined( $batch_resp)) {
+                print( "\$batch_resp $batch_resp\n");
+            }
+// bug      $quantity = ( $duration / $batch_period) + 1;
+            $quantity = $duration / $batch_period;
+        }
+
+        sloption( "script_handles_indications");
+
+        my $ind_count = 0;
+
+        print( "\t$service indications:\n");
+
+        $timeout = $duration;
+        while ( $ind_count < $quantity) {
+            my $respind = slrecv( $timeout);
+            if ( !defined( $respind)) {
+                print( "respind not defined\n");
+                break;
+            }
+
+            my ( $msg_type) = slget( $respind, {msg_type});
+            if ( $msg_type == 2) {                              // indication packet ?
+                $ind_count += 1;                                // + yes
+                process_ind( $respind, $ind_count);
+            }
+            else {
+                print( "got respind msg_type $msg_type\n");
+            }
+        }
+
+        if ( defined( $batch_period)) {
+            my $batch_req = slnew_req( $service, "batch", { instance_id => $instance_id, batch_period => 0});
+            my $batch_resp = slsend_recv( $client, $batch_req, $timeout);
+            if ( !defined( $batch_resp)) {
+                print( "\$batch_resp $batch_resp\n");
+            }
+        }
+
+        my $report_req = slnew_req( $service, "get_report", { instance_id => $instance_id});
+        my $report_resp = slsend_recv( $client, $report_req, $timeout);
+
+//        ( $instance_id, $ssc_ts, $state) = slget( $report_resp, { instance_id, sscts, state});
+//        print( "\n");
+//        print( "\t$service get_report:\n");
+//        print( "\tinstance_id          $instance_id\n");
+//        print( "\tssc_ts               $ssc_ts\n");
+//        print( "\tstate                $state\n");
+
+        print( "\n");
+
+        my $disable_req = slnew_req( $service, "disable", { instance_id => $instance_id});
+        my $disable_resp = slsend_recv( $client, $disable_req, $timeout);
+    }
+
+    slclose( $client);
+    return  0;
+}
+

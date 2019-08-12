@@ -1,0 +1,155 @@
+/*
+#====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+#
+#                     SCATTER LOADING DESCRIPTION FILE
+#
+#  Copyright 2014 by QUALCOMM Incorporated. All Rights Reserved.
+#
+#  GENERAL DESCRIPTION
+#
+#  The scatter loading description file is used to define the SBL1 DDR Debug memory map.
+#*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*/
+//===========================================================================
+//
+//                           EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+//  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/boot/ddr/common/ddr_debug_msm8909.scl#1 $
+//  $DateTime: 2015/09/01 00:30:35 $
+//  $Author: pwbldsvc $
+//
+// when       who     what, where, why
+// --------   ---     -------------------------------------------------------
+// 02/12/15   sc      Changes to zero initialize usb related structures
+// 04/16/14   yps     Initial Version.
+
+/*
+
+           |--------------------|0800 5000  <- L2 TCM START (216KB)
+           | Setup Copy Code    |
+           |--------------------|	
+           |      DDI           |
+           |--------------------|
+           |      RO DATA       |
+           |--------------------|
+           |      RW DATA       |
+           |--------------------|0803 B000  <- L2 TCM END (216KB)
+           |                    |
+           |                    |
+           |                    |
+           |--------------------|0802 0000  <- RPM CODE BASE 
+           |      SDI           |
+           |--------------------|
+            \                  /  
+             \  COPY TO RPM   /	
+              \  CODE RAM    / 
+               \            / 
+                \          /
+                 \        /
+                  \      / 
+                   \    /
+                    \  / 
+                     \/
+           |--------------------|0020 5500  <- RPM CODE BASE (code limite 108KB)
+           |         DDI        |
+           |--------------------|
+           |      RO DATA       |
+           |--------------------|
+           |      RW DATA       |
+           |--------------------|0022 0000  <- DEBUG_CO_RO_BASE 
+           |         SDI        |
+           |--------------------|
+           |                    |
+           |                    |
+           |                    |
+           |                    |
+           |                    |
+           |--------------------|0029 0000  <- RPM DATA RAM START (64KB)
+           |     ZI DATA        |
+           |--------------------|002A 0000  <- RPM DATA RAM END
+           |                    |
+           |                    |
+             sbl1_copy_ddr_debug.o
+    boot_page_table.o
+        sbl1_ddr_debug.o (SBL1_ENTRY)
+        
+*/
+
+#include "boot_target.h"
+
+#define SCL_DDR_DEBUG_STACK_START    (SCL_RPM_CODE_RAM_BASE + 0x7000)
+#define SCL_DDR_DEBUG_STACK_SIZE     0x1000
+#define SCL_DDR_DEBUG_STACK_BASE     (SCL_DDR_DEBUG_STACK_START + SCL_DDR_DEBUG_STACK_SIZE)
+
+CODE_ROM SCL_SBL1_CODE_BASE 0x1b000
+{
+  COPY_ROM SCL_SBL1_CODE_BASE  ALIGN 0x8
+  {   
+    sbl1_ddr_debug.o(SBL1_INDIRECT_VECTOR_TABLE,+FIRST)
+
+  }
+    DDR_DEBUG_RO +0x0
+  {
+    * (+RO-DATA)
+  }
+    DDR_DEBUG_CODE +0x0
+  {
+    * (+RO-CODE)
+  }
+	DDR_DEBUG_RW +0x0  
+	  {
+	    * (+RW)
+	  }
+
+  
+ScatterAssert( ImageLimit(COPY_ROM) <= SCL_SBL1_CODE_BASE + (0x220000-0x205000 ))
+
+ DDR_DEBUG_ZI (SCL_RPM_DATA_RAM_BASE)  SCL_RPM_DATA_RAM_SIZE
+	{
+	    * (+ZI)
+	    * (BOOT_INTERNAL_HEAP)
+	    * (DDR_DEBUG_TUNING_COOKIE)
+   
+	}
+  SBL1_DDR_ZI SCL_SBL1_DATA_BASE SCL_SBL1_DDR_ZI_SIZE
+  {
+    qhsusb_scsi*.o (+RO, +RW, +ZI)
+  }
+
+  SBL1_DATA_RW +0x0 EMPTY 0x0
+  {
+  }
+
+  SBL1_DATA_ZI +0x0 EMPTY 0x0
+  {
+  }
+
+  // Placeholder to reserve space for the boot logger's meta info data.
+  SBL1_LOG_META_INFO_SECTION +0x0 EMPTY SCL_SBL1_BOOT_LOG_META_INFO_SIZE
+  {
+  }
+
+  // Placeholder to reserve buffer space for the boot logger's log messages
+  SBL1_LOG_BUF_SECTION +0x0 EMPTY SCL_SBL1_BOOT_LOG_BUF_SIZE
+  {
+  }
+
+  SBL1_DLOAD_ZI +0
+  {
+  } 
+
+  SBL1_DEVICEPROGRAMMER_USB_ZI +0x0
+  {
+  } 
+    // This must be placed at the end or adjacent execution regions overlap
+  SYSTEM_DEBUG_QSEE_INFO +0x0 EMPTY ALIGN 0x8 0x20
+  { 
+  } 
+
+  TCM_SDI (SCL_SBL1_CODE_BASE+(0x220000-0x205000)) ALIGN 0x8 SCL_SYSTEM_DEBUG_CO_RO_SIZE 
+  {
+   sbl1_ddr_debug_sdi.o (WDOG_ENTRY,+FIRST)
+   sbl1_ddr_debug_sdi.o (+RO,+RW,+ZI)
+  }
+}

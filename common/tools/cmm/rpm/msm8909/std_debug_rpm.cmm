@@ -1,0 +1,133 @@
+//
+//  Description:                                                              
+//    RPM debug script
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/19/2012 AJCheriyan    Created for B-family.
+
+// Following arguments are supported. 
+// ARG0 - Image to debug. Has to be RPM for this script to be called by top level
+// ARG1 - En/Disable Sleep. LPM_ENABLE / LPM_DISABLE 
+// ARG2 - Entry point for this debug session. will default to image entry point
+//        if nothing is specified.
+// ARGn - n > 2 - Any other arguments to be passed to the script
+//
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+LOCAL &IMAGE &LPM_OPTION &BKPT
+
+
+MAIN:
+	// The arguments are valid at this point and the required T32 sessions are open
+	// Go about business without error checking
+
+	&IMAGE="&ARG0"
+	&LPM_OPTION="&ARG1"
+	&BKPT="&ARG2"
+	
+	// For RPM FW Image
+	IF ("&ARG0"=="rpm")
+	(
+	 	// We expect the device to be in 'fastdebug' mode
+		// Attach to the RPM and break
+		
+		
+		// Set the cookie to enable SBL1 debug
+		DATA.SET E&ACCESS:&RPM_DEBUG_COOKIE %LONG %LE &DEBUG_COOKIE_VALUE
+
+		do std_utils ATTACHPROC
+		
+		WAIT 10.s
+		
+		do std_utils ATTACHPROC
+		
+		// Now we can attach and break. It should be welcoming us with a "brkpt"
+		do std_intercom_do &RPM_PORT std_utils BREAKPROC
+
+		// Load the symbols
+		do std_intercom_do &RPM_PORT std_loadsyms_rpm
+		
+		do std_utils BREAKPROC
+		
+		// Change the fastdebug variable
+		do std_exitfastdebug rpm
+
+	   	// Check if sleep is to be enabled or not
+		INTERCOM.EVALUATE &RPM_PORT Y.EXIST("&BKPT")		
+		IF (1==EVAL())
+		(
+			INTERCOM.EVALUATE &RPM_PORT Y.EXIST(sleep_allow_low_power_modes)
+			IF (1==EVAL())
+			(
+				// Go to user determined breakpoint
+				IF ("&LPM_OPTION"=="lpm_disable")
+				(
+					INTERCOM.EXECUTE &RPM_PORT GO &BKPT /O /CMD "v sleep_allow_low_power_modes = 0"
+				)
+				IF ("&LPM_OPTION"=="lpm_enable")
+				(
+					INTERCOM.EXECUTE &RPM_PORT GO &BKPT /O /CMD "v sleep_allow_low_power_modes = 1"
+				)
+			)
+			ELSE
+			(
+				INTERCOM.EXECUTE &RPM_PORT GO &BKPT /O
+			)
+		)
+		ELSE
+		(
+			INTERCOM.EVALUATE &RPM_PORT Y.EXIST(sleep_allow_low_power_modes)
+			IF (1==EVAL())
+			(
+				// Go to known point
+				IF ("&LPM_OPTION"=="lpm_disable")
+				(
+					INTERCOM.EXECUTE &RPM_PORT GO main /O 
+					INTERCOM.EXECUTE &RPM_PORT v sleep_allow_low_power_modes = 0
+				)
+				IF ("&LPM_OPTION"=="lpm_enable")
+				(
+					INTERCOM.EXECUTE &RPM_PORT GO main /O 
+					INTERCOM.EXECUTE &RPM_PORT v sleep_allow_low_power_modes = 1
+				)
+			)
+			ELSE
+			(
+				INTERCOM.EXECUTE &RPM_PORT GO __main /O
+			)
+		)
+
+		
+		// Let RPM run too 
+		//do std_utils ATTACHPROC
+
+		// User is debugging and so disable the PMIC watchdog using the variable
+		INTERCOM.EVALUATE &RPM_PORT Y.EXIST(pmic_wdog_enable)
+		IF (1==EVAL())
+		(
+ 			WAIT !RUN()
+		 	v pmic_wdog_enable = 0
+   		)
+	
+	)
+
+	GOTO EXIT
+
+EXIT:
+	ENDDO
+
+FATALEXIT:
+	END
+
+
+		

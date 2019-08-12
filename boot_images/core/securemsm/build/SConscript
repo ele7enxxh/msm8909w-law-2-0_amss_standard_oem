@@ -1,0 +1,145 @@
+#===============================================================================
+#
+# SecureMSM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/securemsm/build/main/latest/SConscript#9 $
+#  $DateTime: 2009/10/16 07:31:30 $
+#  $Author: cbirch $
+#  $Change: 1055693 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/08/14   nk      Added support for 8936
+# 09/24/12   nk      Stubbed securemsm non 9x25, 8974 PLs
+# 08/03/12   nk      Added Clean pack 
+# 07/05/12   nk      Initial version
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+if env['MSM_ID'] not in ['8974', '9x25','8x10','8x26','8084','8x62','9x35','8092','8916','8936',
+                         '9x45', '8909','8909w', '8952', '8956']:
+  Return();
+
+#-------------------------------------------------------------
+# Protected APIs: These are accessable only within SecureMSM
+#-------------------------------------------------------------
+
+env.PublishProtectedApi('CRYPTO', [
+   "${BUILD_ROOT}/core/securemsm/crypto/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/crypto/shared/src",
+   "${BUILD_ROOT}/core/securemsm/crypto/environment/inc",
+   "${BUILD_ROOT}/core/securemsm/crypto/environment/src",
+   "${BUILD_ROOT}/core/securemsm/crypto/custom/inc",
+   "${BUILD_ROOT}/core/securemsm/crypto/custom/src",
+   "${BUILD_ROOT}/core/securemsm/crypto/inc",
+   "${BUILD_ROOT}/core/securemsm/crypto/src",
+   "${BUILD_ROOT}/core/securemsm/crypto/target",
+   "${BUILD_ROOT}/core/securemsm/crypto/secremapi/inc",
+])
+
+env.PublishProtectedApi('CRYPTOUTIL', [
+   "${BUILD_ROOT}/core/securemsm/cryptoutil/inc",
+])
+
+env.PublishProtectedApi('CRYPTODRIVERS', [
+   "${BUILD_ROOT}/core/securemsm/cryptodrivers/ce/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/cryptodrivers/prng/shared/inc",
+])
+
+
+env.PublishProtectedApi('SECBOOT_AUTH', [
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/inc",
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/src",
+])
+
+env.PublishProtectedApi('SECBOOT', [
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/inc",
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/src",
+   "${BUILD_ROOT}/core/securemsm/secboot/crypto/src",
+   "${BUILD_ROOT}/core/securemsm/secboot/crypto/inc",
+])
+
+env.PublishProtectedApi('SECMATH', [
+   "${BUILD_ROOT}/core/securemsm/secmath/env/inc",
+   "${BUILD_ROOT}/core/securemsm/secmath/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/secmath/shared/src",
+])
+
+env.PublishProtectedApi('SECRSA', [
+   "${BUILD_ROOT}/core/securemsm/secrsa/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/secrsa/shared/src",
+])
+
+
+env.PublishProtectedApi('SECBOOT_AUTH', [
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/inc",
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/src",
+])
+
+env.PublishProtectedApi('SECBOOT', [
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/inc",
+   "${BUILD_ROOT}/core/securemsm/secboot/auth/src",
+   "${BUILD_ROOT}/core/securemsm/secboot/crypto/src",
+   "${BUILD_ROOT}/core/securemsm/secboot/crypto/inc",
+])
+
+env.PublishProtectedApi('SSD', [
+   "${BUILD_ROOT}/core/securemsm/ssd/inc",
+   "${BUILD_ROOT}/core/securemsm/ssd/src",
+])
+
+env.PublishProtectedApi('TRUSTZONE', [
+   "${BUILD_ROOT}/core/securemsm/tzbsp/core/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/core/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/include",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/core/target/msm8660/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/services/core/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/services/dmov/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/monitor/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/monitor/target/msm8660/src",
+   "${BUILD_ROOT}/core/securemsm/tzbsp/services/recho/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/core/shared/inc",
+   "${BUILD_ROOT}/core/securemsm/tzos/core/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/core/target/msm8660/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/services/core/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/services/dmov/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/monitor/shared/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/monitor/target/msm8660/src",
+   "${BUILD_ROOT}/core/securemsm/tzos/services/recho/shared/src",
+])
+
+
+#-------------------------------------------------------------------------------
+# Convert warnings to errors in all system drivers components
+#-------------------------------------------------------------------------------
+env.Append(CFLAGS = "--diag_error=warning ")
+
+#-------------------------------------------------------------------------------
+# Suppress non-critical warnings in all system drivers components
+#-------------------------------------------------------------------------------
+#2523-D: use of inline assembler is deprecated
+env.Append(CFLAGS = "--diag_suppress=2523 ")
+
+#C9931W: Your license for Compiler (feature compiler_pro) will expire in 30 days
+env.Append(CFLAGS = "--diag_suppress=9931 ")
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

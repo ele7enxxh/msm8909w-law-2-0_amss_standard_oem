@@ -1,0 +1,367 @@
+#===============================================================================
+#
+# Core AU
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/build/ims.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01-Dec-12  Prashanth M E  - SSL Dependency for DPL TLS Interface is added in IMS
+# 14-Mar-14  Prashanth M E  - IMS Settings header files include path added
+# 03-Feb-15  Sreenidhi      - Exclude apcs module from compilation for JO builds 
+# 11-Feb-15  Dipak          - CR: 766106 Include MCFG for SIM Swap FR
+# 23-Sep-15  Shashank       - CR: 889982 FR 29357 Compressed Heap changes
+#===============================================================================
+import os
+
+Import('env')
+#changes for pack
+if 'USES_CUST_1' in env and 'USES_STRIP_NO_ODM' in env:
+	env.CleanPack("CLEANPACK_TARGET", env.FindFiles('*', "${BUILD_ROOT}/ims"))
+	Return()
+
+if 'USES_IMS' not in env:
+	Return()
+
+#----------------------------------Amit---------------------------------------------
+# An Attempt to make IMS software Compiler-Warnings free
+# Override CCFLAGS for this Module. Make all Warnings to Errors!
+#
+# Flags -Wno-low, medium, high and no-error are being set inside 
+# modem_proc/config/internal_build_cfg.xml file. 
+# the below changes ensure that no warnings are going to be promoted from PW
+# in 1x code to keep it warnings free.
+#----------------------------------------------------------------------------#
+# Copy the CFLAGS list to a new environment for us
+# (somehow the list is a reference when cloned, so use deepcopy)
+import copy
+orig_env = env
+env = env.Clone()
+env['CFLAGS'] = copy.deepcopy(orig_env['CFLAGS'])
+
+
+
+# Set -Werror compiler flag to treat warnings as errors
+if env['CFLAGS'].count('-Wno-low') > 0:
+   env['CFLAGS'].remove('-Wno-low')
+
+if env['CFLAGS'].count('-Wno-medium') > 0:
+  env['CFLAGS'].remove('-Wno-medium')
+
+if env['CFLAGS'].count('-Wno-high') > 0:
+  env['CFLAGS'].remove('-Wno-high')
+
+if env['CFLAGS'].count('-Wno-error') > 0:
+   env['CFLAGS'].remove('-Wno-error')
+
+if env['PRODUCT_LINE'].startswith("MPSS.AT"):
+   env.Append(HEXAGON_WARN = '-Wno-error-high -Wno-error-medium -Wno-error-low')
+else:
+	env.Append(HEXAGONCC_WARN = ' -Werror ')
+	env.Append(HEXAGONCXX_WARN = ' -Werror ')	
+	
+###
+
+if env.PathExists('${INC_ROOT}/ims'):
+    env.Replace(IMS_ROOT = '${INC_ROOT}/ims')
+else:
+    env.Replace(IMS_ROOT = '${INC_ROOT}/modem/ims')
+
+
+#The order of APIs in the ims_public_api_list determines the order the paths are listed on the build command line.
+#To optimize build times the API list is sorted in descending order of use.
+
+ims_public_api_list = [
+        ('CORE',                'KERNEL'),
+        ('CORE',                'SERVICES'),
+        ('DATAMODEM',           'PUBLIC'),
+        ('MMCP',                'PUBLIC'),
+        ('CORE',                'DAL'),
+        ('CORE',                'MEMORY'),
+        ('CORE',                'DEBUGTOOLS'),
+        ('CORE',                'SYSTEMDRIVERS'),
+        ('HDR',                 'PUBLIC'),
+        ('UIM',                 'UIM'),
+        ('UIM',                 'PUBLIC'),
+        ('APR',                 'APR'),
+        ('CORE',                'MPROC'),
+        ('CORE',                'STORAGE'),
+        ('MCS',                 'MCS'),
+        ('SEC',                 'IPSEC'),
+        ('SEC',                 'SSL'),
+        ('AVS',                 'CVD'),
+        ('MMCP',                'MMCP'),
+        ('CORE',                'SECUREMSM'),
+        ('GERAN',               'PUBLIC'),
+        ('WCDMA',               'PUBLIC'),
+        ('QMIMSGS',             'IMSA'),
+        ('QMIMSGS',             'IMSP'),
+        ('QMIMSGS',             'IMSS'),
+        ('QMIMSGS',             'LOC'),
+        ('QMIMSGS',             'IMSVT'),
+        ('QMIMSGS',             'IMSRTP'),
+        ('QMIMSGS',             'IMSDCM'),
+        ('AVS',                 'MMUTILS'),
+        ('LTE',                 'LTE'),
+        ('AVS',                 'VOICEMEM'),		
+		('AVS',                 'VOICELOG'),		
+        ('AVS',                 'COMMON'),
+        ('AVS',                 'VOICECFG'),
+        ('AVS',                 'VADAPTER'),
+        ('UTILS',               'A2'),
+        ('MCFG',                'MCFG'),
+        ('DATAMODEM',           'DATAMODEM'),
+        ]
+
+
+for api_area,api_name in ims_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+env.RequireRestrictedApi(['IMS_VIOLATIONS'])
+
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATACOMMON',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'DATA',
+    'HDR',
+    'WMS',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'MPROC',
+    'IPSEC',
+    'SSL',
+    'SAP',
+    'LTE',
+    'PERF',
+]
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'UIM',
+    'WCDMA',
+    'UTILS',
+    'SAP',
+    'LTE',
+]
+
+if env.PathExists('${INC_ROOT}/modem/ims'):
+    env.RequirePublicApi(MODEM_PUBLIC_APIS)
+    env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#Start AU paths that were included in the top level pasted block
+env.PublishProtectedApi('IMS',[
+        '${IMS_ROOT}/sip/inc',
+        '${IMS_ROOT}/dpl/inc',
+        '${IMS_ROOT}/framework/inc',
+        '${IMS_ROOT}/cust/inc',
+        '${IMS_ROOT}/imscore/inc',
+        '${IMS_ROOT}/ps_media/rtp_core/inc',
+        '${IMS_ROOT}/variation/inc',
+        '${IMS_ROOT}/qipcall/inc',
+        '${IMS_ROOT}/sigcomp/inc',
+        '${IMS_ROOT}/Presence/inc',
+        '${IMS_ROOT}/regmanager/src',
+        '${IMS_ROOT}/ps_media/SDP/src',
+        '${IMS_ROOT}/imscore/sipcore/src',
+        '${IMS_ROOT}/ps_media/SDP/inc',
+        '${IMS_ROOT}/dpl_media/inc',
+        '${IMS_ROOT}/ps_media/common/inc',
+        '${IMS_ROOT}/imsprocess/inc',
+        '${IMS_ROOT}/dpl/src',
+        '${IMS_ROOT}/ps_media/rtp_profile/inc',
+        '${IMS_ROOT}/imsqmi/inc',
+        '${IMS_ROOT}/ps_media/rtp_profile/src',
+        '${IMS_ROOT}/ps_media/rtp_core/src',
+        '${IMS_ROOT}/ps_media/rtp_test/inc',
+        '${IMS_ROOT}/settings/src/amss',
+        '${IMS_ROOT}/settings/inc',
+        '${IMS_ROOT}/sip/src',
+        '${IMS_ROOT}/framework/coreutils/src',
+        '${IMS_ROOT}/XML/inc',
+        '${IMS_ROOT}/dpl_media/src',
+        '${IMS_ROOT}/framework/maf/src',
+        '${IMS_ROOT}/regmanager/src/amss',
+        '${IMS_ROOT}/ut/inc',
+        '${IMS_ROOT}/apcs/inc',
+        '${IMS_ROOT}/policymanager/inc',
+        '${IMS_ROOT}/optionsmanager/inc',
+        '${IMS_ROOT}/rcs/xdmc/inc/',
+        ])
+
+env.RequireProtectedApi(['IMS'])
+
+
+
+
+# ------------------------------------------------------------------------------
+# Sepcify the list of required include Paths
+#---------------------------------------------------------------------------------
+env.PublishProtectedApi('IMS_DPL',          ['${IMS_ROOT}/dpl/inc',])
+env.PublishProtectedApi('IMS_DPL_MEDIA',    ['${IMS_ROOT}/dpl_media/inc',])
+env.PublishProtectedApi('IMS_FRAMEWORK',    ['${IMS_ROOT}/framework/inc',])
+env.PublishProtectedApi('IMS_SIP',          ['${IMS_ROOT}/sip/inc',])
+env.PublishProtectedApi('IMS_IMSCORE',      ['${IMS_ROOT}/imscore/inc',])
+env.PublishProtectedApi('IMS_SIGCOMP',      ['${IMS_ROOT}/sigcomp/inc',])
+env.PublishProtectedApi('IMS_REGMGR',       ['${IMS_ROOT}/regmanager/src',])
+env.PublishProtectedApi('IMS_PRESENCE',     ['${IMS_ROOT}/Presence/inc',])
+env.PublishProtectedApi('IMS_QIPCALL',      ['${IMS_ROOT}/qipcall/inc',])
+env.PublishProtectedApi('IMS_PROCESS',      ['${IMS_ROOT}/imsprocess/inc',])
+env.PublishProtectedApi('IMS_QMI',          ['${IMS_ROOT}/imsqmi/inc',])
+env.PublishProtectedApi('IMS_SETTINGS',     ['${IMS_ROOT}/settings/src/amss',])
+env.PublishProtectedApi('IMS_XML',          ['${IMS_ROOT}/XML/inc',])
+env.PublishProtectedApi('IMS_UT',           ['${IMS_ROOT}/ut/inc',])
+env.PublishProtectedApi('IMS_UT_UIM',       ['${IMS_ROOT}/ut/src',])
+env.PublishProtectedApi('IMS_AUTO_CONFIG',  ["${IMS_ROOT}/rcs/autoconfig/inc",])
+env.PublishProtectedApi('IMS_RCS_COMMON',   ["${IMS_ROOT}/rcs/common/inc",])
+env.PublishProtectedApi('IMS_RCS_XDMC',     ["${IMS_ROOT}/rcs/xdmc/inc",])
+env.PublishProtectedApi('IMS_APCS',         ["${IMS_ROOT}/apcs/inc",])
+env.PublishProtectedApi('IMS_PM',           ["${IMS_ROOT}/policymanager/inc",])
+env.PublishProtectedApi('IMS_COM',          ['${IMS_ROOT}/optionsmanager/inc',])
+# ------------------------------------------------------------------------------
+# ps media list of path 
+#-------------------------------------------------------------------------------
+env.PublishProtectedApi('IMS_PS_MEDIA_SDP',                 ['${IMS_ROOT}/ps_media/SDP/inc',])
+env.PublishProtectedApi('IMS_PS_MEDIA_QDJ',                 ['${IMS_ROOT}/ps_media/qdj/inc',])
+env.PublishProtectedApi('IMS_PS_MEDIA_RTP_CORE',            ['${IMS_ROOT}/ps_media/rtp_core/inc',])
+env.PublishProtectedApi('IMS_PS_MEDIA_RTP_TEST',            ['${IMS_ROOT}/ps_media/rtp_test/inc',])
+env.PublishProtectedApi('IMS_PS_MEDIA_RTP_JITTER_BUFFER',   ['${IMS_ROOT}/ps_media/rtp_jitter_buffer/inc',])
+env.PublishProtectedApi('IMS_PS_MEDIA_RTP_PROFILE',         ['${IMS_ROOT}/ps_media/rtp_profile/inc',])
+env.PublishProtectedApi('IMS_PS_MEDIA_COMMON_INC',          ['${IMS_ROOT}/ps_media/common/inc',])
+
+
+
+if 'USES_IMS_NO_IPSEC' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_IPSEC",])
+   
+if 'USES_IMS_NO_BREW' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_BREW",])
+
+if 'USES_IMS_NO_AMSS' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_AMSS",])
+   
+if 'USES_IMS_NO_RTP' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_RTP",
+                            "QC_FEATURE_RTP_DISABLE",])
+
+if 'USES_IMS_NO_SDP' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_SDP",])
+
+if 'USES_IMS_NO_MSRP' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_MSRP",])
+   
+if 'USES_IMS_NO_SESSION' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_SESSION",])   
+   
+if 'USES_IMS_NO_SIGCOMP' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_SIGCOMP",])   
+
+if 'USES_IMS_NO_USB_LOGGING' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_USB_LOGGING",])
+   
+if 'USES_IMS_NO_QSR_LOGGING' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_QSR_LOGGING",])
+
+if 'USES_IMS_NO_STANDALONE_AKA' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_STANDALONE_AKA",])
+
+if 'USES_IMS_IMS_DPL_BMP' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_IMS_DPL_BMP",])
+
+if 'USES_IMS_IMS_RX_OPTIMIZED' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_IMS_RX_OPTIMIZED",])
+
+if 'USES_IMS_MEDIA_PROCESS' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_MEDIA_PROCESS",])
+
+#if 'USES_IMS_PROCESS' in env:
+   #env.Append(CPPDEFINES = ["FEATURE_IMS_PROCESS",])
+
+if 'USES_IMS_NO_VIDEO' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_VIDEO",])
+
+if 'USES_IMS_NO_AUDIO' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_AUDIO",])
+
+if 'USES_IMS_RTP_JITTERBUFFER' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_RTP_JITTERBUFFER",])
+   
+if 'USES_IMS_PRESENCE' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_QMI_PRESENCE_SERVICE",])
+
+if 'USES_IMS_APCS' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_APCS",])
+   
+if env['CHIPSET'].lower().find("mdm") == 0:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_HACK_CHIP_IS_MDM",])
+   
+if 'USES_IMS_NO_MEDIA' in env:
+   env.Append(CPPDEFINES = ["FEATURE_IMS_NO_MEDIA",
+                            "FEATURE_IMS_NO_RTP",
+                            "FEATURE_IMS_NO_AUDIO",
+                            "FEATURE_IMS_NO_VIDEO",
+                            "QC_FEATURE_RTP_DISABLE",])
+
+env.Append(CPPDEFINES = ["MAF_NO_GLOBALS",
+                         "QMAF",
+                         "IMS_AMSS_STATIC_BUILD",])
+
+env.RequirePublicApi([
+               'QSH_API',
+               ],area='UTILS')
+
+env.RequirePublicApi([
+               'QSH_PUBLIC',
+               ],area='UTILS')
+
+env.RequirePublicApi([
+               'QSH',
+               ],area='UTILS')
+
+env.RequirePublicApi([
+        'WIREDCONNECTIVITY',
+        'STORAGE',
+        'POWER',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+               'COMPRESSED_HEAP',
+               ], area='PERF')
+
+# Load cleanpack script to remove private files etc. from customer builds:
+if os.path.exists('ims_cleanpack.py'):
+    env.LoadToolScript('ims_cleanpack.py')
+	
+
+env.LoadSoftwareUnits()

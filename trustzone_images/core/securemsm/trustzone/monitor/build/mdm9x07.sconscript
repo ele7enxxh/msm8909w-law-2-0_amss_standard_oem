@@ -1,0 +1,78 @@
+#===============================================================================
+#
+# Monitor lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/monitor/build/mdm9x07.sconscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/12/11   nkazi   Support version rollback prevention and Qfprom drivers
+# 12/18/10   cap     initial version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/monitor/${CHIPSET}/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireExternalApi('MODEM_PMIC_EXTERNAL')
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+env.Append(ASFLAGS = ' --predefine "SYSINI_STUBS SETL {TRUE}"')
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+TZ_MONITOR_LIB_SOURCES = [
+  '${BUILDPATH}/src/tzbsp_l1_dump.c',
+]
+
+TZ_MONITOR_SOURCES = [
+  '${BUILDPATH}/src/tzbsp_l2_dump.c',
+  '${BUILDPATH}/src/tzbsp_monitor.s',
+]
+
+if env['CHIPSET'] == "mdm9x07":
+    CLEAN_SOURCES = env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/trustzone/monitor/msm8936/")
+    CLEAN_SOURCES += env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/trustzone/monitor/msm8916/")
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_monitor', TZ_MONITOR_LIB_SOURCES)
+env.AddObject('TZOS_IMAGE', TZ_MONITOR_SOURCES)
+if env['CHIPSET'] == "mdm9x07":
+    env.CleanPack('TZOS_IMAGE', CLEAN_SOURCES)

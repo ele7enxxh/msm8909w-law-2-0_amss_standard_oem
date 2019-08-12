@@ -1,0 +1,263 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/datacommon/qmi/rel/10.02.02/build/datacommon_qmi.scons#3 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#11/11/13     rk     Removed feature mobileap.
+# 04/08/13    rk     Added support to query commands/TLVs supported by 
+#                    qcmap service. 
+# 12/07/12    tw     QSAP Service registration
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env or 'USES_DATAMODEM_QMI' not in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+    'DAL',
+    'POWER',
+    'MPROC',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+env.RequirePublicApi(['SAP'], area='QMIMSGS')
+
+#-------------------------------------------------------------------------------
+# Necessary QMI Interfaces Public API's
+#-------------------------------------------------------------------------------
+QMI_PUBLIC_APIS = [
+    'AUTH',
+    'DMS',
+    'WDS',
+    'WDA',
+    'CSVT',
+    'DSD',
+    'DPM',
+    'DFS',
+    'ATP',
+    'QOS'
+    ]
+
+env.RequirePublicApi(QMI_PUBLIC_APIS, area='QMIMSGS')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    'GPS',
+    'ECALL'
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+env.RequirePublicApi('MCFG', area='MCFG')
+env.RequirePublicApi('GPS', area='GPS')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    'LTE',
+    'FW',
+    'GPS',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Multimedia Public API's
+#-------------------------------------------------------------------------------
+MM_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+    ]
+
+env.RequirePublicApi(MM_PUBLIC_APIS, area='multimedia')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+#MODEM_PROTECTED_APIS = [
+#    'DATA_ATCOP',
+#    ]
+#env.RequireProtectedApi(MODEM_PROTECTED_APIS)
+
+#-------------------------------------------------------------------------------
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#-------------------------------------------------------------------------------
+REQUIRED_NON_SCONS_APIS = [
+    'WCONNECT', 
+    'BREW',
+    ]
+
+if REQUIRED_NON_SCONS_APIS != []:
+  env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Non-compliant Private Header Include Paths (Must be removed for CRM builds)
+#-------------------------------------------------------------------------------
+#if ARGUMENTS.get('SCONS_VIOLATIONS_LEVEL',0) > 99:
+#		print "SCONS VIOLATIONS enabled" 
+		
+#		env.PublishPrivateApi('VIOLATIONS',[
+#			'${INC_ROOT}/modem/data/1x/707/src',
+#                        '${INC_ROOT}/modem/mmcp/nas/mm/src',
+#			])
+		
+#		env.RequirePrivateApi('VIOLATIONS')
+
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+DATAMODEM_QMIDATA_SOURCES = [
+   '${BUILDPATH}/src/qmi_charger.c',
+   '${BUILDPATH}/src/ds_qmi_ctl.c',
+   '${BUILDPATH}/src/ds_qmi_ctl_remote.c',
+   '${BUILDPATH}/src/ds_qmi_dms.c',
+   '${BUILDPATH}/src/ds_qmi_if.c',
+   '${BUILDPATH}/src/ds_qmi_wds.c',
+   '${BUILDPATH}/src/ds_qmi_auth.c',
+   '${BUILDPATH}/src/ds_qmi_at.c',
+   '${BUILDPATH}/src/ds_qmi_wds_profile.c',
+   '${BUILDPATH}/src/ds_qmi_cflog.c',
+   '${BUILDPATH}/src/ds_qmi_pwrmgmt_shim.c',
+   '${BUILDPATH}/src/ds_qmi_wds_pbm.c',
+   '${BUILDPATH}/src/ds_qmi_nv_util.c',
+   '${BUILDPATH}/src/ds_qmi_wda.c',
+   '${BUILDPATH}/src/ds_qmi_csvt.c',
+   '${BUILDPATH}/src/ds_qmi_dsd.c',
+   '${BUILDPATH}/src/ds_qmi_dfs.c',
+   '${BUILDPATH}/src/ds_qmi_dpm.c',
+   '${BUILDPATH}/src/ds_qmi_atp.c',
+   '${BUILDPATH}/src/ds_qmi_fw_common.c',
+   '${BUILDPATH}/src/authentication_service_impl_v01.c',
+   '${BUILDPATH}/src/device_management_service_impl_v01.c',
+   '${BUILDPATH}/src/wireless_data_administrative_service_impl_v01.c',
+   '${BUILDPATH}/src/wireless_data_service_impl_v01.c',
+   '${BUILDPATH}/src/circuit_switched_video_telephony_impl_v01.c',
+   '${BUILDPATH}/src/data_system_determination_impl_v01.c',
+   '${BUILDPATH}/src/data_filter_service_impl_v01.c',
+   '${BUILDPATH}/src/application_traffic_pairing_service_impl_v01.c'
+   ]
+  
+DATAMODEM_QMIDATA_QOS_SOURCES = [
+   '${BUILDPATH}/src/ds_qmi_qos.c',
+   ]
+
+DATAMODEM_QMIDATA_UMTS_SOURCES = [
+   '${BUILDPATH}/src/ds_qmi_wds_umts.c',
+   ]
+
+DATAMODEM_QMIDATA_LTE_SOURCES = [
+   '${BUILDPATH}/src/ds_qmi_wds_lte.c',
+   ]
+
+DATAMODEM_QMIDATA_ONTARGET_DS_TEST_SOURCES = [
+   '${BUILDPATH}/src/ds_qmi_otdt.c',
+   ]
+   
+DATAMODEM_QMIDATA_ONTARGET_DS_TEST_STUBS = [
+   '${BUILDPATH}/src/ds_qmi_otdt_stubs.c',
+   ]
+
+if 'USES_DATAMODEM_QMI_QOS' in env:
+   DATAMODEM_QMIDATA_SOURCES += DATAMODEM_QMIDATA_QOS_SOURCES
+
+if 'USES_DATAMODEM_QMI_UMTS' in env:
+   DATAMODEM_QMIDATA_SOURCES += DATAMODEM_QMIDATA_UMTS_SOURCES
+
+if 'USES_DATAMODEM_QMI_LTE' in env:
+   DATAMODEM_QMIDATA_SOURCES += DATAMODEM_QMIDATA_LTE_SOURCES
+
+if 'USES_DATAMODEM_DS_API_TEST' in env:
+   env.RequirePublicApi(['OTDT'], area='QMIMSGS')
+   DATAMODEM_QMIDATA_SOURCES += DATAMODEM_QMIDATA_ONTARGET_DS_TEST_SOURCES
+else:
+   DATAMODEM_QMIDATA_SOURCES += DATAMODEM_QMIDATA_ONTARGET_DS_TEST_STUBS
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/qmidata',[DATAMODEM_QMIDATA_SOURCES, ])
+

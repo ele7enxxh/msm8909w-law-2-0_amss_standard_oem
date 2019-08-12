@@ -1,0 +1,97 @@
+#===============================================================================
+#
+# Target-Level Build Script for Modem Processor
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/bsp/modifycfg_img/build/modifycfg_img.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import sys
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = ['modifycfg_img']
+
+# init environment variables
+env.InitImageVars(
+   alias_list=aliases,        # aliases
+   proc='qdsp6',              # proc
+   config='qdsp6_sw',         # config type, proc_name
+   plat='qurt',
+   target= 'MODIFYCFGIMG_${BUILD_ID}',   # target (elf, image file name)
+   tools = ['buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py']
+   )
+
+if not env.CheckAlias(alias_list=aliases):
+   Return()
+
+#------------------------------------------------------------------------------
+# Setting up export paths for access to elfparserutil.py
+#------------------------------------------------------------------------------
+corebsp_scripts_path = env.RealPath('${BUILD_ROOT}/core/bsp/build/scripts/')
+sys.path.append(corebsp_scripts_path)
+
+#------------------------------------------------------------------------------
+# Print banner
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+env.Replace(QDSP6_LIBDIR = "${COREBSP_ROOT}/kernel/qurt/install/modemv5/lib")
+env.Tool('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.Tool('qdsp6_defs', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+
+#---------------------------------------------------------------------------
+# Load in the compiler options for the devcfg image
+#---------------------------------------------------------------------------
+# This ensures that there is no .sdata section created in the devcfg image
+env.Append(CFLAGS = "-G0 -fno-zero-initialized-in-bss ")
+
+#---------------------------------------------------------------------------
+# Libraries/Objects Section
+#---------------------------------------------------------------------------
+modifycfg_units = []
+elf_name = env.RealPath('${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}.elf')
+
+#-------------------------------------------------------------------------
+# Build env mbn files
+#-------------------------------------------------------------------------
+target_mbn = env.MbnBuilder('${TARGET_NAME}', elf_name, IMAGE_TYPE="qdsp6sw",
+   FLASH_TYPE=env['TARGET_FLASH_TYPE'])
+print target_mbn   
+env.Depends(target_mbn,elf_name)
+
+#=========================================================================
+# Define targets needed DEVCFGIMG
+#=========================================================================
+modifycfg_units += [
+   target_mbn
+]
+
+# add aliases
+for alias in aliases:
+   env.Alias(alias, modifycfg_units)

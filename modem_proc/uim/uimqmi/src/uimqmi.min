@@ -1,0 +1,36 @@
+#-------------------------------------------------------------------------------
+# UIMQMI
+#-------------------------------------------------------------------------------
+UIMQMI_SOURCES=\
+  qmi_cat.c \
+  qmi_cat_decoded.c \
+  qmi_uim.c \
+  qmi_uim_parsing.c \
+  qmi_uim_encryption.c \
+  qmi_sim_internal.c \
+  qmi_sim_internal_util.c \
+  qmi_uim_cat_common.c
+
+UIMQMI_OBJS :=  $(addprefix $(TARGETDIR)/, $(UIMQMI_SOURCES:%.c=%.o))
+vpath %.c $(UIMQMI_SRC)
+
+ifeq ($(BIG),yes)
+        UIMQMI_OBJS := $(TARGETDIR)/uimqmi.lib
+else
+        UIMQMI_OBJS :=  $(addprefix $(TARGETDIR)/, $(UIMQMI_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/uimqmi.lib : $(UIMQMI_SOURCES)
+	$(group_c_compile)
+
+
+### Start Lint block ###
+ifeq ($(DO_LINT),yes)
+
+UIMQMI_LINT_OBJS := $(addprefix $(LINTDIR)/, $(UIMQMI_SOURCES:%.c=%.lint))
+
+# Specify group target for linting UIMQMI unit
+$(LINTDIR)/uimqmi_lint : $(UIMQMI_LINT_OBJS)
+
+endif
+### End Lint block ###

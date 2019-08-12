@@ -1,0 +1,205 @@
+#===============================================================================
+#
+# RDEVMAP Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/wiredconnectivity/rdevmap/build/SConscript#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/wiredconnectivity/rdevmap/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+if env['MSM_ID'] in ['8952']:
+    env.Append(CPPDEFINES=['FEATURE_SIO_IPA_SUPPORT'])
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+#  It looks like if a bogus interface identifier is given (e.g. XXXXX_BOGUS),
+#  it's silently ignored.  This is good.  It allows you to create a common
+#  list used across all targets.
+
+CBSP_XAPI = [
+    'CS',
+    'DSM',
+    'MODEM_1X',
+    'MODEM_ADIE',
+    'MODEM_API',
+    'MODEM_DATA',
+    'MODEM_HDR',
+    'MODEM_MMODE',
+    'MODEM_NAS',
+    'MODEM_PMIC',
+    'MODEM_RF',
+    'MODEM_SERVICES',
+    'MODEM_UIM',
+    'MODEM_WCDMA',
+    'MULTIMEDIA',
+    'MULTIMEDIA_AUDIO',
+    'WCONNECT',
+    'WIRELESSCONNECTIVITY',
+]
+
+env.RequireExternalApi( CBSP_XAPI )
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+    'DAL',
+    'DEBUGTOOLS',
+    'HAL',
+    'HWENGINES',
+    'MPROC',
+    'SECUREMSM',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',   
+]
+
+MODEM_API = [
+   'DATA',
+]
+
+env.RequirePublicApi( CBSP_API )
+env.RequireRestrictedApi( CBSP_API )
+
+env.RequirePublicApi(MODEM_API, area='MODEM')
+
+#-------------------------------------------------------------------------------
+# Customizations for rdevmap
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+
+if env['MSM_ID'] in ['6615','6695']:
+
+    RDEVMAP_SOURCES =  [
+        '${BUILDPATH}/rdevmap.c',
+    ]
+
+else: 
+
+    #  Do for all targets moving forward (8660, 8960, 9x15, 8064, 8794, etc.)
+    #  We don't want to add a case here for each specific target.
+
+    RDEVMAP_MODEM_SOURCES =  [
+       '${BUILDPATH}/rdevmap.c',
+    ]
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+if env['MSM_ID'] in ['6615','6695']:
+
+    env.AddLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE'], '${BUILDPATH}/rdevmap',RDEVMAP_SOURCES )
+
+elif env['MSM_ID'] in ['7x30']:
+
+    env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE'], '${BUILDPATH}/rdevmap',RDEVMAP_SOURCES )
+    env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE'], '${BUILDPATH}/rdevmap_apps',RDEVMAP_MODEM_SOURCES )
+
+elif env['MSM_ID'] in ['8660']:
+
+    env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE'], '${BUILDPATH}/rdevmap',RDEVMAP_SOURCES )
+    env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE'], '${BUILDPATH}/rdevmap_apps',RDEVMAP_MODEM_SOURCES )
+
+
+elif env['MSM_ID'] in ['9x00']:
+
+    env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE'], '${BUILDPATH}/rdevmap',RDEVMAP_SOURCES )
+    env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'], '${BUILDPATH}/rdevmap',RDEVMAP_SOURCES )
+    env.AddLibrary(['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], '${BUILDPATH}/rdevmap',RDEVMAP_SOURCES )
+    env.AddLibrary(['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], '${BUILDPATH}/rdevmap_apps',RDEVMAP_MODEM_SOURCES)
+
+else:
+
+    #  Do this for all targets moving forward (8960, 9x15, 8064, 8974, etc.) 
+    #  We don't want to add a case here for each specific target.
+
+    env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE', 'CORE_QDSP6_SW'], '${BUILDPATH}/rdevmap_apps',RDEVMAP_MODEM_SOURCES)
+
+#---------------------------------------------------------------------------
+# Setup the constants for document title and the DCN number for Agile
+#---------------------------------------------------------------------------
+env['DOCTITLE']="Rdevmap API"
+env['DOCREVISION']="80-N1874-1"
+
+DOCSRCPATH = "${BUILD_ROOT}/core/api/wiredconnectivity"
+env.Replace(DOCSRCPATH = DOCSRCPATH)
+
+#---------------------------------------------------------------------------
+# List of Header files that contain doxygen tags   List of TeX files that
+# contain documentation to be merged with doxygen generated TeX files
+#---------------------------------------------------------------------------
+docsrcfiles = [
+    '${DOCSRCPATH}/docsrc/rdevmap/rdevmap_MainPage.h',
+    '${DOCSRCPATH}/rdevmap.h',
+    '${DOCSRCPATH}/docsrc/rdevmap/introduction.tex',
+
+    ]
+
+#---------------------------------------------------------------------------
+# Call the builder with the name of the document. The document can 
+# be found under \core\api\doc once the build completes.
+#---------------------------------------------------------------------------
+if env['MSM_ID'] in ['7x30']:
+    target_doc = env.PdfDocument('Rdevmap_API', 
+                                 docsrcfiles
+                                )
+
+#---------------------------------------------------------------------------
+# Finally add the document to the core docs target. 
+#---------------------------------------------------------------------------
+if env['MSM_ID'] in ['7x30']:
+    env.AddDocs('CORE_DOCS',target_doc)
+
+#---------------------------------------------------------------------------
+# RCInit framework.
+#---------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitFunc(           # Code Fragment in TMC: NO
+    RCINIT_IMG,                 # define TMC_RCINIT_INIT_RDM_ISSUE_OPENS
+    {
+     'sequence_group'             : 'RCINIT_GROUP_7',                   # required
+     'init_name'                  : 'rdm_opens',                        # required
+     'init_function'              : 'rdm_issue_opens',                  # required
+     'dependencies'               : ['',]
+    })
+

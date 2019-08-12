@@ -1,0 +1,230 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/datacommon/hc/rel/10.02.02/build/datacommon_hc.scons#3 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env or 'USES_DATAMODEM_HC' not in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_DS",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+
+#-------------------------------------------------------------------------------
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#-------------------------------------------------------------------------------
+REQUIRED_NON_SCONS_APIS = [
+    'WCONNECT', 
+    'BREW',
+    'CS',
+    ]
+
+if REQUIRED_NON_SCONS_APIS != []:
+  env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+DATAMODEM_HC_SOURCES = [
+    '${BUILDPATH}/src/ps_slhc.c',
+    '${BUILDPATH}/src/ps_comp_logging_helper.c',
+    ]
+
+#DATAMODEM_HC_IPHC_SOURCES = [
+#    '${BUILDPATH}/src/ps_iphc_config.c',
+#    ]
+
+#DATAMODEM_HC_ROHC_SOURCES = [
+#    '${BUILDPATH}/src/ps_rohc_configure.c',
+#    ]
+
+#if 'USES_DATAMODEM_HC_IPHC' in env:
+#  DATAMODEM_HC_SOURCES += DATAMODEM_HC_IPHC_SOURCES
+
+#if 'USES_DATAMODEM_HC_ROHC' in env:
+#  DATAMODEM_HC_SOURCES += DATAMODEM_HC_ROHC_SOURCES
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM'], '${BUILDPATH}/hc', DATAMODEM_HC_SOURCES)
+
+#code shipped as binary library
+LIB_DATAMODEM_HC_SOURCES = []
+
+if 'USES_DATAMODEM_HC_IPHC' in env:
+  LIB_DATAMODEM_HC_IPHC_SOURCES = [
+    '${BUILDPATH}/src/ps_iphc.c',
+    '${BUILDPATH}/src/ps_iphc_ipv4.c',
+    '${BUILDPATH}/src/ps_iphc_auth.c',
+    '${BUILDPATH}/src/ps_iphc_esp.c',
+    '${BUILDPATH}/src/ps_iphc_min_encapsulation.c',
+    '${BUILDPATH}/src/ps_iphc_tcp.c',
+    '${BUILDPATH}/src/ps_iphc_udp.c',
+    '${BUILDPATH}/src/ps_iphc_virtual_non_tcp.c',
+    '${BUILDPATH}/src/ps_stat_iphc.c',
+    '${BUILDPATH}/src/ps_iphc_config.c',
+    ]
+else:
+  LIB_DATAMODEM_HC_IPHC_SOURCES = [
+    '${BUILDPATH}/src/ps_iphc_stubs.c',
+	]
+
+LIB_DATAMODEM_HC_IPHCV6_SOURCES = [
+    '${BUILDPATH}/src/ps_iphc_ipv6.c',
+    '${BUILDPATH}/src/ps_iphc_ipv6_dest_opt.c',
+    '${BUILDPATH}/src/ps_iphc_ipv6_fragment.c',
+    '${BUILDPATH}/src/ps_iphc_ipv6_hopbyhop.c',
+    '${BUILDPATH}/src/ps_iphc_ipv6_options.c',
+    '${BUILDPATH}/src/ps_iphc_ipv6_routing.c',
+    ]
+
+if 'USES_DATAMODEM_HC_ROHC' in env:
+  LIB_DATAMODEM_HC_ROHC_SOURCES = [
+    '${BUILDPATH}/src/ps_rohc.c',
+    '${BUILDPATH}/src/ps_rohc_cmb.c',
+    '${BUILDPATH}/src/ps_rohc_crc.c',
+    '${BUILDPATH}/src/ps_rohc_ctxmgr_lru.c',
+    '${BUILDPATH}/src/ps_rohc_dc.c',
+    '${BUILDPATH}/src/ps_rohc_dc_elr.c',
+    '${BUILDPATH}/src/ps_rohc_dc_list.c',
+    '${BUILDPATH}/src/ps_rohc_dc_t012.c',
+    '${BUILDPATH}/src/ps_rohc_effrccm.c',
+    '${BUILDPATH}/src/ps_rohc_hc.c',
+    '${BUILDPATH}/src/ps_rohc_hc_find_changes.c',
+    '${BUILDPATH}/src/ps_rohc_hc_list.c',
+    '${BUILDPATH}/src/ps_rohc_hc_private.c',
+    '${BUILDPATH}/src/ps_rohc_rvdc.c',
+    '${BUILDPATH}/src/ps_rohc_segmentation.c',
+    '${BUILDPATH}/src/ps_stat_rohc.c',
+    ]
+else:
+  LIB_DATAMODEM_HC_ROHC_SOURCES = [
+    '${BUILDPATH}/src/ps_rohc_stubs.c',
+	]
+
+LIB_DATAMODEM_HC_SOURCES += LIB_DATAMODEM_HC_IPHC_SOURCES
+	
+if 'USES_DATAMODEM_HC_IPHC' in env:
+  if 'USES_MODEM_DATAMODEM_IPV6' in env:
+		LIB_DATAMODEM_HC_SOURCES += LIB_DATAMODEM_HC_IPHCV6_SOURCES
+
+if 'USES_DATAMODEM_HC' in env:
+   env.AddBinaryLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], 
+                        '${BUILDPATH}/lib_hc_rohc', 
+                        [LIB_DATAMODEM_HC_ROHC_SOURCES, ],
+                        pack_exception=['USES_CUSTOMER_GENERATE_LIBS', 'USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'])
+
+   env.AddBinaryLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], 
+                        '${BUILDPATH}/lib_hc',
+                         [LIB_DATAMODEM_HC_SOURCES, ])  

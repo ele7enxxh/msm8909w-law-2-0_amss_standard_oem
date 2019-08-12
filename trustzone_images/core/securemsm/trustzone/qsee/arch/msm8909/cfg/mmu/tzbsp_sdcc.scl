@@ -1,0 +1,143 @@
+// *====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+//
+//                     SCATTER LOADING DESCRIPTION FILE
+//
+//  Copyright (c) 2011-2014 by QUALCOMM Technology Inc. All Rights Reserved.
+//
+//  GENERAL DESCRIPTION
+//
+//  The scatter loading description file is used by the TZBSP.
+//
+//
+//  The sample memory map layout is given below.
+//  The indirect exception vector table set up by the PBL is
+//  overwritten with TZBSP vectors.
+//
+//                         ____________________________
+//     start   ^          |                            |
+//             |          |        Vector Table        |
+//             |          |____________________________|
+//             |          |                            |
+//             |          |           Code             |
+//             |          |____________________________|
+//             |          |                            |
+//             |          |          RW Data           |
+//             |          |____________________________|
+//             |          |                            |
+//             |          |          ZI Data           |
+//             |          |____________________________|
+//             |          |                            |
+//             |          | (1kB)  L2 Page Table       |
+//           192KB        |____________________________|
+//             |          |                            |
+//             |          | (4kB)   Uncached ZI        |
+//             |          |____________________________|
+//             |          |                            |
+//             |          | (4kB)   Diagnostic         |
+//             |          |____________________________|
+//             |          |                            |
+//             |          | (12kB)    Heap             |
+//             |          |____________________________|
+//             |          |                            |
+//             |          | (4kB)     Stack            |
+//             |          |____________________________|
+//             |          |                            |
+//             |          | (16kB)  L1 Page Table      |
+//     end     v          |____________________________|
+//
+//
+//*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+
+//===========================================================================
+//
+//                           EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+//  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsee/arch/msm8909/cfg/mmu/tzbsp_sdcc.scl#1 $
+//
+// when       who     what, where, why
+// --------   ---     -------------------------------------------------------
+// 02/07/14   hw      Add tzbsp_secctrl.o
+// 07/25/11   jct     Added TZBSP diagnostic revisions
+// 04/19/11   jct     Initial version
+//===========================================================================
+
+#include "tzbsp_target.h"
+
+TZ_CODE_LR TZBSP_CODE_BASE ALIGN 0x10000
+{
+  TZBSP_CODE +0x0
+  {
+    tzbsp_entry.o (TZBSP_VECTOR_TABLE, +FIRST)
+    HALvmidmtGenImpl.o (+RO-CODE)
+    .ANY (+RO-CODE)
+  }
+}
+
+TZ_DATA_RO +0x0 ALIGN 4096
+{
+  TZBSP_RO_DATA +0x0 ALIGN 4096
+  {
+    .ANY (+RO-DATA)
+  } 
+}
+
+TZ_DATA_RW +0x0 ALIGN 4096
+{
+  TZBSP_RAM_RW +0x0 ALIGN 4096
+  {
+    .ANY (+RW)
+    .ANY (_tz_syscall)
+  }
+
+  TZBSP_RAM_ZI +0x0
+  {
+    .ANY (+ZI)
+  }
+}
+
+TZ_L2_POOL AlignExpr(ImageLimit(TZ_DATA_RW), 1024)
+{
+  L2_POOL +0x0
+  {
+    * (L2_TT_MEM)
+  }
+}
+
+
+TZBSP_DAL_HEAP TZBSP_HEAP_BASE
+{
+  TZBSP_DAL_HEAP TZBSP_HEAP_BASE
+  {
+    .ANY (TZBSP_HEAP_AREA)
+  }
+}
+
+TZ_STACK (TZBSP_STACK_BASE - TZBSP_STACK_SIZE)
+{
+  /* Reserve some space for the stack. */
+  TZBSP_STACK +0x0 FILL 0xCDCDCDCD TZBSP_STACK_SIZE
+  {
+  }
+}
+
+TZ_L1 TZBSP_L1_PT_BASE
+{
+  L1 TZBSP_L1_PT_BASE
+  {
+    * (L1_TT_MEM)
+  }
+}
+
+TZBSP_UNCACHED_ZI TZBSP_UNCACHED_ZI_BASE
+{
+  TZBSP_UNCACHED_ZI +0x0
+  {
+    // With the current sort algorithm, it seems, the RAM_RW .ANY operator
+    // is equally as specific as the following one; therefore, bump the
+    // priority of this operator
+    .ANY1 (TZBSP_UNCACHED_ZI*)
+  }      
+}
+

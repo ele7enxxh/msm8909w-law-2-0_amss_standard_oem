@@ -1,0 +1,63 @@
+#===============================================================================
+#
+#                             Edit History
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/kernel/mmu/build/SConscript#1 $
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011/04/26   spa     Create initial version
+#
+#===============================================================================
+# Copyright (c) 2011 - 2013
+# Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'KERNEL',
+   'SECUREMSM',
+   'SERVICES',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+#-------------------------------------------------------------------------------
+# Internal depends within subunit
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+if env['TARGET_NAME'] == 'tz':
+   env.Append(CPPDEFINES = ['CONTIG_HINT_OFF'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#------------------------------------------------------------------------------
+HYP_SOURCES = [      
+   '${BUILDPATH}/mmu_lpae.c',
+   '${BUILDPATH}/vm_maps.c',
+   '${BUILDPATH}/vm_mm.c',
+   '${BUILDPATH}/vm_mm_asm.s',
+]
+
+TZ_SOURCES = [
+   '${BUILDPATH}/mmu_lpae.c',
+]
+
+env.AddBinaryObject(['HYPERVISOR_IMAGE'], HYP_SOURCES)
+
+env.AddBinaryObject(['TZOS_IMAGE'], TZ_SOURCES)

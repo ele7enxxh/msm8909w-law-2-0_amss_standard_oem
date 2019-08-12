@@ -1,0 +1,147 @@
+#===============================================================================
+#
+# secrsa Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/scmm/main/latest/securemsm/ssl/build/SConscript#1 $
+#  $DateTime: 2009/10/02 00:38:04 $
+#  $Author: cbirch $
+#  $Change: 1042912 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Set search path for securemsm subsystem files
+#-------------------------------------------------------------------------------
+if env.has_key('TZOS_IMAGE'):
+	env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secrsa/env/tz/inc")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secmath/env/tz/inc")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/api/securemsm/crypto")
+if env.has_key('SAMPLEAPP_IMAGE'):
+	env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secrsa/env/sampleapp/inc")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secmath/env/sampleapp/inc")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/api/securemsm/trustzone/qsee")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/api/securemsm/crypto")
+if env.has_key('CTZL_IMAGE'):
+	env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/applib/common/src")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secrsa/env/sampleapp/inc")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secmath/env/sampleapp/inc")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/api/securemsm/trustzone/qsee")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/api/securemsm/crypto")
+if env.has_key('WIDEVINE_IMAGE'):
+	env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secrsa/env/sampleapp/inc")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secmath/env/sampleapp/inc")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/api/securemsm/trustzone/qsee")
+	env.Append(CPPPATH = "${COREBSP_ROOT}/api/securemsm/crypto")
+  
+#env.Append(ARMCC_OPT = ' -EC --loose_implicit_cast ')
+#env.Append(ARMCPP_OPT = ' -EC --loose_implicit_cast ')
+
+if env.has_key('KEYMASTER_IMAGE'):
+  env.Append(CCFLAGS = " --restrict  -O3 -OTime ")
+elif env.has_key('SAMPLEAPP_IMAGE'):
+  env.Append(CCFLAGS = " --restrict  -O3 -OTime ")
+elif env.has_key('CTZL_IMAGE'):
+  env.Append(CCFLAGS = " --restrict  -O3 -OTime ")
+else:
+  env.Append(CCFLAGS = " --restrict  -O3 -OTime -DTZ_APP_LEGACY")
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/secrsa"
+
+#-------------------------------------------------------------------------------
+# Let Scons build the object files in $(BUILDPATH} and don't copy over files
+#-------------------------------------------------------------------------------
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within SecureMSM
+#-------------------------------------------------------------------------------
+# See securemsm\build\sconscript for definitions of listings
+
+SME_PROTECTED_API = [
+        'SECBOOT',
+	'SECMATH',
+	'SECRSA',
+]
+env.RequireProtectedApi(['SECUREMSM'])
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SECRSA_SOURCES =[
+  '${BUILDPATH}/shared/src/secrsa_encryption.c',
+  '${BUILDPATH}/shared/src/secrsa_exptmod.c',
+  '${BUILDPATH}/shared/src/secrsa_math.c',
+  '${BUILDPATH}/shared/src/secrsa_signature.c',
+  '${BUILDPATH}/shared/src/secrsa_utils.c',
+  '${BUILDPATH}/shared/src/secrsa_mem.c',
+  '${BUILDPATH}/shared/src/secrsa_crt.c',
+  '${BUILDPATH}/shared/src/secrsa_math2.c',
+  '${BUILDPATH}/shared/src/secrsa_padding.c',
+  '${BUILDPATH}/shared/src/secpkcs8.c',
+  '${BUILDPATH}/shared/src/secasn1.c',
+  '${BUILDPATH}/shared/src/secrsa_keygen.c',
+]
+
+SECRSA_PRIV_HEADERS = env.GlobFiles('*.h', '${BUILDPATH}/shared/src/')
+
+SECRSA_CLEAN = [
+	'${BUILDPATH}/shared/src/secrsa_keygen.c',
+]
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+env.AddBinaryLibrary(['TZOS_IMAGE', 'TZEXEC_IMAGE', 'CTZL_IMAGE','WIDEVINE_IMAGE'],
+			'${BUILDPATH}/secrsa',
+			SECRSA_SOURCES)
+env.CleanPack(['TZOS_IMAGE', 'TZEXEC_IMAGE', 'CTZL_IMAGE','WIDEVINE_IMAGE'], SECRSA_CLEAN)
+

@@ -1,0 +1,583 @@
+;PMIC_SBL1_BOOT_1p1_08032012
+
+;============================================================================
+;  Name:
+;    pmic_sbl1.cmm
+;
+;  Description:
+;    JTAG script to initilize PMIC
+;
+;
+;  Copyright (c) 2012 Qualcomm Technologies Incorporated. 
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/rpm.bf/2.1.1/core/systemdrivers/pmic/framework/test/T32/pmic_init.cmm#1 $
+; $DateTime: 2015/02/25 02:53:43 $ $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; --------   ---     --------------------------------------------------------
+; 08/05/12   umr     Initial revision
+;============================================================================;
+;Build: boot	SBL1	Application Processor Boot       Version: 
+ENTRY &OwnerChannel
+
+if "&OwnerChannel"=="" 
+(
+  print "Info: Defaulting Owner to Krait!"
+  &OwnerChannel=0
+)
+
+print "Initializing Aragorn CDP PMIC Version-PMIC_SBL1_BOOT_1p1_08032012"
+
+    ;INIT-- PON_INIT
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x08D0 0xA5    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x08F2 0xB2    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x0942 0x01    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+   
+    ;INIT-- PON_INIT_8841
+                     do spmi_bus.cmm Write &OwnerChannel 4 0x08D0 0xA5    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 4 0x08F2 0xAA    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 4 0x085A 0x00    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 4 0x085A 0x06    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 4 0x0846 0x00    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 4 0x0846 0x01    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 4 0x0844 0x00    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 4 0x0845 0x00    ; mask:0xFF, sequence#8
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 4 0x0871 0x00    ; mask:0xFF, sequence#9
+                    ;Check for error when SPMI returns a err code.
+     wait 1.ms 
+                     do spmi_bus.cmm Write &OwnerChannel 4 0x085A 0x86    ; mask:0xFF, sequence#11
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 4 0x0846 0x81    ; mask:0xFF, sequence#12
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- CLOCKS
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5945 0x81    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x504C 0x05    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x504D 0x00    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5940 0x3F    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5941 0x01    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5942 0x00    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5943 0x00    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5A58 0xAA    ; mask:0xFF, sequence#8
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5A59 0xFF    ; mask:0xFF, sequence#9
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5A5A 0x01    ; mask:0xFF, sequence#10
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5A5B 0xC0    ; mask:0xFF, sequence#11
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5A5C 0xFF    ; mask:0xFF, sequence#12
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x2845 0x03    ; mask:0xFF, sequence#13
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x2846 0x80    ; mask:0xFF, sequence#14
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x6044 0x45    ; mask:0xFF, sequence#15
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x6046 0x80    ; mask:0xFF, sequence#16
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5A46 0x80    ; mask:0xFF, sequence#17
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x5A48 0x80    ; mask:0xFF, sequence#18
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 0 0x6044 0x45    ; mask:0xFF, sequence#19
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- LDOs_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x4B48 0x00    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x4A48 0x00    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x5248 0x00    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x4F48 0x00    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x4052 0xF0    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x4352 0xF0    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x4A52 0xF0    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- BUCK_UL_LL_AND_PD_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x14D0 0xA5    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1469 0x5A    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x14D0 0xA5    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x146B 0x42    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x14D0 0xA5    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1468 0x03    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x17D0 0xA5    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1769 0x1C    ; mask:0xFF, sequence#8
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x17D0 0xA5    ; mask:0xFF, sequence#9
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x176B 0x08    ; mask:0xFF, sequence#10
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x17D0 0xA5    ; mask:0xFF, sequence#11
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1768 0x03    ; mask:0xFF, sequence#12
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1AD0 0xA5    ; mask:0xFF, sequence#13
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A69 0x0C    ; mask:0xFF, sequence#14
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1AD0 0xA5    ; mask:0xFF, sequence#15
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A6B 0x08    ; mask:0xFF, sequence#16
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1AD0 0xA5    ; mask:0xFF, sequence#17
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A68 0x03    ; mask:0xFF, sequence#18
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x14D0 0xA5    ; mask:0xFF, sequence#19
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1468 0x03    ; mask:0xFF, sequence#20
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x14D0 0xA5    ; mask:0xFF, sequence#21
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1469 0x36    ; mask:0xFF, sequence#22
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x14D0 0xA5    ; mask:0xFF, sequence#23
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x146B 0x17    ; mask:0xFF, sequence#24
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x17D0 0xA5    ; mask:0xFF, sequence#25
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1769 0xD2    ; mask:0xFF, sequence#26
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x17D0 0xA5    ; mask:0xFF, sequence#27
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x176B 0x63    ; mask:0xFF, sequence#28
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x17D0 0xA5    ; mask:0xFF, sequence#29
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1768 0xC0    ; mask:0xFF, sequence#30
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1AD0 0xA5    ; mask:0xFF, sequence#31
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A68 0x03    ; mask:0xFF, sequence#32
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1AD0 0xA5    ; mask:0xFF, sequence#33
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A69 0x36    ; mask:0xFF, sequence#34
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1AD0 0xA5    ; mask:0xFF, sequence#35
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A6B 0x1C    ; mask:0xFF, sequence#36
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1DD0 0xA5    ; mask:0xFF, sequence#37
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1D69 0xD2    ; mask:0xFF, sequence#38
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1DD0 0xA5    ; mask:0xFF, sequence#39
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1D6B 0xA2    ; mask:0xFF, sequence#40
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1DD0 0xA5    ; mask:0xFF, sequence#41
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1D68 0xC0    ; mask:0xFF, sequence#42
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x20D0 0xA5    ; mask:0xFF, sequence#43
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2069 0xD2    ; mask:0xFF, sequence#44
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2369 0xD2    ; mask:0xFF, sequence#45
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2669 0xD2    ; mask:0xFF, sequence#46
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2969 0xD2    ; mask:0xFF, sequence#47
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x20D0 0xA5    ; mask:0xFF, sequence#48
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x206B 0x91    ; mask:0xFF, sequence#49
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x236B 0x91    ; mask:0xFF, sequence#50
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x266B 0x91    ; mask:0xFF, sequence#51
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x296B 0x91    ; mask:0xFF, sequence#52
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x20D0 0xA5    ; mask:0xFF, sequence#53
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2068 0xC0    ; mask:0xFF, sequence#54
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2368 0xC0    ; mask:0xFF, sequence#55
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2668 0xC0    ; mask:0xFF, sequence#56
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2968 0xC0    ; mask:0xFF, sequence#57
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1748 0x00    ; mask:0xFF, sequence#58
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- BUCK_CURRENT_LIMITS
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x154A 0x85    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x184A 0x83    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1B4A 0x81    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x154A 0x86    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1B4A 0x84    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x18D0 0xA5    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1860 0x05    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1ED0 0xA5    ; mask:0xFF, sequence#8
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1E60 0x05    ; mask:0xFF, sequence#9
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x21D0 0xA5    ; mask:0xFF, sequence#10
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2160 0x05    ; mask:0xFF, sequence#11
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x24D0 0xA5    ; mask:0xFF, sequence#12
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2460 0x05    ; mask:0xFF, sequence#13
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x27D0 0xA5    ; mask:0xFF, sequence#14
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2760 0x05    ; mask:0xFF, sequence#15
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2AD0 0xA5    ; mask:0xFF, sequence#16
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2A60 0x05    ; mask:0xFF, sequence#17
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- HF_BUCK_FREQ
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1445 0x40    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1650 0x0B    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1451 0x03    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1452 0x07    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1453 0x05    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1456 0x06    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x154A 0xBA    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1444 0x47    ; mask:0xFF, sequence#8
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x145B 0x1C    ; mask:0xFF, sequence#9
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x154B 0x84    ; mask:0xFF, sequence#10
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x145A 0x16    ; mask:0xFF, sequence#11
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x145D 0xA2    ; mask:0xFF, sequence#12
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x145C 0xA3    ; mask:0xFF, sequence#13
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S2_HF_BUCK_FREQ
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1745 0x40    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1950 0x0B    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1751 0x03    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1752 0x09    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1753 0x03    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1756 0x00    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x184A 0xBC    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1744 0x47    ; mask:0xFF, sequence#8
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x175B 0x1C    ; mask:0xFF, sequence#9
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x184B 0x83    ; mask:0xFF, sequence#10
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x175A 0x16    ; mask:0xFF, sequence#11
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x175D 0xA5    ; mask:0xFF, sequence#12
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x175C 0xBC    ; mask:0xFF, sequence#13
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S1B_HF_BUCK_FREQ
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1445 0x40    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1650 0x03    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1451 0x00    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1452 0x04    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1453 0x84    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1456 0x04    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x154A 0xB9    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1404 0x45    ; mask:0xFF, sequence#8
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1405 0x1F    ; mask:0xFF, sequence#9
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x145B 0x1F    ; mask:0xFF, sequence#10
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x154B 0x84    ; mask:0xFF, sequence#11
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x145A 0x0E    ; mask:0xFF, sequence#12
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x145D 0xA2    ; mask:0xFF, sequence#13
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x145C 0xB8    ; mask:0xFF, sequence#14
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1455 0x01    ; mask:0xFF, sequence#15
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S3B_HF_BUCK_FREQ
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A41 0x2A    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A45 0x40    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1C50 0x0B    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A51 0x03    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A52 0x07    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A53 0x05    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A56 0x02    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1B4A 0xBB    ; mask:0xFF, sequence#8
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A44 0x47    ; mask:0xFF, sequence#9
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A5B 0x1C    ; mask:0xFF, sequence#10
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1B4B 0x83    ; mask:0xFF, sequence#11
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A5A 0x16    ; mask:0xFF, sequence#12
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A5D 0xC8    ; mask:0xFF, sequence#13
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A5C 0xA3    ; mask:0xFF, sequence#14
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- BUCK_CMN_FREQ_STAGGER
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1054 0xBB    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- BUCK_STEPPER
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1461 0x82    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A61 0x82    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1761 0x83    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1D61 0x83    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2061 0x82    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S3_HF_BUCK_FREQ
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A45 0x40    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1C50 0x0B    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A51 0x03    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A52 0x09    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A53 0x04    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A56 0x00    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1B4A 0xBC    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A44 0x47    ; mask:0xFF, sequence#8
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A5B 0x1C    ; mask:0xFF, sequence#9
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1B4B 0x83    ; mask:0xFF, sequence#10
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A5A 0x16    ; mask:0xFF, sequence#11
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A5D 0xA4    ; mask:0xFF, sequence#12
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x1A5C 0x94    ; mask:0xFF, sequence#13
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S2B_FTS_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x18D0 0xA5    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1870 0x19    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x18D0 0xA5    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1873 0x0B    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x18D0 0xA5    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1872 0x02    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1745 0x80    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S4B_FTS_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1ED0 0xA5    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1E70 0x19    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1ED0 0xA5    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1E73 0x0B    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1ED0 0xA5    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1E72 0x02    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S5B_FTS_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x21D0 0xA5    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2170 0x19    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x21D0 0xA5    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2173 0x0B    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x21D0 0xA5    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2172 0x02    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S6B_FTS_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x24D0 0xA5    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2470 0x19    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x24D0 0xA5    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2473 0x0B    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x24D0 0xA5    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2472 0x02    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S7B_FTS_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x27D0 0xA5    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2770 0x19    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x27D0 0xA5    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2773 0x0B    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x27D0 0xA5    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2772 0x02    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S8B_FTS_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2AD0 0xA5    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2A70 0x19    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2AD0 0xA5    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2A73 0x0B    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2AD0 0xA5    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2A72 0x02    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S5678B_FTS_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x20D0 0xA5    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x23D8 0x01    ; mask:0xFF, sequence#2
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x26D8 0x01    ; mask:0xFF, sequence#3
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x29D8 0x01    ; mask:0xFF, sequence#4
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x20D0 0xA5    ; mask:0xFF, sequence#5
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x23D9 0x00    ; mask:0xFF, sequence#6
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x26D9 0x00    ; mask:0xFF, sequence#7
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x29D9 0x00    ; mask:0xFF, sequence#8
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x20D0 0xA5    ; mask:0xFF, sequence#9
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x23DA 0x01    ; mask:0xFF, sequence#10
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x26DA 0x01    ; mask:0xFF, sequence#11
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x29DA 0x01    ; mask:0xFF, sequence#12
+                    ;Check for error when SPMI returns a err code.
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x2054 0x03    ; mask:0xFF, sequence#13
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- S3B_HFS_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 5 0x1A41 0x2A    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- LVS1_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x8045 0x40    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- LVS2_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x8145 0x40    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- LVS3_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x8245 0x40    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- OTG_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x8345 0x40    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+   
+    ;PM_TARGET_DESIGNATION_COMMON-- HDMI_CONFIG
+                     do spmi_bus.cmm Write &OwnerChannel 1 0x8445 0x40    ; mask:0xFF, sequence#1
+                    ;Check for error when SPMI returns a err code.
+   
+
+ENDDO
+
+

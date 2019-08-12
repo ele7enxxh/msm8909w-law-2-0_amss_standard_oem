@@ -1,0 +1,277 @@
+//============================================================================
+//  Name:                                                                     
+//    std_loadsim_adsp.cmm 
+//
+//  Description:                                                              
+//    Script to load ADSP logs
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		--------------------------------------------------------
+// 07/19/2013 JBILLING		Added support for reloc images, custom dump file names	
+// 02/26/2013 AJCheriyan	Added call to crashdump processing script
+// 09/06/2012 AJCheriyan	Added USB dump support
+// 09/06/2012 AJCheriyan	Created for B-family. 
+
+
+// We support the following arguments
+// ARG0 - Chipset Name. Can be used to setup sub-system according to target if needed 
+// Using this argument should be avoided unless absolutely necessary
+// ARG1 - LOGTYPE 
+// ARG2 - BUILD
+// ARG3 - LOGLOCATION
+//
+
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3
+
+LOCAL &LOGTYPE &BUILD &LOGLOCATION &SPECIAL_LOG &SPECIAL_LOG_FILE
+&SPECIAL_LOG=0
+MAIN:
+	&LOGTYPE="&ARG1"
+	&BUILD="&ARG2"
+	&LOGLOCATION="&ARG3"
+
+	// Load the memory map
+	do std_memorymap
+
+	// Setup the environment
+	do std_setupenv
+
+	// First, all the sanity checks
+	GOSUB CHECKBINARIES
+	
+	// Binaries look good. Else, we wouldn't be here	
+	GOSUB SETUPSIM
+	
+	// Load the binaries
+	GOSUB LOADBIN
+
+	// Load the symbols
+	do std_loadsyms_wcnss &BUILD
+
+	// Load the "state" at the time of the crash
+	GOSUB RESTORESTATE
+
+	// Off you go..
+	GOTO EXIT
+
+// Set the simulator for the processor we want
+SETUPSIM:
+	SYS.CPU ARM926EJ
+	SYS.UP
+
+	RETURN
+
+// Checks if the binaries for the system are present in the location
+// Loglocation should not be empty and assumes memory map is loaded
+CHECKBINARIES:
+LOCAL &FILE1 &FILE2 &LOGCLASS
+
+
+	// This is the best place to determine the type of the log too
+	IF ("&LOGTYPE"=="AUTODETECT")
+	(
+	    &LOGCLASS="&LOGTYPE"
+		
+		do std_utils FILEXIST EXIT &LOGLOCATION &WCNSS_SW_log
+		ENTRY &FILE1
+
+	    IF ("&FILE1"=="TRUE")
+		(
+		     &LOGCLASS="JTAG"
+	    )
+
+		// Check for USB logs
+		do std_utils FILEXIST EXIT &LOGLOCATION &DDR_1_USB_log
+		ENTRY &FILE1
+
+		IF ("&FILE1"=="TRUE")
+		(
+			&LOGCLASS="USB"
+		)
+
+		// If we even after that, we are stuck with "AUTODETECT" we have a problem
+		IF ("&LOGCLASS"=="AUTODETECT")
+		(
+		    PRINT %%ERROR "Neither USB nor JTAG logs present in folder: &LOGLOCATION"
+		    GOSUB CHECK_DUMP
+		)
+		ELSE
+		(
+		    // Safe to change the logtype
+			&LOGTYPE="&LOGCLASS"
+			PRINT "Detected &LOGTYPE logs in folder: &LOGLOCATION"
+		)
+	)
+			
+	IF ("&LOGTYPE"=="JTAG")
+	(
+		
+		// Check for JTAG logs
+		do std_utils FILEXIST EXIT &LOGLOCATION &WCNSS_SW_log
+		ENTRY &FILE1
+
+	    IF ("&FILE1"=="FALSE")
+		(
+			PRINT %ERROR "JTAG logs not present in folder: &LOGLOCATION"
+			GOSUB CHECK_DUMP
+	    )
+	)
+
+	IF ("&LOGTYPE"=="USB")
+	(
+		
+		// Check for USB logs
+		do std_utils FILEXIST EXIT &LOGLOCATION &DDR_1_USB_log
+		ENTRY &FILE1
+
+	    IF ("&FILE1"=="FALSE")
+		(
+			PRINT %ERROR "USB logs not present in folder: &LOGLOCATION"
+			GOSUB CHECK_DUMP
+	    )
+		
+		IF ("&SPECIAL_LOG"=="0x0")
+		(
+			// Check for USB logs
+			do std_utils FILEXIST EXIT &LOGLOCATION &MSGRAM_USB_log
+			ENTRY &FILE1
+			do std_utils FILEXIST EXIT &LOGLOCATION &OCIMEM_USB_log
+			ENTRY &FILE2
+
+			IF ("&FILE1"=="FALSE")&&("&FILE2"=="FALSE")
+			(
+				PRINT %ERROR "USB Shared IMEM logs not present in folder: &LOGLOCATION"
+				GOTO FATALEXIT
+			)
+		)
+
+	)
+
+	RETURN
+
+CHECK_DUMP:
+	print ""
+	print "Please select dump file and enter."
+	print ""
+	dialog.file "&LOGLOCATION/*.*"
+	ENTRY &SPECIAL_LOG_FILE
+	IF ("$Special_Log_File"=="FALSE")
+	(
+		PRINT %ERROR "Dump not present in folder: &LOGLOCATION"
+		GOTO FATALEXIT
+	)
+	&SPECIAL_LOG=1
+	RETURN
+
+
+// Function :LOADBIN
+// Loads the saved binaries
+LOADBIN:
+	
+	IF ("&LOGTYPE"=="JTAG")
+	(
+		do std_utils LOADBIN &LOGLOCATION &SHARED_IMEM_log &SHARED_IMEM_start
+		
+		// Load the memory map again for relocated images
+		do std_memorymap
+
+		do std_utils LOADBIN &LOGLOCATION &WCNSS_SW_log &WCNSS_SW_start
+	)
+	
+	IF ("&LOGTYPE"=="USB")
+	(
+		IF ("&SPECIAL_LOG"=="0x0")
+		(
+			// Load the shared IMEM logs
+			do std_utils LOADBIN &LOGLOCATION &OCIMEM_USB_log &OCIMEM_start
+			do std_utils LOADBIN &LOGLOCATION &MSGRAM_USB_log &MSGRAM_start
+	
+			// Load the memory map again
+			do std_memorymap
+
+			do std_utils LOADBIN &LOGLOCATION &DDR_1_USB_log &WCNSS_SW_start &WCNSS_SW_start &WCNSS_SW_size
+		)
+		ELSE
+		( 
+		
+			// Load the memory map again
+			do std_memorymap
+			
+			DATA.LOAD.BINARY &SPECIAL_LOG_FILE &WCNSS_SW_start++&WCNSS_SW_size /LONG /noclear /noreg
+			
+		)
+	)
+	
+	RETURN
+
+// Function: RESTORESTATE
+// To load the error information from the saved logs
+RESTORESTATE:
+	IF ("&SPECIAL_LOG"=="0x1")
+	(
+		&start=data.long(D:&Vir_Start_ADDR)
+		IF ("&start"=="0x0")
+		(
+		D.LOAD.ELF &SPECIAL_LOG_FILE /noclear /noreg
+		)
+	)
+	//	The CMEM part of the memory should be restored from DDR back to CMEM
+	&CODE_BASE=DATA.LONG(D:(ADDRESS.OFFSET(Load__LR__UBSP_IMAGE__Base)))
+	// 64kB allocated for Code
+	&CODE_LENGTH=0x10000
+	&DATA_BASE=DATA.LONG(D:(ADDRESS.OFFSET(Load__LR__CMEM_DATA_SEG__Base)))
+	// 56kB allocated for Data
+	&DATA_LENGTH=0xE000
+
+	// Now restore CMEM from DDR - restore code and data separately
+	do std_utils MEMCOPY &WCNSS_CMEM_start &CODE_BASE &CODE_LENGTH
+	do std_utils MEMCOPY &WCNSS_CMEM_start+&CODE_LENGTH &DATA_BASE &DATA_LENGTH
+
+
+	// Restore the registers from file if JTAG logs
+	IF ("&LOGTYPE"=="JTAG")
+	(
+	 	do std_utils EXECUTESCRIPT EXIT &LOGLOCATION/&WCNSS_regs
+		do std_utils EXECUTESCRIPT EXIT &LOGLOCATION/&WCNSS_mmu
+	)
+
+	// Symbols should be loaded prior to this step
+	IF ("&LOGTYPE"=="USB")
+	(
+		// The fatal error could have happened in the main image or the CMEM image
+		// Check for the arch field which is populated only in the case of a fatal error in DDR
+		// code
+		// Assume, the crash was in the DDR and load coredump. Replace with CMEM image coredump if 
+		// condition turns out to be true.
+		do std_utils EXECUTESCRIPT EXIT &WCNSS_SCRIPTSDIR/../debugtools/err/cmm/load_coredump.cmm
+
+		IF (Y.EXIST("coredump")&&(V.VALUE("coredump.arch.type")!=1))
+		(
+			// Error was in CMEM code
+			do std_utils EXECUTESCRIPT EXIT &WCNSS_SCRIPTSDIR/../debugtools/err/cmm/load_ubsp_coredump.cmm
+		)
+		
+		// Call the script to process crashdump information
+		do std_utils EXECUTESCRIPT EXIT &WCNSS_SCRIPTSDIR/scripts/process_crashdump.cmm
+	)
+
+	RETURN
+
+FATALEXIT:
+	END
+
+EXIT:
+	ENDDO
+
+
+
+

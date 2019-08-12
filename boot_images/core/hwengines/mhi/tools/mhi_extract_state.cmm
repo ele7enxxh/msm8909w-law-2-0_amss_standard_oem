@@ -1,0 +1,739 @@
+AREA.CREATE MHI 200. 3000.
+AREA.SELECT MHI
+AREA.VIEW MHI
+AREA.CLEAR MHI
+
+GLOBAL &indent
+RADIX decimal
+setup.var %HEX.off
+
+ENTRY &Option %LINE &args
+print "  Device MHI Analyzer"
+print "======================="
+print ""
+if "&Option"=="all"
+(
+  &filename="&args"
+  open #1 &filename /CREATE
+  gosub print_all 
+)
+else if "&Option"=="ch"
+(
+  &filename=STRING.SCANANDEXTRACT("&args", "file=", "c:\temp\mhi_state.txt")
+  open #1 &filename /CREATE
+
+  WRITE #1 "Channel Info:"
+  WRITE #1 "============="
+  GOSUB get_next_channel &args
+  ENTRY &next_channel %LINE &rest_channels
+  while "&next_channel"!=""
+  (
+    GOSUB print_channel_info &next_channel
+    GOSUB get_next_channel &rest_channels
+    ENTRY &next_channel %LINE &rest_channels
+  )
+)
+else if "&Option"=="cr"
+(
+  &filename=STRING.SCANANDEXTRACT("&args", "file=", "c:\temp\mhi_state.txt")
+  open #1 &filename /CREATE
+
+  WRITE #1 "Command Info:"
+  WRITE #1 "============="
+  GOSUB print_command_info &next_channel
+)
+else if "&Option"=="er"
+(
+  &filename=STRING.SCANANDEXTRACT("&args", "file=", "c:\temp\mhi_state.txt")
+  open #1 &filename /CREATE
+
+  WRITE #1 "Event Info:"
+  WRITE #1 "==========="
+  GOSUB get_next_channel &args
+  ENTRY &next_channel &rest_channels
+  while "&next_channel"!=""
+  (
+    GOSUB print_event_info &next_channel
+    GOSUB get_next_channel &rest_channels
+    ENTRY &next_channel &rest_channels
+  )
+)
+else
+(
+  print "Usage: mhi_extract_state.cmm [cr file=path_to_file | er <ernum1>[,<ernum2>[,<ernum3>...]] file=path_to_file | ch <chnum1>[,<chnum2>[,<chnum3>...]]] file=path_to_file | all filename"
+  print "Using without any arguments prints the basic mhi state"
+  print "Using the cr argument prints detailed information about the command context"
+  print "Using the er argument prints detailed information about the event contexts listed"
+  print "Using the ch argument prints detailed information about the channels listed"
+  print "All - prints everything"
+  print ""
+  print ""
+)
+
+AREA.RESET
+
+ENDDO
+
+;------------------------------------------------------------------------------------------------------------------
+; Func: print_request
+;        
+; Desc: Print an MHI request
+;
+;
+;-------------------------------------------------------------------------------------------------------------------
+print_request:
+ENTRY &req
+
+   var.newlocal mhi_request_t \req
+   
+   var.set \req=*(mhi_request_t*)&req
+   
+   WRITE #1 "&indent" "  CBFUNC: " y.name(D:v.value(\req.cb.cbFunc))
+   WRITE #1 "&indent" "  userdata: " v.value(\req.cb.userData)
+   WRITE #1 "&indent" "  OP: " v.string(\req.op)
+   WRITE #1 "&indent" "  PARAMS: " v.string(\req.params)
+   
+   RETURN
+		
+;------------------------------------------------------------------------------------------------------------------
+; Func: print_list
+;        
+; Desc: Print a MHI list
+;
+;
+;-------------------------------------------------------------------------------------------------------------------
+print_list:
+ENTRY &head &direction &printfunc
+  
+   LOCAL &num
+   LOCAL &next
+   LOCAL &addr
+   LOCAL &count
+
+   var.newlocal list_t \list
+   
+   if ("&direction"=="FORWARD")
+   (
+      &next="next"
+   )
+   else
+   (
+      &next="prev"
+   )
+   
+   &num=0
+   
+   if var.value(((list_t*)&head)->&next)==&head
+   (
+      WRITE #1 "&indent" "  ---Empty---"
+	  RETURN 
+   )
+   var.set \list=*(((list_t*)&head)) 
+
+   &count=0   
+   REPEAT
+   (
+ 
+     var.set \list=*\list.&next   
+	 &num=&num+1
+	 
+	 if (&num<=2)
+	 (
+	    &addr=var.value(\list.prev->next)
+	    gosub &printfunc &addr
+		WRITE #1 "&indent" "  ----------------------------------------------------------------"
+	 )
+      &count=&count+1
+   )
+   While (v.value(\list.&next)!=&head&&&count<100.)
+ 
+   if (&count!=100.)
+      WRITE #1 "&indent" "  Number of items: &num" 
+   else
+      WRITE #1 "&indent" "  Possible list corruption reached max items"
+   RETURN 
+
+
+;------------------------------------------------------------------------------------------------------------------
+; Func: get_next_channel
+;        
+; Desc: Get next channel to analyze from a string of channels ex: 1 , 4 , 7 ,8 
+;
+;
+;-------------------------------------------------------------------------------------------------------------------
+get_next_channel:
+  ENTRY %LINE &args
+  &next_channel=""
+  &rest_channels=""
+  &delim=STRING.SCAN("&args", ",", 0)
+  if &delim!=-1
+  (
+    &next_channel=STRING.MID("&args", 0, &delim)
+    &rest_channels=STRING.CUT("&args", &delim+1)
+  )
+  else
+  (
+    &delim=STRING.SCAN("&args", " ", 0)
+    &next_channel=STRING.MID("&args", 0, &delim)
+	 &rest_channels=""
+  )
+RETURN &next_channel &rest_channels
+
+
+;------------------------------------------------------------------------------------------------------------------
+; Func: print_command_info 
+;        
+; Desc: Prints command information  
+;
+;
+;-------------------------------------------------------------------------------------------------------------------
+print_command_info:
+  GOSUB print_ring_info 0 ; command ring = ring 0
+RETURN
+
+print_event_info:
+ENTRY &event_ring_num
+
+  LOCAL &nEr
+
+  &nEr=v.value(mhiCtx.mhiConfig.nEr)
+  if &event_ring_num>=&nEr
+  (
+    WRITE #1 "&indent" "ERROR: event ring number &event_ring_num greater than max value of " &nEr-1
+    RETURN
+  )
+  if &event_ring_num<0
+  (
+    WRITE #1 "&indent" "ERROR: event ring number cannot be less than zero"
+    RETURN
+  )
+
+  GOSUB print_ring_info &event_ring_num+1 ; skip past command ring
+RETURN
+
+;------------------------------------------------------------------------------------------------------------------
+; Func: Print_ring_info
+;        
+; Desc: Prints information about a ring 
+;
+;
+;-------------------------------------------------------------------------------------------------------------------
+print_ring_info:
+ENTRY &ring_num
+
+  LOCAL &j
+  LOCAL &ringType
+  LOCAL &num_elements
+  LOCAL &rdoffset
+  LOCAL &wroffset
+  LOCAL &rsize
+
+  write #1 "Ring: ------------------------------------------------------------------------"
+  &indent="  "
+  WRITE #1 "&indent" "id:" FORMAT.DECIMAL(3,v.value(mhiCtx.ring[&ring_num].id))
+  &indent="    "
+   
+  if v.string(mhiCtx.ring[&ring_num].state)=="RING_UNINIT"
+  (
+     WRITE #1 "&indent" "Ring is uninitialized, skipping"
+     RETURN
+  ) 
+  
+  &ringType=v.string(mhiCtx.ring[&ring_num].type)
+  &id=FORMAT.DECIMAL(3,v.value(mhiCtx.ring[&ring_num].id))
+  &rsize=v.value(mhiCtx.ring[&ring_num].rSize)
+  &rdoffset=v.value(mhiCtx.ring[&ring_num].rdOffset)
+  &wroffset=v.value(mhiCtx.ring[&ring_num].wrOffset)
+  
+  
+  WRITE #1 "&indent" "ringCtx: 0x" v.value(mhiCtx.ring[&ring_num].ctx)
+  &indent="      "
+  if "&ringType"=="RING_TYPE_CR"
+  (
+    WRITE #1 "&indent" "res: " v.string(mhiCtx.lCrCtxBase.res)
+    WRITE #1 "&indent" "res1: " v.string(mhiCtx.lCrCtxBase.res1)
+    WRITE #1 "&indent" "res2: " v.string(mhiCtx.lCrCtxBase.res2)
+    WRITE #1 "&indent" "rbase: 0x" v.value(mhiCtx.lCrCtxBase.rbase)
+    WRITE #1 "&indent" "rlen: " v.string(mhiCtx.lCrCtxBase.rlen)
+    WRITE #1 "&indent" "rp: 0x" v.value(mhiCtx.lCrCtxBase.rp)
+    WRITE #1 "&indent" "wp: 0x" v.value(mhiCtx.lCrCtxBase.wp)
+  )
+  if "&ringType"=="RING_TYPE_ER"
+  (
+    WRITE #1 "&indent" "ertype: " v.string(mhiCtx.lErCtxBase[&id].ertype)
+    WRITE #1 "&indent" "msivec: " v.string(mhiCtx.lErCtxBase[&id].msivec)
+    WRITE #1 "&indent" "rbase: 0x" v.value(mhiCtx.lErCtxBase[&id].rbase)
+    WRITE #1 "&indent" "rlen: " v.string(mhiCtx.lErCtxBase[&id].rlen)
+    WRITE #1 "&indent" "rp: 0x" v.value(mhiCtx.lErCtxBase[&id].rp)
+    WRITE #1 "&indent" "wp: 0x" v.value(mhiCtx.lErCtxBase[&id].wp)
+  )
+  if "&ringType"=="RING_TYPE_TR"
+  (
+    WRITE #1 "&indent" "chstate: " v.string(((mhi_ch_ctx_t*)mhiCtx.ring[&ring_num].ctx)->chstate)
+    WRITE #1 "&indent" "chtype: " v.string(((mhi_ch_ctx_t*)mhiCtx.ring[&ring_num].ctx)->chtype)
+    WRITE #1 "&indent" "erindex: " v.string(((mhi_ch_ctx_t*)mhiCtx.ring[&ring_num].ctx)->erindex)
+    WRITE #1 "&indent" "rbase: 0x" v.value(((mhi_ch_ctx_t*)mhiCtx.ring[&ring_num].ctx)->rbase)
+    WRITE #1 "&indent" "rlen: " v.string(((mhi_ch_ctx_t*)mhiCtx.ring[&ring_num].ctx)->rlen)
+    WRITE #1 "&indent" "rp: 0x" v.value(((mhi_ch_ctx_t*)mhiCtx.ring[&ring_num].ctx)->rp)
+    WRITE #1 "&indent" "wp: 0x" v.value(((mhi_ch_ctx_t*)mhiCtx.ring[&ring_num].ctx)->wp)
+  )
+  &indent="    "
+  
+  WRITE #1 "&indent" "ringBase: 0x" v.value(mhiCtx.ring[&ring_num].ringBase)
+  
+  &num_elements=v.value(mhiCtx.ring[&ring_num].rSize)
+  WRITE #1 "&indent" "lRingBase: 0x" v.value(mhiCtx.ring[&ring_num].lRingBase)
+  &indent="      "
+
+  &indent="    "
+  WRITE #1 "&indent" "type: " v.string(mhiCtx.ring[&ring_num].type)
+  WRITE #1 "&indent" "rdOffset: "+FORMAT.DECIMAL(3,v.value(mhiCtx.ring[&ring_num].rdOffset))
+  WRITE #1 "&indent" "wrOffset: "+FORMAT.DECIMAL(3,v.value(mhiCtx.ring[&ring_num].wrOffset))
+  WRITE #1 "&indent" "rSize:    "+FORMAT.DECIMAL(3.,v.value(mhiCtx.ring[&ring_num].rSize))
+  WRITE #1 "&indent" "state: " v.string(mhiCtx.ring[&ring_num].state)
+
+  ; use a local variable, this is not well documented but it seems to cache the data in memory first so when doing v.value over and over 
+  ;again its much faster 
+  var.newlocal mhi_ring_element_t [&rsize] \relarray
+  var.set \relarray=mhiCtx.ring[&ring_num].lRingBase[0]
+  
+  if "&ringType"=="RING_TYPE_CR"
+  (
+    WRITE #1 "&indent" "printing command ring elements:"
+    WRITE #1 "&indent" "==============================="
+    &j=0
+    while &j<&num_elements
+    (
+	  if &j==&rdoffset&&&j==&wroffset
+	  (
+	     &indent="=RW="
+	  )
+	  else if &j==&rdoffset
+	  (
+	     &indent="=R=="
+	  )
+	  else if &j==&wroffset
+	  (
+	     &indent="=W=="
+	  )
+	  else
+	  (
+	     &indent="    "
+	  )
+      if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_RESERVED"
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " " v.string(\relarray[&j].rel.type)
+      )
+      else if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_NOOP"
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " " v.string(\relarray[&j].rel.type)
+      )
+      else if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_RESET_CH_CMD"
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " " v.string(\relarray[&j].rel.type) \
+        " ch:id" FORMAT.DECIMAL(3, v.value(\relarray[&j].cmdReset.chid)) 
+      )
+      else if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_STOP_CH_CMD"
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " " v.string(\relarray[&j].rel.type)
+      )
+      else if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_START_CH_CMD"
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " " v.string(\relarray[&j].rel.type) \
+        " ch:id" FORMAT.DECIMAL(3, v.value(\relarray[&j].cmdReset.chid)) 
+      )
+      else if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_START_ALL_CHS_CMD"
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " " v.string(\relarray[&j].rel.type)
+      )
+      else
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " " "Unknown Ring Element" 
+      )
+      &j=&j+1
+    )
+    WRITE #1 "&indent" "==============================="
+  )
+  if "&ringType"=="RING_TYPE_ER"
+  (
+    WRITE #1 "&indent" "printing event ring elements:"
+    WRITE #1 "&indent" "============================="
+    &j=0
+    while &j<&num_elements
+    (
+      if &j==&rdoffset&&&j==&wroffset
+	  (
+	     &indent="=RW="
+	  )
+	  else if &j==&rdoffset
+	  (
+	     &indent="=R=="
+	  )
+	  else if &j==&wroffset
+	  (
+	     &indent="=W=="
+	  )
+	  else
+	  (
+	     &indent="    "
+	  )
+	
+      if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_RESERVED"
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " " v.string(\relarray[&j].rel.type)
+      )
+      else if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_MHI_CMD_COMPLETE_EVENT"
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " ptr: 0x" v.value(\relarray[&j].cmdCompleteEvent.ptr) \
+          " code: " v.string(\relarray[&j].cmdCompleteEvent.code) \
+          " type: " v.string(\relarray[&j].cmdCompleteEvent.type) 
+      )
+      else if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_EXEC_ENV_CHG"
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) "Exec ENV: state: 0x" v.value(\relarray[&j].exec_env_ChgEvent.exec_env) 
+      )
+      else if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_TRANSFER_EVENT"
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " ptr: 0x" v.value(\relarray[&j].tEvent.ptr) \
+          " len: " FORMAT.DECIMAL(5, v.value(\relarray[&j].tEvent.len)) \
+          " res: " FORMAT.DECIMAL(3, v.value(\relarray[&j].tEvent.res)) \
+          " code: " v.string(\relarray[&j].tEvent.code) \
+          " res1: " FORMAT.DECIMAL(5, v.value(\relarray[&j].tEvent.res1)) \
+          " type: " v.string(\relarray[&j].tEvent.type) \
+          " chid: " FORMAT.DECIMAL(3, v.value(\relarray[&j].tEvent.chid))
+      )
+      else if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_MHI_STATE_CHG"
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " res: " v.string(\relarray[&j].stateChgEvent.res) \
+          " re1: " v.string(\relarray[&j].stateChgEvent.res1) \
+          " mhistate: " v.string(\relarray[&j].stateChgEvent.mhistate) \
+          " res2: " v.string(\relarray[&j].stateChgEvent.res2) \
+          " type: " v.string(\relarray[&j].stateChgEvent.type) \
+          " res3: " v.string(\relarray[&j].stateChgEvent.res3)
+      )
+      else 
+      (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " " "Unknown Ring Element"
+      )
+      &j=&j+1
+    )
+  )
+  if "&ringType"=="RING_TYPE_TR"
+  (
+    WRITE #1 "&indent" "printing transfer ring elements:"
+    WRITE #1 "&indent" "================================"
+    WRITE #1 "&indent" "  idx       ptr             len    res chain res1 ieob ieot bei res2            type            res3"
+    &j=0
+	
+    while &j<&num_elements
+    (
+	   
+	  if &j==&rdoffset&&&j==&wroffset
+	  (
+	     &indent="=RW="
+	  )
+	  else if &j==&rdoffset
+	  (
+	     &indent="=R=="
+	  )
+	  else if &j==&wroffset
+	  (
+	     &indent="=W=="
+	  )
+	  else
+	  (
+	     &indent="    "
+	  )
+
+     if v.string(\relarray[&j].rel.type)=="MHI_RING_EL_TYPE_TRANSFER"
+     (
+      WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) \
+        "    " "0x" FORMAT.HEX(16, v.value(\relarray[&j].tr.ptr)) \
+        " " FORMAT.DECIMAL(5, v.value(\relarray[&j].tr.len)) \
+        " " FORMAT.DECIMAL(5, v.value(\relarray[&j].tr.res)) \
+        "    " FORMAT.DECIMAL(1, v.value(\relarray[&j].tr.chain)) \
+        "  " FORMAT.DECIMAL(3, v.value(\relarray[&j].tr.res1)) \
+        "    " FORMAT.DECIMAL(1, v.value(\relarray[&j].tr.ieob)) \
+        "    " FORMAT.DECIMAL(1, v.value(\relarray[&j].tr.ieot)) \
+        "    " FORMAT.DECIMAL(1, v.value(\relarray[&j].tr.bei)) \
+        "  " FORMAT.DECIMAL(2, v.value(\relarray[&j].tr.res2)) \
+        "   " v.string(\relarray[&j].tr.type) \
+        " " FORMAT.DECIMAL(3, v.value(\relarray[&j].tr.res3))
+     )
+     else
+     (
+        WRITE #1 "&indent" FORMAT.DECIMAL(3, &j) " " "Unknown Ring Element"
+     )
+      &j=&j+1
+	  &indent="    "
+    )
+    WRITE #1 "&indent" "================================"
+  )
+  &indent="  "
+RETURN
+
+;------------------------------------------------------------------------------------------------------------------
+; Func: Print_channel_info
+;        
+; Desc: Prints information about a channel 
+;
+;
+;-------------------------------------------------------------------------------------------------------------------
+print_channel_info:
+ENTRY &channel_num
+  LOCAL &nEr
+  LOCAL &nCh
+  LOCAL &addr
+
+  &nEr=v.string(mhiCtx.mhiConfig.nEr)
+  &nCh=v.string(mhiCtx.mhiConfig.nCh)
+  if &channel_num>=&nCh
+  (
+    WRITE #1 "&indent" "ERROR: channel number &channel_num greater than max value of " &nCh-1
+    RETURN
+  )
+  if &channel_num<0
+  (
+    WRITE #1 "&indent" "ERROR: channel number cannot be less than zero"
+    RETURN
+  )
+
+  
+  if v.string(mhiCtx.ch[&channel_num].ch_client_state)=="CH_UNINIT"
+  (
+     WRITE #1 "&indent" "Channel has not been opened by any clients, skipping analysis"
+     RETURN
+
+  )
+  
+  WRITE #1 "&indent" "================================================================================================="
+  WRITE #1 "&indent" "Channel Number: &channel_num                                            "
+  WRITE #1 "&indent" "ch_client_state: " v.string(mhiCtx.ch[&channel_num].ch_client_state)
+  WRITE #1 "&indent" "skip_to_td: 0x" v.value(mhiCtx.ch[&channel_num].skip_to_td)
+  WRITE #1 "&indent" "trb_bytes_processed: 0x" v.value(mhiCtx.ch[&channel_num].trb_bytes_processed)
+  
+  WRITE #1 "&indent" "Pending requests: "
+  &addr=v.value(&mhiCtx.ch[&channel_num].request_q)
+  gosub print_list &addr FORWARD print_request
+  WRITE #1 "&indent" "Processed requests (ordered by last completed): "
+  &addr=v.value(&mhiCtx.ch[&channel_num].request_free_q)
+  gosub print_list &addr BACKWARD print_request
+  
+  if v.value(mhiCtx.ch[&channel_num].request_q.next)!=0
+  (
+    &indent="    "
+    WRITE #1 "&indent" "next: 0x" v.value(mhiCtx.ch[&channel_num].request_q.next)
+    &indent="  "
+  )
+  if v.string(mhiCtx.ch[&channel_num].ch_client_state)=="CH_OPENED"
+  (
+    if v.string(mhiCtx.lChCtxBase[&channel_num].chtype)=="MHI_CH_TYPE_INBOUND"
+    (
+      if v.value(mhiCtx.ring[&channel_num+&nEr+1].rdOffset)==v.value(mhiCtx.ring[&channel_num+&nEr+1].wrOffset)
+      (
+        WRITE #1 "&indent" "ERROR: read and write pointers are equal in inbound channel"
+      )
+    )
+    if v.string(mhiCtx.lChCtxBase[&channel_num].chtype)=="MHI_CH_TYPE_OUTBOUND"
+    (
+      if v.value(mhiCtx.ring[&channel_num+&nEr+1].rdOffset)!=v.value(mhiCtx.ring[&channel_num+&nEr+1].wrOffset)
+      (
+        WRITE #1 "&indent" "ERROR: read and write pointers are not equal in outbound channel"
+      )
+    )
+  )
+
+  GOSUB print_ring_info &channel_num+&nEr+1 ; skip past 1 command ring and nEr event rings
+
+  WRITE #1 ""
+  WRITE #1 ""
+  
+  &indent="  "
+RETURN
+
+;------------------------------------------------------------------------------------------------------------------
+; Func: Print_summary
+;        
+; Desc: Prints the least amount of summary information  
+;
+;
+;-------------------------------------------------------------------------------------------------------------------
+print_summary:
+ENTRY
+  LOCAL &i
+  WRITE #1 "mhiCtx values:"
+
+  &indent="  "
+  WRITE #1 "&indent" "mhiConfig:"
+  &indent="    "
+  
+  WRITE #1 "&indent" "mhiRegLen: " v.string(mhiCtx.mhiConfig.mhiRegLen)
+  WRITE #1 "&indent" "version: 0x" v.value(mhiCtx.mhiConfig.version)
+  WRITE #1 "&indent" "nEr: " v.string(mhiCtx.mhiConfig.nEr)
+  WRITE #1 "&indent" "nCh: " v.value(mhiCtx.mhiConfig.nCh)
+  WRITE #1 "&indent" "chdboff: 0x" v.value(mhiCtx.mhiConfig.chdboff)
+  WRITE #1 "&indent" "erdboff: 0x" v.value(mhiCtx.mhiConfig.erdboff)
+  &indent="  "
+
+  WRITE #1 "&indent" "MHISTATE:" v.string(mhiCtx.mhi_sm_info.mhiState)
+
+  WRITE #1 "&indent" "irqhandle:"
+  &indent="    "
+  WRITE #1 "&indent" "dwIrqId: " v.string(mhiCtx.irqhandle.dwIrqId)
+  &indent="  "
+
+  WRITE #1 "&indent" "int_ctrl:"
+  &indent="    "
+  WRITE #1 "&indent" "ctrl: " v.string(mhiCtx.int_ctrl.ctrl)
+  &indent="  "
+
+  &i=0
+  &bitnum=0
+  WRITE #1 ""
+  WRITE #1 "Channel Doorbell Interrupts"
+  WRITE #1 "==========================="
+  while &i<4
+  (
+    &bitnum=&i*32
+    &int_vec=v.value(mhiCtx.int_chdb.chdb[&i])
+    while &int_vec!=0
+    (
+      if (&int_vec&1)==1
+    (
+      WRITE #1 "&indent" "channel doorbell &bitnum is set"
+    )
+      &bitnum=&bitnum+1
+    &int_vec=&int_vec>>1
+    )
+    &i=&i+1
+  )
+  WRITE #1 ""
+
+  &i=0
+  &bitnum=0
+  WRITE #1 ""
+  WRITE #1 "Event Ring Doorbell Interrupts"
+  WRITE #1 "=============================="
+  while &i<4
+  (
+    &bitnum=&i*32
+    &int_vec=v.value(mhiCtx.int_erdb.erdb[&i])
+    while &int_vec!=0
+    (
+      if (&int_vec&1)==1
+    (
+      WRITE #1 "&indent" "event ring doorbell &bitnum is set"
+    )
+    &bitnum=&bitnum+1
+    &int_vec=&int_vec>>1
+    )
+    &i=&i+1
+  )
+  WRITE #1 ""
+
+  WRITE #1 "&indent" "mhiaddr:"
+  &indent="    "
+  WRITE #1 "&indent" "mhictrlbase: 0x" v.value(mhiCtx.mhiaddr.mhictrlbase)
+  WRITE #1 "&indent" "mhictrllimit: 0x" v.value(mhiCtx.mhiaddr.mhictrllimit)
+  WRITE #1 "&indent" "mhidatabase: 0x" v.value(mhiCtx.mhiaddr.mhidatabase)
+  WRITE #1 "&indent" "mhidatalimit: 0x" v.value(mhiCtx.mhiaddr.mhidatalimit)
+  &indent="  "
+
+  WRITE #1 "&indent" "mhiLocalAddr:"
+  &indent="    "
+  WRITE #1 "&indent" "mhictrl:"
+  &indent="      "
+  WRITE #1 "&indent" "va: 0x" v.value(mhiCtx.mhiLocalAddr.mhictrl.va)
+  WRITE #1 "&indent" "pa: 0x" v.value(mhiCtx.mhiLocalAddr.mhictrl.pa)
+  &indent="    "
+  WRITE #1 "&indent" "mhidata:"
+  &indent="      "
+  WRITE #1 "&indent" "va: 0x" v.value(mhiCtx.mhiLocalAddr.mhidata.va)
+  WRITE #1 "&indent" "pa: 0x" v.value(mhiCtx.mhiLocalAddr.mhidata.pa)
+  &indent="  "
+
+  WRITE #1 "&indent" "ccabap: 0x" v.value(mhiCtx.ccabap)
+
+  WRITE #1 "&indent" "lChCtxBase: 0x" v.value(mhiCtx.lChCtxBase)
+
+  WRITE #1 "&indent" "ecabap: 0x" v.value(mhiCtx.ecabap)
+
+  WRITE #1 "&indent" "lErCtxBase: 0x" v.value(mhiCtx.lErCtxBase)
+
+  WRITE #1 "&indent" "crcbap: 0x" v.value(mhiCtx.crcbap)
+
+  WRITE #1 "&indent" "lCrCtxBase:"
+  &indent="    "
+  WRITE #1 "&indent" "res: " v.string(mhiCtx.lCrCtxBase.res)
+  WRITE #1 "&indent" "res1: " v.string(mhiCtx.lCrCtxBase.res1)
+  WRITE #1 "&indent" "res2: " v.string(mhiCtx.lCrCtxBase.res2)
+  WRITE #1 "&indent" "rbase: 0x" v.value(mhiCtx.lCrCtxBase.rbase)
+  WRITE #1 "&indent" "rlen: " v.string(mhiCtx.lCrCtxBase.rlen)
+  WRITE #1 "&indent" "rp: 0x" v.value(mhiCtx.lCrCtxBase.rp)
+  WRITE #1 "&indent" "wp: 0x" v.value(mhiCtx.lCrCtxBase.wp)
+  &indent="  "
+
+  WRITE #1 "&indent" "pendingChannels:"
+  &indent="    "
+  &i=0
+  while &i<4
+  (
+    WRITE #1 "&indent" "&i: " v.string(mhiCtx.pendingChannels[&i])
+    &i=&i+1
+  )
+  
+  
+  
+  
+  &indent="  "
+RETURN
+
+;------------------------------------------------------------------------------------------------------------------
+; Func: Print_all
+;        
+; Desc: Prints teverything 
+;
+;
+;-------------------------------------------------------------------------------------------------------------------
+print_all:
+ENTRY
+
+  LOCAL &i
+  LOCAL &nCh
+  LOCAL &nEr
+
+  GOSUB print_summary
+
+  WRITE #1 ""
+  WRITE #1 "Printing Command Context"
+  WRITE #1 "========================"
+  GOSUB print_command_info 
+
+  WRITE #1 ""
+  WRITE #1 "Printing Event Contexts"
+  WRITE #1 "======================="
+  &i=0
+  &nEr=v.value(mhiCtx.mhiConfig.nEr)
+  PRINT "Analyzing event rings"
+  while &i<&nEr
+  (
+    PRINT "Percent complete: " (1.0*&i/&nEr*100.0)
+    GOSUB print_event_info &i
+    &i=&i+1
+  )
+
+  WRITE #1 ""
+  WRITE #1 "Printing Channels"
+  WRITE #1 "================="
+  &i=0
+  &nCh=v.value(mhiCtx.mhiConfig.nCh)
+  PRINT "Analyzing channels"
+  while &i<&nCh
+  (
+    PRINT "Percent complete: " (1.0*&i/&nCh*100.0)
+    GOSUB print_channel_info &i
+    &i=&i+1
+  )
+
+  CLOSE #1
+RETURN

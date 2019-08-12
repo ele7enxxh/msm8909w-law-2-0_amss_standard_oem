@@ -1,0 +1,82 @@
+//============================================================================
+//  Name:                                                                     
+//    std_savelogs_rpm.cmm 
+//
+//  Description:                                                              
+//    Script to save RPM memory locations
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/10/2012 AJCheriyan    Created for B-family 
+//
+
+// We support one argument for this script
+// &ARG0 - Output location for the logs
+ENTRY &ARG0
+
+LOCAL &LOGLOCATION
+
+MAIN:
+	&LOGLOCATION="&ARG0"
+
+	do std_intercom_init CHECKSESSION 1 APPS0
+	
+	// Load the memory map
+	do std_intercom_do &APPS0_PORT std_memorymap
+	do std_memorymap
+	
+	// Save the memories first
+	GOSUB SAVEBIN
+
+	// Save registers and anything else
+	GOSUB SAVESTATE
+
+	// Done
+	GOTO EXIT
+
+// Function that actually saves the binaries
+SAVEBIN:
+    do std_utils SAVEBIN &LOGLOCATION &CODERAM_log &CODERAM_RPM_start &CODERAM_RPM_size
+	do std_utils SAVEBIN &LOGLOCATION &DATARAM_log &DATARAM_RPM_start &DATARAM_RPM_size
+	
+	;do std_intercom_init CHECKSESSION 1 APPS0
+	;PRINT "Detecting APPS T32 session. Will exit if not found. "
+	;do std_utils CHECKARGS FATALEXIT &APPS0_ALIVE 1.
+
+	;do std_intercom_do &APPS0_PORT std_utils BREAKPROC
+	
+	LOCAL &FULLPATH 
+	&FULLPATH="&LOGLOCATION"+"/&CODERAM_log"
+	;INTERCOM.EXECUTE &APPS0_PORT data.save.binary &FULLPATH EAXI:&CODERAM_start++(&CODERAM_size-1)
+	
+	LOCAL &FULLPATH 
+	&FULLPATH="&LOGLOCATION"+"/&DATARAM_log"
+	;INTERCOM.EXECUTE &APPS0_PORT data.save.binary &FULLPATH EAXI:&DATARAM_start++(&DATARAM_size-1)
+
+	RETURN
+
+// Function that actually saves the state
+SAVESTATE:
+	do std_utils SAVEREGS &LOGLOCATION &RPM_regs
+
+	RETURN	
+
+FATALEXIT:
+	END
+
+EXIT:
+	ENDDO
+
+
+		
+
+

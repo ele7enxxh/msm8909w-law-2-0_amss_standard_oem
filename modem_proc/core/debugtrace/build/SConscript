@@ -1,0 +1,78 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/debugtrace/build/SConscript#1 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+
+config='8916'        #default config
+                     #add to this list as more configs are added
+if env['MSM_ID'] in ['8974','9x25','8x26','8x10','8926','9x35',
+   '8916', '8936', '9x45','9607','8937']:
+   config=env['MSM_ID']
+   env['QDSS_MSM_CONFIG']=config
+
+#-------------------------------------------------------------------------------
+# Publish Protected APIs
+# These are accessible within QDSS
+#-------------------------------------------------------------------------------
+
+env.PublishProtectedApi('DEBUGTRACE',[
+   "${DEBUGTRACE_INC_ROOT}/core/debugtrace/common/hal/inc",
+   "${DEBUGTRACE_INC_ROOT}/core/debugtrace/csr/hal/inc",
+   "${DEBUGTRACE_INC_ROOT}/core/debugtrace/common/src",
+   "${DEBUGTRACE_INC_ROOT}/core/debugtrace/tlmm/hal/inc",
+   "${DEBUGTRACE_INC_ROOT}/core/debugtrace/tracer/src",
+])
+
+if env.IsTargetEnable(['VENUS_VSS']):
+   env.PublishPrivateApi('DEBUGTRACE',[
+      "${DEBUGTRACE_INC_ROOT}/core/debugtrace/common/hal/inc",
+      "${DEBUGTRACE_INC_ROOT}/core/debugtrace/common/inc",
+   ])
+
+#-------------------------------------------------------------------------------
+#Define QDSS features here
+#-------------------------------------------------------------------------------
+
+### Place qdss_init in standalone mode ###
+#env.Replace(USES_QDSS_STANDALONE=True)
+
+### Always vote for QDSS clocks to be ON ###
+#env.Replace(USES_QDSS_CLK_ALWAYS_ON=True)
+
+#-------------------------------------------------------------------------------
+# Environment variables
+#-------------------------------------------------------------------------------
+
+if 'USES_QDSS_STANDALONE' in env:
+   env.Append(CCFLAGS = " -DQDSS_STANDALONE_MODE=1")
+
+if env.IsTargetEnable(['VENUS_VSS']):
+   env.Append(CCFLAGS = " -DTRACER_VENUS_BUILD")
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+

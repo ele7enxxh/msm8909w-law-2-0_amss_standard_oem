@@ -1,0 +1,44 @@
+#===============================================================================
+#
+# SBL Image Sconscript
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/modem/mp/arm11/rel/1.0/modem_proc/core/boot/secboot3/common/build/SConscript#13 $
+#  $DateTime: 2011/02/11 12:22:17 $
+#  $Author: coresvc $
+#  $Change: 1615928 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/20/15   sve     Added compilation support for Nand sbl and flash tools
+# 12/17/14   sve	 Code changes for merging firehose DeviceProgrammer into SBL
+# 03/22/11   aus     Created
+#===============================================================================
+Import('env')
+
+if env['MSM_ID'] in ['8909', '8909w']:
+	build_id= env.subst("$BUILD_ID")
+	if build_id.upper() in ['DAASANAA', 'DAASANAZ', 'DAATANAA', 'DAATANAZ', 'WAASANAA', 'WAASANAZ', 'WAATANAA', 'WAATANAZ']:
+		SBL_SCONS_ROOT = env.RealPath('${COREBSP_ROOT}/bsp/bootloaders/sbl1/build', posix=False)	
+		env.Replace(SBL_SCONS_ROOT = SBL_SCONS_ROOT)
+		env.SConscript("${SBL_SCONS_ROOT}/sbl1.scons", exports='env')	
+	elif build_id.upper() in ['DAADANAA', 'DAADANAZ', 'WAADANAA', 'WAADANAZ']:
+		DEVICEPROGRAMMER_SCONS_ROOT = env.RealPath('${COREBSP_ROOT}/bsp/tools/deviceprogrammer_ddr/build' ,posix=True)	
+		env.Replace(DEVICEPROGRAMMER_SCONS_ROOT = DEVICEPROGRAMMER_SCONS_ROOT)
+		env.SConscript("${DEVICEPROGRAMMER_SCONS_ROOT}/deviceprogrammer.scons", exports='env')
+else:
+	# set default script name
+	script_fname = "${CHIPSET}.scons"
+	env.SConscript(script_fname, exports='env')

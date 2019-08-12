@@ -1,0 +1,75 @@
+//============================================================================
+//  Name:                                                                     
+//    std_exitfastdebug.cmm
+//
+//  Description:                                                              
+//    This script lets you get out of "fastdebug" mode
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 10/08/2012 AJCheriyan	Modified to include the "original" debugging plan
+// 08/18/2012 AJCheriyan    Created for B-family.
+
+// The image for which we are going to exit debug mode
+ENTRY &IMAGE
+
+MAIN:
+
+	IF ("&IMAGE"=="sbl1")
+	(
+	     
+		 DATA.SET EA:&SBL1_DEBUG_COOKIE %LONG %LE 0x00000000
+		 
+	)
+
+	IF ("&IMAGE"=="mba")
+	(
+	    
+		DATA.SET EA:&MBA_DEBUG_COOKIE %LONG %LE 0x00000000
+		
+	)
+
+	IF ("&IMAGE"=="mpss")
+	(
+		
+		INTERCOM.EXECUTE &MPSS_PORT DATA.SET A:&MPSS_DEBUG_COOKIE %LONG %LE 0x00000000
+		
+	)
+
+	IF ("&IMAGE"=="wcnss")
+	(
+		
+		INTERCOM.EXECUTE &WCNSS_PORT DATA.SET A:&WCNSS_DEBUG_COOKIE %LONG %LE 0x00000000
+		
+	)
+	IF ("&IMAGE"=="rpm")
+	(
+		
+		DATA.SET EA:&RPM_DEBUG_COOKIE %LONG %LE 0x00000000
+		
+	)
+
+	IF ("&IMAGE"=="all")
+	(
+		
+		DATA.SET EA:&DEBUG_REGION_START--&DEBUG_REGION_END %LONG %LE 0x00000000
+		
+	)
+
+	GOTO EXIT
+
+EXIT:
+	ENDDO
+
+FATALEXIT:
+	END
+

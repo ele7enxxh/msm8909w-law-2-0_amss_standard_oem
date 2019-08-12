@@ -1,0 +1,182 @@
+#===============================================================================
+#
+# I2C Libs
+#
+# GENERAL DESCRIPTION
+#    Public build script for I2C BUS driver.
+#
+# Copyright (c) 2009-2016 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/buses/i2c/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/25/16   dpk     Added check to enable/disable i2c driver from compilation
+# 07/25/14   ms      Added support for 8909 tz.
+# 07/25/14   ms      Added support for 8936 tz.
+# 06/16/14   ms      Added support for 9x09 tz.
+# 05/30/14   ms      Added support for 8909 tz.
+# 07/23/12   lk      Added support for 8962, 8x10 tz.
+# 07/17/12   lk      Added support for 8626 tz.
+# 02/09/12   lk      Added device inc path.
+# 02/09/12   lk      Added configurable properties file.
+# 02/09/12   ag      Fixed the location where the object files are built.
+# 01/21/12   ag		 Initial release
+#
+#===============================================================================
+Import('env')
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+if 'tzbsp_disable_i2c' in env and env['tzbsp_disable_i2c'] == 1:
+   Return();
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+env = env.Clone()
+#print env
+# Additional defines
+env.Append(CPPDEFINES = ["FEATURE_LIBRARY_ONLY"])   
+env['CCCOMSTR'] = "$CCCOM"
+SRCPATH = "../src"
+
+IMAGES = []
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+CBSP_APIS = []
+I2C_CONFIG_XML = []
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('BUSES_I2C_DEVICE', [
+   '${INC_ROOT}/core/buses/i2c/src/device/inc',
+   '${INC_ROOT}/core/buses/i2c/src/logs/inc',
+   '${INC_ROOT}/core/buses/qup/src/logs/inc',
+   '${INC_ROOT}/core/buses/qup/inc',
+   '${INC_ROOT}/core/buses/qup/hw',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS += [
+   'BUSES',
+   'DAL',
+   'HAL',
+   'SYSTEMDRIVERS',
+   'HWENGINES',
+   'KERNEL',   
+   'SERVICES',
+   'POWER'
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+# for tzbsp_* definitions
+env.RequireRestrictedApi('TZCHIPSET')
+# for tzbsp_int* definitions
+env.RequireRestrictedApi('TZLIBARMV7')
+
+if env['MSM_ID'] in ['8974']:
+   if env.has_key('ADSP_PROC'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_adsp_8974.xml')
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+   elif env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_8974.xml')
+      IMAGES = ['TZOS_IMAGE'] 
+elif env['MSM_ID'] in ['9x25']:
+   if env.has_key('ADSP_PROC'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_adsp_9625.xml')
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+   elif env.has_key('APPS_PROC'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_apps_mdm9625.xml')
+      IMAGES = ['APPS_IMAGE',      'CBSP_APPS_IMAGE']
+elif env['MSM_ID'] in ['8x26']:
+   if env.has_key('ADSP_PROC'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_adsp_8x26.xml')
+      IMAGES = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+   elif env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_8626.xml')
+      IMAGES = ['TZOS_IMAGE'] 
+elif env['MSM_ID'] in ['8084']:
+   if env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_8084.xml')
+      IMAGES = ['TZOS_IMAGE']
+elif env['MSM_ID'] in ['8962']:
+   if env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_8962.xml')
+      IMAGES = ['TZOS_IMAGE']
+elif env['MSM_ID'] in ['8x10']:
+   if env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_8x10.xml')
+      IMAGES = ['TZOS_IMAGE']
+elif env['MSM_ID'] in ['8092']:
+   if env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_8084.xml')
+      IMAGES = ['TZOS_IMAGE']
+elif env['MSM_ID'] in ['8916']:
+   if env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_8916.xml')
+      IMAGES = ['TZOS_IMAGE']
+elif env['MSM_ID'] in ['8936']:
+   if env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_8936.xml')
+      IMAGES = ['TZOS_IMAGE']
+elif env['MSM_ID'] in ['8909']:
+   if env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_8909.xml')
+      IMAGES = ['TZOS_IMAGE']
+elif env['MSM_ID'] in ['8909w']:
+   if env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_8909.xml')
+      IMAGES = ['TZOS_IMAGE']
+elif env['MSM_ID'] in ['9x07']:
+   if env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_9x07.xml')
+      IMAGES = ['TZOS_IMAGE']
+elif env['MSM_ID'] in ['9x09']:
+   if env.has_key('TZOS_IMAGE'):
+      env.Replace(I2C_CONFIG_XML = 'i2c_tz_8909.xml')
+      IMAGES = ['TZOS_IMAGE']
+else:
+   Return();      
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+I2C_DEVICE_GLOB_FILES = env.GlobFiles('../src/*/*.c', posix=True)
+ 
+#GLOB returns the relative path name, it needs to replaced with correct build location
+I2C_DEVICE_SOURCES = [path.replace(SRCPATH, '${BUILDPATH}') for path in I2C_DEVICE_GLOB_FILES]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+# env.AddLibrary is a new API, only if the IMAGES is valid in the build env
+# the objects will built and added to the image.
+#-------------------------------------------------------------------------------
+env.AddLibrary(IMAGES, '${BUILDPATH}/I2cDriver', I2C_DEVICE_SOURCES)
+
+#---------------------------------------------------------------------------
+# Device Config
+#---------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      'devcfg_xml'    : '${BUILD_ROOT}/core/buses/i2c/config/${I2C_CONFIG_XML}'
+   })
+
+

@@ -1,0 +1,118 @@
+#===============================================================================
+#
+#                             Edit History
+#
+# $ Header: $
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2013/09/26   sc      Reverted previous temporarily changes
+# 2013/09/25   sc      Updated with USES_8916_CONFIG temporarily
+# 2013/06/24   sc      Updated to handle Aragorn Pro vs v2
+# 2013/02/25   sc      Separated the non-pageable codes
+# 2012/12/17   sc      2nd attempt to migrate to use DevCfg
+# 2012/12/10   sc      Reverted DevCfg changes
+# 2012/12/04   sc      Fixed packout issue
+# 2012/11/27   sc      Migrated to use DevConfig
+# 2012/11/12   sc      Updated for Luxor
+# 2012/11/08   sc      Updated for Frodo
+# 2012/05/17   sc      Removed HAL_XPU2_MAX_VMID and updated with 9x25
+# 2011/10/26   sc      Initial Creation
+#
+#===============================================================================
+# Copyright (c) 2011-2013
+# Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# HAL XPU2 Libs
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'KERNEL_XPU2',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/arch/${CHIPSET}/cfg/common")
+
+#-------------------------------------------------------------------------------
+# Internal depends within subunit
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('KERNEL_XPU2_HAL', [
+   '${INC_ROOT}/core/kernel/xpu2/hal/src',
+   '${INC_ROOT}/core/kernel/xpu2/hal/config/${MSM_ID}',
+])
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = "--gnu")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+HAL_XPU2_COMMON_SOURCES = [
+   '${BUILDPATH}/HALxpu2.c',
+   '${BUILDPATH}/HALxpu2GenImpl.c',
+   '${BUILDPATH}/HALxpu2InfoImpl.c',
+   '${BUILDPATH}/HALxpu2Impl_unpaged.c',
+]
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG,
+   {
+      'devcfg_xml' : '${BUILD_ROOT}/core/kernel/xpu2/hal/config/${MSM_ID}/HALxpu2Data.xml'
+   })
+
+HAL_XPU2_PACKOUT_HEADER_FILES = [
+   '${BUILDPATH}/HALhwioXpu2Generic.h',
+   '${BUILDPATH}/HALxpu2GenImpl.h',
+   '${BUILDPATH}/HALxpu2Hwio.h',
+   '${BUILDPATH}/HALxpu2Internal.h',
+]
+
+HAL_XPU2_PACKOUT_HEADER_FILES += env.FindFiles(
+   'HALSOCHWIOTarget.h',
+   '${INC_ROOT}/core/kernel/xpu2/hal/config/')
+   
+HAL_XPU2_PACKOUT_SOURCE_FILES = env.FindFiles(
+   '*.c',
+   '${INC_ROOT}/core/kernel/xpu2/hal/')
+
+env.CleanPack(['TZOS_IMAGE'],
+              HAL_XPU2_PACKOUT_HEADER_FILES)
+
+env.CleanPack(['TZOS_IMAGE'],
+              HAL_XPU2_PACKOUT_SOURCE_FILES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddBinaryLibrary(['TZOS_IMAGE'],
+                     '${BUILDPATH}/HALxpu2TZOS',
+                     [HAL_XPU2_COMMON_SOURCES])
+

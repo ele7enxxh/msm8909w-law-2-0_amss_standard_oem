@@ -1,0 +1,31 @@
+#============================================================================
+# Support for exporting the REMOTE STORAGE APIs from modem to apps
+#============================================================================
+ifndef HTORPC_remote_storage_ARGS
+ifeq ($(USES_EXPORT_REMOTE_STORAGE), yes)
+  REMOTE_STORAGE_CLIENT_SOURCES=\
+    remote_storage_clnt.c \
+    remote_storage_xdr.c
+
+  REMOTE_STORAGE_SERVER_SOURCES=\
+    remote_storage_svc.c \
+    remote_storage_xdr.c
+
+  REMOTE_STORAGE_CLIENT_OBJS := $(addprefix $(TARGETDIR)/, $(REMOTE_STORAGE_CLIENT_SOURCES:%.c=%.o))
+  REMOTE_STORAGE_SERVER_OBJS := $(addprefix $(TARGETDIR)/, $(REMOTE_STORAGE_SERVER_SOURCES:%.c=%.o))
+
+  HTORPC_remote_storage_ARGS = -a remote_storage
+
+  HTORPC_DEPS += remote_storage
+
+  vpath %.h $(AU_CORE_RAPI)/storage/inc
+  vpath %.c $(AU_CORE_RAPI)/storage/src
+
+  ifneq ($(REMOTE_API_LOC_KNOWN),yes)
+    htorpc_remote_storage : REMOTE_API_LOC = $(AU_CORE_RAPI)/storage/src
+    htorpc_remote_storage : REMOTE_API_H_LOC = $(AU_CORE_RAPI)/storage/inc
+  endif
+
+endif
+endif
+

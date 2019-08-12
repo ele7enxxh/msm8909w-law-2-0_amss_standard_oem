@@ -1,0 +1,415 @@
+#===============================================================================
+#
+# Modem HDR SCons script
+#
+# GENERAL DESCRIPTION
+#    build script to load API's for modem/hdr
+#
+# Copyright (c) 2010-2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/hdr/build/hdr.scons#1 $
+#  $DateTime: 2016/12/13 07:58:05 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/07/16   pvg     Updated the HDR scons changes to resolve compilation dependency with 1X
+# 03/05/15   sat     Removed Unified Micro Priority changes feature.
+# 02/20/15   tnp     Treating high/med warning as error
+# 02/05/15   tnp     Treating all warning as error
+# 02/05/15   ljl     Disabled Rev B.
+# 01/07/15   wsh     Treating high/med warning as error
+# 12/04/14   arm     Enabled Unified Priority changes for 2.5 only
+# 11/20/14   tnp     HDR - Treat warnings as errors in HDR subsystem
+# 11/11/14   arm     Enabled Band Avoidance for Bolt 2.5 only
+# 09/24/14   rmv     Disabled DO RevB for Tabasco MSM 8952
+# 08/07/14   vko     Enable FEATURE_HDR_REVB_DTX_MODE, FEATURE_HDR_TRAFFIC_DTX for BO 2.1
+# 07/31/14   vko     Disable FEATURE_HDR_NEGOTIATE_REVB, FEATURE_HDR_REVB_SUPPORTED for 8909.
+# 07/09/14   cnx     Support NV refresh without reset.
+# 06/24/14   dsp     Support new FW subdirectory on Thor. 
+# 10/02/13   cnx     Support new LLVM compiler.
+# 07/30/13   cnx     Add 'DTR' from 'RFLM' because RFA re-organization.
+# 04/29/13   smd     Defined FEATURE_HDR_REVB_SUPPORTED for non 8x10 targets.
+# 04/29/13   smd     Defined FEATURE_HDR_NEGOTIATE_REVB for non 8x10 targets.
+# 03/04/13   vko     Fixed compiler warnings
+# 01/16/13   cnx     Support QC-SCons-based pack mechanism.
+# 11/13/12   cnx     Removed modem folder.
+# 09/11/12   cnx     Removed modem folder.
+# 06/12/12   rkc     SCONS file changes to support MPSS.NI.4.0 from PW
+# 02/27/12   smd     Added HDRHIT messages.
+# 12/11/11   cnx     Added HDR to public APIs.
+# 11/11/11   cnx     Added UIM to public/restricted APIs. 
+# 09/28/11   rmg     Added LTE to restricted APIs for HDRMC-LTE interaction 
+#                    code to compile.
+# 03/16/11   cnx     Added some API path.
+# 12/16/10   kss     Added violations for modules not yet properly exported.
+# 12/09/10   rmg     Published API folder.
+# 09/22/10   cnx     Created this file
+#
+#===============================================================================
+import os
+Import('env')
+
+# Enable low warnings and treat high/med warnings as error
+env.Append(HEXAGON_WARN = ' -Werror-high -Werror-medium')
+
+if env.PathExists('${BUILD_ROOT}/hdr'):
+    env.Replace(HDR_ROOT = '${INC_ROOT}/hdr')
+else:    
+    env.Replace(HDR_ROOT = '${INC_ROOT}/modem/hdr')
+
+env.RequirePublicApi([
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MCS',
+        ],
+        area='MCS')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'DAL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='LTE')
+
+env.RequirePublicApi([
+        'MEMORY',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'HDR',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'DEBUGTOOLS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'SYSTEMDRIVERS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'CDMA',
+        'MEAS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'SERVICES',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'RF',
+        'C2K',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_CCS',
+        ],
+        area='FW_CCS')
+
+env.RequirePublicApi([
+        'FW_COMMON',
+        ],
+        area='FW_COMMON')
+
+env.RequirePublicApi([
+        'FW_C2K',
+        ],
+        area='FW_C2K')
+        
+env.RequirePublicApi([
+        'ONEX',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'UIM',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'MPROC',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'GSM',
+        'LM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'DTR',
+        ],
+        area='RFLM')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'DATAMODEM',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_GERAN',
+        ],
+        area='FW_GERAN')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'GNSS',
+        'LTE',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'STORAGE',
+        'POWER',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MPOWER',
+        ],
+        area='MPOWER')
+
+env.RequirePublicApi([
+        'SECUREMSM',
+        ],
+        area='CORE')
+
+
+env.RequirePublicApi([
+        'QCHAT',
+        ],
+        area='QCHAT')
+
+env.RequirePublicApi([
+        'RFLM',
+        ],
+        area='RFLM')
+        
+        
+env.RequirePublicApi([
+        'RFMODEM_BOLT',
+        ],
+        area='RFMODEM_BOLT')
+
+env.RequirePublicApi([
+        'QSH',
+        ],
+        area='UTILS')        
+
+
+        
+        
+
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+
+
+# cust file relocation
+# Protected is "private within the SU" vs. Restricted with is visible to other SUs
+env.PublishProtectedApi('HDR', [
+        '${HDR_ROOT}/cust/inc',
+        '${HDR_ROOT}/variation/inc',
+        '${HDR_ROOT}/cp/api',
+        '${HDR_ROOT}/common/api',
+        '${HDR_ROOT}/srch/api',
+        '${HDR_ROOT}/mac/api',
+        '${HDR_ROOT}/srch/inc',
+        '${HDR_ROOT}/cust/inc',
+        '${HDR_ROOT}/drivers/api',
+        '${HDR_ROOT}/variation/inc',
+        '${HDR_ROOT}/cp/inc',
+        '${HDR_ROOT}/bc/api',
+        '${HDR_ROOT}/srch/src',
+        '${HDR_ROOT}/cp/src',
+        '${HDR_ROOT}/bc/inc',
+        '${HDR_ROOT}/mac/src',
+        '${HDR_ROOT}/mac/inc',
+        '${HDR_ROOT}/bc/src',
+        '${HDR_ROOT}/hit/inc',
+        '${HDR_ROOT}/tap/inc',
+        '${HDR_ROOT}/hit/src',
+        '${HDR_ROOT}/tap/api',
+        '${HDR_ROOT}/drivers/src',
+        '${HDR_ROOT}/common/inc',
+        ])
+
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+
+env.RequireProtectedApi(['HDR'])
+env.RequirePublicApi(['MCFG'], area='MCFG')
+
+#-------------------------------------------------------------------------------
+# avoid run-time errors when trying to send MSGR messages 
+#-------------------------------------------------------------------------------
+if 'USES_MSGR' in env:
+    env.AddUMID('${BUILDPATH}/hdr.umid', [ '${HDR_ROOT}/api/hdrcp_msg.h',
+                                           '${HDR_ROOT}/api/hdrsrch_msg.h',
+                                           '${HDR_ROOT}/api/hdrhit_msg.h',
+                                         ])
+
+
+# remove blocks to end of file when modem folder is removed
+# --------------------------------------------------------------------------- #
+# Publish Protected Include Paths for just HDR                                #
+# --------------------------------------------------------------------------- #
+env.PublishProtectedApi('BC',      ["${INC_ROOT}/modem/hdr/bc/inc"])
+env.PublishProtectedApi('COMMON',  ["${INC_ROOT}/modem/hdr/common/inc"])
+env.PublishProtectedApi('CP',      ["${INC_ROOT}/modem/hdr/cp/inc"])
+env.PublishProtectedApi('DRIVERS', ["${INC_ROOT}/modem/hdr/drivers/inc"])
+env.PublishProtectedApi('HIT',     ["${INC_ROOT}/modem/hdr/hit/inc"])
+env.PublishProtectedApi('MAC',     ["${INC_ROOT}/modem/hdr/mac/inc"])
+env.PublishProtectedApi('SRCH',    ["${INC_ROOT}/modem/hdr/srch/inc"])
+env.PublishProtectedApi('TAP',     ["${INC_ROOT}/modem/hdr/tap/inc"])
+env.PublishProtectedApi('HDRAPI',  ["${INC_ROOT}/modem/hdr/api"])
+
+#-------------------------------------------------------------------------------
+# Necessary Public & Restricted API's
+#-------------------------------------------------------------------------------
+# Violations required to compile
+env.PublishPrivateApi('VIOLATIONS', ['${INC_ROOT}/core/systemdrivers/clk/inc',
+                                     '${INC_ROOT}/core/api/securemsm/crypto',
+                                     '${INC_ROOT}/modem/1x/cust/inc',
+                                     '${INC_ROOT}/modem/1x/variation/inc',
+                                     '${INC_ROOT}/modem/datamodem/cust/inc',
+                                     '${INC_ROOT}/modem/datamodem/variation/inc',
+                                     '${INC_ROOT}/modem/geran/cust/inc',
+                                     '${INC_ROOT}/modem/geran/variation/inc',
+                                     '${INC_ROOT}/modem/mcs/cust/inc',
+                                     '${INC_ROOT}/modem/mcs/variation/inc',
+                                     '${INC_ROOT}/modem/mmcp/cust/inc',
+                                     '${INC_ROOT}/modem/mmcp/variation/inc',
+                                     ])
+
+# Temporary workaround for Pos 2.2. Need to clean up in the future.
+env.RequirePublicApi('WIREDCONNECTIVITY', area='CORE')
+env.RequirePublicApi('STORAGE', area='CORE')
+env.RequirePublicApi('PBM')
+env.RequirePublicApi('WMS')
+env.RequireRestrictedApi('DATAMODEM',)
+
+env.RequirePublicApi([
+               'DAL',
+               'DEBUGTOOLS',
+               'MPROC',
+               'SERVICES',
+               'SYSTEMDRIVERS',
+               'KERNEL',          # needs to be last
+               ], area='core')
+
+# Need to get access to Modem Public headers
+env.RequirePublicApi([
+               'HDR',
+               'MCS',
+               'MPROC',
+               'NAS',
+               'RFA', 
+               'UTILS',
+               'MMODE',
+               'UIM'
+               ])
+
+# Need to get access to Modem Restricted headers
+env.RequireRestrictedApi([
+               'MCS',
+               'NAS',
+               'RFA', 
+               'MMODE',
+               'UTILS',
+               'LTE',
+               'UIM'
+               ])
+
+
+#-------------------------------------------------------------------------------
+# Enable Band Avoidance for BO 2.5 only
+#-------------------------------------------------------------------------------
+if env['PRODUCT_LINE'] in ['MPSS.BO.2.5']:
+   env.Append(CPPDEFINES = ['FEATURE_HDR_BAND_AVOIDANCE'])
+
+#-------------------------------------------------------------------------------
+# Enable Band Avoidance for JO.3.0 only
+#-------------------------------------------------------------------------------
+if env['PRODUCT_LINE'] in ['MPSS.JO.3.0']:
+   env.Append(CPPDEFINES = ['FEATURE_HDR_TRM_UNIFICATION'])
+
+#-------------------------------------------------------------------------------
+# Load cleanpack script to remove private files etc. from customer builds
+#-------------------------------------------------------------------------------
+if os.path.exists('hdr_cleanpack.py'):
+    env.LoadToolScript('hdr_cleanpack.py')
+
+#-------------------------------------------------------------------------------
+# Continue loading software units
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

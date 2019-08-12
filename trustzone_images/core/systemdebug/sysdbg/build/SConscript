@@ -1,0 +1,221 @@
+#===============================================================================
+#
+# System Debug Source Builder Script
+#
+# GENERAL DESCRIPTION
+#    Build script for system debug sources
+#
+# Copyright 2012-2014 by QUALCOMM, Incorporated.
+#           All Rights Reserved.
+#           QUALCOMM Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who            what, where, why
+# --------   ---            ---------------------------------------------------------
+# 05/10/12   ajcheriyan     Initial revision
+# 05/10/12   davidai        Ported to Bear
+#====================================================================================
+
+#===============================================================================
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011/07/12   spa     Create initial version
+#
+#===============================================================================
+#                    Copyright (c) 2011 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+# QSEE Lib
+#-------------------------------------------------------------------------------
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/systemdebug/sysdbg"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# HWIO
+#-------------------------------------------------------------------------------
+
+if env.has_key('HWIO_IMAGE'):
+  # Modules depend on which CHIPSET is being build
+  modules = [
+         'BIMC.*',
+         'APCS_.*',
+         'TLMM_.*',
+         'SECURITY_CONTROL_CORE',
+         'WCSS_A_PMU.*',
+         'MSS_QDSP6SS.*',
+         'GCC_CLK_CTL_REG',
+         'PRNG_PRNG',
+         'MPM2_MPM',
+         'MPM2_G_CTRL_CNTR',
+         'MPM2_WDOG',
+	 'QDSS_WRAPPER_DEBUG_UI',
+	 'QDSS_WRAPPER',
+         'MPM2_PSHOLD',
+         'MPM2_PSHOLD',
+         'QDSS_ETR.*',
+         'QDSS_ETFETB.*',
+         'TCSR_TCSR_.*',
+         'DEHR_BIMC',
+         'VENUS.*',
+      ]
+  env.AddHWIOFile('HWIO', [
+      {
+         'filename': '${INC_ROOT}/core/systemdebug/sysdbg/inc/sysdbg_hwio.h',
+         'output-phys': True,
+         'modules': modules,
+         'header': '#include "msmhwiobase.h"'
+      }
+   ])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+   'BOOT',
+   'KERNEL',
+   'SERVICES',
+   'SYSTEMDEBUG',
+   'SYSTEMDRIVERS',     
+   'DAL',              
+])
+
+env.RequirePrivateApi([
+   'SYSDBGSPMI',              
+])
+env.RequireRestrictedApi(['TZCHIPSET', 'TZLIBARMV7', 'SYSTEMDRIVERS', 'SECBOOT', 'SECUREMSM'])
+
+if env['CHIPSET'] == "msm8909w":
+	env.PublishPrivateApi('SYSTEMDEBUG', [
+	   "${BUILD_ROOT}/core/systemdebug/sysdbg/inc",
+	   "${BUILD_ROOT}/core/systemdebug/sysdbg/inc/msm8909",
+	   "${BUILD_ROOT}/core/systemdebug/sysdbg/src/target/msm8909",
+	])
+else:
+	env.PublishPrivateApi('SYSTEMDEBUG', [
+	   "${BUILD_ROOT}/core/systemdebug/sysdbg/inc",
+	   "${BUILD_ROOT}/core/systemdebug/sysdbg/inc/${CHIPSET}",
+	   "${BUILD_ROOT}/core/systemdebug/sysdbg/src/target/${CHIPSET}",
+	])
+
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = "--gnu --c99")
+if env['MSM_ID'] in ['8916']:
+	env.Append(CPPDEFINES = [('TARGET_APPS_CPUS', 4)])
+if env['MSM_ID'] in ['8936']:	
+	env.Append(CPPDEFINES = [('TARGET_APPS_CPUS', 8)])
+if env['MSM_ID'] in ['8909','8909w']:
+	env.Append(CPPDEFINES = [('TARGET_APPS_CPUS', 4)])
+if env['MSM_ID'] in ['9x07']:
+	env.Append(CPPDEFINES = [('TARGET_APPS_CPUS', 1)])
+if env['MSM_ID'] in ['9x09']:
+	env.Append(CPPDEFINES = [('TARGET_APPS_CPUS', 4)])
+# This is the magic number that is used by all of debug image
+env.Append(CPPDEFINES = ["SYSDBG_MAGIC_NUMBER=0x5D1DB1BF"])
+# Statistics Magic Number
+env.Append(CPPDEFINES =["STATS_MAGIC_NUMBER=0x5356434C"])
+# The base address for the CPUs ETM block. Each block is 4KB in size with the blocks
+# for all cores laid out in sequential order
+if env['MSM_ID'] in ['9x07']:
+	env.Append(CPPDEFINES = ["CPU0_ETM_BASE=0x00842000"])
+else :
+	env.Append(CPPDEFINES = ["CPU0_ETM_BASE=0x00850000"])
+
+# ETFETB Base register
+if env['MSM_ID'] in ['8916']:
+	# Define the ETFETB Base address
+	env.Append(CPPDEFINES = ["QDSS_ETFETB_BASE=QDSS_ETFETB_ETFETB_CXTMC_F128W8K_REG_BASE"])
+
+if env['MSM_ID'] in ['8936']:
+	#define the ETFETB Base address
+	env.Append(CPPDEFINES = ["QDSS_ETFETB_BASE=QDSS_ETFETB_ETFETB_CXTMC_F128W16K_REG_BASE"])
+	
+if env['MSM_ID'] in ['8909','8909w']:
+	# Define the ETFETB Base address
+	env.Append(CPPDEFINES = ["QDSS_ETFETB_BASE=QDSS_ETFETB_ETFETB_CXTMC_F128W8K_REG_BASE"])
+
+if env['MSM_ID'] in ['9x07']:
+	# Define the ETFETB Base address
+	env.Append(CPPDEFINES = ["QDSS_ETFETB_BASE=QDSS_ETFETB_ETFETB_CXTMC_F128W8K_REG_BASE"])
+	
+if env['MSM_ID'] in ['9x09']:
+	# Define the ETFETB Base address
+	env.Append(CPPDEFINES = ["QDSS_ETFETB_BASE=QDSS_ETFETB_ETFETB_CXTMC_F128W8K_REG_BASE"])
+
+#CLUSTER Defines
+if env['MSM_ID'] in ['9x07']:
+	env.Append(CPPDEFINES = ["TARGET_CLUSTERS=1","TARGET_CLUSTER_0_SIZE=1", "TARGET_CLUSTER_1_SIZE=0", 'TARGET_APPS_CLUSTERS=1'])
+else :
+	env.Append(CPPDEFINES = ["TARGET_CLUSTERS=2","TARGET_CLUSTER_0_SIZE=4", "TARGET_CLUSTER_1_SIZE=4", 'TARGET_APPS_CLUSTERS=2'])
+
+#EXIT Function ADDR
+env.Append(CPPDEFINES =["SYSDBG_EXIT_ADDR=0x00220000"])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# SYSDBG Sources, libraries
+#-------------------------------------------------------------------------------
+SYSDBG_MAIN_SOURCES = [
+   '${BUILDPATH}/src/sysdbg_main.c',
+]
+
+#SYSDBG_MEMORY_DUMP_SOURCES = [
+#   '${BUILDPATH}/src/sysdbg_mem_dump.c',
+#   '${BUILDPATH}/sysdbg_logram.c',
+#]
+
+SYSDBG_COMMON_SOURCES = [
+#   '${BUILDPATH}/sysdbg_chipinfo.c'
+]
+
+if env['CHIPSET'] == "msm8909w":
+	SYSDBG_TARGET_SOURCES = [ 
+		'${BUILDPATH}/src/target/msm8909/sysdbg_target_sequence.c',
+		'${BUILDPATH}/src/target/msm8909/sysdbg.s',
+		'${BUILDPATH}/src/target/msm8909/sysdbg_cache.s',
+		'${BUILDPATH}/src/target/msm8909/sysdbg_target.c',
+		'${BUILDPATH}/src/target/msm8909/sysdbg_mem_dump.c',
+	]
+else:
+	SYSDBG_TARGET_SOURCES = [ 
+		'${BUILDPATH}/src/target/${CHIPSET}/sysdbg_target_sequence.c',
+		'${BUILDPATH}/src/target/${CHIPSET}/sysdbg.s',
+		'${BUILDPATH}/src/target/${CHIPSET}/sysdbg_cache.s',
+		'${BUILDPATH}/src/target/${CHIPSET}/sysdbg_target.c',
+		'${BUILDPATH}/src/target/${CHIPSET}/sysdbg_mem_dump.c',
+	]
+
+sysdbg_obj = env.Object([ 
+    SYSDBG_MAIN_SOURCES,
+	SYSDBG_COMMON_SOURCES,
+	SYSDBG_TARGET_SOURCES,
+   
+])
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_init', [sysdbg_obj])
+
+

@@ -1,0 +1,56 @@
+#*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+#                       T I M E     R E M O T E     A P I
+#
+#   This includable Make module defines the list of sources for time.
+#
+#   
+#
+# Copyright (c) 2008 by QUALCOMM, Incorporated. All Rights Reserved.
+#*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+
+#============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+#   This section contains comments describing changes made to the module.
+#   Notice that changes are listed in reverse chronological order.
+#
+#   $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/api/rapi/services/src/time_rapi.min#1 $
+#
+# when        who    what, where, why
+# --------    ---    --------------------------------------------------------
+# 10/01/08    mpa    Created this file.
+#============================================================================
+
+#============================================================================
+# Support for exporting the TIME APIs from apps to modem
+#============================================================================
+ifndef HTORPC_time_remote_atom_ARGS
+ifeq ($(USES_EXPORT_TIME_REMOTE_ATOM),yes)
+
+  TIME_REMOTE_ATOM_CLIENT_SOURCES = \
+    time_remote_atom_clnt.c \
+    time_remote_atom_xdr.c
+
+  TIME_REMOTE_ATOM_SERVER_SOURCES = \
+    time_remote_atom_svc.c \
+    time_remote_atom_xdr.c
+
+  TIME_REMOTE_ATOM_CLIENT_OBJS := $(addprefix $(TARGETDIR)/, $(TIME_REMOTE_ATOM_CLIENT_SOURCES:%.c=%.o))
+  TIME_REMOTE_ATOM_SERVER_OBJS := $(addprefix $(TARGETDIR)/, $(TIME_REMOTE_ATOM_SERVER_SOURCES:%.c=%.o))
+
+  vpath %.h $(AU_CORE_API)/services
+  vpath %.c $(AU_CORE_RAPI)/services/src
+
+  ifneq ($(REMOTE_API_LOC_KNOWN), yes)
+    htorpc_time_remote_atom : REMOTE_API_LOC = $(AU_CORE_RAPI)/services/src
+    htorpc_time_remote_atom : REMOTE_API_H_LOC = $(AU_CORE_RAPI)/services/inc
+  endif
+
+  HTORPC_DEPS += time_remote_atom
+
+  HTORPC_time_remote_atom_ARGS = -a time_remote_atom
+
+endif
+endif
+

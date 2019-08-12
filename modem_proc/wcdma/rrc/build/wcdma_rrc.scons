@@ -1,0 +1,402 @@
+# -------------------------------------------------------------------------------- #
+#                       W C D M A _ R R C. S C O N S                                      
+#
+# DESCRIPTION                                                                      
+#       Scons file for the W subsytem. Defines the existence of RRC
+#                                                                                  
+#                                                                                  
+# INITIALIZATION AND SEQUENCING REQUIREMENTS                                       
+#       None.                                                                      
+#                                                                                  
+#
+# Copyright (c) 2010 Qualcomm Technologies Incorporated.                                        
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary                       
+# Export of this technology or software is regulated by the U.S. Government.       
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/wcdma/rrc/build/wcdma_rrc.scons#1 $
+# $DateTime: 2016/12/13 08:00:12 $
+# 
+#  when        who     what, where, why
+# ---------    ---     ------------------------------------------------------------
+#  02/13/15    sa      Made changes to add the stubs for QTF with JO CRM
+#  08/26/13    sp      Changes to include secapi for random number generation.
+#  10/16/12    db      Changes for QCHAT on Dime 
+#  07/24/12    geg     Upmerge WCDMA.MPSS.1.0 to WCDMA.MPSS.2.0
+#  04/05/12    stk     Set MSG_BT_SSID_DFLT for legacy MSG macros
+#  03/08/12    amj     Made changes for RC init task initialization support.
+#  02/10/12    db      Addded rrcenhstateproc,enhstatecfg and freefloating to the source
+#  01/27/12    mr      Added restricted src compilation rules
+#  09/16/11    rl      Removed the unused file rrcprintf having AEEstd library usage.
+#  07/26/11    rl      Fix to compilation issue - PALM Mako
+#  04/29/11    kp      Added /core/api/storage to PublishPrivateApi
+#  04/29/11    rl      Added the MSGR Router UMID generation change
+#  03/29/11    rl      Removed the white space in the last line before 
+#                       env_private.AddBinaryLibrary()
+#  03/16/11    sks     Added Osys files to WCDMA_RRC_OSS_SOURCES.
+#  12/22/10    stk     Removed including WCDMA as Protected API.
+#  12/22/10    stk     Added MPROC under CORE_PUBLIC_APIS & MMODE
+#  12/21/10    stk     Grouped AUDIO and MVS under Multimedia public APIs
+#  12/20/10    stk     Added MVS under public API
+#  12/14/10    stk     Corrcted syntax for RequireRestrictedApi
+#  12/14/10    stk     Removed LTE from MODEM_RESTRICTED_APIS since its included directly when USES_QDSP6 is defined.
+#  12/13/10    stk     Added more violations, public and restricted API
+#  12/09/10    stk     Added restricted LTE for nikeL
+#  11/18/10    stk     Added Scons support for NikeL target.
+#  11/11/10    rmsd    Replaced RETURN() with Return()
+#  10/19/10    rmsd    Added RF,GPS Violations changes
+#  10/14/10    rmsd    Made changes to USES_FLAG,MBMS files and VIOLATIONS
+#  09/01/10    rmsd    Initial Cut
+#
+#===================================================================================#
+
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------------
+# USES_FLAG :: Do not compile WCDMA_RRC subsystem if 
+#              USES_WPLT is defined or (USES_UMTS and USES_WCDMA) are not defined.
+#------------------------------------------------------------------------------------
+if 'USES_WPLT' in env or ('USES_WCDMA' not in env and 'USES_UMTS' not in env):
+   Return()
+
+#-------------------------------------------------------------------------------
+# VIOLATIONS
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('VIOLATIONS',["${INC_ROOT}/core/systemdrivers/clk/inc",
+                                    "${INC_ROOT}/modem/utils/oss/oss_asn1_rvds21/include",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/nv/src",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/core/src",
+                                    "${INC_ROOT}/modem/rfa/rf/common/rf/rfc/src",
+                                    "${INC_ROOT}/modem/rfa/rf/device/rtr8600_1x/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/device/rfdev_intf/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/hal/p2_1x/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/hal/common/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/wcdma/rf/mc/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/wcdma/rf/nv/inc",
+                                    "${INC_ROOT}/modem/rfa/rf/gsm/rf/core/src",
+                                    "${INC_ROOT}/modem/gps/gnss/inc",
+                                    "${INC_ROOT}/modem/nas/mm/src",
+                                    "${INC_ROOT}/core/services/utils",
+                                    "${INC_ROOT}/core/services/utils/src",
+                                    "${INC_ROOT}/modem/wcdma/l1/offline/src",
+				            "${INC_ROOT}/core/api/storage",
+                                   ])
+                                                     
+# ------------------------------------------------------------------------------
+# Include Paths
+#-------------------------------------------------------------------------------
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'BUSES',
+    'DEBUGTOOLS',
+    'DAL',
+    'POWER',
+    'SYSTEMDRIVERS',
+    'SERVICES',
+    'MPROC',
+    'SECUREMSM',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+MULTIMEDIA_APIS = [
+    'AUDIO',
+    ]
+
+
+#----------------------------------------------------------------------------#
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#----------------------------------------------------------------------------#
+REQUIRED_NON_SCONS_APIS = [
+    'BREW',
+    'MODEM_SERVICES',
+    'MULTIMEDIA_AUDIO',
+    'BASE_PATHS', #mdsp/cdma/inc
+    ]
+
+
+MODEM_PUBLIC_APIS = [
+    'ONEX', #GPS needs a 1x file
+    'DATA',
+    'DATACOMMON',
+    'GPS',
+    'RFA',
+    'GERAN',
+    'WCDMA',
+    'MCS',
+    'UTILS',
+    'MMODE',
+    'UIM',
+    'NAS',
+    'QCHAT',
+    'HDR',
+    ]
+
+MODEM_RESTRICTED_APIS =[
+    'ONEX',
+    'MMODE',
+    'GPS',
+    'DATA',
+    'DATACOMMON',
+    'HDR',
+    'MCS',
+    'NAS',
+    'MDSP',
+    'UIM',
+    'GERAN',
+    'UTILS',
+    'RFA',
+    'QCHAT',
+    'WCDMA',
+    'FW',
+    ]
+
+
+MULTIMEDIA_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+]
+
+#-------------------------------------------------------------------------------
+# We need the Multimedia API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MULTIMEDIA_PUBLIC_APIS, area="MULTIMEDIA")
+
+#-------------------------------------------------------------------------------
+# We need the Core BSP API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+#-------------------------------------------------------------------------------
+# We need MODEM PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need different restricted API's within MODEM
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+if env.has_key('USES_QDSP6'):
+   env.RequireRestrictedApi(['LTE'])
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#----------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#----------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   'MSG_BT_SSID_DFLT=MSG_SSID_WCDMA_RRC',
+])
+
+#-------------------------------------------------------------------------------
+# Images that this VU is added .
+#-------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM','MOB_WCDMA']
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+WCDMA_RRC_PRIVATE_SOURCES=[
+        '${BUILDPATH}/rrcwrm.c',
+]
+
+WCDMA_RRC_MBMS_PRIVATE_SOURCES=[
+        '${BUILDPATH}/rrcmbmsproc.c',
+        '${BUILDPATH}/rrcmbmscfg.c',
+]
+
+if 'USES_CUSTOMER_GENERATE_LIBS' in env:
+	WCDMA_RRC_OSS_SOURCES=[
+        '${BUILDPATH}/rrcasn1util.c',
+        '${BUILDPATH}/rrcasn1_ieDec.o',
+        '${BUILDPATH}/rrcasn1_ieEnc.o',
+        '${BUILDPATH}/rrcasn1_pdudec.o',
+        '${BUILDPATH}/rrcasn1_pduEnc.o',
+        '${BUILDPATH}/rrcasn1Dec.o',
+        '${BUILDPATH}/rrcasn1Enc.o',
+         '${BUILDPATH}/rrcossinit.c',
+]
+else:
+	WCDMA_RRC_OSS_SOURCES=[
+        '${BUILDPATH}/rrcasn1util.c',
+        '${BUILDPATH}/rrcasn1_ieDec.c',
+        '${BUILDPATH}/rrcasn1_ieEnc.c',
+        '${BUILDPATH}/rrcasn1_pdudec.c',
+        '${BUILDPATH}/rrcasn1_pduEnc.c',
+        '${BUILDPATH}/rrcasn1Dec.c',
+        '${BUILDPATH}/rrcasn1Enc.c',
+        '${BUILDPATH}/rrcossinit.c',
+]
+# Only supported for MOB builds
+if 'USES_MOB' in env:
+   WCDMA_RRC_OSS_SOURCES+=[
+   '${BUILDPATH}/rrcasn1_osys_print.c',
+]
+WCDMA_RRC_C_SOURCES = [
+        '${BUILDPATH}/rrcccm.c',
+	'${BUILDPATH}/rrccho.c',
+	'${BUILDPATH}/rrcchk.c',
+        '${BUILDPATH}/rrccmd.c',
+        '${BUILDPATH}/rrccu.c',
+        '${BUILDPATH}/rrcdata.c',
+        '${BUILDPATH}/rrcdiag.c',
+        '${BUILDPATH}/rrcdispatcher.c',
+        '${BUILDPATH}/rrcdt.c',
+        '${BUILDPATH}/rrcifreq.c',
+        '${BUILDPATH}/rrclbt.c',
+        '${BUILDPATH}/rrclog.c',
+        '${BUILDPATH}/rrcnv.c',
+        '${BUILDPATH}/rrcpcreconfig.c',
+        '${BUILDPATH}/rrcpg1.c',
+        '${BUILDPATH}/rrcpg2.c',
+        '${BUILDPATH}/rrcrbcommon.c',
+        '${BUILDPATH}/rrcrbe.c',
+        '${BUILDPATH}/rrcrbr.c',
+        '${BUILDPATH}/rrcrbreconfig.c',
+        '${BUILDPATH}/rrcrce.c',
+        '${BUILDPATH}/rrcrcr.c',
+        '${BUILDPATH}/rrcscmgr.c',
+        '${BUILDPATH}/rrcsend.c',
+        '${BUILDPATH}/rrctask.c',
+        '${BUILDPATH}/rrctcreconfig.c',
+        '${BUILDPATH}/rrctmr.c',
+        '${BUILDPATH}/rrcuece.c',
+        '${BUILDPATH}/rrcueci.c',
+        '${BUILDPATH}/rrcumi.c',
+        '${BUILDPATH}/rrcasu.c',
+        '${BUILDPATH}/rrcbmc.c',
+        '${BUILDPATH}/rrccsp.c',
+        '${BUILDPATH}/rrccspdb.c',
+        '${BUILDPATH}/rrccspfscan.c',
+        '${BUILDPATH}/rrccsputil.c',
+        '${BUILDPATH}/rrciho.c',
+        '${BUILDPATH}/rrcirat.c',
+        '${BUILDPATH}/rrclcm.c',
+        '${BUILDPATH}/rrcllc.c',
+        '${BUILDPATH}/rrcllcmsgie.c',
+        '${BUILDPATH}/rrcllcoc.c',
+        '${BUILDPATH}/rrcllcpcie.c',
+        '${BUILDPATH}/rrcllcrbie.c',
+        '${BUILDPATH}/rrcllctrchie.c',
+        '${BUILDPATH}/rrcmcm.c',
+        '${BUILDPATH}/rrcmeas.c',
+        '${BUILDPATH}/rrcmisc.c',
+        '${BUILDPATH}/rrcqm.c',
+        '${BUILDPATH}/rrcsibcollect.c',
+        '${BUILDPATH}/rrcsibdb.c',
+        '${BUILDPATH}/rrcsibproc.c',
+        '${BUILDPATH}/rrcsmc.c',
+        '${BUILDPATH}/rrctvm.c',
+	'${BUILDPATH}/rrctfcc.c',
+	'${BUILDPATH}/rrcf9driver.c',
+        '${BUILDPATH}/rrcgpsmeas.c',
+        '${BUILDPATH}/rrcueimeas.c',
+	'${BUILDPATH}/rrcdormancy.c',
+        '${BUILDPATH}/rrcenhstatecfg.c',
+        '${BUILDPATH}/rrcenhstateproc.c',
+        '${BUILDPATH}/rrcfreefloating.c',
+        '${BUILDPATH}/rrchsrachcfg.c',
+]
+
+
+#-------------------------------------------------------------------------------
+# Adding MBMS specific files in a MBMS build
+# In future if MBMS is not defined, please add a IF condition here
+#-------------------------------------------------------------------------------
+WCDMA_RRC_PRIVATE_SOURCES = WCDMA_RRC_PRIVATE_SOURCES + WCDMA_RRC_MBMS_PRIVATE_SOURCES + WCDMA_RRC_OSS_SOURCES
+
+#-------------------------------------------------------------------------------
+# Compile the source 
+#-------------------------------------------------------------------------------
+#wcdma_rrc_objs = env.Object(WCDMA_RRC_C_SOURCES+WCDMA_RRC_OSS_SOURCES)
+env.AddLibrary(IMAGES, '${BUILDPATH}/wcdma/rrc', WCDMA_RRC_C_SOURCES)
+#-------------------------------------------------------------------------------
+# If USES_NO_STRIP_NO_ODM is set, shipping as a library
+#-------------------------------------------------------------------------------
+#if env.has_key('USES_NO_STRIP_NO_ODM'):
+# Archive the objects into a library
+#   wcdma_rrc_lib = env.Library('${BUILDPATH}/wcdma/rrc', wcdma_rrc_objs)
+#else:
+# Just pull library from file system
+#   wcdma_rrc_lib = File(env.subst("${BUILDPATH}/wcdma/rrc${LIBSUFFIX}"))
+
+#-------------------------------------------------------------------------------
+# Add our library to the MODEM_AMSS image
+#-------------------------------------------------------------------------------
+#env.AddLibsToImage(IMAGES, wcdma_rrc_lib)
+
+
+#-------------------------------------------------------------------------------
+# Compile the private source files 
+#-------------------------------------------------------------------------------
+if WCDMA_RRC_PRIVATE_SOURCES != []:
+  env_private = env.Clone()
+  env_private.Append(CPPDEFINES = [
+    'FEATURE_LIBRARY_ONLY'
+  ])
+  
+env_private.AddBinaryLibrary(IMAGES,'${BUILDPATH}/lib_rrc',WCDMA_RRC_PRIVATE_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+
+#-------------------------------------------------------------------------------
+# Adding for MSGR Router UMID's generation
+#-------------------------------------------------------------------------------
+if 'USES_MSGR' in env:
+   env.AddUMID('${BUILDPATH}/wcdma_rrc.umid', ['${WCDMA_ROOT}/api/wcdma_rrc_msg.h'])
+
+#-------------------------------------------------------------------------------
+
+if 'USES_MODEM_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_MODEM','MOB_WCDMA']
+   env.AddRCInitTask(           # SMD TASK STUB; REQUIRED FOR INITFN
+    RCINIT_IMG,                 # define TMC_RCINIT_REXTASK_SMD
+    {
+      'sequence_group'             : env.subst('$MODEM_PROTOCOL'),                  # required
+      'thread_name'                : 'rrc',                             # required
+      'thread_entry'               : 'rrc_task',
+      'stack_size_bytes'           : env.subst('$RRC_STKSZ'),
+      'priority_amss_order'        : 'RRC_PRI_ORDER',
+      #'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+      'tcb_name'                   : 'rrc_tcb',
+      'cpu_affinity'	           : env.subst('$MODEM_CPU_AFFINITY')
+    })
+
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+

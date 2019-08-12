@@ -1,0 +1,564 @@
+/*****************************************************************************
+  @FILE     sns_qfp_v01.idl
+
+  @BRIEF    Message definition for the QFP service
+
+  @DESCRIPTION
+  This file defines messages used by QFP service.
+
+  The service uses the Ontario4 fingerprint sensor in order to implement
+  a low-power finger detection which runs in the SLPI, and to provide support
+  for running standard fingerprint functionality in HLOS when fingerprint
+  sensor is connected to SSC SPI port.
+
+  The messages defined herein will be passed to the Sensor framework using
+  the sensor1_write() API.
+
+  @COPYRIGHT
+  Copyright (c) 2015 Qualcomm Technologies, Inc.
+  All Rights Reserved.
+  Confidential and Proprietary - Qualcomm Technologies, Inc.
+*****************************************************************************/
+include "sns_common_v01.idl";
+
+revision 3;
+enum {
+  SNS_QFP_FINGER_DETECT_MODE_ONE_SHOT  = 1,
+  /**< detector is disabled once finger is detected */
+  SNS_QFP_FINGER_DETECT_MODE_CONTINUOUS = 2
+  /**< detector keeps sending finger state change indications */
+} sns_qfp_finger_detect_mode_e;
+
+const SNS_QFP_SIMPLE_ITEM_MAX_SIZE = 8;
+    /**< maximum size of a simple configuration item (float/integer/...) */
+
+const SNS_QFP_FFD_BASIS_DATA_MAX_CHUNK_SIZE = 4000;
+    /**< maximum size of a single chunk of uploaded basis data */
+
+const SNS_QFP_DEBUG_MSG_MAX_SIZE = 4000;
+    /**< maximum size of a debug request and response */
+
+//! @MASK SNS_QFP_FINGER_DETECT_IND_FLAGS_MASK
+mask /* bitmask of flags for finger detected indication */
+{
+ SNS_QFP_FINGER_DETECT_IND_FLAG_DETECTED =       0x001
+ /**< Bit will be set if finger was detected, clear if not */
+} sns_qfp_finger_detect_ind_flags_m;
+/**< Flag bits for SNS_QFP_FINGER_DETECT_IND
+*/
+
+/** Configuration item IDs */
+
+/** Configuration items for fast finger detection algorithm */
+const SNS_QFP_FFD_ITEM_THRESHOLD_S1              = 100;
+    /**< threshold for S1 phase, ON (float32) */
+const SNS_QFP_FFD_ITEM_THRESHOLD_S1_OFF          = 101;
+    /**< threshold for S1 phase, OFF (float32) */
+const SNS_QFP_FFD_ITEM_THRESHOLD_S2              = 102;
+    /**< threshold for S2 phase, ON (float32) */
+const SNS_QFP_FFD_ITEM_THRESHOLD_S2_OFF          = 103;
+    /**< threshold for S2 phase, OFF (float32) */
+const SNS_QFP_FFD_ITEM_NUM_IMAGE_RUNS_S1         = 104;
+    /**< number of image runs in S1 phase (uint32) */
+const SNS_QFP_FFD_ITEM_THRESHOLD_S1_RUBBING      = 105;
+    /**< threshold for S1 phase, rubbing (uint32) */
+const SNS_QFP_FFD_ITEM_THRESHOLD_S2_HOME_TOUCH   = 106;
+    /**< threshold for home-button, finger down (uint32) */
+const SNS_QFP_FFD_ITEM_THRESHOLD_S2_HOME_LIFT    = 107;
+    /**< threshold for home-button, finger up (uint32) */
+const SNS_QFP_FFD_ITEM_LOG_BUFFER_SIZE           = 108;
+    /**< log buffer size (uint32)  */
+const SNS_QFP_FFD_ITEM_BASIS_S1                  = 150;
+    /**< basis data for S1 phase, ON (binary data) */
+const SNS_QFP_FFD_ITEM_BASIS_S1_OFF              = 151;
+    /**< basis data for S1 phase, OFF (binary data) */
+const SNS_QFP_FFD_ITEM_BASIS_S2                  = 152;
+    /**< basis data for S2 phase, ON (binary data) */
+const SNS_QFP_FFD_ITEM_BASIS_S2_OFF              = 153;
+    /**< basis data for S2 phase, OFF (binary data) */
+const SNS_QFP_FFD_ITEM_S1_DISABLE                = 154;
+    /**< disable S1 phase (uint32, bool) */
+const SNS_QFP_FFD_ITEM_FGOFF_DILUATION_S1        = 155;
+    /**< S1 phase FGOFF diluation (uint32) */
+const SNS_QFP_FFD_ITEM_ENABLE_ISLAND_MODE        = 156;
+    /**< FFD enable island mode (bool) */
+const SNS_QFP_FFD_ITEM_FGOFF_DILUATION_HOME      = 157;
+    /**< Home button FGOFF diluation (uint32) */
+const SNS_QFP_FFD_ITEM_BASIS_S1_NORM             = 158;
+    /**< BG-E normalization vector for S1 phase, ON (binary data) */
+const SNS_QFP_FFD_ITEM_BASIS_S1_NORM_OFF         = 159;
+    /**< BG-E normalization vector for S1 phase, OFF (binary data) */
+const SNS_QFP_FFD_ITEM_BASIS_S2_NORM             = 160;
+    /**< BG-E normalization vector for S2 phase, ON (binary data) */
+const SNS_QFP_FFD_ITEM_BASIS_S2_NORM_OFF         = 161;
+    /**< BG-E normalization vector for S2 phase, OFF (binary data) */
+
+//============================================================================
+/** @COMMAND SNS_QFP_OPEN
+    @BRIEF Allocate resources, opens SPI port and configures clocks.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_OPEN_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8 port_id;
+  /**<
+     SPI port ID. Values 1-3 for SSC SPI ports 1 to 3.
+        */
+  mandatory uint8 slave_index;
+  /**<
+     SPI slave index to identify FP sensor when multiple devices are
+     connected to the SPI bus, otherwise set to 0
+        */
+  mandatory uint32 freq;
+  /**<
+     Requested clock frequency to use in SPI transactions, in Hz.
+        */
+} sns_qfp_open_req_msg;
+
+//! @MSG     SNS_QFP_OPEN_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp;
+
+} sns_qfp_open_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_QFP_CLOSE
+    @BRIEF Close SPI port, free resources used by sensor
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_CLOSE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+message { /* empty body */ } sns_qfp_close_req_msg;
+
+//! @MSG     SNS_QFP_CLOSE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp;
+
+} sns_qfp_close_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_QFP_KEEP_ALIVE
+    @BRIEF Enable or disable keep alive - prevent SLPI from shutting down
+           SPI port.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_KEEP_ALIVE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory boolean enable;
+  /**< enable or disable keep alive  */
+} sns_qfp_keep_alive_req_msg;
+
+//! @MSG     SNS_QFP_KEEP_ALIVE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp;
+
+} sns_qfp_keep_alive_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_QFP_FINGER_DETECT_ENABLE
+    @BRIEF Start the wake-up finger detect processing.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_FINGER_DETECT_ENABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint32 poll_time;
+  /**< polling time in ms */
+  optional sns_qfp_finger_detect_mode_e finger_detect_mode;
+  /**< finger detection mode */
+  optional uint32 low_poll_time;
+  /**< low polling time in ms. Default is 1000*/
+} sns_qfp_finger_detect_enable_req_msg;
+
+//! @MSG     SNS_QFP_FINGER_DETECT_ENABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp;
+
+} sns_qfp_finger_detect_enable_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_QFP_FINGER_DETECT_DISABLE
+    @BRIEF Stop the wake-up finger detect processing.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_FINGER_DETECT_DISABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message { /* empty body */ } sns_qfp_finger_detect_disable_req_msg;
+
+//! @MSG     SNS_QFP_FINGER_DETECT_DISABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp;
+
+} sns_qfp_finger_detect_disable_resp_msg;
+
+//!============================================================================
+/** @COMMAND SNS_QFP_FINGER_DETECT_IND
+    @BRIEF Indication when finger is detected
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//!============================================================================
+
+//! @MSG     SNS_QFP_FINGER_DETECT_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+message {
+  mandatory uint32                          timestamp;
+  /**< timestamp of event in SSC ticks */
+  mandatory sns_qfp_finger_detect_ind_flags_m flags;
+  /**< Defines the indication flags. This bit flags have meanings following:
+    - 01 - SNS_QFP_FINGER_DETECT_IND_FLAG_DETECTED - Finger was detected.
+      Note that this indication is always sent when finger detection sensor is
+      disabled for any reason. If a finger was detected, the sensor will be
+      disabled because it is a one-shot sensor and the indication will be sent
+      with this bit set. If the sensor was explicitly disabled by a service
+      command, the indication will be sent with this bit clear.
+    - All other values are reserved for future use
+  */
+} sns_qfp_finger_detect_ind_msg;
+
+//============================================================================
+/** @COMMAND SNS_QFP_SIMPLE_ITEM_WRITE
+    @BRIEF Set the value of a simple configuration item
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_SIMPLE_ITEM_WRITE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint32              item_id;
+  /**< ID of the item to be written */
+  mandatory opaque              data<SNS_QFP_SIMPLE_ITEM_MAX_SIZE>;
+  /**< Item data to be written to the registry. Data types varies according
+       to item */
+} sns_qfp_simple_item_write_req_msg;
+
+//! @MSG     SNS_QFP_SIMPLE_ITEM_WRITE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s   resp;
+} sns_qfp_simple_item_write_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_QFP_FFD_BASIS_DATA_CREATE
+    @BRIEF Initialize upload of basis data file
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_FFD_BASIS_DATA_CREATE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint32              item_id;
+  /**< ID of the basis data to be uploaded */
+  mandatory uint32              vector_size;
+  /**< size of each basis vector in units of float32 */
+  mandatory uint32              num_vectors;
+  /**< number of basis vectors in the data */
+} sns_qfp_ffd_basis_data_create_req_msg;
+
+//! @MSG     SNS_QFP_FFD_BASIS_DATA_CREATE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s   resp;
+  optional uint32              handle;
+  /**< handle of basis data file. Use in write and close requests */
+} sns_qfp_ffd_basis_data_create_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_QFP_FFD_BASIS_DATA_WRITE
+    @BRIEF Write a chunk of basis data
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_FFD_BASIS_DATA_WRITE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint32              handle;
+  /**< handle of basis data file returned from open request */
+  mandatory opaque              data<SNS_QFP_FFD_BASIS_DATA_MAX_CHUNK_SIZE>;
+  /**< data to write */
+} sns_qfp_ffd_basis_data_write_req_msg;
+
+//! @MSG     SNS_QFP_FFD_BASIS_DATA_WRITE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s   resp;
+  optional uint32              written;
+  /**< number of bytes actually written */
+} sns_qfp_ffd_basis_data_write_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_QFP_FFD_BASIS_DATA_CLOSE
+    @BRIEF Finish upload of basis data file
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_FFD_BASIS_DATA_CLOSE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint32              handle;
+  /**< handle of basis data file returned from open request */
+} sns_qfp_ffd_basis_data_close_req_msg;
+
+//! @MSG     SNS_QFP_FFD_BASIS_DATA_CLOSE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s   resp;
+} sns_qfp_ffd_basis_data_close_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_QFP_DEBUG
+    @BRIEF Debug and diagnostics command. For internal usage only,
+           may be disabled in production
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_DEBUG_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint32              req_id;
+  /**< id of debug request */
+  optional opaque               data<SNS_QFP_DEBUG_MSG_MAX_SIZE>;
+  /**< request data */
+
+} sns_qfp_debug_req_msg;
+
+//! @MSG     SNS_QFP_DEBUG_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s   resp;
+  optional uint32              req_id;
+  /**< id of debug request issued */
+  optional opaque              data<SNS_QFP_DEBUG_MSG_MAX_SIZE>;
+  /**< response data if any */
+} sns_qfp_debug_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_QFP_FFD_BASIS_NORM_VECTOR
+    @BRIEF BG-E normalization vector
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_FFD_BASIS_NORM_VECTOR_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint32              item_id;
+  /**< ID of the basis normalization vector to be uploaded */
+  mandatory opaque              data<SNS_QFP_FFD_BASIS_DATA_MAX_CHUNK_SIZE>;
+  /**< data to write */
+} sns_qfp_ffd_basis_norm_vector_req_msg;
+
+//! @MSG     SNS_QFP_FFD_BASIS_NORM_VECTOR_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s   resp;
+} sns_qfp_ffd_basis_norm_vector_resp_msg;
+
+//============================================================================
+/** @COMMAND SNS_QFP_FFD_CHANGE_POLLING
+    @BRIEF Controls SSC dynamic polling. Can be high/low
+*/
+//============================================================================
+
+//! @MSG     SNS_QFP_FFD_CHANGE_POLLING_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint32              state;
+  /**< State of the polling - can be 1 for high and 0 for low */
+} sns_qfp_ffd_change_polling_req_msg;
+
+//! @MSG     SNS_QFP_FFD_CHANGE_POLLING_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s   resp;
+} sns_qfp_ffd_change_polling_resp_msg;
+
+//============================================================================
+// Service definition
+//============================================================================
+service SNS_QFP_SVC {
+  //! @ID SNS_COMMON_CANCEL
+  sns_common_cancel_req_msg        SNS_QFP_CANCEL_REQ,
+  sns_common_cancel_resp_msg       SNS_QFP_CANCEL_RESP
+    = 0x00;
+
+  //! @ID SNS_COMMON_VERSION
+  sns_common_version_req_msg       SNS_QFP_VERSION_REQ,
+  sns_common_version_resp_msg      SNS_QFP_VERSION_RESP
+    = 0x01;
+
+  //! @ID SNS_QFP_OPEN
+  sns_qfp_open_req_msg             SNS_QFP_OPEN_REQ,
+  sns_qfp_open_resp_msg            SNS_QFP_OPEN_RESP
+    = 0x20;
+
+  //! @ID SNS_QFP_CLOSE
+  sns_qfp_close_req_msg            SNS_QFP_CLOSE_REQ,
+  sns_qfp_close_resp_msg           SNS_QFP_CLOSE_RESP
+    = 0x21;
+
+  //! @ID SNS_QFP_KEEP_ALIVE
+  sns_qfp_keep_alive_req_msg       SNS_QFP_KEEP_ALIVE_REQ,
+  sns_qfp_keep_alive_resp_msg      SNS_QFP_KEEP_ALIVE_RESP
+    = 0x22;
+
+  //! @ID SNS_QFP_FINGER_DETECT_ENABLE
+  sns_qfp_finger_detect_enable_req_msg       SNS_QFP_FINGER_DETECT_ENABLE_REQ,
+  sns_qfp_finger_detect_enable_resp_msg      SNS_QFP_FINGER_DETECT_ENABLE_RESP
+    = 0x23;
+
+  //! @ID SNS_QFP_FINGER_DETECT_DISABLE
+  sns_qfp_finger_detect_disable_req_msg      SNS_QFP_FINGER_DETECT_DISABLE_REQ,
+  sns_qfp_finger_detect_disable_resp_msg     SNS_QFP_FINGER_DETECT_DISABLE_RESP
+    = 0x24;
+
+  //! @ID SNS_QFP_FINGER_DETECT_IND
+  sns_qfp_finger_detect_ind_msg            SNS_QFP_FINGER_DETECT_IND
+    = 0x25;
+
+  //! @ID SNS_QFP_SIMPLE_ITEM_WRITE
+  sns_qfp_simple_item_write_req_msg        SNS_QFP_SIMPLE_ITEM_WRITE_REQ,
+  sns_qfp_simple_item_write_resp_msg       SNS_QFP_SIMPLE_ITEM_WRITE_RESP
+    = 0x26;
+
+  //! @ID SNS_QFP_FFD_BASIS_DATA_CREATE
+  sns_qfp_ffd_basis_data_create_req_msg    SNS_QFP_FFD_BASIS_DATA_CREATE_REQ,
+  sns_qfp_ffd_basis_data_create_resp_msg   SNS_QFP_FFD_BASIS_DATA_CREATE_RESP
+    = 0x27;
+
+  //! @ID SNS_QFP_FFD_BASIS_DATA_WRITE
+  sns_qfp_ffd_basis_data_write_req_msg     SNS_QFP_FFD_BASIS_DATA_WRITE_REQ,
+  sns_qfp_ffd_basis_data_write_resp_msg    SNS_QFP_FFD_BASIS_DATA_WRITE_RESP
+    = 0x28;
+
+  //! @ID SNS_QFP_FFD_BASIS_DATA_CLOSE
+  sns_qfp_ffd_basis_data_close_req_msg     SNS_QFP_FFD_BASIS_DATA_CLOSE_REQ,
+  sns_qfp_ffd_basis_data_close_resp_msg    SNS_QFP_FFD_BASIS_DATA_CLOSE_RESP
+    = 0x29;
+
+  //! @ID SNS_QFP_DEBUG
+  sns_qfp_debug_req_msg     SNS_QFP_DEBUG_REQ,
+  sns_qfp_debug_resp_msg    SNS_QFP_DEBUG_RESP
+    = 0x2a;
+
+  //! @ID SNS_QFP_FFD_BASIS_NORM_VECTOR
+  sns_qfp_ffd_basis_norm_vector_req_msg   SNS_QFP_FFD_BASIS_NORM_VECTOR_REQ,
+  sns_qfp_ffd_basis_norm_vector_resp_msg  SNS_QFP_FFD_BASIS_NORM_VECTOR_RESP
+    = 0x2b;
+
+  //! @ID SNS_QFP_FFD_CHANGE_POLLING
+  sns_qfp_ffd_change_polling_req_msg      SNS_QFP_FFD_CHANGE_POLLING_REQ,
+  sns_qfp_ffd_change_polling_resp_msg     SNS_QFP_FFD_CHANGE_POLLING_RESP
+    = 0x2c;
+} = SNS_QMI_SVC_ID_56;
+
+//============================================================================
+// File footer
+//============================================================================
+/**
+@FOOTER
+*/
+
+//============================================================================
+// End of Module
+//============================================================================
+

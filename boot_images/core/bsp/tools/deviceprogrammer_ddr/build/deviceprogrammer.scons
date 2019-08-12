@@ -1,0 +1,158 @@
+#===============================================================================
+#
+# Deviceprogrammer build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2014-2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/bsp/tools/deviceprogrammer_ddr/build/deviceprogrammer.scons#2 $
+#  $DateTime: 2015/09/13 23:33:33 $
+#  $Author: pwbldsvc $
+#  $Change: 9017835 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who   what, where, why
+# --------   ---   ---------------------------------------------------------
+# 15/04/01   sb    Use crypto bam for hash calculation
+# 15/02/02   sb    Updated for 8952, 8956
+# 14/12/12   sb    Updated for 8909
+# 14/09/03   bn    Added flag to indicate dev programmer build
+# 14/09/02   wek   Moved ZI data into IMEM so eMMC controller can access it.
+# 14/08/14   wek   Move ZI data into OCMEM so controllers can access it.
+# 14/07/07   kh    Use sbl1.scl for 8994 builds.
+# 14/06/19   wek   Remove define no longer needed for 8994.
+# 14/05/21   wek   Initial reversion. Joint work with dks and ab.
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+def deviceprogrammer_gen_img (image_name, alias, parameters, env):
+    parameters['aliases'] = [image_name, "deviceprogrammer_ddr", alias]
+    parameters['ENV_VARS']['MBN_FILE'] = '${MBN_ROOT}/' + image_name
+    parameters['ENV_VARS']['INSTALL_NAME'] = image_name
+    env.SConscript("${COREBSP_ROOT}/bsp/bootloaders/sbl1/build/${CHIPSET}.scons", exports='env parameters')
+
+parameters = {}
+parameters['image_build_tags'] = ['HSUSB_SBL_FIREHOSE_BOOT_DRIVER', 'DEVICEPROGRAMMER_IMAGE']
+parameters['ENV_VARS'] = {
+    'SBL1_ROOT': "${COREBSP_ROOT}/boot/secboot3/hw/${CHIPSET}/sbl1"
+}
+
+parameters['CPPDEFINES'] = []
+env.Append(CPPDEFINES = [
+    # Deviceprogrammer constants
+    'FIREHOSE_TX_BUFFER_SIZE=4096',
+    'DEVICEPROGRAMMER_TARGET_NAME=' + '\\"%s\\"' % env['MSM_ID'],
+    'DEVICEPROGRAMMER_USE_DRIVENO=' + ARGUMENTS.get('DEVICEPROGRAMMER_DRIVENO', '0'),
+    'DEVICEPROGRAMMER_SW_ID=' + ARGUMENTS.get('DEVICEPROGRAMMER_SW_ID', '3'),
+    'FEATURE_FIREHOSE_ENABLE_STORAGE_EXTRAS',
+    'FEATURE_FIREHOSE_ENABLE_READ',
+    'BOOT_MMU_TABLE_H=\\"boot_mmu_devprogrammer_table.h\\"',
+])
+
+# Put all the ZI data in OCIMEM so UFS/eMMC controllers can access these
+# buffers directly.
+if env['MSM_ID'] in ['8909','8909w', '8952', '8956']:
+   env.Append(CPPDEFINES = ["SBL1_DATA_ZI_BASE=0x08600000"])
+
+if 'DEVICEPROGRAMMER_BUILD_ID' in ARGUMENTS:
+   env.Append(CPPDEFINES = ["DEVICEPROGRAMMER_BUILD_ID=" + '\\"%s\\"' % ARGUMENTS['DEVICEPROGRAMMER_BUILD_ID']])
+
+if 'DEVICEPROGRAMMER_SERIAL_NUM' in ARGUMENTS:
+   env.Append(CPPDEFINES = ["DEVICEPROGRAMMER_SERIAL_NUM=" + ARGUMENTS['DEVICEPROGRAMMER_SERIAL_NUM']])
+
+if 'DEVICEPROGRAMMER_TINY' in ARGUMENTS:
+   env.Append(CPPDEFINES = ["DEVICEPROGRAMMER_TINY"])
+
+parameters['DONT_GENERATE_SECIMG'] = []
+build_id= env.subst("$BUILD_ID")
+
+env.InitImageVars(
+   alias_list = 'deviceprogrammer_ddr', # list of aliases, unique name index [0]
+   proc = 'sparrow',                    # proc settings
+   config = 'apps',                     # config settings
+   )
+
+env.InitBuildConfig()
+env.Replace(BUILD_ID = build_id)
+
+if 'USES_DEVPRO_DDR' in env:
+   if env['MSM_ID'] in ['8909','8909w']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8909/sbl1/sbl1.scl'
+   if env['MSM_ID'] in ['8952']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8952/sbl1/sbl1.scl'
+   if env['MSM_ID'] in ['8956']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8956/sbl1/sbl1.scl'
+   env.Append(CPPDEFINES = ['SBL1_DEVICEPROGRAMMER_USB_ZI_BASE=+0x0',
+                            'DEVICEPROGRAMMER_BUFFERS_BASE=0x80000000',
+                            'FIREHOSE_CHANNEL_BUFFER_SIZE=0x100000',
+                            'FEATURE_FIREHOSE_ENABLE_CRYPTO_BAM',
+                            'FEATURE_BOOT_EXTERN_DEVICEPROGRAMMER_DDR_COMPLETED'])
+   # This flag is used by SDCC to enable its ADMA mode in device programmer only
+   env.Append(DEVICE_PROGRAMMER_BUILD_FLAG='yes')
+
+   image_name = "prog_emmc_firehose_" + env['MSM_ID'] + "_ddr"
+   deviceprogrammer_gen_img (image_name, "deviceprogrammer_ddr", parameters, env)
+
+elif 'USES_DEVPRO_DDR_SEC' in env:
+   if env['MSM_ID'] in ['8909','8909w']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8909/sbl1/sbl1.scl'
+   if env['MSM_ID'] in ['8952']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8952/sbl1/sbl1.scl'
+   if env['MSM_ID'] in ['8956']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8956/sbl1/sbl1.scl'
+   env.Append(CPPDEFINES = ['SBL1_DEVICEPROGRAMMER_USB_ZI_BASE=+0x0',
+                            'DEVICEPROGRAMMER_BUFFERS_BASE=0x80000000',
+                            'FIREHOSE_CHANNEL_BUFFER_SIZE=0x100000',
+                            'FEATURE_BOOT_EXTERN_DEVICEPROGRAMMER_DDR_COMPLETED',
+                            'FEATURE_FIREHOSE_ENABLE_CRYPTO_BAM',
+                            'FEATURE_FIREHOSE_VALIDATION_ENABLED'])
+   # This flag is used by SDCC to enable its ADMA mode in device programmer only
+   env.Append(DEVICE_PROGRAMMER_BUILD_FLAG='yes')
+
+   image_name = "validated_emmc_firehose_" + env['MSM_ID'] + "_ddr"
+   deviceprogrammer_gen_img (image_name, "deviceprogrammer_ddr", parameters, env)
+
+elif 'USES_DEVPRO_LITE' in env:
+   if env['MSM_ID'] in ['8909','8909w']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8909/sbl1/sbl1.scl'
+   if env['MSM_ID'] in ['8952']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8952/sbl1/sbl1.scl'
+   if env['MSM_ID'] in ['8956']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8956/sbl1/sbl1.scl'
+   env.Append(CPPDEFINES = ['FEATURE_BOOT_EXTERN_DEVICEPROGRAMMER_LITE_COMPLETED',
+                            'SBL1_DEVICEPROGRAMMER_USB_ZI_BASE="ImageLimit(DEVPRO_BUFF)"',
+                            'DEVICEPROGRAMMER_BUFFERS_BASE=0x00205000',
+                            'FIREHOSE_CHANNEL_BUFFER_SIZE=16384'])
+
+   image_name = "prog_emmc_firehose_" + env['MSM_ID'] + "_lite"
+   deviceprogrammer_gen_img (image_name, "deviceprogrammer_lite", parameters, env)
+
+elif 'USES_DEVPRO_LITE_SEC' in env:  
+   if env['MSM_ID'] in ['8909','8909w']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8909/sbl1/sbl1.scl'
+   if env['MSM_ID'] in ['8952']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8952/sbl1/sbl1.scl'
+   if env['MSM_ID'] in ['8956']:
+       parameters['SCL_PATH'] = '${BUILD_ROOT}/core/boot/secboot3/hw/msm8956/sbl1/sbl1.scl'
+   env.Append(CPPDEFINES = [
+        'FEATURE_BOOT_EXTERN_DEVICEPROGRAMMER_LITE_COMPLETED',
+        'SBL1_DEVICEPROGRAMMER_USB_ZI_BASE="ImageLimit(DEVPRO_BUFF)"',
+        'DEVICEPROGRAMMER_BUFFERS_BASE=0x00205000',
+        'FIREHOSE_CHANNEL_BUFFER_SIZE=16384',
+        'FEATURE_FIREHOSE_VALIDATION_ENABLED'])
+
+   image_name = "validated_emmc_firehose_" + env['MSM_ID'] + "_lite"
+   deviceprogrammer_gen_img (image_name, "deviceprogrammer_lite", parameters, env)
+

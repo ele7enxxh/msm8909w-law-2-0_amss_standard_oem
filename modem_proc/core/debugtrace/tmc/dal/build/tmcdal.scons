@@ -1,0 +1,48 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for HAL QDSS-STM Library.
+#
+# Copyright (c) 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+env.RequirePublicApi(['HAL','DAL','DEBUGTRACE','SERVICES','SYSTEMDRIVERS'])
+env.RequireRestrictedApi(['DEBUGTRACE'])
+env.RequireProtectedApi(['DEBUGTRACE'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+TMC_DAL_SRC = [
+   '${BUILDPATH}/DalTMC.c',
+]
+
+env.AddLibrary(['RPM_IMAGE','WCN_IMAGE','CBSP_WCN_IMAGE','CORE_GSS','MODEM_IMAGE','CORE_QDSP6_SW'],'${BUILDPATH}/tmc_dal',TMC_DAL_SRC)
+
+config='8916'                     #default config
+#placeholder - add to this list when we add a config for new targets
+if env['MSM_ID'] in ['8916']:
+   config = env['MSM_ID']
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+        'soc_xml' : ['${BUILD_ROOT}/core/debugtrace/tmc/config/'+ config +'/daltmc.xml']
+   })
+   

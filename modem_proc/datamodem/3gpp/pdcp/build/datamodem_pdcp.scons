@@ -1,0 +1,179 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/data/umts/pdcp/complete/rel/10.02.02/build/data_umts_pdcp.scons#5 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+	
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_DS",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+    'DAL',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Multimedia Public API's
+#-------------------------------------------------------------------------------
+MM_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+    ]
+
+env.RequirePublicApi(MM_PUBLIC_APIS, area='multimedia')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    'TDSCDMA',
+    'ECALL',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+segment_load_public_api_list = [
+        ('CORE',                'BUSES'),
+        ('UTILS',               'OSYS'),
+        ('UTILS',               'A2'),
+        ('AVS',                 'MVS'),
+        ('UIM',                 'UIM'),
+        ('MPOWER',              'MPOWER'),
+        ('WCDMA',               'WCDMA'),
+        ('FW',                  'WCDMA'),
+        ('TDSCDMA',             'TDSCDMA'),
+        ('MCFG',                'MCFG'),
+        ('GPS',                 'GPS'),
+        ('RFA',                 'CDMA'),
+        ('RFA',                 'MEAS'),
+        ('FW',                  'GERAN'),
+        ('RFA',                 'LM'),
+        ('RFA',                 'GSM'),
+        ('RFA',                 'GNSS'),
+        ('RFA',                 'LTE'),
+        ('FW',                  'RF'),
+        ('FW',                  'COMMON'),
+        ]
+
+for api_area,api_name in segment_load_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    'FW',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+#  OffTarget/QTF
+#-------------------------------------------------------------------------------
+if 'USES_MOB' in env:
+  env.RequireRestrictedApi(['DATAMODEM_QTF_OFT'])
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+if 'USES_UMTS' in env or ('USES_WCDMA' in env and 'USES_PDCP' in env):
+   PDCP_FILES  = glob(SRCPATH + '/src/*.c')
+   PDCP_SOURCES = []
+
+   for filename in PDCP_FILES:
+        PDCP_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+   env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/pdcp',[PDCP_SOURCES, ])

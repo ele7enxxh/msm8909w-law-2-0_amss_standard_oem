@@ -1,0 +1,55 @@
+/*===========================================================================
+#
+# $Header: //source/qcom/qct/core/pkg/wcnss/pr/rel/2.1/build/ms/wcnss_ubsp_image.scl#1 $
+#
+# when       who       what, where, why
+# --------   ---       -------------------------------------------------------
+# 10/24/11   acheung   Initial version for Pronto Image on 8974(Aragorn) for Badger family
+===========================================================================*/
+#include "customer.h"
+//#include "armmmu.h"
+
+WCNSS_uBSP UBSP_BOOT_REMAP_BASE UBSP_BOOT_REMAP_SIZE
+{
+  INIT_RO_REGION +0x0
+  {
+    ubsp_vectors.o (Int_Vect, +FIRST)
+	ubsp_reset_handler.o (RST_Handler)
+	ubsp_exception_handler.o (UBSP_EXCEPTION_CODE)
+  }
+  INIT_RW_REGION +0x0
+  {
+	ubsp_reset_handler.o (+RW)
+	ubsp_exception_handler.o (+RW)  
+  }
+  INIT_ZI_REGION +0x0
+  {
+  	ubsp_reset_handler.o (+ZI)
+	ubsp_exception_handler.o (+ZI) 
+  }
+}
+
+
+WCNSS_uBSP_Image +0
+{
+  RO_REGION +0x0
+  {
+    .ANY (+RO)
+    lpwr*(+RO)
+  }
+  RW_REGION +0x0
+  {
+    .ANY(+RW)
+    lpwr*(+RW)
+  }
+  ZI_REGION +0x0
+  {
+    .ANY(+ZI)
+    lpwr*(+ZI)
+  }
+  UNINIT_RAM +0x0
+  {
+    *_nzi.o (+ZI)
+	ubsp_stacks.o (Stacks, +LAST)
+  }
+}

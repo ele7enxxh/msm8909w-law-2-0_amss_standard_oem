@@ -1,0 +1,69 @@
+#=================================================================
+# MVS SConscript
+#=================================================================
+Import('env')
+
+env = env.Clone()
+
+MVSSRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', MVSSRCPATH, duplicate=0)
+
+env.Append(CPPDEFINES = [
+    "MSG_BT_SSID_DFLT=MSG_SSID_VS",
+])
+
+
+env.Append(CFLAGS = '-DUSE_MVS_PACKET_TIMING_ANALYSIS ')
+
+env.RequireExternalApi([  
+   'MODEM_API',
+])
+
+env.RequirePublicApi([  
+   'MVS',
+])
+
+env.RequirePublicApi([  
+   'WCDMA',
+   'MMODE',
+   'UTILS',
+   'MCS',
+   'GERAN',
+   'TDSCDMA',
+], area='MODEM')
+
+env.RequireRestrictedApi([ 
+    'VOCSVC',
+])
+
+if not 'USES_TDSCDMA' in env:
+   MVS_SOURCES = [   
+     '${BUILDPATH}/mvs.c',
+     '${BUILDPATH}/mvsamr.c',
+     '${BUILDPATH}/mvs_module.c',
+     '${BUILDPATH}/mvsdsm.c',
+     '${BUILDPATH}/mvssup.c',
+     '${BUILDPATH}/mvs_log_packet.c',
+     '${BUILDPATH}/mvs_umts_chan_setup.c',
+     '${BUILDPATH}/mvs_diag.c',
+   ]
+else:
+   MVS_SOURCES = [   
+     '${BUILDPATH}/mvs.c',
+     '${BUILDPATH}/mvsamr.c',
+     '${BUILDPATH}/mvs_module.c',
+     '${BUILDPATH}/mvsdsm.c',
+     '${BUILDPATH}/mvssup.c',
+     '${BUILDPATH}/mvs_log_packet.c',
+     '${BUILDPATH}/mvs_umts_chan_setup.c',
+     '${BUILDPATH}/mvs_diag.c',
+   ]
+
+IMAGES = ['MULTIMEDIA_MODEM', 'MULTIMEDIA_QDSP6_SW']
+
+env.AddLibrary(IMAGES, ('${BUILDPATH}/mvs/mvs'), MVS_SOURCES)
+
+AMRSUP_SOURCES = [   
+  '${BUILDPATH}/amrsup.c',
+]
+env.AddLibrary(IMAGES, ('${BUILDPATH}/amrsup'), AMRSUP_SOURCES)

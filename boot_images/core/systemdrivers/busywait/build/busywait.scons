@@ -1,0 +1,89 @@
+#=============================================================================
+# BUSYWAIT
+#
+# Targets:    MSM8916
+# Processors: Krait
+#
+#=============================================================================
+#                    Copyright 2013 Qualcomm Technologies Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#=============================================================================
+#  $Header: //source/qcom/qct/core/pkg/mpss/dev/grahamr.hwio_scons/modem_proc/core/systemdrivers/busywait/build/SConscript#1 $
+#  $DateTime: 2011/07/20 17:30:29 $
+#  $Author: coresvc $
+#  $Change: 1845300 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     -----------------------------------------------------------
+# 08/08/12   pbitra     Fixed compiler warnings
+# 08/07/12   bcalder    Fixing jsdcc compilation
+# 04/03/12   pbitra     Initial version.
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/systemdrivers/busywait/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # Must be last due to comdef.h issues
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+BUSYWAIT_SOURCES =  [
+  '${BUILDPATH}/busywait_hw_qtimer.c'
+]
+
+BUSYWAIT_NONDAL_BUILD_SOURCES =  [
+  '${BUILDPATH}/busywait_qtimer_nondal.c'
+]
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(['BUSYWAIT_BOOT_DRIVER', 'NAND_TOOLS_IMAGE', 'EHOSTDL_IMAGE', 
+                'HOSTDL_IMAGE' ,'DEVICEPROGRAMMER_NAND_IMAGE'], '${BUILDPATH}/busywait_lib', BUSYWAIT_SOURCES)
+
+if env.has_key('EMMCBLD_IMAGE') or env.has_key('JSDCC_TOOL_IMAGE'):
+    env.Append(CPPDEFINES = ['QTIMER_ADDR=0xb021000']) 
+    env.Append(CPPDEFINES = ['QTIMER_AC_ADDR=0xb020000']) 
+    env.Append(CPPDEFINES = ['QTIMER_FRAME=0']) 
+    env.AddLibrary(['EMMCBLD_IMAGE', 'JSDCC_TOOL_IMAGE'], 
+        '${BUILDPATH}/busywait_emmclib', BUSYWAIT_NONDAL_BUILD_SOURCES)
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      'devcfg_xml'    : '${BUILD_ROOT}/core/systemdrivers/busywait/config/Busywait.xml'
+   })
+
+

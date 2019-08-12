@@ -1,0 +1,100 @@
+#============================================================================
+#
+# EFS Image Header builder.
+#
+# GENERAL DESCRIPTION
+#     On fusion builds only the apps processor will have access to the storage
+#     device. The other processor will require the filesystem data to be sent
+#     over using KICKSTART. When Boot receives the images from KICKSTART it
+#     needs to know where to put the data. This information comes as a part of
+#     the final image which is the filesystem data combined with a header
+#     containing the start and end RAM addresses. This script is used
+#     to generate that header for the 3 filesystem partition data on remote
+#     storage.
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-----------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/storage/efs_image_header/main/latest/build/efs_image_header.scons#3 $ $DateTime: 2013/02/07 21:42:49 $ $Author: richardp $ $Change: 3335589 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who  what, where, why
+# ----------  ---  -----------------------------------------------------------
+# 2013-07-09  nr   Remove all non common aliases .
+# 2013-02-01  nr   Rewrite MBN generation with EFS internal scripts.
+# 2012-07-03  dks  Protect image header creation based on correct makeonly flag.
+# 2012-07-02  dks  Create dummy headers and correct headers based on build flag.
+# 2012-02-27  dks  Add source file dependency to the builder.
+# 2012-02-17  dks  Create.
+#
+#=============================================================================
+import os
+import sys
+Import('env')
+
+env = env.Clone()
+
+efs_scripts_path = env.RealPath('${BUILD_ROOT}/core/bsp/efs_image_header/build')
+sys.path.append(efs_scripts_path)
+efs_scripts_path = env.RealPath('${BUILD_ROOT}/core/bsp/efs_image_header/tools')
+sys.path.append(efs_scripts_path)
+
+
+
+#-----------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#-----------------------------------------------------------------------------
+# The first alias needs to be the actual target.
+# All other aliases are to follow the target alias.
+aliases = [
+   'efs_image_header',
+   'mpss',
+]
+
+#-----------------------------------------------------------------------------
+# Initialize image environment variables. To be done only once per image
+#-----------------------------------------------------------------------------
+env.InitImageVars(
+   alias_list = aliases,             # list of aliases, unique name index [0]
+   proc = 'qdsp6',                   # proc settings
+   config = 'qdsp6_sw',              # config settings
+   build_tags = 'EFS_IMG_HDR',
+   tools = ['efs_image_header_builder.py']
+   )
+
+if not env.CheckAlias():
+  Return()
+
+#-----------------------------------------------------------------------------
+# Configure and load in uses and path variables. To be done only once per image
+#-----------------------------------------------------------------------------
+env.InitBuildConfig()
+
+env.PrintDebugInfo('efs', "Generating EFS Image Headers\n")
+
+#-----------------------------------------------------------------------------
+# Configure and load in uses and path variables. To be done only once per image
+#-----------------------------------------------------------------------------
+env.PrintDebugInfo('efs', "Loading EFS Image Header script\n")
+#Temp hack as image_cfg.xml has qdps6 version as 4 which does not work for 9x25
+env.Replace(QDSP6_LIBDIR = "${COREBSP_ROOT}/kernel/qurt/install/modemv5/lib")
+env.LoadToolScript('hexagon', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+env.LoadToolScript('qdsp6_defs', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+
+#-----------------------------------------------------------------------------
+# Generate the image headers
+#-----------------------------------------------------------------------------
+efs_imgs = env.EfsGenerateImageHeaders ()
+
+#-----------------------------------------------------------------------------
+# Set up the alias
+#-----------------------------------------------------------------------------
+for alias in aliases:
+  env.Alias(alias, efs_imgs)

@@ -1,0 +1,89 @@
+#===============================================================================
+#
+# TZBSP OEM chipset build lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsee/oem/build/mdm9x07.sconscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/14/10   tk      initial version
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Protected APIs
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+   'SERVICES',                #< comdef.h
+   'BOOT',
+])
+
+env.RequireRestrictedApi([
+   'BOOT',                   #< miprogressive.h
+   'TZCHIPSET',              #< tzbsp_target.h
+   'SECUREMSM',              #< secboot_hw.h
+])
+
+INC_PATH_FUSEPROV = [
+      "${INC_ROOT}/core/securemsm/trustzone/qsee/services/fuseprov/inc",
+]
+env.Append(CPPPATH = INC_PATH_FUSEPROV)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+TZ_OEM_LIB_SOURCES = [
+  '${BUILDPATH}/oem/${CHIPSET}/src/tzbsp_oem_log.c',
+  '${BUILDPATH}/oem/${CHIPSET}/src/tzbsp_oem_syscall.c',
+  '${BUILDPATH}/oem/${CHIPSET}/src/tzbsp_oem_fiq_debug.c',
+  '${BUILDPATH}/oem/${CHIPSET}/src/tzbsp_oem_secboot.c',
+  '${BUILDPATH}/oem/${CHIPSET}/src/tzbsp_syscall_def.c',
+]
+
+if env['CHIPSET'] == "mdm9x07":
+    CLEAN_SOURCES = env.FindFiles("*", "${BUILDPATH}/chipset/msm8936/")
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+
+env.AddLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_oem',  TZ_OEM_LIB_SOURCES)
+if env['CHIPSET'] == "mdm9x07":
+    env.CleanPack('TZOS_IMAGE', CLEAN_SOURCES)

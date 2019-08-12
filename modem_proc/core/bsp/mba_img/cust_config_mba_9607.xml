@@ -1,0 +1,250 @@
+<?xml version="1.0"?>
+<!DOCTYPE image SYSTEM "weaver-1.0.dtd">
+<image>
+    <machine>
+
+      <include file="../../core/api/systemdrivers/irqs/mdm9607/interrupts.xml"/>
+      <!-- QDSP6SS_INSTANCE_ID (QDSP6SS_CSR) -->
+      <Hexagon_ss_base value = "0x04100000" />
+      <tcxo intmask="0xffffffff"/>
+      <tcxo intmask="0xffffffff"/>
+      <!-- QDSP6SS_QTMR_AC_CNTFRQ (QDSP6SS_QTMR_AC) -->
+	  <timer>
+        <base value = "0x04120000" />
+        <intno value = "2" />
+        <priority value="76"/>
+        <bitmask value="0xff" />
+        <IST_priority value="75" />
+        <IST_bitmask value="0xff" />
+      </timer>
+	  <isdb_imem addr="0x08600938" />	  
+      <chicken_bits>
+          <rgdr value="0x00400000" />
+		  <acc0 value="0x00000000" />
+          <acc1 value="0x00000000" /> 
+          <chicken value="0x08200004" />
+      </chicken_bits>
+      
+	  <!-- isdb_imem addr="0x08600938" / -->
+	  
+      <cache>
+        <l1_iprefetch enabled="true" lines="1"/>
+        <l2_iprefetch enabled="true" lines="0"/>
+        <l1_ipartition    main="full"/>
+        <l1_dpartition    main="full"/>
+        <l2_partition     main="full"/>
+        <l2_size          value="256"/>
+		<l2_writeback enabled="true" />
+      </cache>
+
+      <cache_policy name="writeback" value="0x0"/>
+      <cache_policy name="writethrough" value="0x1"/>
+      <cache_policy name="l1_wt_l2_cacheable" value="0x5"/>
+      <cache_policy name="l1_wb_l2_cacheable" value="0x7"/> 
+      <cache_policy name="l1_wb_l2_uncacheable" value="0x0"/>
+      <cache_policy name="l1_wb_l2_wt" value="0x8"/>
+      <cache_policy name="uncached" value="0x6"/>
+      <cache_policy name="device" value="0x4"/>
+
+      <bus_resources_shared enabled="false" />
+
+    </machine>
+
+    <kernel>
+      <hthread_mask value = "1" />
+      <heap_size value = "0XC000"/>
+      <max_threads value = "2"/>
+      <max_threads_in_tcm value = "1"/>
+      <max_futexes value = "32"/>      
+      <trace_mask value = "0X01"/>  
+      <trace_size value = "40" />
+    </kernel>
+
+    <program name="AMSS">
+
+        <stack_size value = "0x2000" />
+        <heap_size name="heap_size" value = "0x8000" />
+	    <tlb_first_replaceable value = "32" /> 
+        <main_priority value = "1" />
+        <main_bitmask value = "0xff" />
+
+        <include file="../../core/api/systemdrivers/hwio/mdm9607/msmhwioplat.xml"/>
+        <!-- MSS_TOP (modules: QDSP6SS_CSR   QDSP6SS_L2VIC  QDSP6SS_PRIVATE   
+		QDSP6SS_QTMR_AC	MSS_TOP  QDSP6SS_QTMR_F0_0  QDSP6SS_QTMR_F1_1   
+		QDSP6SS_QTMR_F2_2    QDSP6SS_SAW2)  -->
+		<memsection direct="true" 
+          tlb_lock = "1"  
+          attach="rw" 
+          virt_addr="0x04100000"
+          size="0x40000"
+          cache_policy="device" />
+		<!-- SPDM_WRAPPER_TOP (SPDM_APU0132_1  SPDM_CREG_CFG0 SPDM_SPDM_OLEM
+		SPDM_SPDM_RTEM  SPDM_SPDM_SREG  SPDM_VMIDMT_IDX_1_SSD0)  -->  
+	  <memsection direct="true" 
+          tlb_lock = "1"  
+          attach="rw" 
+          virt_addr="0x00040000"
+          size="0x10000"
+          cache_policy="device" />
+		 <!-- TCM_BASE addresses (mapping 512kb size of TCM region)-->
+	  <memsection direct="true" 
+          tlb_lock = "1"  
+	  glob = "1"
+          attach="rx" 
+          virt_addr="0x04400000"
+          size="0x40000"
+          cache_policy="l1_wb_l2_uncacheable" />
+	  <memsection direct="true" 
+          tlb_lock = "1"  
+	  glob = "1"
+          attach="rx" 
+          virt_addr="0x04440000"
+          size="0x4000"
+          cache_policy="l1_wb_l2_uncacheable" />
+      <memsection direct="true" 
+          tlb_lock = "1"  
+          glob = "1"
+          attach="rw" 
+          virt_addr="0x04444000"
+          size="0x4000"
+          cache_policy="l1_wb_l2_uncacheable" />
+      <memsection direct="true" 
+          tlb_lock = "1"  
+          glob = "1"
+          attach="rw" 
+          virt_addr="0x04448000"
+          size="0x4000"
+          cache_policy="l1_wb_l2_uncacheable" />
+      <memsection direct="true" 
+          tlb_lock = "1"  
+          glob = "1"
+          attach="rw" 
+          virt_addr="0x0444C000"
+          size="0x4000"
+          cache_policy="l1_wb_l2_uncacheable" />
+      <memsection direct="true" 
+          tlb_lock = "1"  
+          glob = "1"
+          attach="rw" 
+          virt_addr="0x04450000"
+          size="0x10000"
+          cache_policy="l1_wb_l2_uncacheable" />
+      <memsection direct="true" 
+          tlb_lock = "1"  
+          glob = "1"
+          attach="rw" 
+          virt_addr="0x04460000"
+          size="0x10000"
+          cache_policy="l1_wb_l2_uncacheable" />
+      <memsection direct="true" 
+          tlb_lock = "1"  
+          glob = "1"
+          attach="rw" 
+          virt_addr="0x04470000"
+          size="0x10000"
+          cache_policy="l1_wb_l2_uncacheable" />
+        <!-- MSS_TOP: These HWIO mappings are done manually as they need  -->
+                <!--          special handling: tlb_lock must be "1" for          -->
+                <!--          performance, and a small piece (mempool page0) must -->
+                <!--          be mapped as WB cached.                             -->
+                <!--          Note the virtual address should not be changed      -->
+                <!--          without coordinating with msmhwiobase.h and the FW  -->
+                <!--          team.                                               -->
+                <memsection   
+                    tlb_lock="1"
+                    glob="0"
+                    direct="false" 
+                    attach="RW" 
+                    virt_addr="0xEC000000"
+                    phys_addr="0x04000000"
+                    size="0x00100000"
+          cache_policy="device" />
+                <memsection   
+                    tlb_lock="1"
+                    glob="0"
+                    direct="false" 
+                    attach="RW" 
+                    virt_addr="0xEC100000"
+                    phys_addr="0x04100000"
+                    size="0x00100000"
+          cache_policy="device" />
+                <memsection   
+                    tlb_lock="1"
+                    glob="0"
+                    direct="false" 
+                    attach="RW" 
+                    virt_addr="0xEC200000"
+                    phys_addr="0x04200000"
+                    size="0x00100000"
+          cache_policy="device" />
+                <memsection   
+                    tlb_lock="1"
+                    glob="0"
+                    direct="false" 
+                    attach="RW" 
+                    virt_addr="0xEC300000"
+                    phys_addr="0x04300000"
+                    size="0x00040000"
+          cache_policy="device" />
+                <memsection   
+                    tlb_lock="1"
+                    glob="0"
+                    direct="false" 
+                    attach="RW" 
+                    virt_addr="0xEC340000"
+                    phys_addr="0x04340000"
+                    size="0x00040000"
+          cache_policy="device" />
+                <memsection   
+                    tlb_lock="1"
+                    glob="0"
+                    direct="false" 
+                    attach="RW" 
+                    virt_addr="0xEC380000"
+                    phys_addr="0x04380000"
+                    size="0x00040000"
+          cache_policy="device" />
+          <memsection   
+                    tlb_lock="1"
+                    glob="0"
+                    direct="false" 
+                    attach="RW" 
+                    virt_addr="0xEC3D0000"
+                    phys_addr="0x043D0000"
+                    size="0x00010000"
+          cache_policy="device" />
+		  
+	<!-- DEHR SRAM  -->
+		  <memsection   
+                    tlb_lock="1"
+                    glob="0"
+                    direct="false" 
+                    attach="RW" 
+                    virt_addr="0xe0ab4000"
+                    phys_addr="0x004b4000"
+                    size="0x00001000"
+          cache_policy="device" />
+		  <memsection   
+                    tlb_lock="1"
+                    glob="0"
+                    direct="false" 
+                    attach="RW" 
+                    virt_addr="0xe0ab5000"
+                    phys_addr="0x004b5000"
+                    size="0x00001000"
+          cache_policy="device" />
+		  
+    <memsection direct="true" 
+          tlb_lock = "1" 
+          attach="rw" 
+          virt_addr="0x04140000"
+          size="0x40000"
+          cache_policy="device" />
+    <!-- shared memory(TZ-modem) for sec channel -->
+        <memsection direct="true" 
+            attach="rw" 
+          virt_addr="0x8667D000"
+          size="0x01000"
+          cache_policy="uncached" />
+    </program>
+</image>

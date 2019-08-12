@@ -1,0 +1,61 @@
+#===============================================================================
+#
+# Buses Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/2H09/voyager_modem/rel/3.x/AMSS/products/9X00/core/buses/build/SConscript#1 $
+#  $DateTime: 2011/05/17 12:32:27 $
+#  $Author: coresvc $
+#  $Change: 1751859 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/16/12   PS      Added SPMI Events
+# 01/12/12   PS      Initial release
+#
+#===============================================================================
+Import('env')
+
+env.LoadSoftwareUnits() 
+
+#-------------------------------------------------------------------------------
+# Convert warnings to errors in all Buses drivers
+#-------------------------------------------------------------------------------
+env.Append(CFLAGS = "--diag_error=warning ")
+
+#-------------------------------------------------------------------------------
+# QDSS SW Events
+#-------------------------------------------------------------------------------
+if 'USES_QDSS_SWE' in env:
+   QDSS_IMG = ['QDSS_EN_IMG']
+   events = [['BUS_EVENT_INIT_DONE=64', 'icb_init_cb: complete'],
+             ['BUS_EVENT_SLAVE_XLATE',  'icb_slaves_translate_cb: (%plugin[1]<busslave>) (bandwidth %x %x)'],
+             ['BUS_EVENT_SLAVE_APPLY',  'icb_slaves_apply_cb: (%plugin[1]<busslave>) (bandwidth %x %x)'],
+             ['BUS_EVENT_MASTER_XLATE', 'icb_masters_translate_cb: (%plugin[1]<busmaster>) (bandwidth %x %x)'],
+             ['BUS_EVENT_MASTER_APPLY', 'icb_masters_apply_cb: (%plugin[1]<busmaster>) (bandwidth %x %x)'],
+             ['BUS_EVENT_SPDM_XLATE',   'icb_spdm_req_translate_cb: (request %d)'],
+             ['BUS_EVENT_SPDM_APPLY',   'icb_spdm_req_apply_cb: (request %d)'],
+             ['BUS_EVENT_SPDM_STATE',   'request_spdm_clock: (request %d)'],
+             ['BUS_EVENT_MASTER_LATENCY_XLATE',  'icb_master_latency_translate_cb: (%plugin[1]<busmaster>) (latency %d)'],
+             ['BUS_EVENT_MASTER_LATENCY_APPLY',  'icb_master_latency_apply_cb: (%plugin[1]<busmaster>) (latency %d)'],
+             
+             ['SPMI_EVENT_FATAL_ERROR=80', 'spmi_fatal_error: (result %d) (file %x) (line %d)'],
+             ['SPMI_EVENT_ERROR', 'spmi_error: (result %x) (file %x) (line %d)'],
+             ['SPMI_EVENT_WARNING', 'spmi_warning: (file %x) (line %d)'],
+             
+             ['BUS_EVENT_LAST=191',     'placeholder last bus swevent']
+            ]
+   env.AddSWEInfo(QDSS_IMG, events)
+

@@ -1,0 +1,247 @@
+; ============================================================================
+;
+;  pmic_io.cmm
+;
+;  Script to Read/Write PMIC register.
+;
+;  Execution:
+;    pmic_io.cmm [ Read/Write ] [ slaveid ] [ Register ] [ Value ]
+;
+;
+;  ====================================================================
+;
+;  Copyright (c) 2013 Qualcomm Technologies Incorporated.  All Rights Reserved.
+;  QUALCOMM Proprietary and Confidential.
+;
+;  ====================================================================
+;
+;  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/systemdrivers/pmic/scripts/pmic_io.cmm#1 $
+;  $DateTime: 2015/09/01 00:30:35 $
+;  $Author: pwbldsvc $
+;
+; ============================================================================
+;
+
+ENTRY &rw &sid &reg &val
+
+;-----------------------------------------------------------------------------
+; SPMI variables
+;-----------------------------------------------------------------------------
+
+&PMIC_ARB_CHNLn_CMD=0xFC4CF800
+&PMIC_ARB_CHNLn_STATUS=0xFC4CF808
+&PMIC_ARB_CHNLn_WDATA0=0xFC4CF810
+&PMIC_ARB_CHNLn_RDATA0=0xFC4CF818
+&CHNLn_OFFSET=0x80
+
+y.create.l HWIO_PMIC_ARB0_CHNL0_CMD_ADDR A:0x2400000
+y.create.l HWIO_PMIC_ARB0_CHNL0_STATUS_ADDR A:0x2400008
+y.create.l HWIO_PMIC_ARB0_CHNL0_RDATA0_ADDR A:0x2400018
+y.create.l HWIO_PMIC_ARB0_CHNL0_WDATA0_ADDR A:0x2400010
+y.create.l HWIO_PMIC_ARB_REG_CHNL0_ADDR A:0x200f800
+y.create.done
+
+&OwnerChannel=0
+&MAX_CHANNEL=127
+&MAX_SLAVE=0x0F
+&MAX_OWNER=5
+&MAX_REGISTER_ADDRESS=0xFFFF
+&numBytes=1
+
+GOSUB PMIC_READ &sid &OwnerChannel &reg
+  ENTRY &rd_status &rd_data
+
+  ENDDO &rd_status &rd_data
+
+ 
+;=============================================================================
+; SUB: SPMIRead
+;=============================================================================
+
+SPMIRead:
+
+  ENTRY &RegisterAddress &SlaveId
+
+  &cmd=(0x1<<0x1B)|(&SlaveId<<0x14)|(&RegisterAddress<<0x4)
+
+  DATA.SET A:&PMIC_ARB_CHNLn_CMD+&CHNLn_OFFSET*&OwnerChannel %LONG &cmd
+
+  &status=0
+  WHILE (&status==0)
+  (
+    WAIT 1.ms
+    &status=DATA.LONG(A:&PMIC_ARB_CHNLn_STATUS+&CHNLn_OFFSET*&OwnerChannel)
+  )
+
+  &data=DATA.LONG(A:&PMIC_ARB_CHNLn_RDATA0+&CHNLn_OFFSET*&OwnerChannel)
+  PRINT &SlaveId " 0x"+format.hex(4,&RegisterAddress)  "    0x"+format.hex(2,&data)
+  RETURN &status &data
+
+
+ERROR_RETURN:
+ ENDDO 0 0
+
+
+
+
+//*****************************************************************************
+// PARAMETER_CHECK - This is internal function
+//*****************************************************************************
+PARAMETER_CHECK: 
+    ENTRY &operation &slave &owner &registerOffset
+    &param_check_status="true"
+    if "&operation"=="" 
+    (
+          print "Error: Operation not specified!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if "&operation"!="Read"&&"&operation"!="READ"&&"&operation"!="read"&&"&operation"=="Write"&&"&operation"=="WRITE"&&"&operation"=="write" 
+    (
+          print "Error: Operation invalid!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if ("&slave"=="")
+    (
+          print "Error: Slave id not specified!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if (&slave>&MAX_SLAVE)||(&slave<0)
+    (
+          print "Error: Slave id invalid!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if ("&owner"=="")
+    (
+          print "Error: Owner not specified!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if (&owner>&MAX_OWNER)||(&owner<0)
+    (
+          print "Error: Owner invalid!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if ("&registerOffset"=="") 
+    (
+          print "Error: Register address not specified!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+    if (&registerOffset>&MAX_REGISTER_ADDRESS)||(&registerOffset<0)
+    (
+          print "Error: Register address invalid!"
+          &param_check_status="false"
+          &main_status="false"
+          goto PARAMETER_CHECK_RETURN
+    )
+
+PARAMETER_CHECK_RETURN:
+    RETURN
+
+//*****************************************************************************
+// GET_CHANNEL
+//*****************************************************************************
+GET_CHANNEL:
+    ENTRY &sid &periph
+    LOCAL &i &d
+    &i=0
+    
+    REPEAT (&MAX_CHANNEL+1)
+    (
+        &d=(&sid<<16.)|(&periph<<8.)
+        if (data.long(a:(HWIO_PMIC_ARB_REG_CHNL0_ADDR+(4.*&i)))==&d)
+        (
+            //print "SlaveId: &sid, Peripheral: &periph -> Channel: &i"
+            RETURN &i
+        )
+        
+        &i=&i+1
+    )
+    
+    print %error "Could not find channel for SlaveId: &sid, Peripheral: &periph"
+    ENDDO
+
+
+//*****************************************************************************
+// READ
+//*****************************************************************************
+PMIC_READ:
+   ENTRY &slave &owner &register
+   LOCAL &read &tmp &status &registerOffset &readValue &read_status
+   &read="READ"
+   
+   &read_status=1
+
+   //GOSUB PARAMETER_CHECK &read &slave &owner &register
+   //if ("&param_check_status"=="false")
+   //(
+      //&read_status=0
+      //goto READ_RETURN
+   //)
+   
+   &registerOffset=(&register)&0xFF
+   &tmp=&register>>8.
+   
+   GOSUB GET_CHANNEL &slave &tmp
+   ENTRY &channel
+      
+   &tmp=(0x1<<0x1B)|(&registerOffset<<0x4)|(&numBytes-1)
+   
+   //print "Reading SlaveId: &slave, Register: &register [channel &channel, Offset &registerOffset]"
+   
+   data.set a:(HWIO_PMIC_ARB0_CHNL0_CMD_ADDR+(0x1000*&owner)+(0x8000*&channel)) %LONG &tmp
+    
+   &status=0
+   while (&status==0) ;wait for status register to change to non zero value
+   (
+      // virtio
+      //g
+      //b
+      //wait !state.run()
+
+	  // silicon
+      wait 1.ms
+      &status=data.long(a:(HWIO_PMIC_ARB0_CHNL0_STATUS_ADDR+(0x1000*&owner)+(0x8000*&channel)))
+   )
+   
+   if (&status==1)
+   (
+      &readValue=data.long(a:(HWIO_PMIC_ARB0_CHNL0_RDATA0_ADDR+(0x1000*&owner)+(0x8000*&channel)))&0xFF
+      print "Value = &readValue"
+   )
+   else 
+   (
+      if ((&status&0x2)>0)
+      (
+        print "Read Failed"
+      )
+      else if ((&status&0x4)>0) 
+      (
+        print "Read Denied"
+      )
+      else if ((&status&0x8)>0) 
+      (
+        print "Read Dropped"
+      )
+      &read_status=0
+      goto READ_RETURN
+   )
+
+READ_RETURN:
+    RETURN &read_status &readValue
+
+
+ 
+

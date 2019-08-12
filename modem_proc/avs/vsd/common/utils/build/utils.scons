@@ -1,0 +1,31 @@
+#=================================================================
+# UTILS SConscript
+#=================================================================
+Import('env')
+
+env = env.Clone()
+
+UTILSSRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', UTILSSRCPATH, duplicate=0)
+
+env.Append(CPPDEFINES = [
+    "MSG_BT_SSID_DFLT=MSG_SSID_VS",
+])
+
+env.RequirePublicApi([  
+   'VS',
+])
+
+UTILS_SOURCES = [   
+     '${BUILDPATH}/voice_utility.c',
+]
+
+env.RequireRestrictedApi([ 
+    'VOCSVC',
+])
+
+IMAGES = ['MULTIMEDIA_MODEM', 'MULTIMEDIA_QDSP6_SW']
+
+env.AddLibrary(IMAGES, ('${BUILDPATH}/utils/utils'), UTILS_SOURCES)
+
+

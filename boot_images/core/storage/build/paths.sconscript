@@ -1,0 +1,66 @@
+#===============================================================================
+#
+# Storage INC PATHs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010,2012, 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/msm8960/main/latest/storage/build/paths.sconscript#1 $
+#  $DateTime: 2010/05/20 03:48:15 $
+#  $Author: aschuber $
+#  $Change: 1306386 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2014-12-17   sb      Added deviceprogrammer_ddr to core/storage
+# 2012-06-28   eo      Added flash/inc to core/storage
+# 2010-07-08   rp      Remove EFS1.
+# 2010-04-29   vj      Changed SDCC folders from drivers to core/storage
+# 2010-04-30   rp      Changed efs1_compat path to core/storage
+# 2010-02-12   rp      Changed efs and hfat path to core/storage
+# 2010-01-11   wek     Changed hotplug path to core/storage
+# 2009-11-19   wek     Added hotplug to the restricted API paths.
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# these are accecible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('STORAGE', [
+   "${INC_ROOT}/core/api/storage",
+   "${INC_ROOT}/core/api/rapi/storage/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Publish Restricted APIs
+# these are accecible only within CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishRestrictedApi('STORAGE', [
+   "${INC_ROOT}/core/storage/flash/src/dal",
+   "${INC_ROOT}/core/storage/flash/src/hal",
+   "${INC_ROOT}/core/storage/flash/tools/inc",
+   "${INC_ROOT}/core/storage/flash/inc",
+   "${INC_ROOT}/core/storage/sdcc/src",
+   "${INC_ROOT}/core/storage/sdcc/src/hal",
+   "${INC_ROOT}/core/storage/sdcc/src/bsp",
+   "${INC_ROOT}/core/storage/efs/inc",
+   "${INC_ROOT}/core/storage/hfat/inc",
+   "${INC_ROOT}/core/storage/hotplug/inc",
+   "${INC_ROOT}/core/storage/tools/emmcbld/inc",
+   "${INC_ROOT}/core/storage/tools/deviceprogrammer/src/firehose",
+   "${INC_ROOT}/core/storage/tools/deviceprogrammer_ddr/src/firehose",
+   "${INC_ROOT}/core/storage/ufs/src",
+   "${INC_ROOT}/core/storage/ufs/src/bsp",
+])

@@ -1,0 +1,267 @@
+;****************************************************************************
+;**                            dsm_augment.cmm
+;**
+;** This script dumps dsm pool item data onto a file upon a crash. It 
+;** generates dsm_memory_pool_dump.txt.
+;**  
+;** Usage: do dsm4.cmm
+;**         
+;** Copyright (c) 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.
+;**
+;****************************************************************************
+;**
+;**                        EDIT HISTORY FOR MODULE
+;**
+;**  $Header: //source/qcom/qct/modem/mcs/dsm/rel/1h09/tools/dsm4.cmm#1
+;**
+;** when       who     what, where, why
+;** --------   ---     ------------------------------------------------------
+;** 05/04/09   ag      Merged from CVS.
+;** 07/14/13   sh      Modified for DSM Augment
+;** --------------------------------------------------------------------------
+
+local &pool_id
+local &dsm_item_ptr
+local &pkt_ptr
+local &dup_ptr
+local &link
+local &references
+local &used
+local &size
+local &data_ptr
+local &kind
+local &priority
+local &app_field
+local &app_ptr
+local &dsm_pkt_len
+local &pkt_bit_field
+local &file
+local &line
+local &pool_head_ptr
+local &desc
+local &desc_name
+local &header_size
+local &file_name
+local &dbuff_count
+local &smallpool
+local &largepool
+local &duppool
+
+ENTRY &OutputDir
+
+Area.Reset
+Area.Create ST 200. 1200.       ;create an AREA window              
+Area.Select ST                  ;select the AREA window as PRACTICE 
+                                ;input/output window                
+Area ST                         ;display the AREA window            
+&DSMPerlScript=OS.PPD();
+&DSMPerlScript="&DSMPerlScript"+"\dsm_augment.pl"
+
+
+if ("&OutputDir"=="")
+(
+        print "Please enter output directory"
+        dialog.dir *.*
+        ENTRY &OutputDir
+)
+if ("&OutputDir"=="")
+(
+        print "Run the script again with Output Dir ......"
+        enddo
+)
+
+
+if (!os.file(&DSMPerlScript))
+(
+   dialog.file *dsm_augment*.pl
+   ENTRY &DSMPerlScript   
+)
+if ("&DSMPerlScript"!="")
+(
+  if (!os.file(&DSMPerlScript))
+  (
+       print " Could not load DSM Perl scripts. Please run it on pool dump results later for summary..."       
+  )
+)
+else
+(
+  print "Could not load DSM Perl scripts. Please run it on pool dump results later for summary..."  
+)
+
+&DSMOutputFile="&OutputDir"+"\dsm_memory_pool_dump.txt"
+&Filetimestamp= STRing.Replace(CLOCK.DATE()+"_"+CLOCK.TIME()," ","",0.)
+&Filetimestamp= STRing.Replace("&Filetimestamp",".","_",0.)
+&Filetimestamp= STRing.Replace("&Filetimestamp",":","_",0.)
+&DSMParserOutputFile="&OutputDir"+"\dsm_pool_usage_"+"&Filetimestamp"+".csv"
+
+
+print "Creating dsm pool dump, &DSMOutputFile"
+
+OPEN  #4 &DSMOutputFile /CREATE
+CLOSE #4
+OPEN #4 &DSMOutputFile /WRITE
+
+&header_size=v.value(((sizeof(dsm_item_type)+39)/32)*32)
+;&dsm_pool_head_ptr=0xaaaaaa
+;&pool=&dsm_pool_head_ptr
+
+WRITE #4 "#DSM MEMORY POOL DUMP"
+WRITE #4 "#-------------------------------------"
+
+if Y.EXIST(dsm_ds_small_item_pool)
+(
+  &smallpool=v.value(&dsm_ds_small_item_pool)
+  WRITE #4 "@Pool_ID: SMALL: &smallpool"
+)
+if Y.EXIST(dsm_ds_large_item_pool)
+(
+  &largepool=v.value(&dsm_ds_large_item_pool)
+  WRITE #4 "@Pool_ID: LARGE: &largepool"
+)
+if Y.EXIST(dsm_dup_item_pool)
+(
+  &duppool=v.value(&dsm_dup_item_pool)
+  WRITE #4 "@Pool_ID: DUP: &duppool"
+)
+
+WRITE #4 "#------------------------------------"
+WRITE #4 ""
+
+&pool=v.value(dsm_pool_head_ptr)
+
+while &pool!=0
+(
+  if v.value(((dsm_pool_mgmt_table_type *)&pool)->desc)!=0
+  (
+    &desc_name=Data.String(RD:&desc)
+  )
+  else 
+  (
+    &desc_name="none"
+  )
+  &pad_size=v.value(((dsm_pool_mgmt_table_type*)&pool)->pad_size)
+  &item_count=v.value(((dsm_pool_mgmt_table_type*)&pool)->item_count)
+  &augment_data=v.value(((dsm_pool_mgmt_table_type*)&pool)->augment_data)
+  if &augment_data!=0
+  (
+    &item_count=v.value(((dsm_pool_mgmt_table_type*)&pool)->item_count_static)  
+    &dbuff_count=v.value(((dsm_augment_pool_data_type *)&augment_data)->dbuffer_count)  
+  )
+  &pool_item_size=v.value(((dsm_pool_mgmt_table_type*)&pool)->pool_item_size)
+
+  WRITE #4 "#POOL_ID,ADDR,PKT_PTR,DUP_PTR,LINK,POOL_ID_EXT,REFERENCES,USED,SIZE,DATA_PTR,KIND,PRIORITY,APP_FIELD,APP_PTR,PKT_LEN,PKT_BITFIELD,FILE,LINE,DESC"
+
+  &y=0
+  while &y<&item_count 
+  (
+    &dsm_item_ptr=v.value((dsm_item_type *)(((dsm_pool_mgmt_table_type*)&pool)->item_array+((&pool_item_size+&header_size)*&y)))
+    &pkt_ptr=v.value(((dsm_item_type *)&dsm_item_ptr)->pkt_ptr)
+    &dup_ptr=v.value(((dsm_item_type *)&dsm_item_ptr)->dup_ptr)
+    &link=v.value(((dsm_item_type *)&dsm_item_ptr)->link.next_ptr)
+	&pool_id_ext=v.value(((dsm_item_type *)&dsm_item_ptr)->pool_id_ext)
+    &references=v.value(((dsm_item_type *)&dsm_item_ptr)->references)
+    &used=v.value(((dsm_item_type *)&dsm_item_ptr)->used)
+    &size=v.value(((dsm_item_type *)&dsm_item_ptr)->size)
+    &data_ptr=v.value(((dsm_item_type *)&dsm_item_ptr)->data_ptr)
+    &kind=v.value(((dsm_item_type *)&dsm_item_ptr)->kind)
+    &priority=v.value(((dsm_item_type *)&dsm_item_ptr)->priority)
+    &app_field=v.value(((dsm_item_type *)&dsm_item_ptr)->app_field)
+    &app_ptr=v.value(((dsm_item_type *)&dsm_item_ptr)->app_ptr)
+    &dsm_pkt_len=v.value(((dsm_item_type *)&dsm_item_ptr)->dsm_pkt_len)
+    &pkt_bit_field=v.value(((dsm_item_type *)&dsm_item_ptr)->pkt_bit_field.pkt_bit_field)
+    &file=v.value(((dsm_item_type *)&dsm_item_ptr)->trace[0].file)
+    if &file!=0
+    ( 
+      &file_name=Data.String(D:&file)
+    )
+    else
+    ( 
+      &file_name="nofile"
+    )
+    &line=v.value(((dsm_item_type *)&dsm_item_ptr)->trace[0].line)
+      
+    WRITE #4 "&pool,&dsm_item_ptr,&pkt_ptr,&dup_ptr,&link,&pool_id_ext,&references,&used,&size,&data_ptr,&kind,&priority,&app_field,&app_ptr,&dsm_pkt_len,&pkt_bit_field,&file_name,&line,&desc_name"
+    &y=&y+1
+  )
+  
+  if &augment_data!=0
+  (
+    ;only dynamic buffers
+    &db=0
+    &yy=0x1f
+    while &db<&dbuff_count
+    (
+      &augment_buffer_head=v.value(((dsm_augment_pool_data_type *)&augment_data)->buffer)+(v.value(sizeof(dsm_augment_buffer_type))*&yy)
+	  &used=v.value(((dsm_augment_buffer_type *)&augment_buffer_head)->dsma_state)
+	  &augment_count=v.value(((dsm_augment_pool_data_type *)&augment_data)->augment_cnt)
+	  if &used!=0
+	  (
+        &dsm_array_start=v.value((dsm_item_type *)(((dsm_augment_buffer_type*)&augment_buffer_head)->item_array))
+		&dsm_item_ptr=((&dsm_array_start+0x1F)&~0x1F)
+		&dsm_item_ptr=&dsm_item_ptr+4+&pad_size
+		
+		 
+        &zy=0
+        while &zy<&augment_count
+        (     
+         &aug_pool_id=v.value(((dsm_item_type *)&dsm_item_ptr)->pool_id) 
+
+         if &aug_pool_id!=0
+         (
+           &pkt_ptr=v.value(((dsm_item_type *)&dsm_item_ptr)->pkt_ptr)
+           &dup_ptr=v.value(((dsm_item_type *)&dsm_item_ptr)->dup_ptr)
+           &link=v.value(((dsm_item_type *)&dsm_item_ptr)->link.next_ptr)
+		   &pool_id_ext=v.value(((dsm_item_type *)&dsm_item_ptr)->pool_id_ext)
+           &references=v.value(((dsm_item_type *)&dsm_item_ptr)->references)
+           &used=v.value(((dsm_item_type *)&dsm_item_ptr)->used)
+           &size=v.value(((dsm_item_type *)&dsm_item_ptr)->size)
+           &data_ptr=v.value(((dsm_item_type *)&dsm_item_ptr)->data_ptr)
+           &kind=v.value(((dsm_item_type *)&dsm_item_ptr)->kind)
+           &priority=v.value(((dsm_item_type *)&dsm_item_ptr)->priority)
+           &app_field=v.value(((dsm_item_type *)&dsm_item_ptr)->app_field)
+           &app_ptr=v.value(((dsm_item_type *)&dsm_item_ptr)->app_ptr)
+           &dsm_pkt_len=v.value(((dsm_item_type *)&dsm_item_ptr)->dsm_pkt_len)
+           &pkt_bit_field=v.value(((dsm_item_type *)&dsm_item_ptr)->pkt_bit_field.pkt_bit_field)
+           &file=v.value(((dsm_item_type *)&dsm_item_ptr)->trace[0].file)
+           if &file!=0
+           ( 
+             &file_name=Data.String(D:&file)
+           )
+           else
+           ( 
+             &file_name="nofile"
+           )
+           &line=v.value(((dsm_item_type *)&dsm_item_ptr)->trace[0].line)
+
+           WRITE #4 "&pool,&dsm_item_ptr,&pkt_ptr,&dup_ptr,&link,&pool_id_ext,&references,&used,&size,&data_ptr,&kind,&priority,&app_field,&app_ptr,&dsm_pkt_len,&pkt_bit_field,&file_name,&line,&desc_name"
+         )  
+         &zy=&zy+1
+		 &dsm_item_ptr=&dsm_item_ptr+((&pool_item_size+&header_size))
+       )
+       &db=&db+1
+     )
+     &yy=&yy-1
+   )
+ )
+ &pool=v.value(((dsm_pool_mgmt_table_type*)&pool)->next)
+
+ WRITE #4 " "
+)
+
+CLOSE #4
+
+if ("&DSMPerlScript"!="")
+(
+  if (os.file(&DSMPerlScript))
+  (
+    print "Running DSM Perl script &DSMPerlScript on &DSMOutputFile"
+    os.command "perl &DSMPerlScript &DSMOutputFile > &DSMParserOutputFile"
+    print "Please check  &DSMParserOutputFile for results"
+  )
+)
+print "Exit..."
+enddo
+
+
+
+

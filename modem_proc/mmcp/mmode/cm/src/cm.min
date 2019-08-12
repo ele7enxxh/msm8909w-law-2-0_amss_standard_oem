@@ -1,0 +1,109 @@
+#-------------------------------------------------------------------------------
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/mmode/cm/src/cm.min#1 $
+# 
+# 
+# CM (Call Manager)
+#-------------------------------------------------------------------------------
+CM_SOURCES=\
+	cm.c \
+	cmals.c \
+	cmbcmcs.c \
+	cmcall.c \
+	cmcc.c \
+	cmclient.c \
+	cmdbg.c \
+	cmdiag.c \
+	cmefs.c \
+	cminband.c \
+	cmll.c \
+	cmlog.c \
+        cmmbms.c \
+        cmmmgsdi.c \
+        cmnas.c \
+        cmnv.c \
+        cmph.c \
+        cmpref.c \
+        cmpref2.c \
+        cmregprx.c \
+        cmreply.c \
+        cmsms.c \
+        cmss.c \
+        cmautoreg.c\
+        cmssidm.c \
+        cmstats.c \
+        cmtask.c \
+        cmutil.c \
+        cmwaoc.c \
+        cmwcall.c \
+        cmwll.c \
+        cmwsups.c \
+        cmxcall.c \
+        cmxdbm.c \
+        cmxll.c \
+        cmxpd.c \
+        cmxsms.c \
+        cmipapp.c \
+        cmipcall.c \
+        cmipqvp.c \
+        cmipsms.c \
+        net.c \
+        net_lib.c \
+        sys.c \
+      sys_gw.c\
+      cmgan.c \
+      cmrpm.c \
+	  cmrpm_tds.c \
+      cmdrvcc.c \
+      cmrpm_lte.c \
+
+ifeq ($(USES_LTE), yes)
+CM_SOURCES+=\
+        cmltecall.c
+endif
+
+### FUSION TYPE 1 ###
+ifeq ($(USES_MDM_MSM_FUSION), yes)
+ifeq ($(MSM_ID), 9X00)
+CM_SOURCES+=\
+        cm_fusion.c
+endif
+
+CM_SOURCES+=\
+        cmmm.c
+endif                 
+### FUSION TYPE 1 ###
+
+### FUSION TYPE 2 ###
+ifeq ($(USES_MDM_FUSION), yes)
+CM_SOURCES+=\
+        cmmm.c
+endif
+
+ifeq ($(USES_MSM_FUSION), yes)
+CM_SOURCES+=\
+        cmmm.c
+endif
+### FUSION TYPE 2 ###
+
+vpath %.c $(CM)
+
+ifeq ($(BIG),yes)
+        CM_OBJS := $(TARGETDIR)/cm.lib
+else
+        CM_OBJS :=  $(addprefix $(TARGETDIR)/, $(CM_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/cm.lib : $(CM_SOURCES)
+	$(group_c_compile)
+
+### Start Lint block ###
+ifeq ($(DO_LINT),yes)
+
+CM_LINT_OBJS := $(addprefix $(LINTDIR)/, $(CM_SOURCES:%.c=%.lint))
+
+# Specify group target for linting CM subsystem
+$(LINTDIR)/cm_lint : $(CM_LINT_OBJS)
+
+endif
+### End Lint block ###
+

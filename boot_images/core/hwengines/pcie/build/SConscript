@@ -1,0 +1,130 @@
+#===============================================================================
+#
+# PCIE Libs
+#
+# GENERAL DESCRIPTION
+#    PCIE Libs build script
+#
+# Copyright (c) 2011-2013 by QUALCOMM Technology Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/hwengines/pcie/build/SConscript#1 $
+#  $DateTime: 2015/09/01 00:30:35 $
+#  $Author: pwbldsvc $
+#  $Change: 8935858 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/11/14   Dilip       Added coredump type define to select partial or full dump
+# 05/19/14   Dilip       Dependency for sys_m_gpio_init to initialize before pcie driver
+# 03/25/14   Dilip       Dependency for pm to initialize before pcie driver fo NPA changes
+# 03/17/14   Dilip       Introduced log levels for pcie_osal_debug
+# 03/17/14   Dilip       Changes for Restoring TZ system call
+# 05/03/13   Weijunz     Created
+#===============================================================================
+import os;
+Import('env')
+env = env.Clone()
+
+#Set debug log level
+env.Append(CPPDEFINES=["PCIE_OSAL_MSG_LEVEL=MSG_LOW"])
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('HWENGINES_PCIE', [
+       "${INC_ROOT}/core/hwengines/pcie"
+])
+
+#PLATFORM VIRTIO 
+#env.Append(CPPDEFINES=["PCIE_VIRTIO"])
+
+#env.Append(CPPDEFINES=["PCIE_OSAL_DEBUG"])
+env.Append(CPPDEFINES=["PCIE_BOOT"])
+
+#uncomment if enabling PCIe in Boot
+env.Append(CPPDEFINES=["PCIE_BOOT_ENABLED"])
+
+#PLATFORM RUMI
+env.Append(CPPDEFINES=["FEATURE_PCIE_RUMI_BRINGUP"])
+
+#Clock check for debug 
+#env.Append(CPPDEFINES=["PCIE_AHB_AXI_CLK_CHECK"])
+
+#Type of coredump
+env.Append(CPPDEFINES=["PCIE_ERROR_FATAL_DUMP_TYPE=PCIE_PARTIAL_DUMP"])
+
+#BAMDMA Async Mode
+#env.Append(CPPDEFINES=["PCIE_USE_BAMDMA_ASYNC_MODE"])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/hwengines/pcie/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'HAL',
+   'HWENGINES',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',   
+   'SECUREMSM',
+   'KERNEL',
+   'POWER',
+   'DEBUGTOOLS',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.PublishPrivateApi('PCIE_TICK_TO_US',["${INC_ROOT}/core/power/sleep/src"])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+PCIE_COMMON_SOURCES =  [
+	   '${BUILDPATH}/pcie.c',
+	   '${BUILDPATH}/pcieosal.c',
+	   '${BUILDPATH}/pcie_core.c',
+           '${BUILDPATH}/pcie_phy.c',
+           '${BUILDPATH}/pcie_plat.c',
+           '${BUILDPATH}/pcie_dma.c',
+	]
+
+
+pcie_obj = env.Object([PCIE_COMMON_SOURCES])
+pcie_lib = env.Library('${BUILDPATH}/pcie', pcie_obj)
+
+if env['MSM_ID'] in ['9x45']:
+  env.AddLibsToImage(['APPS_IMAGE', 'CBSP_APPS_IMAGE'], pcie_lib)
+  env.AddLibsToImage(['PCIE_BOOT_DRIVER'], pcie_lib)
+
+if env['MSM_ID'] in ['9x45']:
+  if 'USES_RCINIT' in env:
+    RCINIT_IMG = ['MODEM_IMAGE',    'CBSP_MODEM_IMAGE',  'CORE_APPS','APPS_IMAGE',
+                  'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+    env.AddRCInitFunc(
+      RCINIT_IMG,
+      {
+        'sequence_group'             : 'RCINIT_GROUP_0',
+        'init_name'                  : 'pcie_drv',
+        'init_function'              : 'pcie_init',
+        'dependencies'               : ['clk_regime','GPIOInt','pm','sys_m_gpio_init']
+      })
+
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+#env.LoadSoftwareUnits(level=1)

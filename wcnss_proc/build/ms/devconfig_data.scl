@@ -1,0 +1,38 @@
+/*===========================================================================
+#
+# $Header: //components/rel/core.wcnss/4.1/build/ms/devconfig_data.scl#1 $
+#
+# when       who     what, where, why
+# --------   ---     -------------------------------------------------------
+# 01/16/12   jay     Initial devcfg scl file
+===========================================================================*/
+#include "devcfg_def.h"
+
+DEVCFG_CODE_SEG 0x0
+{
+   CODE_SEC +0x0
+   {
+      .ANY(+RO-CODE)
+   }
+   BSS_SEC +0x0
+   {
+      libspace.o(.bss)
+   }
+}
+
+DEVCFG_DATA_SEG1 (DEVCFG_DATA_ADDR)
+{
+   DEVCFG_DATA_RW +0x0
+   {
+      devcfg_data.o (+RW-DATA, +FIRST)
+      .ANY (+RW-DATA)
+   }
+}
+
+DEVCFG_DATA_SEG2 (+0x0)
+{
+   DEVCFG_DATA_RO +0x0
+   {
+      .ANY (+RO-DATA)
+   }
+}

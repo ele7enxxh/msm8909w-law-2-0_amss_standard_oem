@@ -1,0 +1,160 @@
+/*!
+  @file
+  lte_rrc_crp.stm
+
+  @brief
+  This module contains the state machine description of Connection Release
+  Procedure.
+*/
+/*===========================================================================
+
+  Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_crp.stm#5 $
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+05/16/2009 sureshs Added handling of Initiate Connectio Release indication
+09/17/2008 sureshs Added handling of LTE stopped indication
+09/11/2008 sureshs Fixed some typos in handler names
+09/10/2008 sureshs Added entry function for Inactive state
+09/06/2008 sureshs Added entry functions for the WAIT states
+09/05/2008 sureshs Initial version
+===========================================================================*/
+
+/*!===========================================================================
+
+                      STATE MACHINE DESCRIPTION
+
+The state machine implements the RRC Connection Release Procedure.
+
+Connection Release Procedure (CRP) handles reception of the RRCConnectionRelease 
+over-the-air (OTA) message and the Connection Abort request from NAS if 
+received in the Connected state of the UE.
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_CRP_SM
+{
+  ENTRY             lte_rrc_crp_sm_entry;
+  EXIT              NULL;
+  INITIAL_STATE     INACTIVE;
+  ERROR_HOOK        lte_rrc_stm_error;
+  DEBUG_HOOK        lte_rrc_stm_debug;
+  INPUT_DEF_FILE    lte_rrc_stm.h;
+  INPUT_DEF_FILE    lte_rrc_int_msg.h;
+  INPUT_DEF_FILE    lte_rrc_ext_msg.h;
+  INSTANCES         1;
+
+  /*!
+  Inactive state. In this state, CRP expects an RRCConnectionRelease OTA 
+  message or a Connection Abort message from NAS. If the abort message is 
+  received, it acts on it only if RRC Controller is in Connected state. 
+  RRCConnectionRelease message cause CRP to start the connection release timer, 
+  post a Connection Release Started indication, and transition to Wait for 
+  timer state. A Connection Abort message causes CRP to issue a Connection 
+  Release Started indication and a Config command to LLC (Lower Layer Config) 
+  to release all resources, and transition to Wait for LLC confirm state. If 
+  the RRCConnectionRelease message contains information pertaining to idle mode 
+  mobility control, or redirection, it is stored.
+  */
+  STATE INACTIVE
+  {
+    ENTRY           lte_rrc_crp_sm_inactive_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_RRC_RRC_CONNECTION_RELEASE_DLM lte_rrc_crp_sm_conn_rel_dlm;
+
+      LTE_RRC_CONN_ABORT_REQ lte_rrc_crp_sm_conn_abort_req;
+
+      LTE_RRC_INITIATE_CONN_REL_INDI lte_rrc_crp_initiate_conn_rel_indi;
+
+      LTE_RRC_STOPPED_INDI lte_rrc_crp_sm_stopped_indi;
+    }
+  }
+
+  /*!
+  Wait for Timer state. : In this state, expiry of the connection release timer
+  is awaited, upon which CRP sends a Config command to LLC to release all 
+  resources, and transitions to Wait for LLC confirm state.
+  */
+  STATE WAIT_FOR_TIMER
+  {
+    ENTRY           lte_rrc_crp_sm_wait_for_timer_entry;
+    EXIT            lte_rrc_crp_sm_wait_for_timer_exit;
+
+    INPUTS
+    {
+      LTE_RRC_CONN_REL_TMRI lte_rrc_crp_sm_conn_rel_tmri;
+
+      LTE_CPHY_HARQ_ACK_TX_STS_CNF lte_rrc_crp_sm_cphy_harq_ack_tx_sts_cnf;
+
+      LTE_RRC_STOPPED_INDI lte_rrc_crp_sm_stopped_indi;
+    }
+  }
+
+  /*!
+  Wait for LLC Confirm. In this state, CRP waits for a Config confirmation 
+  message from LLC. On receiving the message, it posts Connection Released 
+  indications. CRP then transitions to Inactive state.
+  */
+  STATE WAIT_FOR_LLC_CONFIRM
+  {
+    ENTRY           lte_rrc_crp_sm_wait_for_llc_confirm_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_RRC_CFG_CNFI lte_rrc_crp_sm_cfg_cnfi;
+
+      LTE_RRC_STOPPED_INDI lte_rrc_crp_sm_stopped_indi;
+
+      LTE_CPHY_CON_RELEASE_CNF lte_rrc_crp_sm_conn_rel_cnf;
+    }
+  }
+
+  /*!
+  Wait for IRAT Abort. In this state, CRP waits for IRAT abort confirmation
+  from the IRAT Managers.  It enters this state when it gets a connection
+  abort message and some connected mode IRAT procedure (like handover/e1xCSFB) 
+  is in progress.  
+  
+  */
+  STATE WAIT_FOR_IRAT_ABORT_CONFIRM
+  {
+    ENTRY           NULL;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_RRC_IRAT_FROM_LTE_ABORT_CNFI lte_rrc_crp_sm_irat_abort_cnfi;
+    }
+  }
+}
+
+

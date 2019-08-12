@@ -1,0 +1,71 @@
+#-------------------------------------------------------------------------------
+# CNM (hardware drivers)
+#-------------------------------------------------------------------------------
+
+CNM_SOURCES=\
+	cnm_cc_dtmf.c	\
+	cnm_cc_get_data.c	\
+	cnm_cc_incall_mod.c	\
+	cnm_cc_mn_primitives.c	\
+	cnm_cc_process_msgs.c	\
+	cnm_cc_process_specific_msgs1.c	\
+	cnm_cc_process_specific_msgs2.c	\
+	cnm_cc_receive_msg_utils.c	\
+	cnm_cc_state_machine.c	\
+	cnm_cmd_buffer_utils.c	\
+	cnm_common_mm_primitives.c	\
+	cnm_data_queue.c	\
+	cnm_init_data.c	\
+	cnm_mntask_debug.c	\
+	cnm_mntask_lib.c	\
+	cnm_mntask_main.c	\
+	cnm_msg_defines_and_utils.c	\
+	cnm_process_mm_primitives.c	\
+	cnm_route_cnm_msgs.c	\
+	cnm_send_mn_msgs.c	\
+	cnm_send_msg.c	\
+	cnm_send_release_complete.c	\
+	cnm_send_status_msg_to_mm.c	\
+	cnm_serv_req_queue.c	\
+	cnm_sms_check_pending_sms.c	\
+	cnm_sms_mn_primitives.c	\
+	cnm_sms_process_msgs.c	\
+	cnm_sms_req_queue.c	\
+	cnm_sms_send_msgs.c	\
+	cnm_sms_state_machine.c	\
+	cnm_ss_mn_primitives.c	\
+	cnm_ss_process_msgs.c	\
+	cnm_ss_state_machine.c	\
+	cnm_ss_transaction_msgs.c	\
+	cnm_timers.c	\
+	cnmglobal.c	\
+	cnmlog.c
+             
+CNM_CINCPATH=\
+             $(HW)            \
+             $(RABM)          \
+             $(NV)            \
+             $(CLK)           \
+             $(CUST)          \
+             $(BIO)           \
+             $(DIAG)          \
+             $(REG)           \
+             $(REX)           \
+             $(TRAMP)         \
+             $(TASK)          \
+             $(MN)            \
+             $(NV)            \
+             $(CM)            \
+             $(SM)            \
+             $(CNM)           \
+             $(RF)            \
+             $(SD)            \
+             $(UTILS)
+
+CNM_OBJS :=  $(addprefix $(TARGETDIR)/, $(CNM_SOURCES:%.c=%.o))
+$(CNM_OBJS): CFLAGS := $(CFLAGS) -DFEATURE_6200_COMPATIBILITY
+$(CNM_OBJS): INCLUDES = $(addprefix -I, $(CNM_CINCPATH))
+CNM_DEPS :=  $(addprefix $(TARGETDIR)/, $(CNM_SOURCES:%.c=%.dep))
+$(CNM_DEPS): INCLUDES = $(addprefix -I, $(CNM_CINCPATH))
+vpath %.c $(CNM)
+

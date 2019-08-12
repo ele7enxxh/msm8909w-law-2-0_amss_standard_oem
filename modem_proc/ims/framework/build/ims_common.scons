@@ -1,0 +1,96 @@
+#===============================================================================
+#
+# TMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/framework/build/ims_common.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+#env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Building feature flags based on features being built
+#-------------------------------------------------------------------------------
+IMS_COMMON_APPFLAGS  = [
+]
+
+if 'USES_IMS_NO_BREW' in env:
+   IMS_COMMON_APPFLAGS = ' -DFEATURE_IMS_NO_BREW'
+
+if 'USES_IMS_NO_AMSS' in env:
+   IMS_COMMON_APPFLAGS +=' -DFEATURE_IMS_NO_AMSS'
+
+if 'USES_IMS_NO_IPSEC' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_IPSEC'
+
+if 'USES_IMS_NO_MEDIA' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_MEDIA -DFEATURE_IMS_NO_RTP -DFEATURE_IMS_NO_AUDIO -DFEATURE_IMS_NO_VIDEO'
+
+if 'USES_IMS_NO_AUDIO' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_AUDIO'
+
+if 'USES_IMS_NO_VIDEO' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_VIDEO'
+
+if 'USES_IMS_NO_RTP' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_RTP'
+
+if 'USES_IMS_NO_SDP' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_SDP'
+
+if 'USES_IMS_NO_MSRP' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_MSRP'
+
+#if 'USES_IMS_PROCESS' in env:
+#   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_PROCESS'
+
+if 'USES_IMS_MEDIA_PROCESS' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_MEDIA_PROCESS'
+
+if 'USES_IMS_BUFFER_OPTIMIZED' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_BUFFER_OPTIMIZED'
+   
+if 'USES_IMS_NO_CALL' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_CALL'   
+
+if 'USES_IMS_RX_OPTIMIZED' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_IMS_RX_OPTIMIZED'
+
+if 'USES_IMS_NO_SESSION' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_SESSION'
+
+if 'USES_IMS_NO_SIGCOMP' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_SIGCOMP'
+
+if 'USES_IMS_NO_USB_LOGGING' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_USB_LOGGING'
+
+if 'USES_IMS_NO_STANDALONE_AKA' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_STANDALONE_AKA'
+   
+if 'USES_IMS_NO_QSR_LOGGING' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_NO_QSR_LOGGING'
+
+if 'USES_IMS_DPL_BMP' in env:
+   IMS_COMMON_APPFLAGS += ' -DFEATURE_IMS_DPL_BMP'
+
+env.Export("IMS_COMMON_APPFLAGS")

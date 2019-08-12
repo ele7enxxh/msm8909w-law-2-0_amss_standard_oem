@@ -1,0 +1,68 @@
+# Build rules for libhfat.
+
+.DEFAULT: libhfat.a
+
+INCLUDES += $(ROOT)/hfat/src
+
+HFAT_SRC_MODULES = \
+        hfat_m \
+        hfat_lfn \
+        hfat_common \
+        hfat_port_f \
+        hfat_interface \
+        hfat_chkfat \
+
+# Flags:
+CFLAGS += -Werror
+CFLAGS += -std=c99 -pedantic
+
+if $(defined-env CALLGRAPH)
+    CFLAGS += -finstrument-functions
+    CFLAGS += -DENABLE_INSTRUMENT_FUNCTIONS
+    CFLAGS += -D'CALLGRAPH_OUTPUT_FILE="$(EXENAME)"'
+    export
+
+StaticCLibrary (libhfat, $(HFAT_SRC_MODULES))
+
+CFLAGS_BASE = $(CFLAGS)
+
+######################################################################
+# Linting.
+
+# Lint needs the GCC specific search dirs.  To start with, just grab the
+# GCC install base.
+GCC_BASE = $(shell $(CC) --print-search-dirs | grep 'install:' | \
+             sed 's/install: //')
+
+LINT = flint
+# Start the LINT_FLAGS with what is specified in the build-config file.
+LINT_FLAGS = $(CFG_LINT_FLAGS)
+
+LINT_DEPS =
+LINT_DEPS += $(file $(ROOT)/etc/lint/co-gnu3.lnt)
+LINT_DEPS += $(file $(ROOT)/efs/efs.lnt)
+LINT_DEPS += $(file $(ROOT)/etc/lint/off-target.lnt)
+LINT_DEPS += $(file $(ROOT)/etc/lint/amss_std.lnt)
+
+LINT_FLAGS += $(LINT_DEPS)
+
+LINT_FLAGS += -I$(dir $(ROOT)/efs/inc)
+LINT_FLAGS += -I$(dir $(ROOT)/hfat/inc)
+LINT_FLAGS += -I$(dir $(ROOT)/hfat/src)
+LINT_FLAGS += -I$(dir $(ROOT)/csupport)
+LINT_FLAGS += -I$(dir $(GCC_BASE)/include)
+LINT_FLAGS += -I/usr/include
+
+# Needed, until buffer removes the MD5 stuff.
+LINT_FLAGS += -I$(OCAML_BASE)
+
+LINT_FLAGS += -DFS_STANDALONE
+
+section
+        CFILES = $(addsuffix .c, $(HFAT_SRC_MODULES))
+        hfatlint.stamp: $(CFILES) $(LINT_DEPS)
+                rm -f hfatlint.stamp
+                $(LINT) $(LINT_FLAGS) $(CFILES)
+                touch hfatlint.stamp
+######################################################################
+

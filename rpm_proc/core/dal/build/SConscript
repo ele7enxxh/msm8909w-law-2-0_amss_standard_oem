@@ -1,0 +1,44 @@
+#===============================================================================
+#
+# DAL Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/24/10   wd      Merged with SCMM/7x30/9x00/etc qcore tip.
+#
+#===============================================================================
+Import('env')
+
+env = env.Clone()
+if env['MSM_ID'] == '8909W':
+	env['MSM_ID'] = '8909'
+
+dal_root = '${BUILD_ROOT}/core/dal'
+env.Replace(DAL_ROOT = dal_root)
+
+if 'QDSP6_PROC' in env:
+   env.Append(CCFLAGS = " -fno-strict-aliasing -save-temps")
+
+if 'USES_NESSUS' in env or 'USES_BMPOS_QNK' in env:
+   script_fname = "dal_qnp.Sconscript"
+   env.SConscript(script_fname, exports='env')
+else:   
+   env.LoadSoftwareUnits()

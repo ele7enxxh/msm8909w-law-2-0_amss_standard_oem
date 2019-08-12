@@ -1,0 +1,164 @@
+
+/* ---------- Clock APIs ---------- */
+
+DALResult GetClockId
+(
+  DalDeviceHandle      *h,
+  /*istr*/ const char  *szClock,
+  /*o32*/  ClockIdType *pnId
+);
+
+
+DALResult EnableClock
+(
+  DalDeviceHandle     *h,
+  /*i32*/ ClockIdType  nClock
+);
+
+
+DALResult DisableClock
+(
+  DalDeviceHandle     *h,
+  /*i32*/ ClockIdType  nClock
+);
+
+
+DALResult SetClockFrequency
+(
+  DalDeviceHandle            *h,
+  /*i32*/ ClockIdType         nClock,
+  /*i32*/ uint32              nFreq,
+  /*i32*/ ClockFrequencyType  eMatch,
+  /*i32*/ uint32             *pnResultFreq
+);
+
+
+DALResult SetClockDivider
+(
+  DalDeviceHandle     *h,
+  /*i32*/ ClockIdType  nClock,
+  /*i32*/ uint32       nDivider
+);
+
+
+DALResult InvertClock
+(
+  DalDeviceHandle     *h,
+  /*i32*/ ClockIdType  nClock,
+  /*i32*/ boolean      bInvert
+);
+
+
+DALResult ResetClock
+(
+  DalDeviceHandle        *h,
+  /*i32*/ ClockIdType     nClock,
+  /*i32*/ ClockResetType  eReset
+);
+
+
+DALResult IsClockEnabled
+(
+  DalDeviceHandle     *h,
+  /*i32*/ ClockIdType  nClock,
+  /*o32*/ boolean     *pbIsEnabled
+);
+
+
+DALResult IsClockOn
+(
+  DalDeviceHandle     *h,
+  /*i32*/ ClockIdType  nClock,
+  /*o32*/ boolean     *pbIsOn
+);
+
+
+DALResult GetClockFrequency
+(
+  DalDeviceHandle     *h,
+  /*i32*/ ClockIdType  nClock,
+  /*o32*/ uint32      *pnFrequencyHz
+);
+
+
+DALResult SelectExternalSource
+(
+  DalDeviceHandle     *h,
+  /*i32*/ ClockIdType  nClock,
+  /*i32*/ uint32       nDivider,
+  /*i32*/ uint32       nM,
+  /*i32*/ uint32       nN,
+  /*i32*/ uint32       n2D
+);
+
+
+
+/* ---------- Power Domain APIs ---------- */
+
+DALResult GetPowerDomainId
+(
+  DalDeviceHandle                 *h,
+  /*istr*/ const char             *szPowerDomain,
+  /*o32*/  ClockPowerDomainIdType *pnPowerDomainId
+);
+
+
+DALResult EnablePowerDomain
+(
+  DalDeviceHandle                *h,
+  /*i32*/ ClockPowerDomainIdType  nPowerDomainId
+);
+
+
+DALResult DisablePowerDomain
+(
+  DalDeviceHandle                *h,
+  /*i32*/ ClockPowerDomainIdType  nPowerDomainId
+);
+
+
+
+/* ---------- Miscellaneous APIs ---------- */
+
+DALResult EnableDCVS
+(
+  DalDeviceHandle *h
+);
+
+
+DALResult EnableAVS
+(
+  DalDeviceHandle *h
+);
+
+
+DALResult LoadNV
+(
+  DalDeviceHandle *h
+);
+
+
+DALResult ProcessorSleep
+(
+  DalDeviceHandle            *h,
+  /*i32*/ ClockSleepModeType  eMode,
+  /*i32*/ uint32              nFlags
+);
+
+DALResult ProcessorRestore
+(
+  DalDeviceHandle            *h,
+  /*i32*/ ClockSleepModeType  eMode,
+  /*i32*/ uint32              nFlags
+);
+
+
+/* ---------- Test APIs ---------- */
+
+DALResult CalcClockFrequency
+(
+  DalDeviceHandle     *h,
+  /*i32*/ ClockIdType  nClock,
+  /*o32*/ uint32      *pnFrequencyHz
+);
+

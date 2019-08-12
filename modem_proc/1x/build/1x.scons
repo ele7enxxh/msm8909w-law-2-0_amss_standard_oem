@@ -1,0 +1,251 @@
+#==============================================================================#
+#
+# Modem 1x build script
+#
+# GENERAL DESCRIPTION
+#    Scons build script for modem/1x
+#
+# Copyright (c) 2010 - 2014 Qualcomm Technologies, Inc.
+# All Rights Reserved Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies, Inc. and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies, Inc.
+#
+#
+#------------------------------------------------------------------------------#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/1x/build/1x.scons#1 $
+#------------------------------------------------------------------------------#
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ----------------------------------------------------------
+#06/13/16   agh     Support QSH framework to collect periodic/event metrics
+#09/22/15   bb     Changes to send wakeup indication to LTE for EMBMS DPD active
+#                    cases
+# 09/09/15   agh     Add support for stub APIs in CDMA compiled-out builds
+# 07/21/14   gga     FR 20298: SIM Swap without RESET if carrier settings have 
+#                    changed
+# 06/25/14   cjb     Public API additions to support FW branching for Thor modem
+# 06/12/14   sst     Add feature to distinguish between Int and Ext Builds
+# 05/09/14   as      Changes to define the PL dynamically
+# 04/30/14   pap     Changes to remove low and medium warnings.
+# 04/24/14   cjb     Added BO 1.1 specific feature
+# 03/11/14   pap     Correcting -werror flag usage.
+# 03/04/14   pap     Added -Werror to catch warnings as errors.
+# 10/09/13   srk     Remove -Werror for LLVM compiled builds.
+# 08/14/13   cjb     Moved to MCS version of HWIO definitions
+# 05/31/13   as      Implemented QDSS
+# 05/07/13   cjb     Updated SCONS file to use the new filename for CLEANPACK.
+# 04/26/13   cjb     Added FW_TECH specific Public API inclusions.
+# 04/24/13   trc     Add GENERATE_ASM to enable interleaved C+asm output
+# 03/07/13   trc     Turn on -Wdeclaration-after-statement for MSVC compat.
+# 02/15/13   srk     Include Chipset specific HWIO file in 1x.
+# 01/21/13   trc     Mainline -Werror compiler flag
+# 01/18/13   srk     Scons cleanup
+# 01/15/13   cjb     Adding CLEANPACK script to 1x component (HY11_1 compliant).
+# 10/23/12   vks     Add WON path for the HDOn-EVRC feature
+# 10/16/12   jj      Changes to add QCHAT path for compiling QCHAT changes.
+# 05/24/12   mca     Convert to NI.4.0 format for Package Warehouse
+# 05/10/11   vks     Remove violations except for the A2 path.
+# 05/09/11   vks     Check for USES_CDMA to compile 1x.
+# 04/04/11   vks     Remove FW violations.
+# 03/23/11   vks     Add rfa/lm violations.
+# 01/27/11   vks     Add rf/api/cdma to violations.
+# 12/13/10   vks     More violations.
+# 12/09/10   vks     Add violations required to get nikel builds going.
+# 09/08/10   cjb     Initial revision.
+#
+#==============================================================================#
+
+#----------------------------------------------------------------------------#
+# Import SCons Environment
+#----------------------------------------------------------------------------#
+Import('env')
+
+#----------------------------------------------------------------------------#
+# Load CLEANPACK script to remove private files etc. from customer builds
+#----------------------------------------------------------------------------#
+import os
+if os.path.exists('1x_cleanpack.py'):
+   env.LoadToolScript('1x_cleanpack.py')
+
+#----------------------------------------------------------------------------#
+# Decision logic for "modem" folder removal
+#----------------------------------------------------------------------------#
+if env.PathExists('${INC_ROOT}/1x'):
+   env.Replace(ONEX_ROOT = '${INC_ROOT}/1x')
+   env.Replace(AU_NAME = "ONEX")
+   env.Replace(AU_DIR_PATTERNS = ['${BUILD_ROOT}/1x/build'])
+else:
+   env.Replace(ONEX_ROOT = '${INC_ROOT}/modem/1x')
+
+#----------------------------------------------------------------------------#
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+#
+# NOTE:
+#   PROTECTED  = visible to VUs within 1X SU.          E.g.: CP, MUX, SRCH,...
+#   RESTRICTED = visible to other SUs within MODEM AU. E.g.: MCS, RFA,...
+#   PUBLIC     = visible to SUs outside of MODEM AU.   E.g.: CORE,...
+#----------------------------------------------------------------------------#
+
+#Start AU paths that were included in the top level pasted block
+env.PublishProtectedApi('ONEX', ['${ONEX_ROOT}/cp/inc',
+                                 '${ONEX_ROOT}/srch/inc',
+                                 '${ONEX_ROOT}/mux/inc',
+                                 '${ONEX_ROOT}/cust/inc',
+                                 '${ONEX_ROOT}/drivers/inc',
+                                 '${ONEX_ROOT}/srch/protected',
+                                 '${ONEX_ROOT}/variation/inc',
+                                 '${ONEX_ROOT}/mux/src',
+                                 '${ONEX_ROOT}/diag/inc',
+                                 '${ONEX_ROOT}/cp/src',
+                                 '${ONEX_ROOT}/srch/src/traffic',
+                                 '${ONEX_ROOT}/srch/src/common',
+                                 '${ONEX_ROOT}/drivers/src',
+                                ])
+
+env.RequireProtectedApi(['ONEX'])
+
+#----------------------------------------------------------------------------#
+# Flags -Wno-low, medium, high and no-error are being set inside
+# modem_proc/config/internal_build_cfg.xml file.
+# the below changes ensure that no warnings are going to be promoted from PW
+# in 1x code to keep it warnings free.
+#----------------------------------------------------------------------------#
+# Copy the CFLAGS list to a new environment for us
+# (somehow the list is a reference when cloned, so use deepcopy)
+import copy
+orig_env = env
+env = env.Clone()
+env['CFLAGS'] = copy.deepcopy(orig_env['CFLAGS'])
+
+# Set -Werror compiler flag to treat warnings as errors
+if env['CFLAGS'].count('-Wno-low') > 0:
+  env['CFLAGS'].remove('-Wno-low')
+
+if env['CFLAGS'].count('-Wno-medium') > 0:
+  env['CFLAGS'].remove('-Wno-medium')
+
+if env['CFLAGS'].count('-Wno-high') > 0:
+  env['CFLAGS'].remove('-Wno-high')
+
+if env['CFLAGS'].count('-Wno-error') > 0:
+  env['CFLAGS'].remove('-Wno-error')
+
+env.Append(HEXAGONCC_WARN = ' -Werror ')
+env.Append(HEXAGONCXX_WARN = ' -Werror ')
+#----------------------------------------------------------------------------#
+
+# Set -Wdeclaration-after-statement to disallow C99 style variable declarations
+env.Append(HEXAGONCC_WARN = ' -Wdeclaration-after-statement ')
+
+# Allow for generation of interleaved C+assembly output (alongside object files)
+if 'GENERATE_ASM' in env:
+  env.Append(HEXAGON_DBG = ' -Wa,-ahl=${TARGET.base}.asm ')
+
+#----------------------------------------------------------------------------#
+# Create 1X Product Line Feature Definition
+#----------------------------------------------------------------------------#
+product_line = env['PRODUCT_LINE']
+feature = "FEATURE_MODEM_1X_" + product_line.replace('.', '_')
+print "For PL", product_line, "defining 1X PL Feature:", feature
+env.Append(CPPDEFINES = [feature])
+
+#----------------------------------------------------------------------------#
+# Determine if this is an "Internal" or "External" build
+# If it is an internal build, then define "FEATURE_MODEM_1X_INTERNAL_BUILDS_ONLY"
+#----------------------------------------------------------------------------#
+if 'USES_INTERNAL_BUILD' in env:
+    env.Append(CFLAGS = "-DFEATURE_MODEM_1X_INTERNAL_BUILDS_ONLY")
+
+#----------------------------------------------------------------------------#
+# Necessary Public & Restricted API's
+#----------------------------------------------------------------------------#
+
+#The order of APIs in the onex_public_api_list determines the order the paths are listed on the build command line.
+#To optimize build times the API list is sorted in descending order of use.
+
+onex_public_api_list = [
+        ('CORE',                'KERNEL'),
+        ('ONEX',                'ONEX'),
+        ('ONEX',                'PUBLIC'),
+        ('MCS',                 'MCS'),
+        ('MMCP',                'PUBLIC'),
+        ('MMCP',                'MMCP'),
+        ('CORE',                'DAL'),
+        ('RFA',                 'COMMON'),
+        ('CORE',                'SYSTEMDRIVERS'),
+        ('CORE',                'MEMORY'),
+        ('LTE',                 'LTE'),
+        ('UTILS',               'QSH'),
+        ('UTILS',               'A2'),
+        ('UTILS',               'COMMON'),
+        ('UTILS',               'PUBLIC'),
+        ('CORE',                'DEBUGTOOLS'),
+        ('CORE',                'DEBUGTRACE'),
+        ('RFA',                 'MEAS'),
+        ('RFA',                 'CDMA'),
+        ('DATAMODEM',           'DATAMODEM'),
+        ('FW',                  'C2K'),
+        ('FW_C2K',              'FW_C2K'),
+        ('RFA',                 'GSM'),
+        ('UIM',                 'UIM'),
+        ('CORE',                'MPROC'),
+        ('RFA',                 'WCDMA'),
+        ('UIM',                 'PUBLIC'),
+        ('CORE',                'SECUREMSM'),
+        ('HDR',                 'HDR'),
+        ('CORE',                'SERVICES'),
+        ('RFA',                 'GNSS'),
+        ('DATAMODEM',           'PUBLIC'),
+        ('RFA',                 'LM'),
+        ('RFA',                 'LTE'),
+        ('FW',                  'GERAN'),
+        ('FW_GERAN',            'FW_GERAN'),
+        ('FW',                  'RF'),
+        ('FW',                  'TARGET'),
+        ('FW_CCS',              'FW_CCS'),
+        ('FW_COMMON',           'FW_COMMON'),
+        ('GERAN',               'GERAN'),
+        ('HDR',                 'PUBLIC'),
+        ('AVS',                 'MVS'),
+        ('AVS',                 'WON'),
+        ('CORE',                'POWER'),
+        ('CORE',                'STORAGE'),
+        ('MCS',                 'PUBLIC'),
+        ('WCDMA',               'PUBLIC'),
+        ('GPS',                 'GPS'),
+        ('CORE',                'BUSES'),
+        ('CORE',                'WIREDCONNECTIVITY'),
+        ('MPOWER',              'MPOWER'),
+        ('QCHAT',               'QCHAT'),
+        ('RFLM',                'RFLM'),
+        ('RFMODEM_BOLT',        'RFMODEM_BOLT'),
+        ('MCFG',                'MCFG'),
+        ]
+
+for api_area,api_name in onex_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+#----------------------------------------------------------------------------#
+# Recurse through the sub-units
+#----------------------------------------------------------------------------#
+env.LoadSoftwareUnits()

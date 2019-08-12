@@ -1,0 +1,126 @@
+;============================================================================
+;  Name:
+;    NOR_MSM_INIT.CMM
+;
+;  Description:
+;    MSM specific hardware init script for flash programming
+;
+;  Copyright (c) 2010-2014 Qualcomm Technologies Incorporated.
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nor/config_v1/nor_msm_init.cmm#1 $
+; $DateTime: 2015/09/01 00:30:35 $
+; $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 09/30/14   sb      I2C NOR tools address change to code ram
+; 09/16/14   sb      I2C NOR tool support on cortex-a7
+; 08/04/14   sb      Update settings for 9x45/8909 - Virtio
+; 10/09/13   wc      Add SPI NOR clock support for 9x35.
+; 10/24/12   eo      Add SPI NOR clock support for 9x25.
+; 08/21/12   sb      Update settings for 9x25 - RUMI
+; 08/25/11   sv      SPI NOR tools support for 9x15 - SURF
+; 08/13/11   eo      Run tools from IMEM for 9x15
+; 07/20/11   sv      Update settings for 9x15 - RUMI
+; 06/22/11   eo      Initial I2C NOR support for 9x15
+; 03/21/11   jz      Added I2C NOR support for 8960
+; 12/13/10   bn      Added SPI NOR support for 6615
+; 10/28/10   bn      Removed unnecessary call to setuphwio.cmm
+; 10/22/10   bn      Added NOR I2C support
+; 09/28/10   sv      I2C NOR tools support for 8660 target
+; 08/27/10   sv      Created
+;============================================================================;
+
+global &VirtioPlatform
+
+;============================================================================
+; Get the arguments passed in.
+;============================================================================
+
+LOCAL &CurDir
+
+&CurDir=os.pwd()
+
+;------------------------------------------------------------
+;                   DEBUGGER SYSTEM SETUP
+;------------------------------------------------------------
+; Turbo mode of debug state accesses - CPU makes no checks of
+; memory access in debug mode.
+
+System.Option TURBO off
+
+; Usage of TRST in system - Must be off if reset tied to trst.
+SYStem.Option.TRST on
+SYStem.Option.CFLUSH on
+SYStem.Option.ENRESET on
+SYStem.Option.WAITRESET off
+SYStem.Option.ResBreak on
+
+if "&NorTargetFamily"=="FLASH_9K_CORTEXA7_CFG"
+(
+  ;Set for virtio testing
+  &VirtioPlatform="no"
+  
+  SYStem.CPU CORTEXA7
+  ;SYStem.CPU CORTEXA7MPCore
+)
+else if "&NorTargetFamily"=="FLASH_8K_CORTEXA7_CFG"
+(
+  ;Set for virtio testing
+  &VirtioPlatform="no"
+
+  SYStem.CPU CORTEXA7
+  
+  if "&VirtioPlatform"=="yes"
+  (
+    sys.config core "CortexA7Core.CortexA7_Cn"
+  ) 
+)
+else
+(
+  SYStem.CPU ARM1136J
+  SYStem.JtagClock RTCK
+)
+
+; Disassembler selection - Automatically selects correct one.
+SYStem.Option DisMode Auto
+
+;------------------------------------------------------------
+; lock L2 Cache
+;------------------------------------------------------------
+;as code is running from code ram now, we no need l2 cache lock
+;do nor_l2_cache_lock.cmm
+
+sys.u
+
+;------------------------------------------------------------
+;  MSM configuration
+;------------------------------------------------------------
+
+; Generate a reset
+
+register.reset
+
+if "&NorTargetFamily"=="FLASH_9K_CORTEXA7_CFG"
+(
+  if "&VirtioPlatform"=="no"
+  (
+    ; setup clock
+    do ../../../src/extdrv/config_v2/setup_clk_for_i2c_rpm.cmm
+  )
+)
+
+if "&NorTargetFamily"=="FLASH_8K_CORTEXA7_CFG"
+(
+  if "&VirtioPlatform"=="no"
+  (
+    ; setup clock
+    do ../../../src/extdrv/config_v2/setup_clk_for_i2c_rpm.cmm
+  )
+)
+enddo

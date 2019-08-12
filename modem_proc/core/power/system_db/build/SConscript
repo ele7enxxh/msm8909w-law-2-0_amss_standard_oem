@@ -1,0 +1,148 @@
+#==============================================================================
+# System_DB build script
+#
+# Copyright (c) 2009-2012 QUALCOMM Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+# $Header: //source/qcom/qct/core/power/system_db/dev/2012/system_db/build/SConscript#1 $
+#==============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Utility functions - these are not NPA-specific and could be made
+# more widely available
+# -------------------------------------------------------------------------------
+
+import os
+def find_target_file( env, base, files ):
+  """
+  Find target-specific files under the given base. This looks for 
+  target-specific files using the following search path and order:
+ 
+  base/<target>/<file>
+  base/<file> 
+  
+  This allows the build to selectively override individual files on a
+  target basis when necessary, but have a default version for the tree.
+  """
+  base = env.subst(base)
+  target_files = []
+  
+  # Check for target file
+  search_path = [
+      os.path.join( base, env['HAL_PLATFORM'] ),
+      os.path.join( base )
+      ]
+
+  for file in files:
+    for path in search_path:
+      if os.path.isfile( os.path.join( SRCPATH, path, file ) ):
+        target_files.append( os.path.join( '${BUILDPATH}',path, file ) )
+        break
+  
+  assert ( len(target_files) == len(files) )
+  return target_files
+  
+env.AddMethod( find_target_file, "FindTargetFile" )
+
+# Don't build NPA if we are unable to determine the processor
+if 'unknown' == env.DetermineProcessorName():
+  Return()
+
+class BuildDatabase:
+  """
+  A simple "database" for looking up elements based on target/proc
+  """
+  def __init__(self, dict):
+    self.db = dict;
+
+  def lookup(self, env):
+    db = self.db;
+
+    target = env['HAL_PLATFORM']
+    proc   = env.DetermineProcessorName()
+
+    if not db.has_key(target) or not db[target].has_key(proc):
+      return []
+
+    return db[target][proc]
+
+#-------------------------------------------------------------------------------
+# SRC PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'MODEM_DATA',
+   'MODEM_HDR',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DEBUGTOOLS',
+   'DAL',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+]
+
+#-------------------------------------------------------------------------------
+# set up libraries
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['POWER_UTILS'])
+env.PublishPrivateApi('SYSTEM_DB', [
+    '${BUILD_ROOT}/core/power/system_db/inc',
+    ])
+
+SYSTEM_DB_SOURCES = [
+   '${BUILDPATH}/src/system_db_modem.c', 
+   env.FindTargetFile( os.path.join('hw'), [ ] )
+   ]
+
+include_test = 0
+if os.path.exists( '..\selftest' ):
+  print '** INFO: SYSTEMDB Self Test Build'
+  env.Append(CPPDEFINES=['SYSTEMDB_SELF_TEST'])
+  env.Append(CPPPATH=['${BUILDPATH}/test'])
+  SYSTEM_DB_SOURCES.extend(['${BUILDPATH}/test/system_db_modem_test.c'])
+  include_test = 1
+   
+env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], '${BUILDPATH}/rpm.lib', SYSTEM_DB_SOURCES)
+
+#-------------------------------------------------------------------------------
+# System initialization
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW',
+                'CORE_WCN', 'WCN_IMAGE']
+  env.AddRCInitFunc(           # Code Fragment in TMC: NO
+   RCINIT_IMG,                 # define TMC_RCINIT_INIT_SYSTEM_DB_INIT
+   {
+    'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+    'init_name'                  : 'system_db_init',                   # required
+    'init_function'              : 'RPM_system_db_init',               # required
+   })
+
+  if include_test == 1:
+    env.AddRCInitFunc(           # Code Fragment in TMC: NO
+      RCINIT_IMG,                # define TMC_RCINIT_INIT_NPA_TEST_INIT
+      {
+       'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+       'init_name'                  : 'system_db_test_init',                    # required
+       'init_function'              : 'system_db_test_init',                    # required
+       'dependencies'               : ['system_db_init']
+      })

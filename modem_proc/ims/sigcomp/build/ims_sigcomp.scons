@@ -1,0 +1,105 @@
+#===============================================================================
+#
+# IMS_SIGCOMP Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/sigcomp/build/ims_sigcomp.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 16-Mar-2012 	Chintan	  Scons file cleanup	
+#===============================================================================
+Import('env')
+
+# Execute the sconsript in which the variables needs to be imported for the Current Script
+# and export the current environment to that script into which the variables will be exported to the it's export list
+
+# Import the required Variables from the export list of the Environment to which the other script file has added
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+# ------------------------------------------------------------------------------
+# Sepcify the list of required include Paths
+#---------------------------------------------------------------------------------
+env.PublishPrivateApi('IMS_SIGCOMP', [ 
+"${INC_ROOT}/modem/ims/sigcomp/src",
+"${INC_ROOT}/modem/ims/sigcomp/deflate/src",
+])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within IMS
+#-------------------------------------------------------------------------------
+IMS_API = ['IMS_SIGCOMP',
+		   'IMS_SIP',
+		   'IMS_DPL',
+		   'IMS_FRAMEWORK']
+
+env.RequireProtectedApi(IMS_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+IMS_SIGCOMP_FLAGS = ['MAF_NO_GLOBALS',
+					 'QP_DONOT_OVERLOAD_NEW_DELETE',
+					 'QMAF',
+					 'QP_ENABLE_MMI_MODULE',
+					 'FORCE_STATIC',
+					 'AEE_STATIC',
+					 'USE_SIMPLE_LOGGING',
+					 'IMS_AMSS_STATIC_BUILD',
+					 'FEATURE_AMSS_DPL',
+					 'QP_ENABLE_SIGNALS',
+					 'XDM_INCLUDE_GROUPMEMBER']
+
+IMS_SIGCOMP_LIB_CPP_SOURCES = ['${BUILDPATH}/src/qpfcs16.cpp',
+							   '${BUILDPATH}/src/qpsha1.cpp',
+							   '${BUILDPATH}/src/qpsigstatehandler.cpp',
+							   '${BUILDPATH}/src/qpudvm.cpp',
+							   '${BUILDPATH}/src/sigcompartment.cpp',
+							   '${BUILDPATH}/src/sigcompcommon.cpp',
+							   '${BUILDPATH}/src/sigcompdecompdisp.cpp',
+							   '${BUILDPATH}/src/sigcompdisp.cpp',
+							   '${BUILDPATH}/deflate/src/qimfadler32.cpp',
+							   '${BUILDPATH}/deflate/src/qimfdeflate.cpp',
+							   '${BUILDPATH}/deflate/src/qimftrees.cpp',
+							   '${BUILDPATH}/deflate/src/qimfzutil.cpp',
+							   '${BUILDPATH}/deflate/src/qimfcompress.cpp',
+							   '${BUILDPATH}/deflate/src/qimfcrc32.cpp',
+							   '${BUILDPATH}/deflate/src/qiminfback.cpp',
+							   '${BUILDPATH}/deflate/src/qiminffast.cpp',
+							   '${BUILDPATH}/deflate/src/qiminflate.cpp',
+							   '${BUILDPATH}/deflate/src/qiminftrees.cpp',
+							   '${BUILDPATH}/deflate/src/qimuncompr.cpp']
+
+IMS_SIGCOMP_LIB_C_SOURCES = []
+
+# Append the list of Macro Definitions as flags to the Compiler so that it will do a conditional compilation
+env.Append( CPPDEFINES = IMS_SIGCOMP_FLAGS )
+
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/ims_sigcomp', [IMS_SIGCOMP_LIB_CPP_SOURCES,IMS_SIGCOMP_LIB_C_SOURCES])

@@ -1,0 +1,84 @@
+;============================================================================
+;  Name:
+;    NOR_PROGRAM.CMM
+;
+;  Description:
+;    FLASH Programming Script file for Lauterbach JTAG/ICD TRACE32.
+;    Supports Multi-Image Boot only
+;
+;    There is a combination of JTAG/ICD FLASH.* commands and our own
+;    extensions to those commands used.  Because of the nature of the NOR
+;    flash, we must send a "preparation" command before FLASH.program
+;    command, and then a "finish" command after, to tell the NOR programmer
+;    that the last page of code should be flushed to the NOR flash
+;
+;  Execution:
+;    Inside the debugger, type at the command line: "do nor_program".  Make
+;    menu choices as directed.
+;
+;  Command line args handled by NOR_PROGRAM:
+;
+;     NOR_PROGRAM [DEBUG] [TRUSTED] [NOMENU] [BUILDID] [DEVICETYPE] [USETYPE]
+;
+;       DEBUG is optional but MUST be first if used.  Will make NOR_PROGRAM verbose
+;
+;       TRUSTED is optional but MUST be first or second if used.  Must be second
+;              if DEBUG is used.  Will set security mode to TRUSTED, otherwise,
+;              default security is NON-TRUSTED
+;
+;       NOMENU is used by NOR_PROGRAM and will cause all header and code
+;               images to be loaded with no intervention and NOR_PROGRAM to become 
+;               very quiet.  This option requires a valid build ID.
+;
+;       BUILDID is a valid Build ID and can be in the format of:
+;
+;               STMFTS
+;
+;       BUSTYPE is a type of BUS a device is attached to:
+;		  1: I2C EEPROM
+;		  2: SPI NOR
+;		  
+;       DEVICEUSETYPE is a device usage type if I2C EEPROM is selected:
+;		  1: CDT
+;		  2: RF
+;               3;OEM custom EEPROM
+;
+;       NOR_PROGRAM will assume ../../build/ms/bin and will prepend BUILDID to
+;         all image names.
+;       If no BUILDID is given, NOR_PROGRAM will provide a file chooser window
+;         with its base in ../../build/ms/bin
+;
+;  Usage: 
+;       do nor_program.cmm <BUILDID>
+;
+;  NOTE:  Because all headers and images are binary, they contain no
+;         symbolic information.  Any symbol loading must be done outside
+;         if NOR_PROGRAM using an ELF version of the binary
+;
+;
+;  Copyright (c) 2010, 2014 Qualcomm Technologies Incorporated. 
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nor/nor_program.cmm#1 $ 
+; $DateTime: 2015/09/01 00:30:35 $ 
+; $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 03/19/14   whc     Added multiple device support
+; 09/04/09   sv      Initial revision
+;============================================================================;
+
+
+;============================================================================
+; Declare variables used
+;============================================================================   
+ENTRY &arg1 &arg2 &arg3 &arg4 &arg5 &arg6
+;do nor_param
+do &NorConfigDir/nor_tools.cmm &arg1 &arg2 &arg3 &arg4 &arg5 &arg6
+

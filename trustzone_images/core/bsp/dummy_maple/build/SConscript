@@ -1,0 +1,200 @@
+#===============================================================================
+#
+# Maple Dummy image build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/bsp/dummy_maple/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias - First alias is always the target then the other possible aliases
+aliases = [
+   'dummy_maple', 'all'
+]
+
+env.InitImageVars(
+   alias_list = aliases,       # list of aliases, unique name index [0]
+   proc = 'arm9',              # proc settings
+   config = 'apps',            # config settings
+   build_tags = ['APPS_PROC', 
+      'DUMMY_MAPLE_IMAGE'],  # list of build tags for sub lib scripts
+   tools = ['${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/hex_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py',
+            'buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/kernel_builders.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py']
+)
+
+if not env.CheckAlias():
+   Return()
+
+#------------------------------------------------------------------------------
+# Init default values for this PROC/Image
+#------------------------------------------------------------------------------
+
+#===============================================================================
+# dummy_maple build rules
+#===============================================================================
+
+#------------------------------------------------------------------------------
+# Configure and load in USES and path variables
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('arm', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+env.LoadToolScript('apps_defs', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+
+#------------------------------------------------------------------------------
+# Add extension flags for dummy_maple
+#------------------------------------------------------------------------------
+if env['BUILD_VER'] == "":
+   env.Replace(BUILD_VER = '0')
+
+env.Append(CPPDEFINES = [
+   "DUMMY_MAPLE"
+])
+
+#------------------------------------------------------------------------------
+# Decide which build steps to perform
+#------------------------------------------------------------------------------
+# Regular build steps (no filter) is build everything, once a user starts
+# using filters we have to make decisions depending on user input.
+#
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units, 
+# etc.  This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quartz, stubs, etc.
+
+do_local_files = True
+do_link = True
+do_post_link = True
+
+# Get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# Limit build processing based on filter option
+if filter_opt is not None:
+   do_link = False
+   do_post_link = False
+
+   if not env.FilterMatch(os.getcwd()):
+      do_local_files = False
+
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+dummy_maple_units = [core_objs, core_libs]
+
+if env.get('ARMTOOLSVERSION', 0) >= 4:
+   arm_libs = [
+      # ARM Libs (this needs to be last, otherwise linker will use ARMlibs functions
+      # which we want to override)
+      File(env.SubstRealPath('${ARMLIB}/armlib/c_5.l')),
+      File(env.SubstRealPath('${ARMLIB}/armlib/g_5s.l')),
+      File(env.SubstRealPath('${ARMLIB}/armlib/m_5s.l'))
+   ]
+else:
+   arm_libs = [
+      # ARM Libs (this needs to be last, otherwise linker will use ARMlibs functions
+      # which we want to override)
+      File(env.SubstRealPath('${ARMLIB}/armlib/c_t__un.l')),
+      File(env.SubstRealPath('${ARMLIB}/armlib/g_t_p.l')),
+      File(env.SubstRealPath('${ARMLIB}/armlib/m_t_pu.l'))
+   ]
+
+# Extend core library to include standard libraries
+core_libs.extend(arm_libs)
+
+if do_local_files:
+   #============================================================================
+   # dummy_maple Environment
+   #============================================================================
+
+   #----------------------------------------------------------------------------
+   # Begin building dummy_maple 
+   #----------------------------------------------------------------------------
+   env.Replace(TARGET_NAME = 'dummy_maple')
+   env.Replace(DUMMY_MAPLE_ROOT = '${COREBSP_ROOT}/securemsm/tzbsptest/dummymaple')
+
+   #----------------------------------------------------------------------------
+   # Generate Scatter Load File (SCL)
+   #----------------------------------------------------------------------------
+   target_scl = env.SclBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}',
+      '${DUMMY_MAPLE_ROOT}/src/dummy_maple.scl')
+
+   dummy_maple_units.extend(target_scl)
+
+if do_link:
+   #----------------------------------------------------------------------------
+   # Generate dummy_maple ELF
+   #----------------------------------------------------------------------------
+   libs_path = env['INSTALL_LIBPATH']
+
+   dummy_maple_elf = env.Program('${SHORT_BUILDPATH}/${TARGET_NAME}',
+      source=[core_objs], LIBS=[core_libs], LIBPATH=libs_path)
+
+   env.Depends(dummy_maple_elf, target_scl)
+
+   env.Clean(dummy_maple_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.map'))
+   env.Clean(dummy_maple_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.sym'))
+
+   mod_elf_paddr = Builder(action = "python ${BUILD_ROOT}/core/bsp/build/scripts/mod_elf_paddr.py $SOURCE $TARGET")
+   env['BUILDERS']['ModElfPaddr'] = mod_elf_paddr
+   mod_maple_elf = env.ModElfPaddr('${SHORT_BUILDPATH}/mod_${TARGET_NAME}.elf', dummy_maple_elf)
+
+if do_post_link:   
+   #----------------------------------------------------------------------------
+   # Generate dummy_maple MBN
+   #----------------------------------------------------------------------------
+   dummy_maple_pbn = env.InstallAs('${SHORT_BUILDPATH}/${TARGET_NAME}.pbn',
+      mod_maple_elf)         
+   
+   dummy_maple_mbn = env.MbnBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}',
+      dummy_maple_pbn, IMAGE_TYPE="dummy_maple", MBN_TYPE="elf",
+      IMAGE_ID=4, FLASH_TYPE="sdcc")
+
+   #-------------------------------------------------------------------------
+   # Build files for PIL driver
+   #-------------------------------------------------------------------------
+   env.LoadToolScript('pil_splitter_builder', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+   dummy_maple_pil = env.PilSplitterBuilder('${BUILD_ROOT}/build/ms/bin/PIL_IMAGES/SPLITBINS_${QC_SHORT_BUILDPATH}/dummy_maple.mdt', dummy_maple_mbn)
+
+   #============================================================================
+   # Define units that will be built
+   #============================================================================
+   dummy_maple_units = env.Alias ('arm11_dummy_maple_units', [
+      mod_maple_elf,
+      dummy_maple_mbn,
+      dummy_maple_pil
+   ])
+
+# Add aliases
+for alias in aliases:
+   env.Alias(alias, dummy_maple_units)

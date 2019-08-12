@@ -1,0 +1,154 @@
+#===============================================================================
+#                    Copyright (c) 2013  by Qualcomm Technologies, Inc.  All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+import os
+import fnmatch
+import sys
+import re
+import qurtutils
+import SCons
+Import('qurtenv')
+
+env = qurtenv.Clone()
+env.Replace(QURT_TOP = os.getcwd())
+qurtenv['QURT_BUILDENV'] = env
+
+#setup target
+env.Tool('target_tools',toolpath=['.'])
+if env.subst('$TRGT') is None:
+   print("error TRGT not defined")
+   Exit(1)
+
+#setup builders
+env.Tool('qurt_builders',toolpath=['.'])
+
+#Initialize utilities
+qurtutils.Init(env)
+
+#Set Hacks
+#Open for better solutions
+env.SetHacks()
+if env.subst('$USE_LLVM') == 'True':
+   env.Replace(HEXAGON_WARN = env.subst('$HEXAGON_WARN') + " -Wno-error=typedef-redefinition")
+#Set up warning flags differently depending on value of EXTRA_WARNINGS
+if env['EXTRA_WARNINGS']:
+   ''' No -Werror here; when we enable extra warnings, we consider them advisory only '''
+   env.Replace(HEXAGON_WARN = env.subst('$HEXAGON_WARN -Wmissing-declarations -Wstrict-prototypes -Wredundant-decls -Wnested-externs').replace('-Werror',''))
+
+#CPPFLAGS hack for Assembly
+env['ASFLAGS'] = env['CCFLAGS']
+
+#Creating installation directories
+env['INSTALL_LIB']     = env.subst('$INSTALL_DIR') + '/lib'
+env['INSTALL_DBG']     = env.subst('$INSTALL_DIR') + '/debugger'
+env['INSTALL_SCRIPTS'] = env.subst('$INSTALL_DIR') + '/scripts'
+env['INSTALL_INCLUDE'] = env.subst('$INSTALL_DIR') + '/include'
+env['CONSTS_AUTOGEN']  = env.subst('$BUILD_DIR') + '/common/include/consts_autogen.h'
+
+class QurtTargets_class:
+   def __init__(self, env):
+      self._env = env
+      self._targetlist = []
+   def add(self, tgt):
+      self._targetlist += self._env.Flatten([tgt])
+   def getlist(self):
+      return self._targetlist
+
+# Subsidiary SConscripts can add their own targets into the top level build
+#   by using env.QurtTargets.add(targetlist...)
+# For instance, the qurtos SConscript uses this to request that its global
+#   symbol analysis report be built.
+
+env.QurtTargets = QurtTargets_class(env)
+qlibs = []
+
+Scripts = SConscript('scripts/SConscript', exports='env', duplicate=0)
+env.QurtTargets.add(Scripts)
+
+#libqurtcfs.a
+lib_c_fs_objs = SConscript('libs/c/fs/SConscript', exports='env', variant_dir=env.subst('$BUILD_DIR') + '/libs/c/fs', duplicate=0)
+libqurtcfs = env.Library ("$INSTALL_LIB/libqurtcfs.a", [lib_c_fs_objs])
+qlibs.append(libqurtcfs)
+env.QurtTargets.add(libqurtcfs)
+
+#libposix.a
+lib_posix_objs = SConscript('libs/posix/SConscript', exports='env', variant_dir=env.subst('$BUILD_DIR')+'/libs/posix', duplicate=0)
+libposix = env.Library ("$INSTALL_LIB/libposix.a", [lib_posix_objs])
+qlibs.append(libposix)
+env.QurtTargets.add(libposix)
+
+#libqube_compat.a
+lib_qube_objs = SConscript('libs/qube/SConscript', exports='env', variant_dir=env.subst('$BUILD_DIR')+'/libs/qube', duplicate=0)
+libqube_compat = env.Library ("$INSTALL_LIB/libqube_compat.a", [lib_qube_objs])
+qlibs.append(libqube_compat)
+env.QurtTargets.add(libqube_compat)
+
+#libqurt.a
+lib_c_sys_objs = SConscript('libs/c/sys/SConscript', exports='env', variant_dir=env.subst('$BUILD_DIR')+'/libs/c/sys', duplicate=0)
+lib_qurt_objs = SConscript('libs/qurt/SConscript', exports='env', variant_dir=env.subst('$BUILD_DIR')+'/libs/qurt', duplicate=0)
+libqurt = env.Library ("$INSTALL_LIB/libqurt.a", [lib_c_sys_objs, lib_qurt_objs])
+qlibs.append(libqurt)
+env.QurtTargets.add(libqurt)
+
+#libtimer.a
+libtimer_objs = SConscript('libs/timer/SConscript', exports='env', variant_dir=env.subst('$BUILD_DIR')+'/libs/timer', duplicate=0)
+libtimer = env.Library ("$INSTALL_LIB/libtimer.a", [libtimer_objs])
+qlibs.append(libtimer)
+env.QurtTargets.add(libtimer)
+
+#libqurtkernel.a
+kernel_island_objs, kernel_main_objs, crt0_obj = SConscript('kernel/SConscript', exports='env', variant_dir=env.subst('$BUILD_DIR')+'/kernel', duplicate=0)
+qurtos_island_objs, qurtos_main_objs = SConscript('qurtos/SConscript', exports='env', variant_dir=env.subst('$BUILD_DIR')+'/qurtos', duplicate=0)
+libqurtkernel = env.Library ("$INSTALL_LIB/libqurtkernel.a", [kernel_island_objs, kernel_main_objs, qurtos_island_objs, qurtos_main_objs])
+libqurtkernel_island = env.Library ("$INSTALL_LIB/libqurtkernel_island.a", [kernel_island_objs, qurtos_island_objs])
+libqurtkernel_main = env.Library ("$INSTALL_LIB/libqurtkernel_main.a", [kernel_main_objs, qurtos_main_objs])
+qlibs.append(libqurtkernel)
+qlibs.append(libqurtkernel_island)
+qlibs.append(libqurtkernel_main)
+qlibs.append(crt0_obj)
+env.QurtTargets.add(libqurtkernel)
+env.QurtTargets.add(libqurtkernel_island)
+env.QurtTargets.add(libqurtkernel_main)
+
+#libqurtdebugger.a
+lib_qurt_debugger_objs = SConscript('debug_monitor/SConscript', exports='env', variant_dir=env.subst('$BUILD_DIR')+'/debug_monitor', duplicate=0)
+libqurtdebugger = env.Library ("$INSTALL_LIB/libqurtdebugger.a", [lib_qurt_debugger_objs])
+qlibs.append(libqurtdebugger)
+env.QurtTargets.add(libqurtdebugger)
+
+#crt1.o
+crt1env = env.Clone()
+crt1env.Append(HEXAGON_LANIND = "-fno-builtin")
+crt1env.Replace(HEXAGONCC_WARN = "-Wall")
+crt1env.VariantDir(crt1env.subst('$BUILD_DIR'), '.', duplicate=0)
+crt1_obj = crt1env.Object(crt1env.subst('$BUILD_DIR')+'/libs/c/sys/asm/crt1.S')
+crt1_installed = crt1env.Install('${INSTALL_LIB}', crt1_obj)
+qlibs.append(crt1_installed)
+env.QurtTargets.add(crt1_installed)
+
+#Constant auto-generation subsidiary script
+consts_autogen = SConscript('const/SConscript', exports='env', variant_dir=env.subst('$BUILD_DIR')+'/const', duplicate=0)
+
+#Installing Debugger files
+Dbg1 = env.RecursiveInstall(env.subst('$INSTALL_DBG')+"/T32", env.subst('$QURT_TOP')+"/osam/bin/T32/generic")
+Dbg2 = env.InstallAs(env.subst('$INSTALL_DBG')+"/Win/qurt_model.dll", env.subst('$QURT_TOP')+"/osam/bin/Win/"+env.subst('$Q6VERSION')+"/"+env.subst('$QURT_MODEL_DLL'))
+Dbg3 = env.RecursiveInstall(env.subst('$INSTALL_DBG')+"/lnx32", env.subst('$QURT_TOP')+"/osam/bin/lnx32/"+env.subst('$Q6VERSION'))
+Dbg4 = env.InstallAs(env.subst('$INSTALL_DBG')+"/lnx64/qurt_model.so", env.subst('$QURT_TOP')+"/osam/bin/lnx64/"+env.subst('$Q6VERSION')+"/"+env.subst('$QURT_MODEL_SO'))
+Debugger = Dbg1 + Dbg2 + Dbg3 + Dbg4
+env.QurtTargets.add(Debugger)
+
+#Installing include files
+Include = env.RecursiveInstall(env.subst('$INSTALL_INCLUDE'), env.subst('$QURT_TOP')+"/api")
+env.QurtTargets.add(Include)
+
+env.Depends(qlibs, Scripts)
+env.Depends(qlibs, Include)
+env.Depends(qlibs, Debugger)
+
+''' Could just be Default(env.QurtTargets.getlist()) here, but that's a bit too verbose '''
+env.Alias('qurt', env.QurtTargets.getlist())
+Default('qurt')
+
+qlibs.append(env)
+Return('qlibs')

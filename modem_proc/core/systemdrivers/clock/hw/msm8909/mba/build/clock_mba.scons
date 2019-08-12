@@ -1,0 +1,99 @@
+#===============================================================================
+#
+# Clock MBA CORE Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2014 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/clock/hw/msm8909/mba/build/clock_mba.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/systemdrivers/clock/hw/${CHIPSET}/mba/src")
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+MBA_CLOCK_SRC = "${COREBSP_ROOT}/systemdrivers/clock/hw/${CHIPSET}/mba/src"
+
+env.VariantDir('${BUILDPATH}', MBA_CLOCK_SRC, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+env.RequireExternalApi([
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+MBA_CLOCK_SOURCES = ['${BUILDPATH}/ClockMBA.c']
+
+mba_clock_objs = env.AddObject(['MBA_CORE_SW'], MBA_CLOCK_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(['MBA_CORE_SW'], '${BUILDPATH}/clock_mba', MBA_CLOCK_SOURCES)
+
+#-------------------------------------------------------------------------------
+# HWIO
+#-------------------------------------------------------------------------------
+
+if env.has_key('HWIO_IMAGE'):
+
+  env.AddHWIOFile('HWIO', [
+    {
+      'filename': '${INC_ROOT}/core/systemdrivers/clock/hw/${CHIPSET}/mba/src/ClockMBAHWIO.h',
+      'modules': ['GCC_CLK_CTL_REG', 'MSS_PERPH','QDSP6SS_QTMR_F0_0'],
+      'module-filter-include': {
+        'GCC_CLK_CTL_REG': [
+          'GCC_MSS_Q6_CLOCK_BRANCH_ENA_VOTE',
+          'GCC_PRNG_AHB_CBCR',
+          'GCC_DEHR_CBCR'], 
+        'MSS_PERPH': [
+          'MSS_BUS_CFG_RCGR',
+          'MSS_BUS_CMD_RCGR',
+          'MSS_Q6_CFG_RCGR',
+          'MSS_Q6_CMD_RCGR',
+          'MSS_NAV_SNOC_AXI_CBCR',
+          'MSS_BUS_NAV_CE_BRIDGE_CBCR',
+          'MSS_BUS_MODEM_BRIDGE_CX_CBCR',
+          'MSS_BUS_CRYPTO_CBCR',
+          'MSS_MPLL1_CONFIG_CTL',
+          'MSS_MPLL2_CONFIG_CTL'],
+       'QDSP6SS_QTMR_F0_0': [
+          'QDSP6SS_QTMR_V1_CNTP_TVAL_0',
+          'QDSP6SS_QTMR_V1_CNTP_CTL_0']},
+
+      'filter-exclude': ['RESERVE', 'RESERVED', 'DUMMY'],
+      'output-offsets': False,
+      'header':
+        '#include <msmhwiobase.h>\n\n'
+        '/*\n'
+        ' *  definitions\n'
+        ' */\n'
+        '#define PROC_CLK_BRANCH_ENA_VOTE   GCC_MSS_Q6_CLOCK_BRANCH_ENA_VOTE\n\n'
+    }
+  ])
+

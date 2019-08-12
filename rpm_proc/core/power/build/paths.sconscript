@@ -1,0 +1,56 @@
+#===============================================================================
+#
+# Power INC PATHs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:$
+#  $DateTime:$
+#  $Author:$
+#  $Change:$
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/25/10   tau     Added include paths for SPM.
+# 02/16/10   tau     Updated sleep common include path.
+# 10/08/09   bjs     Adding core\power\utils 
+# 08/13/09   taw     Initial version.
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# these are accecible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('POWER', [
+   "${INC_ROOT}/core/api/power",
+])
+
+#-------------------------------------------------------------------------------
+# Publish Restricted APIs
+# these are accecible only within CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishRestrictedApi('POWER', [
+   "${INC_ROOT}/core/power/mpm/inc",
+   "${INC_ROOT}/core/power/mpm/hal/include",
+   "${INC_ROOT}/core/power/mpm/hal/bsp/include",
+   "${INC_ROOT}/core/power/sleep/inc",
+   "${INC_ROOT}/core/power/sleep/src/common",
+   "${INC_ROOT}/core/power/utils/inc",
+   "${INC_ROOT}/core/power/rpm/server",
+   "${INC_ROOT}/core/power/rpm/inc",
+   "${INC_ROOT}/core/power/system_db/inc",
+])
+

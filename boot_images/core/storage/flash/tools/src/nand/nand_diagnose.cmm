@@ -1,0 +1,587 @@
+;============================================================================
+;  Name:
+;    NAND_DIAGNOSE.CMM
+;
+;  Description:
+;    FLASH Programming Diagnostics Script file for Lauterbach JTAG/ICD TRACE32.
+;    Supports Multi-Image Boot only
+;
+;
+;  Execution:
+;    Inside the debugger, type at the command line: "do nand_diagnose".  Make
+;    menu choices as directed.
+;
+;  Copyright (c) 2008-2011 Qualcomm Technologies, Incorporated.  
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/nand_diagnose.cmm#1 $ $DateTime: 2015/09/01 00:30:35 $ $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 03/21/11   jz      Updated to support new T32 versions
+; 10/01/10   sb      Added erase a flash partition option
+; 03/31/10   sb      Fix for "emulation debug port time-out at C:0x0" in 0:Exit 
+; 12/09/09   op      Add Page/Block/Erase/backup Utilities 
+; 02/20/09   jz      Removed unnecessary set to &NandSrcRoot
+; 11/15/08   mm      Initial Version
+;============================================================================;
+
+
+;============================================================================
+; Declare variables used
+;============================================================================
+local &Verbose
+local &ClearWin
+local &Choice
+local &CurrentCmd
+local &CheckStatusExit
+local &CheckStatusFailed
+
+local &TermBlipBreak
+
+LOCAL &BlockSize
+LOCAL &CurrentBlock
+LOCAL &PartiChoice
+LOCAL &PartitionStart
+LOCAL &PartitionEnd
+LOCAL &EndBlock
+LOCAL &PartitionSize
+
+;============================================================================
+; Set up some defaults for some variables
+;============================================================================
+&Verbose="no"          ; Do not present status messages as we process
+&ClearWin="yes"        ; Remove all windows before starting
+&CheckStatusFailed="no"
+&TermBlipBreak="no"    ; set to yes to use buffered IO
+                       ;     disappearing.  May be error in script, but does
+                       ;     not happen on Saber Emulation.
+
+;============================================================================
+; For normal use set up the screen with only area window for reports
+; For debug purposes, don't clear
+; In both cases, make sure we have an area window
+;============================================================================
+if "&ClearWin"=="yes"
+  (
+    WinCLEAR
+    WinPage.Reset
+  )
+
+WINPOS 0. 0. 50% 100%
+area
+
+if "&ClearWin"=="yes"
+  (
+    area.RESET
+  )
+
+;============================================================================
+; Set some MSM specific variables used later in flash.target command
+;    &NandCodeAddr=
+;    &NandParamAddr=
+;    &NandCpuType=
+;============================================================================
+ do nand_param
+
+;============================================================================
+; 1) Set variables used to set up the JTAG debugger for this MSM
+; 2) Init important MSM/ASB registers
+;    use existing external script that is MSM specific
+;============================================================================
+ do &NandConfigDir/nand_msm_init
+
+;-------------------------------------------------------------------------------
+; Set some variables used later on to peek and poke parameter block
+;   This script file is sourced by both nand.cmm and nandtest.cmm
+;-------------------------------------------------------------------------------
+do nand_init.cmm
+
+;======================================================
+; Load our flash programming routine and prepare flash
+;======================================================
+data.load.elf "nand_tools.elf" /VERIFY
+
+; need this breakpoint as per Lauterbach Spec so that we
+; can hand back control to the Debugger
+break.delete /ALL
+break.set swbp /onchip /program
+
+
+;============================================================================
+; Always put up terminal window
+;============================================================================
+winclear MYTERM
+term.size 60 1000
+term.scroll on
+WinPOS 50% 0% 50% 100% ,, MYTERM
+if "&TermBlipBreak"=="yes"
+(
+  print "Using buffered terminal IO"
+  term.protocol bs
+  term output_port input_port
+  print "Setting TermBlip breakpoint"
+  b.s term_blip /s /onchip /program
+)
+else
+(
+  term.mode ascii
+  if "&VirtioPlatform"=="no"
+  (
+    term.method dcc
+  )
+  term.view
+  ; term.write term.out
+)
+
+on error gosub
+ (
+   term.close
+   print "terminal output closed"
+   enddo
+   return
+ )
+
+ goSub NormalMenu
+
+enddo
+
+
+;;======================================================;;
+;;    _____                 _   _                       ;;
+;;   |  ___|   _ _ __   ___| |_(_) ___  _ __  ___       ;;
+;;   | |_ | | | | '_ \ / __| __| |/ _ \| '_ \/ __|      ;;
+;;   |  _|| |_| | | | | (__| |_| | (_) | | | \__ \      ;;
+;;   |_|   \__,_|_| |_|\___|\__|_|\___/|_| |_|___/      ;;
+;;                                                      ;;
+;;======================================================;;
+
+;============================================================================
+; Present user with normal main menu for NAND.  Manual selection is done.
+;============================================================================
+NormalMenu:
+
+if "&ClearWin"=="yes"
+(
+  area.RESET
+)
+
+MainMenu:
+  print
+  print
+  print "------------------------------------------------"
+  print "|    _   _    _    _   _ ____                  |"
+  print "|   | \ | |  / \  | \ | |  _ \                 |"
+  print "|   |  \| | / _ \ |  \| | | | |                |"
+  print "|   | |\  |/ ___ \| |\  | |_| |                |"
+  print "|   |_| \_/_/   \_\_| \_|____/                 |"
+  print "|                                              |"
+  print "|                                              |"
+  print "|              Multi-Image Boot                |"
+  print "|             Diagnostics  Tools               |"
+  print "|                                              |"
+  print "|                                              |"
+  print "|     Copyright © 2008-2009 Qualcomm Incorporated.|"
+  print "|     All Rights Reserved.                     |"
+  print "|     Qualcomm Confidential and Proprietary    |"
+  print "------------------------------------------------"
+  print
+  print
+  print "  0: Exit"
+  print "  1: Run Diagnostics"
+  print "  2: Validate Boot Block"
+  print "  3: Print MIBIB Contents"
+  print "  4: Print Flash Layout"
+  print "  5: Page Utilities"
+  print "  6: Block Utilities"
+  print "  7: Erase entire NAND"
+  print "  8: NAND Backup Utilities"
+  print "  9: NAND Stress Test"
+  print " 10: Erase a flash partition"
+  print
+  print " Please make a choice: "
+
+  &t32_cmm_stopped=1
+  enter &Choice
+  &t32_cmm_stopped=0
+  print
+  print
+  if "&ClearWin"=="yes"
+  (
+    area.RESET
+  )
+
+  if &Choice==0
+  (
+    print "...exiting Diagnostics"
+    gosub CleanUpExit
+    return
+  )
+
+  if &Choice==1
+  (
+    print "Running simple diagnostics"
+    print
+    print
+    gosub Diagnose
+  )
+
+  if &Choice==2
+  (
+    print "Validating Boot Block"
+    print
+    print
+    gosub ValidateBoot
+  )
+
+  if &Choice==3
+  (
+    print "Printing MIBIB information from flash"
+    print
+    print
+    gosub PrintMIBIB
+  )
+
+  if &Choice==4
+  (
+    print "Printing Layout information from flash"
+    print
+    print
+    gosub PrintLayout
+  )
+
+  if &Choice==5
+  (  
+    print "Running page utilities"
+    print
+    print
+    do nand_page_util.cmm
+    WINPOS 0. 0. 50% 100%
+    area
+    area.reset
+  )
+
+  if &Choice==6 
+  (  
+    print "Running block utilities"
+    print
+    print
+    do nand_block_util.cmm
+    area.reset
+  )
+
+  if &Choice==7
+  (  
+    print "Running erase nand utility"
+    print
+    print
+    do erasenand.cmm
+    area.reset
+  )
+
+  if &Choice==8
+  (  
+    print "Running nand backup utility"
+    print
+    print
+    do nandimage.cmm
+    area.reset
+  )
+
+  if &Choice==9
+  (  
+    print "Running nand stress test"
+    print
+    print
+    do nand_stress.cmm
+    area.reset
+  )
+  
+  if &Choice==10
+  (
+    print
+    print
+    print "Enter Which partion to be erased ..."
+    print "Partition name could be MIBIB or OSBL or AMSS or EFS2 etc"
+    print "Try menu option 4 for the partition name"
+    print "Format should be( 0:Partition name )"
+	print
+    enter &PartiChoice
+    print
+	print "You have selected partition &PartiChoice"
+
+    gosub InitEraseParti
+    print " Number of blocks : &PartitionSize "
+    print
+    &Verbose="no"
+	gosub ErasePartition
+	&Verbose="yes"
+  )
+
+ goto MainMenu
+return  ; NormalMenu
+
+;=========================================================
+; --- Function to print MIBIB contents
+;=========================================================
+PrintMIBIB:
+
+  if "&Verbose"=="yes"
+  (
+    print "Printing MIBIB"
+  )
+
+  &Command="Print MIBIB"
+  data.set &ParmCmd %LONG &PrintMibibCmd
+  &CurrentCmd=&PrintMibibCmd
+
+  break.delete /all
+  data.load.elf nand_tools.elf
+  data.load.elf nand_tools.elf /compare
+  break.set swbp /onchip /program
+
+  r.s pc &StartAddr
+  go
+
+  ; check status
+  &CheckStatusExit="yes"
+  gosub check_status
+return
+
+;=========================================================
+; --- Function to print flash layout
+;=========================================================
+PrintLayout:
+
+  if "&Verbose"=="yes"
+  (
+    print "Printing Flash Layout"
+  )
+
+  &Command="Print Layout"
+  data.set &ParmCmd %LONG &PrintLayoutCmd
+  &CurrentCmd=&PrintLayoutCmd
+  r.s pc &StartAddr
+  go
+
+  ; check status
+  &CheckStatusExit="yes"
+  gosub check_status
+return
+
+;=====================================================
+; --- Function to check command status return
+;       and exit if 0x100
+;=====================================================
+check_status:
+   wait !run()
+
+   &Result=data.long(A:&ParmStatus)
+   if &Result==0x100
+   (
+     print " "
+     &Result=data.long(A:&ParmReserved)
+          if &Result!=0x1E
+	 (
+       print "---- &Command failed"
+	   do flash_prog_error &Result
+       print " "
+       print "EXITING due to failed command:: &Command"
+       end
+     )
+     else
+     (
+	   if "&Verbose"=="yes"
+       (
+         print "+++++ Block is bad and is not erased"
+       )
+     )
+   )
+   else
+   (
+     if (&Result==&CurrentCmd)
+     (
+       print " "
+       print "----  DID NOT COMPLETE &Command"
+       print " "
+       print "EXITING due to failed command:: &Command"
+       print "Closing teminal window on error"
+       term.close
+       enddo
+     )
+     else
+     (
+       if "&Verbose"=="yes"
+       (
+         print "+++++ &Command Succeeded"
+       )
+     )
+   )
+return
+
+
+;=====================================================
+; --- Function to setup the Erase for file system area
+;=====================================================
+InitEraseParti:
+
+  ;--------------------------------------------------------
+  ; Open the partition and get number of blocks
+  ;--------------------------------------------------------
+  ;
+  &Command="Initializing for dump"
+  data.set &ParmCmd %LONG &PartiDumpInit
+  ;Pass the partition info to nand
+  data.set &ParmData "&PartiChoice" 0x0
+  &CurrentCmd=&PartiDumpInit
+  r.s pc &StartAddr
+
+  go
+  gosub check_status  ;; will not return if error
+
+  &PartitionStart=data.long(A:&ParmSize)
+  &PartitionEnd=data.long(A:&ParmWidth)
+
+  &PartitionSize=data.long(A:&ParmAddr)
+  &BlockSize=data.long(A:&ParmOffset)
+
+return ; InitEraseParti
+
+
+;=====================================================
+; --- Function to Erase partition
+;=====================================================
+ErasePartition:
+
+  PRINT " "
+  print " +++++ Erasing '&PartiChoice' partition "
+  print " "
+
+  &CurrentBlock=&PartitionStart
+  &EndBlock=&PartitionEnd
+
+  ;--------------------------------------------------------
+  ; Erase blocks
+  ;--------------------------------------------------------
+
+  while &CurrentBlock<&EndBlock
+  (
+    &Command="Erase Block"
+ 
+    data.set &ParmAddr %LONG &CurrentBlock
+    data.set &ParmCmd %LONG &EraseBlockCmd
+    &CurrentCmd=&EraseBlockCmd
+    r.s pc &StartAddr
+    go
+    gosub check_status  ;; will not return if error
+
+    &CurrentBlock=data.long(A:&ParmAddr)
+    &CurrentBlock=&CurrentBlock+1
+  )
+
+  PRINT " "
+  print " +++++ Partition '&PartiChoice' is erased"
+
+return  ; ErasePartition
+
+
+;=====================================================
+; --- Function to clean up the FLASH map after each
+;     iteration of the loop
+;=====================================================
+CleanUp:
+   ;--------------------------------------------------------
+   ; ok we're finished, turn off programming mode
+   ;--------------------------------------------------------
+   flash.program off
+   FLASH.Reset
+   MAP.Reset
+return
+
+;=====================================================
+; --- Function to clean up just before exit
+;=====================================================
+CleanUpExit:
+   ;--------------------------------------------------------
+   ; ok we're finished completely, clean up for exit
+   ;--------------------------------------------------------
+   ;sys.d
+   b.delete /all
+   ;sys.u
+   term.close
+return
+
+
+;=====================================================
+; --- Function to do basic diagnostic sanity check
+;=====================================================
+Diagnose:
+  area.reset
+  print
+  print "If next operation fails, SDRAM is BAD"
+  print
+  print
+
+  break.set swbp /onchip /program
+
+  print
+  print
+  print "SDRAM is GOOD, proceeding to use NAND.ELF"
+  print
+  print
+
+  ;--------------------------------------------------------
+  ; Get the flash ID via NAND
+  ;--------------------------------------------------------
+  ;
+  print "Probing flash for ID"
+  &Command="Flash Retrieve ID"
+  data.set &ParmCmd %LONG &RetrieveID
+  &CurrentCmd=&RetrieveID
+
+  r.s pc &StartAddr
+  go
+  &CheckStatusExit="yes"
+  gosub check_status  ;; will not return if error
+
+  ;get ID which was stored by NAND
+  SETUP.VAR %h.on
+  &Result=data.word(A:&ParmReserved)
+  print
+  print "   bits 8-15 are mfg ID"
+  print "   bits 0-7  are device ID"
+  print "      NAND Flash ID is &Result"
+  print
+
+  gosub CleanUp
+return
+
+;=====================================================
+; --- Function to validate boot block
+;=====================================================
+ValidateBoot:
+
+  ;--------------------------------------------------------
+  ; Ensure boot block is good
+  ;--------------------------------------------------------
+  ;
+  print "Validating boot block"
+
+  break.delete /all
+  data.load.elf nand_tools.elf
+  break.set swbp /onchip /program
+
+  &Command="Validate Boot Block"
+  data.set &ParmCmd %LONG &ValidateBoot
+  &CurrentCmd=&ValidateBoot
+  r.s pc &StartAddr
+  go
+  gosub check_status  ;; will not return if error
+
+  gosub CleanUp
+return

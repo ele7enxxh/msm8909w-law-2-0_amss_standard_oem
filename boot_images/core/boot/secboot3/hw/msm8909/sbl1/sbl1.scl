@@ -1,0 +1,243 @@
+/*
+#====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+#
+#                     SCATTER LOADING DESCRIPTION FILE
+#
+#  Copyright 2014 by QUALCOMM Incorporated. All Rights Reserved.
+#
+#  GENERAL DESCRIPTION
+#
+#  The scatter loading description file is used to define the SBL1 memory map.
+#*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*/
+//===========================================================================
+//
+//                           EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+//
+// when       who     what, where, why
+// --------   ---     -------------------------------------------------------
+// 12/17/14   sve	Code changes for merging firehose DeviceProgrammer into SBL
+// 07/22/14   sk      Changes for 8909
+// 07/01/14   sk      Added BOOT_CRASH_DUMP_ZONE in SBL1_DDR_ZI
+// 05/01/14   ck      Added multiple stacks to CODE_STACKS
+// 03/19/14   ck      Marked SBL1_STACK as EMPTY so requested stack size is allocated 
+// 03/11/14   ck      Fixed ddr_test data regions
+// 02/24/14   ck      Moved boot_extern_ddr_interface to sys_debug code region
+// 02/22/14   dhaval  partitioned sys_debug code, data regions for dep
+// 02/18/14   ck      Cleaned up alignment warnings
+// 02/18/14   ck      Added BOOT_A53 region for shared 32 to 64 bit switch logic
+// 01/08/14   ck      Added region in sys_debug for SBL to store QSEE entry point
+//                    and if it's 32/64 bit.
+// 12/27/13   ck      Renamed dbi to sys_debug
+// 09/17/13   ck      Broke up into multi segments for new elf output
+// 09/10/13   ck      Inital revision
+
+#include "boot_target.h"
+
+//the size of entire image, must be smaller than 448KB
+#define SBL1_IMAGE_SIZE   (448 * 1024)
+
+CODE_ROM SCL_SBL1_CODE_BASE SCL_SBL1_CODE_SIZE
+{ 
+  // This section contains SBL1's code and ro data
+  SBL1_ROM SCL_SBL1_CODE_BASE ALIGN 0x8
+  {
+    sbl1.o (SBL1_VECTORS, +FIRST)
+    sbl1.o (SBL1_ENTRY)
+    ddr_test.o (+RO-CODE, +RO-DATA)
+    * (+RO-CODE)
+    * (+RO-DATA, LAST)
+  }
+}
+
+CODE_STACKS SCL_SBL1_STACKS_BASE SCL_SBL1_STACKS_SIZE
+{
+  SBL1_SVC_STACK +0x0 EMPTY SCL_SBL1_SVC_STACK_SIZE
+  {
+  }
+
+  SBL1_UND_STACK +0x0 EMPTY SCL_SBL1_UND_STACK_SIZE
+  {
+  }
+
+  SBL1_ABT_STACK +0x0 EMPTY SCL_SBL1_ABT_STACK_SIZE
+  {
+  }
+
+  ScatterAssert((ImageLimit(SBL1_ABT_STACK) - SCL_SBL1_STACKS_BASE)
+  	         <= SCL_SBL1_STACKS_SIZE)
+}
+
+CODE_RAM SCL_SBL1_DATA_BASE SCL_SBL1_DATA_SIZE
+{
+  // RW region must follow code region. The region from RW address
+  // to end of SBL will be marked as non executable region in the MMU.
+  // We must align it to 4k boundary to be able to mark it in L2 page table
+  SBL1_DATA_RW +0x0 ALIGN 0x1000
+  {
+    ddr_test.o (+RW)
+    * (+RW)
+  }
+
+
+  // This section contains non DDR ZI. It's allocated right after
+  // SBL1_DATA_RW section
+  SBL1_DATA_ZI +0x0 ALIGN 0x8
+  {
+    //Explicitly add only hotplug module's ZI to non DDR ZI, all other file system code should
+    //allocate ZI in DDR
+    fs_hotplug*.o (+ZI)
+    ddr_test.o (+ZI)
+    * (BOOT_INTERNAL_HEAP)
+    * (+ZI)
+  }
+
+
+  // Placeholder to reserve space for the boot logger's meta info data.
+  SBL1_LOG_META_INFO_SECTION +0x0 EMPTY SCL_SBL1_BOOT_LOG_META_INFO_SIZE
+  {
+  }
+ 
+ 
+  // Placeholder to reserve buffer space for the boot logger's log messages
+  SBL1_LOG_BUF_SECTION +0x0 EMPTY SCL_SBL1_BOOT_LOG_BUF_SIZE
+  {
+  }
+
+
+  ScatterAssert((ImageLimit(SBL1_LOG_BUF_SECTION) - SCL_SBL1_CODE_BASE)
+                 < SBL1_IMAGE_SIZE)
+}
+
+  // This is placed either in IMEM or DDR depending on lite/ddr version of
+  // Device Programmer. For SBL builds, these areas don't exist so it's just
+  // placed after the previous section.
+  // For 8909, this needs to be in its own segment and not in DDR segment
+  // as DDR segment max size is defined as SBL1_DDR_DATA_SIZE and this size 
+  // is more than that
+DEVICEPROGRAMMER_BUFFERS DEVICEPROGRAMMER_BUFFERS_BASE 0x300000
+{  
+  //This section contains all ZI that can be allocated in DDR.
+  DEVPRO_BUFF DEVICEPROGRAMMER_BUFFERS_BASE 
+  {
+    *(.bss.CHANNEL_BUFFER_SECTION)
+    *(.bss.SDCC_ADMA_DESC_ZI_ZONE)	
+  }
+}
+
+BOOT_DDR SCL_SBL1_DDR_DATA_BASE SCL_SBL1_DDR_DATA_SIZE
+{  
+  //This section contains all ZI that can be allocated in DDR.
+  SBL1_DDR_ZI SCL_SBL1_DDR_ZI_BASE SCL_SBL1_DDR_ZI_SIZE
+  { 
+    //DDR ZI for file system. All ZI from file system code can be stored in DDR except hotplug, which is added to SBL1_DATA_ZI section 
+    fs_*.o (+ZI)
+    hfat*.o(+ZI)
+    Ce*.o (+ZI)
+    
+    //DDR ZI for DAL DDR Heap
+    * (BOOT_EXTERNAL_HEAP)
+    * (BOOT_DDR_ZI_DATA_ZONE)
+    * (BOOT_CRASH_DUMP_ZONE)
+  }    
+
+  // This section contains L1 and L2 page table that's allocated in DDR.
+  // SCL_SBL1_DDR_PAGE_TABLE_BASE must be 16k aligned
+  SBL1_DDR_PAGE_TABLE SCL_SBL1_DDR_PAGE_TABLE_BASE SCL_SBL1_DDR_PAGE_TABLE_SIZE
+  {
+    *(BOOT_PAGE_TABLE_ZONE)
+  }
+  
+  //This section contains all ZI for dload and qfprom test framework 
+  //This section is uncached
+  SBL1_DLOAD_ZI SCL_DLOAD_BUFFERS_BASE
+  {
+    qhsusb_boot_*.o (+ZI)
+    *sahara*.o(+ZI)
+    *dload*.o(+ZI)
+    *(BOOT_UNCACHED_DDR_ZI_ZONE)
+  }
+
+  //This section contains USB ZI shared between Device Programmer and SBL. It
+  // must be allocated in IMEM for lite version, or DDR otherwise. For SBL
+  // builds, it's placed after SBL1_DLOAD_ZI.
+  SBL1_DEVPRO_USB_ZI_DUMMY SBL1_DEVICEPROGRAMMER_USB_ZI_BASE
+  {
+  }
+  SBL1_DEVICEPROGRAMMER_USB_ZI +0x0 ALIGN 0x800
+  {
+    qhsusb_*.o (+ZI)
+  }
+  
+  // Placeholder to reserve space for the boot logger's meta info data.
+  SBL1_DDR_LOG_META_INFO_SECTION SCL_SBL1_DDR_BOOT_LOG_META_INFO_BASE EMPTY SCL_SBL1_DDR_BOOT_LOG_META_INFO_SIZE
+  {
+  }
+  
+  // Placeholder to reserve buffer space for the boot logger's log messages
+  SBL1_DDR_LOG_BUF_SECTION SCL_SBL1_DDR_BOOT_LOG_BUF_BASE EMPTY SCL_SBL1_DDR_BOOT_LOG_BUF_SIZE
+  {
+  }
+}
+
+
+BOOT_SYSTEM_DEBUG SCL_SYSTEM_DEBUG_CO_RO_BASE SCL_SYSTEM_DEBUG_CO_RO_SIZE
+{
+  // This section contains the system debug image code that came from SDI.
+  // It is placed in RPM Code RAM memory above RPM FW.
+  SYSTEM_DEBUG_CO_RO SCL_SYSTEM_DEBUG_CO_RO_BASE SCL_SYSTEM_DEBUG_CO_RO_SIZE
+  {
+    sys_debug.o (SYSTEM_DEBUG_ENTRY, +FIRST)
+    sys_debug*.o (+RO-CODE,+RO-DATA)
+  }
+  
+  BOOT_A53 +0x0
+  {
+    boot_a53.o (+RO-CODE,+RO-DATA)
+    boot_a53_asm.o (+RO-CODE,+RO-DATA)
+  }
+
+  BOOT_SEGMENT2_DDRFW +0x0
+  {
+    ddr*.o (+RO-CODE,+RO-DATA)
+    *BIMC*.o (+RO-CODE,+RO-DATA)
+    *PHY*.o (+RO-CODE,+RO-DATA)
+    boot_extern_ddr_interface.o (+RO-CODE,+RO-DATA)
+  }  
+
+  ScatterAssert(( ImageLimit(BOOT_SEGMENT2_DDRFW) -
+                  SCL_SYSTEM_DEBUG_CO_RO_BASE)
+                  < SCL_SYSTEM_DEBUG_CO_RO_SIZE)
+}
+
+BOOT_SYSTEM_DEBUG_DATA SCL_SYSTEM_DEBUG_DATA_BASE SCL_SYSTEM_DEBUG_DATA_SIZE
+{
+  // sectoin contains system debug related data and placed above system debug 
+  // related CO+RO in rpm-code-ram.
+  SYSTEM_DEBUG_DATA SCL_SYSTEM_DEBUG_DATA_BASE ALIGN 0x8 SCL_SYSTEM_DEBUG_DATA_SIZE
+  {
+    sys_debug*.o (SYSTEM_DEBUG_DATA)
+    sys_debug*.o (+RW,+ZI)
+    ddr*.o (+RW,+ZI)
+    *BIMC*.o (+RW,+ZI)
+    *PHY*.o (+RW,+ZI)
+    boot_extern_ddr_interface.o (+RW,+ZI)
+    *(.bss.SDCC_ADMA_BUFF_ZI_ZONE)	
+  }
+
+  BOOT_SEGMENT2_DDRFW_TBL +0x0 ALIGN 0x8
+  {
+    *(ddr_func_ptr)
+  }
+  
+  // This must be placed at the end or adjacent execution regions overlap
+  SYSTEM_DEBUG_QSEE_INFO +0x0 EMPTY ALIGN 0x8 0x20
+  { 
+  }
+  
+  ScatterAssert(( ImageLimit(SYSTEM_DEBUG_QSEE_INFO) -
+                  SCL_SYSTEM_DEBUG_DATA_BASE)
+                  < SCL_SYSTEM_DEBUG_DATA_SIZE)
+}

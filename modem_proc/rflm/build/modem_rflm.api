@@ -1,0 +1,176 @@
+#r===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2012 - 2015 Qualcomm Technologies, Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies, Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies, Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //source/qcom/qct/modem/rflm/main/latest/build/modem_rflm.api#20
+# $DateTime: 2016/12/13 07:59:54 $ 
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/20/15   vr      Autopin check-in
+# 11/04/15   kma     Add AUTOPIN
+# 10/16/14   dej     Clean-up SCons and add support for TABASCO
+# 07/16/14     kb      Added rflm tech tdscdma api
+# 02/13/14   hdz     Added rflm tech common api
+# 12/03/13   zhw     Added rflm_cmn api
+# 12/03/13    pl     Added RFLM meas
+# 10/28/13    pl     Added lte api 
+# 10/17/13   bmg     Beginning cleanup of target-specific coupling
+# 10/11/13    ac     wcdma api error
+# 10/10/13    ac     Added wcdma api folder
+# 10/09/13    ka     Added wcdma inc folder
+# 09/18/13    st     Added RFLM DTR API
+# 09/11/13    ka     Added fbrx inc folder
+# 08/28/13   sc      Added GSM API folder
+# 08/16/13    ka     Added fbrx api folder
+# 07/02/13   hdz     Created for new RFLM component
+#===============================================================================
+
+Import('env')
+
+
+env.Replace(RF_ROOT = '${INC_ROOT}/rfa')
+env.Replace(RFLM_ROOT = env.GetBuildPath(Dir('..')))
+
+
+if 'USES_STANDALONE_FW' in env:
+  env.PublishPublicApi('DTR',  ['${RFLM_ROOT}/api/dtr',])
+
+	
+if 'USES_STANDALONE_FW' in env:
+  env.PublishRestrictedApi('FW', ["${RFLM_ROOT}/inc"])
+  env.PublishRestrictedApi('FW', ["${RFLM_ROOT}/api"])
+  env.PublishRestrictedApi('FW', ["${RFLM_ROOT}/api/fw"])
+  env.PublishRestrictedApi('FW', ["${RFLM_ROOT}/api/dm"])
+  env.PublishRestrictedApi('FW', ["${RFLM_ROOT}/api/dtr"])
+
+
+env.PublishPublicApi('DTR',  [    '${INC_ROOT}/rflm/api/dtr',])
+
+env.PublishPublicApi('RFLM',['${RFLM_ROOT}/api',
+                             '${RFLM_ROOT}/api/fw',
+                             '${RFLM_ROOT}/api/dm',
+                             '${RFLM_ROOT}/api/txagc',
+                             '${RFLM_ROOT}/api/rxagc',
+                             '${RFLM_ROOT}/api/dtr',
+                             '${RFLM_ROOT}/api/ccs',
+                             '${RFLM_ROOT}/api/fbrx',
+                             '${RFLM_ROOT}/api/gsm',
+                             '${RFLM_ROOT}/api/wcdma',
+                             '${RFLM_ROOT}/api/tdscdma',                             
+                             '${RFLM_ROOT}/api/lte',
+                             '${RFLM_ROOT}/api/cmn',
+                             '${RFLM_ROOT}/api/meas',
+                             '${RFLM_ROOT}/api/autopin',
+			     '${RFLM_ROOT}/api/c2k',
+                             '${RFLM_ROOT}/rftech/c2k/inc',
+                             '${RFLM_ROOT}/rftech/tdscdma/inc',
+                             '${RFLM_ROOT}/rftech/wcdma/inc',
+                             '${RFLM_ROOT}/rftech/common/inc',
+                             '${RFLM_ROOT}/autopin/inc',
+                             '${RFLM_ROOT}/txagc/inc',
+                             '${RFLM_ROOT}/ccs/inc',
+                             '${RFLM_ROOT}/rxagc/inc',
+                             '${RFLM_ROOT}/fbrx/inc',
+                             '${RFLM_ROOT}/dtr/inc',
+                             '${RFLM_ROOT}/services/diag/inc',
+                             '${RFLM_ROOT}/services/diag/src',
+                             '${RFLM_ROOT}/services/time/inc',
+                             '${RFLM_ROOT}/services/warning/inc',  
+                             '${RFLM_ROOT}/services/dm/inc',
+                             '${RFLM_ROOT}/services/includes/inc', 
+                             '${RFLM_ROOT}/services/math/inc', 
+                             ])
+
+env.PublishPublicApi( 'RFLM_INCONVENIENT', [
+#    '${RFLM_ROOT}/1x/ftm/inc',
+#    '${RFLM_ROOT}/1x/hwtc/inc',
+#    '${RFLM_ROOT}/common/ftm/inc',
+#    '${RFLM_ROOT}/common/hwtc/inc',
+#    '${RFLM_ROOT}/hdr/ftm/inc',
+#    '${RFLM_ROOT}/hdr/hwtc/inc',
+    ])
+
+if env.get('CHIPSET') not in ('mdm9x35'):
+   env.PublishRestrictedApi ('RFLM_VIOLATIONS',[
+       '${INC_ROOT}/mcs/hwio/inc',
+       '${INC_ROOT}/mcs/hwio/inc/${CHIPSET}'
+       ])
+
+#Start public VIOLATIONS
+env.PublishRestrictedApi('RFLM_VIOLATIONS',[
+#        '${RF_ROOT}/rf/common/ftm/inc',
+#        '${RF_ROOT}/rf/sv/common/inc',
+#        '${RF_ROOT}/rf/common/hwtc/inc',
+#        '${RF_ROOT}/rfc/vreg_mgr/common/inc',
+#        '${RF_ROOT}/rf/common/stubs/inc',
+#        '${INC_ROOT}/hdr/common/api',
+#        '${INC_ROOT}/hdr/cust/inc',
+#        '${INC_ROOT}/hdr/mac/api',
+#        '${INC_ROOT}/hdr/srch/api',
+#        '${INC_ROOT}/hdr/variation/inc',
+#        '${INC_ROOT}/hdr/cp/api',
+#        '${RF_ROOT}/device/rfdev_intf/inc',
+#        '${RF_ROOT}/rf/common/rf/atuner/inc',
+         '${RF_ROOT}/rf/common/rf/core/inc',
+#        '${RF_ROOT}/rf/hal/common/inc',
+         '${RF_ROOT}/variation/inc',
+#        '${RF_ROOT}/rf/common/rf/rfc/inc',
+#        '${RF_ROOT}/rf/common/rf/nv/inc',
+#        '${RF_ROOT}/rf/rfd/common/inc',
+#        '${RF_ROOT}/rf/rfd/nikel/inc',
+#        '${RF_ROOT}/rfc/common/inc',
+#       '${RF_ROOT}/rf/common/rf/mc/inc',
+#        '${RF_ROOT}/rf/task/common/inc',
+#        '${INC_ROOT}/geran/cust/inc',
+#        '${INC_ROOT}/mcs/variation/inc',
+#        '${INC_ROOT}/mcs/cust/inc',
+		 '${RF_ROOT}/rf/common/stubs/inc',
+		 '${INC_ROOT}/modem/fw/common/drivers/fw_rf/inc',
+#        '${INC_ROOT}/geran/variation/inc',
+#        '${INC_ROOT}/fw/api/common',
+#        '${RF_ROOT}/rf/mdsp/qdsp6_cdma/inc',
+#        '${RFMODEM_ROOT}/hal/common/inc',
+#	'${RF_ROOT}/rf/mdsp/qdsp6_meas/inc',
+#        '${RF_ROOT}/rf/meas/ftm/inc',
+#	'${INC_ROOT}/rfa/rfc/dime/rf_card/rfc_configurable_test_card/common/inc',
+#	'${INC_ROOT}/rfa/rfc/dime/rf_card/rfc_configurable_test_card/cdma/inc',
+	'${INC_ROOT}/modem/fw/ccs/api',
+        ])
+
+#This violation needs to eventually be updated to include 
+#TRITON RFC Target folder when available
+#if env.get('CHIPSET') in ('msm8x26','msm8x10','mdm9x35','msm8962','msm8926','msm8916'):
+#  env.PublishRestrictedApi( 'RFLM_VIOLATIONS', [
+#        '${RF_ROOT}/rfc/dime/target/msm8974/inc',
+#    ])
+#
+#else:
+#  env.PublishRestrictedApi( 'RFLM_VIOLATIONS', [    
+#        '${RF_ROOT}/rfc/dime/target/${CHIPSET}/inc',
+#    ])
+

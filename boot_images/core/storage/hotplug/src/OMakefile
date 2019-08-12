@@ -1,0 +1,98 @@
+# Build rules for libhotplug.
+
+.DEFAULT: libhotplug.a
+
+HOTPLUG_MODULES = \
+        fs_blockdev \
+        fs_blockdev_devnull \
+        fs_blockdev_devnull_driver \
+        fs_blockdev_driver \
+        fs_blockdev_ftl \
+        fs_blockdev_ftl_driver \
+        fs_blockdev_sd \
+        fs_blockdev_sd_cprm \
+        fs_blockdev_sd_cprm_driver \
+        fs_blockdev_sd_driver \
+        fs_blockdev_ufs \
+        fs_blockdev_ufs_driver \
+        fs_blockdev_usb \
+        fs_blockdev_usb_driver \
+        fs_hotplug \
+        fs_hotplug_api \
+        fs_hotplug_counters \
+        fs_hotplug_dev \
+        fs_hotplug_dev_state \
+        fs_hotplug_discover \
+        fs_hotplug_events \
+        fs_hotplug_idle \
+        fs_hotplug_iter \
+        fs_hotplug_legacy_hdev \
+        fs_hotplug_legacy_names \
+        fs_hotplug_mount \
+        fs_hotplug_parser \
+        fs_hotplug_partition \
+        fs_hotplug_poll \
+        fs_hotplug_stub \
+        fs_hotplug_task \
+        fs_hotplug_usbhost \
+        #end
+
+# Flags for extfs:
+CFLAGS += -Werror
+CFLAGS += -std=c99 -pedantic
+
+
+if $(defined-env CALLGRAPH)
+    CFLAGS += -finstrument-functions
+    CFLAGS += -DENABLE_INSTRUMENT_FUNCTIONS
+    CFLAGS += -D'CALLGRAPH_OUTPUT_FILE="$(EXENAME)"'
+    export
+
+INCLUDES += $(dir $(ROOT)/hotplug/src)
+
+CFLAGS_BASE = $(CFLAGS)
+
+StaticCLibrary (libhotplug, $(HOTPLUG_MODULES))
+
+######################################################################
+# Linting.
+
+# Lint needs the GCC specific search dirs.  To start with, just grab the
+# GCC install base.
+GCC_BASE = $(shell $(CC) --print-search-dirs | grep 'install:' | \
+             sed 's/install: //')
+
+LINT = flint
+# Start the LINT_FLAGS with what is specified in the build-config file.
+LINT_FLAGS = $(CFG_LINT_FLAGS)
+
+LINT_DEPS =
+LINT_DEPS += $(file $(ROOT)/etc/lint/co-gnu3.lnt)
+LINT_DEPS += $(file $(ROOT)/efs/src/efs.lnt)
+LINT_DEPS += $(file $(ROOT)/etc/lint/off-target.lnt)
+LINT_DEPS += $(file $(ROOT)/etc/lint/amss_std.lnt)
+
+LINT_FLAGS += $(LINT_DEPS)
+
+LINT_FLAGS += -I$(dir $(ROOT)/efs/api)
+LINT_FLAGS += -I$(dir $(ROOT)/efs/inc)
+LINT_FLAGS += -I$(dir $(ROOT)/hotplug/api)
+LINT_FLAGS += -I$(dir $(ROOT)/hotplug/inc)
+LINT_FLAGS += -I$(dir $(ROOT)/hotplug/src)
+LINT_FLAGS += -I$(dir $(ROOT)/csupport)
+LINT_FLAGS += -I$(dir $(ROOT)/flash-1.0)
+LINT_FLAGS += -I$(dir $(GCC_BASE)/include)
+LINT_FLAGS += -I/usr/include
+
+# Needed, until buffer removes the MD5 stuff.
+LINT_FLAGS += -I$(OCAML_BASE)
+
+LINT_FLAGS += -DFS_STANDALONE
+
+section
+        CFILES = $(addsuffix .c, $(HOTPLUG_MODULES))
+        hotpluglint.stamp: $(CFILES) $(LINT_DEPS)
+                rm -f hotpluglint.stamp
+                $(LINT) $(LINT_FLAGS) $(CFILES)
+                touch hotpluglint.stamp
+######################################################################

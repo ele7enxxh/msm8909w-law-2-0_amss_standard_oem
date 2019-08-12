@@ -1,0 +1,243 @@
+#============================================================================
+#       Name:
+#               DMSS_OBJECTS.MIN
+#
+#       Description:
+#               This file specifies the objects that belong to the various groups that
+#               make up the targets
+#
+# Copyright (c) 2009 by QUALCOMM, Incorporated. All Rights Reserved.
+#----------------------------------------------------------------------------
+#============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/bsp/build/dmss_objects.min#1 $ 
+# $DateTime: 2016/06/17 14:31:11 $
+#
+# when           who            what, where, why
+# -------        ---            --------------------------------------------------------
+# 06/02/09       cjb            Created
+#============================================================================
+
+ifneq ($(USES_WPLT),yes)
+   # ------------------------------------------------
+   # Sensors
+   # ------------------------------------------------
+   ifeq ($(USES_SENSORS),yes)
+    include $(CORERAPI)/sensors/src/isense_rapi.min
+    ifeq ($(IMAGE),MODEM_PROC)
+      include $(SENSORS)/src/sensors.min
+     endif
+   endif
+endif
+
+#++cjb - todo 
+#DAL Framework
+ifeq ($(USES_DAL), yes)
+  DAL_CONFIG_AUTOGEN=yes
+  include $(DALROOT)/dal.min
+endif
+
+# ------------------------------------------------
+# HAL Objects
+# ------------------------------------------------
+
+#++cjb - todo 
+ifeq ($(USES_HAL), yes)
+  HALROOT=   $(SRCROOT)/hal
+  include    $(HALROOT)/HAL.min
+endif
+
+# ------------------------------------------------
+# Buses Objects
+# ------------------------------------------------
+#++scons: include  $(BUSES)/buses.min
+
+ifeq ($(USES_DRM_MS), yes)
+ #const files for MTP
+ include $(SME_DRMMS_MCS)/mcs.min
+ include $(SME_DRMMS_MTPH_APP)/mtph.min
+endif
+
+#++scons: include $(REXL4)/rexl4.min
+
+# -----------------------------------------------------
+# 7k common objects
+# -----------------------------------------------------
+
+#++scons: -include $(CLKREGIM)/clkregim.min
+#++scons: -include $(CLKREGIM)/src/clkregim.min
+#++scons: include $(ADC)/adc7500.min
+#++scons: include $(ANSIC)/ansic.min
+#++scons: include $(BIO)/bio.min
+#++scons: include $(BOOT)/boot.min
+
+# Exclude stuff for Thin UI if not excluded already by another "USE_"
+ifneq ($(USES_THINUI), yes)
+   ifeq ($(USES_SECSERVICES_TESTAPP), yes)
+      include $(SECSERVICES_TESTAPP)/securityservices.min
+   endif
+
+   ifeq ($(IMAGE), MODEM_PROC)
+   ifeq ($(USES_DKPROV), yes)
+     include $(DKPROV)/dkprov.min
+   endif
+   endif
+
+   ifeq ($(USES_CONTENTEVTMGRTEST), yes)
+    include $(CONTENTEVTMGRTEST)/contentevtmgrtest.min
+   endif
+
+   ifeq ($(USES_ICONTENTHANDLERTEST), yes)
+    include $(ICONTENTTEST)/icontenthandlertest_drmms.min
+   endif
+
+   ifeq ($(USES_DRM20), yes)
+    include $(SME_DRMOMA_SRC)/omadrmcryptoalgorithmgroup.min
+   endif
+
+endif
+
+ifeq ($(USES_SEC_CLNT), yes)
+ include $(SME_CRYPTO_SRC)/sec_oem.min
+endif
+
+#++scons: include $(CLK)/src/clk.min
+#++scons: include $(DEM)/dem.min
+#++scons: include $(DIAG)/diag.min
+#++scons: include $(DLOAD)/dload.min
+#++scons: include $(DMOV)/dmov.min
+#++scons: include $(DMOV)/dmov_7500.min
+#++scons: include $(AU_CORE_RAPI)/buses/src/bus_rapi.min
+ifeq ($(USES_BUS_MON),yes)
+#++scons:   include $(BUSPERF)/busmon.min
+endif
+include $(AU_CORE_RAPI)/securemsm/src/sec_rapi.min
+#++scons: include $(DSM)/dsm.min
+#++scons: include $(EFS_SRC)/efs.min
+#++scons: include $(EFUSE)/efuse.min
+ifeq ($(USES_ERR_SERVICES),yes)
+#++scons:   include $(ERR)/err.min
+endif
+#++scons: include $(FLASH)/src/flash.min
+#++scons: include $(FS_SRC)/fs.min
+#++scons: include $(HW_SRC)/hw.min
+ifeq ($(USES_JOYST), yes)
+#++scons:     include $(JOYST)/joyst.min
+endif #USES_JOYST
+
+ifeq ($(IMAGE),MODEM_PROC)
+#    include $(MAO)/mao.min
+#  ifeq ($(TARGET_ID), 7627)
+#    include $(MAO)/mao_7625.min
+#  endif 
+#  ifeq ($(TARGET_ID), 7x30)
+#    include $(MAO)/mao_7625.min
+#  endif 
+  ifeq ($(TARGET_ID), 7625)
+#++scons:     include $(MAO)/mao_7625.min
+  endif 
+  ifeq ($(TARGET_ID), 7600)
+#++scons:     include $(MAO)/mao_7600.min
+  endif 
+endif #MODEM_PROC
+
+#++scons: include $(MSMSUPPORT)/src/msm_support.min
+#++scons: include $(NV)/nv.min
+#++scons: include $(CORERAPI)/services/src/nv_rapi.min
+#++scons: include $(CORERAPI)/services/src/time_rapi.min
+#++scons: include $(THERM)/src/therm.min
+
+ifeq ($(USES_RTE),yes)
+#++scons:     include $(RTE)/rte.min
+endif #USES_RTE
+
+ifeq ($(USES_SMEM),yes)
+#++scons: include $(SMEM)/smem.min
+ifeq ($(USES_SMD),yes)
+#++scons: include $(SMD)/smd.min
+endif
+endif
+
+ifeq ($(USES_ONCRPC),yes)
+#++scons:     include $(ONCRPC)/oncrpc.min
+    ifeq ($(USES_ONCRPC_ROUTER),yes)
+#++scons:         include $(MPROC)/rpc_router/rpc_router.min
+    endif
+    ifeq ($(USES_OEM_RAPI),yes)
+#++scons:         include $(OEM_RAPI)/oem_rapi.min
+    endif
+endif #USES_ONCRPC
+
+#++cjb - TODO
+ifeq ($(USES_QIDS_RPC),yes)
+    include $(QIDS_RPC)/qids_rpc.min
+endif
+
+#++cjb - TODO
+ifeq ($(USES_PBMTASK), yes)
+    include $(PBM)/pbm.min
+endif #USES_PBMTASK
+
+#++scons: include $(MPROC)/ping_mdm/ping_mdm.min
+
+#++cjb - TODO 
+ifeq ($(USES_PROFILING), yes)
+    include $(PROFILING)/prof.min
+endif #USES_PROFILING
+
+ifeq ($(USES_L4LINUX), yes)
+    include $(QDIAG)/qdiag.min
+endif #USES_L4LINUX
+
+ifeq ($(USES_SDCC),yes)
+#++scons:     include $(SDCC)/sdcc.min
+endif #USES_SDCC
+
+ifeq ($(USES_HFAT),yes)
+#++scons:     include $(HFAT_SRC)/hfat.min
+endif #USES_HFAT
+
+#++scons: include $(SIO)/sio.min
+#++scons: include $(RDEVMAP)/rdevmap.min
+#++scons: include $(UART)/uart.min
+
+#++scons: include $(SLEEP_SRC)/sleep.min
+#++cjb - TODO
+
+#++scons: include $(TASK)/task.min
+
+#++scons: include $(TIME)/time.min
+#++scons: include $(SRCROOT)/dal/drivers/Tlmm/src/tlmm.min
+ifeq ($(IMAGE), APPS_PROC)
+#++scons:   include $(TOUCH)/touch.min
+endif
+#++scons: include $(TMC)/tmc.min
+#++scons: -include $(TRAMP)/tramp.min
+#++scons: -include $(TRAMP)/src/tramp.min
+
+#++scons: include $(HSU)/driver/src/hsu.min
+#++scons: include $(HSU)/driver/src/hsu_modem_proc.min
+
+#++scons: include $(UTILS)/utils.min
+#++scons: include $(RTE)/rte.min
+
+ifneq ($(USES_WPLT),yes)
+   ifneq ($(USES_THINUI),yes)
+       ifeq ($(USES_BrewStaticExtensions), yes)
+   #++cjb - TODO 
+           ifeq ($(USES_JOYST), yes)
+               include $(BREW_STATIC_EXTENSIONS_OEM_SRC)/ext_ijoy.min
+           endif
+       endif
+   endif
+endif
+
+#++cjb - TODO
+# HS-USB
+ifeq ($(USES_BREW_USB_HID), yes)
+  include $(BREW_STATIC_EXTENSIONS_OEM_SRC)/ext_usb_hid.min
+endif 
+
+include $(AU_CORE_RAPI)/mproc/src/mproc_rapi.min

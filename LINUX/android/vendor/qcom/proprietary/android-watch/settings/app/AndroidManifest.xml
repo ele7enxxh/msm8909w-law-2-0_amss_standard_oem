@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ Copyright (c) 2016 Qualcomm Technologies, Inc.
+ All Rights Reserved.
+ Confidential and Proprietary - Qualcomm Technologies, Inc.
+-->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.qualcomm.qti.watchsettings"
+    android:sharedUserId="android.uid.system">
+
+    <uses-feature android:name="android.hardware.type.watch" />
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"/>
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@android:drawable/ic_menu_share"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme">
+        <activity
+
+            android:name="com.qualcomm.qti.watchsettings.SettingsActivity"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter android:priority="2">
+                <action android:name="android.settings.SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".DisplayActivity"
+            android:label="@string/display_title">
+            <intent-filter android:priority="2">
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.settings.DISPLAY_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+         </activity>
+
+         <activity
+            android:name=".SoundActivity"
+            android:label="@string/sound_title"
+            android:taskAffinity="">
+            <intent-filter android:priority="2">
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.settings.SOUND_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="com.qualcomm.qti.watchsettings.LocationActivity"
+            android:label="LocationSettings">
+
+            <intent-filter android:priority="2">
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.settings.LOCATION_SOURCE_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="com.qualcomm.qti.watchsettings.nfc.NfcSettingsActivity"
+            android:label="NfcSettings">
+
+            <intent-filter android:priority="2">
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.settings.NFC_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="com.qualcomm.qti.watchsettings.AboutActivity"
+            android:label="AboutSettings">
+
+            <intent-filter android:priority="2">
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.settings.DEVICE_INFO_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+        </activity>
+
+    </application>
+
+</manifest>

@@ -1,0 +1,975 @@
+# *****************************************************************************
+#
+# PURPOSE:
+#    Makefile script with compiler/assembler include header
+#    search path information
+#
+# DESCRIPTION:
+#    This file contains information about the optimal header search paths
+#    for each sub-build
+#
+# SERVICES:
+#    This file provides the following general services.
+#        1. Setting exported include paths for use by sub-builds
+#
+# PRE-REQUISITES:
+#    To utilise all the facilities provided by this file, certain special tools
+#    and software programmes may be needed depending on the host system in use.
+#        1. On UNIX    : GNU tools, normally available on most workstations.
+#        2. On Windows : GNU tools for Windows, e.g., Cygnus, and Perl 5+.
+#
+#    Note also that every makefile script that is included - either directly or
+#    indirectly - must be available and readable.
+#
+# Copyright (c) 2002 by Qualcomm, Inc.  All Rights Reserved.
+# *****************************************************************************
+#============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/build/ms/incpaths.min#1 $ $DateTime: 2016/06/17 14:31:11 $
+#
+# when       who     what, where, why
+# --------   ---     --------------------------------------------------------
+# 08/24/07   sh      Updated SMEM,SMD and ONCRPC paths
+# 04/11/07   gfr     Support for DCVS
+# 01/16/07   rr      Added Brew 4.0.1
+# 01/16/06   gfr     Support for new boot cfg_data generation.
+# 11/22/06   rr      Added support for 7200-65, eliminated references to 7500-90/7200-90
+# 09/01/06   kvk     Added Data on APPS support
+# 03/03/06   amw     Export paths to build hw.lib in OEMSBL.
+# 01/19/06   ddh     Added MAO
+# 01/27/06   sd      Changes to get around exceeding make environment limits.
+# 01/22/06   sd      Added configuration data path.
+# 12/21/05   sd      Added OEMSBL path to ALL_PATHS.
+# 11/01/05   amw     Added JFLASH path.
+# 10/31/05   hn      Added SMEM and JOYST to include paths even for
+#                    standalone builds.
+# 10/13/05   adm     Incuded support for Rev 2.0 MDP
+# 10/11/05   ddh     Added DEM
+# 09/27/05   amw     Exported paths for library building within OEMSBL.
+# 08/09/05   jc      Changed BREW_LIB for apps build to use rvct21arm11.
+# 07/11/05    aw     Added audio paths.
+# 06/09/05   amw     Changes to integrate bootloader and tools into main build
+# 04/xx/05   sd      Added support for creation of binary files and headers.
+#                    Exported ALL_INCLUDES.
+# 03/31/05   lp      Added RF library support.
+# 03/23/05   jch     Added Qalbum, Qcamcommom, Camsensor, Jpeg and IPL.
+# 02/04/05   ~sn     Added TOKENBUCKET
+# 01/07/05   dlb'    Adding new module
+# 10/01/03   ht      Removed references to BREWAPI
+# 08/08/03   ht      Added EDIT HISTORY block.
+#                    Added support for TIME VU
+#============================================================================
+
+# Path to ROOT from the directory where builds are invoked
+#
+
+ifeq ($(DO_LINT),yes)
+                        SRCROOT=../../../../products/8660
+                else
+    ifneq ($(BUILD_TOOL_CHAIN),yes)                
+                        SRCROOT=../..
+                endif
+endif
+
+COREBSP_BUILD = $(SRCROOT)/core/bsp/build
+PLATFORM_ROOT=$(SRCROOT)/../../platform
+
+COREAPI = $(SRCROOT)/core/api
+AU_CORE_RAPI = $(COREAPI)/rapi
+MPROC_RAPI_INC = $(AU_CORE_RAPI)/mproc/inc
+MPROC_API_INC = $(COREAPI)/mproc/
+SENSORS_RAPI_INC = $(COREAPI)/sensors
+ONCRPC_API_INIT = $(SRCROOT)/core/mproc/oncrpc_api_init
+TIME_RAPI_INC = $(SRCROOT)/services/time
+WIREDCONNECTIVITY_API_INC = $(COREAPI)/wiredconnectivity
+
+TOUCH_SCREEN_ADC_RAPI= $(COREAPI)/iodevices
+HS_RAPI = $(COREAPI)/iodevices
+
+MAO_HAL = $(SRCROOT)/core/power/mao/hal
+MAO_HAL_BSP = $(SRCROOT)/core/power/mao/hal/bsp
+
+ULOGAPP = $(SRCROOT)/apps/ULogApp
+
+include $(SRCROOT)/build/ms/modem_incpaths.min
+#include $(SRCROOT)/build/ms/wconnect_incpaths.min
+include $(SRCROOT)/modem/rfa/rf/build_cfg/msm8660/incpaths.min
+
+
+#Raptor
+ifeq ($(IMAGE), APPS_PROC)
+ifeq ($(USES_STATIC_RAPTOR),yes)
+RAPTOR=      $(SRCROOT)/apps/Raptor
+endif
+endif
+
+HWENGINES_API_INC=$(SRCROOT)/core/api/hwengines
+
+### Processor specific directories
+ifeq ($(USES_HW6500),yes)
+    UI = $(SRCROOT)/apps/ui
+else
+endif
+
+
+MODEM_INC=   $(SRCROOT)/modem_inc
+# Paths relative to ROOT for each subdir
+#
+ADIE= $(SRCROOT)/drivers/adie
+DRVLIB=      $(SRCROOT)/drivers/drvlib
+
+TGT_STUB_DIR=     $(SRCROOT)/build/tgt_stub
+
+CLKREGIM_LNX= $(SRCROOT)/drivers/clkregim/linux
+CLKREGIM_RPC= $(SRCROOT)/drivers/clkregim/rpc
+
+#############################################################################
+# START OF MULTIMEDIA PATHS                                                 #
+#############################################################################
+
+MULTIMEDIA_API=         $(SRCROOT)/multimedia/api/utils
+
+ifeq ($(IMAGE), MODEM_PROC)
+    APR= $(SRCROOT)/multimedia/apr
+    APR_API= $(SRCROOT)/multimedia/api/apr/inc
+endif
+
+#############################################################################
+# END OF MULTIMEDIA PATHS                                                   #
+#############################################################################
+
+#############################################################################
+# START OF AUDIO PATHS                                                      #
+#############################################################################
+
+#include $(SRCROOT)/multimedia/audio/config/mmaudio_incpaths.min
+
+#############################################################################
+# END OF AUDIO PATHS                                                        #
+#############################################################################
+
+ifeq ($(USES_UMTS), yes)
+    #vijay: 6275 Adddition
+    BINPATH=     $(SRCROOT)/build/ms/bin
+    BINPATH_CFG_DATA=     $(SRCROOT)/build/ms/bin/cfg_data
+endif
+
+BREW_STATIC_EXTENSIONS=  $(SRCROOT)/apps/staticextensions/inc
+BREW_STATIC_EXTENSIONS_OEM_INC= $(SRCROOT)/apps/staticextensions/oem/inc
+BREW_STATIC_EXTENSIONS_OEM_SRC= $(SRCROOT)/apps/staticextensions/oem/src
+BREW_DYNAMIC_EXTENSIONS= $(SRCROOT)/apps/DynamicExtensions/IMediaVideo
+
+ifeq ($(USES_BREW_4.0),yes)
+BREWDIR=         brew
+endif
+
+
+ifeq ($(USES_BREW_4.0),yes)
+ifeq ($(USES_BREW_APPMGR),yes)
+BREW_APPMGR=             $(SRCROOT)/apps/brewappmgr_2.0
+endif
+endif
+
+ifeq ($(USE_INSTALLER), 1)
+        BREW_SRC_DIR=$(SRCROOT)/apps/pkinstall
+else
+        BREW_SRC_DIR=$(SRCROOT)/apps/brew
+endif
+
+BREWPK_OVERRIDE_DIR=$(SRCROOT)/apps/nonpkbrew/pk
+BREWERYDIR=$(BREW_SRC_DIR)
+BREW_DIR=$(BREW_SRC_DIR)
+
+#BREW_OEM_MIN=$(BREW_SRC_DIR)/pk/src/msm/oem.min
+BREW_OEM_NONPK_MIN=$(BREWPK_OVERRIDE_DIR)/src/msm/oem_nonpk.min
+BREW_LIB_MIN=$(BREW_SRC_DIR)/pk/src/msm/lib_aee.min
+
+BREW_LIB=$(BREW_SRC_DIR)/lib/$(brewtarget)_$(brewflavor)
+
+BREW=      $(BREWPK_OVERRIDE_DIR)/inc/msm \
+           $(BREWPK_OVERRIDE_DIR)/inc $(BREWPK_OVERRIDE_DIR)/src $(BREWPK_OVERRIDE_DIR)/src/msm \
+           $(BREWPK_OVERRIDE_DIR)/../sdk/inc \
+           $(BREW_SRC_DIR)/sdk/inc $(BREW_SRC_DIR)/inc  $(BREW_SRC_DIR)/pk/inc/msm \
+           $(BREW_SRC_DIR)/pk/inc $(BREW_SRC_DIR)/pk/src $(BREW_SRC_DIR)/src/OEM $(BREW_SRC_DIR)/pk/src/msm \
+           $(BREW_SRC_DIR)/inc/OEM $(BREW_SRC_DIR)/src/OEM/msm
+
+BREW_AEE = $(BREW_SRC_DIR)/sdk/inc
+
+ifeq ($(USES_BREW_BUIW),yes)
+BUIW=            $(SRCROOT)/apps/uione/sdk/BREWUIWidgets
+BUIW_XMOD=       $(BUIW)/xmod
+BUIW_FORMS= $(BUIW)/forms/inc
+BUIW_WIDGETS= $(BUIW)/widgets/inc
+endif
+
+BREW_GIF=    $(SRCROOT)/apps/BREWapi/Src
+BREW_STATIC_MIFS= $(SRCROOT)/apps/mifsrc
+
+CSVT= $(SRCROOT)/multimedia/videophone/csvt
+CSVT_UI_INC= $(CSVT)/ui/inc
+CSVT_UI_SRC= $(CSVT)/ui/src
+CSVT_CONFIG_INC= $(CSVT)/config/inc
+CSVT_CONFIG_SRC= $(CSVT)/config/src
+CSVT_H324_INC= $(CSVT)/h324/inc
+CSVT_H324_SRC= $(CSVT)/h324/src
+CSVT_H245_ASN_INC= $(CSVT)/h245_asn/inc
+CSVT_H245_ASN_SRC= $(CSVT)/h245_asn/src
+CSVT_MODEM_INC= $(CSVT)/modem/inc
+CSVT_MODEM_SRC= $(CSVT)/modem/src
+CSVT_QVPAPP_INC= $(CSVT)/qvpapp/inc
+CSVT_QVPAPP_SRC= $(CSVT)/qvpapp/src
+CSVT_CORE_API_INC= $(CSVT)/core_api/inc
+CSVT_CORE_API_SRC= $(CSVT)/core_api/src
+VIDEOPHONE_LOGGING_INC= $(SRCROOT)/multimedia/videophone/logging/inc
+VIDEOPHONE_LOGGING_SRC= $(SRCROOT)/multimedia/videophone/logging/src
+VIDEOPHONE_RESOURCES= $(SRCROOT)/multimedia/videophone/resources/en/256color
+
+SME= $(SRCROOT)/core/securemsm
+SME_IPSEC_INC=  $(SME)/ipsec/inc
+SME_IPSEC_SRC=  $(SME)/ipsec/src
+
+SME_AKAALGO_INC= $(SME)/akaalgo/inc
+SME_AKAALGO_SRC= $(SME)/akaalgo/src
+
+# IMS integration
+ifeq ($(USES_IMS),yes)
+QIMF_WRAPPERS=$(SRCROOT)/ims/qimf_wrappers/src
+QIPCALL_INCPATH=$(SRCROOT)/ims/qimf_wrappers/inc
+QIPCALL=     $(SRCROOT)/ims/qipcall
+QDJ=         $(SRCROOT)/ims/qdj
+IMS_ENABLERXDM_SL = $(SRCROOT)/ims/enablerxdm/svc
+IMS_ENABLERXDM_SL_UTILS = $(SRCROOT)/ims/enablerxdm/svc/utils
+IMS_ENABLERXDM_SL_COMMON = $(SRCROOT)/ims/enablerxdm/svc/common
+IMS_ENABLERXDM_SL_SL = $(SRCROOT)/ims/enablerxdm/svc/sl
+IMS_ENABLERPRESENCE_SL = $(SRCROOT)/ims/enablerpresence/svc
+IMS_ENABLERPRESENCE_SL_COMMON = $(SRCROOT)/ims/enablerpresence/svc/common
+IMS_PRESENCEMANAGER_UI = $(SRCROOT)/apps/ims_presencemanager
+IMS_PRESENCEMANAGER_SL = $(SRCROOT)/ims/presencemanager/svc
+IMS_PRESENCEMANAGER_SL_SL = $(SRCROOT)/ims/presencemanager/svc/sl
+IMS_VIDEOSHARE_UI= $(SRCROOT)/apps/ims_videoshare
+IMS_VIDEOSHARE_SL= $(SRCROOT)/ims/videoshare/svc
+IMS_VIDEOSHARE_SL_COMMON= $(SRCROOT)/ims/videoshare/svc/common
+IMS_VIDEOSHARE_SL_SL= $(SRCROOT)/ims/videoshare/svc/sl
+IMS_VIDEOSHARE_SL_MEDIA= $(SRCROOT)/ims/videoshare/svc/media
+IMS_SETTINGS= $(SRCROOT)/apps/ims_settings
+IMS_REGMANAGER= $(SRCROOT)/apps/ims_regmanager
+IMS_DPL_BREW= $(SRCROOT)/ims/QIMF/dpl
+IMS_DPL_BREW_MCCSEC= $(SRCROOT)/ims/QIMF/dpl/mccsec
+IMS_DPL_BREW_MILENAGE= $(SRCROOT)/ims/QIMF/dpl/milenage
+IMS_QIMF= $(SRCROOT)/ims/QIMF
+IMS_QIMF_COMMON = $(SRCROOT)/ims/QIMF/common
+IMS_QIMF_COMP = $(SRCROOT)/ims/QIMF/components
+IMS_QIMF_LISTMGR = $(SRCROOT)/ims/QIMF/components/ListManager
+IMS_QIMF_SIPCORE = $(SRCROOT)/ims/QIMF/components/Sipcore
+IMS_QIMF_CORE = $(SRCROOT)/ims/QIMF/core
+IMS_QIMF_UTILS = $(SRCROOT)/ims/QIMF/core/coreutils
+IMS_QIMF_DISP = $(SRCROOT)/ims/QIMF/core/dispatcher
+IMS_QIMF_DISP_INC = $(SRCROOT)/ims/QIMF/core/dispatcher/include
+IMS_QIMF_CORE_INC = $(SRCROOT)/ims/QIMF/core/include
+IMS_QIMF_MAF = $(SRCROOT)/ims/QIMF/core/maf
+IMS_QIMF_MMAPI = $(SRCROOT)/ims/QIMF/core/mmapi
+IMS_QIMF_OSIH = $(SRCROOT)/ims/QIMF/core/osih
+IMS_QIMF_RTP = $(SRCROOT)/ims/QIMF/core/rtputils
+IMS_QIMF_SDP = $(SRCROOT)/ims/QIMF/core/sdp
+IMS_QIMF_SDP_INC = $(SRCROOT)/ims/QIMF/core/sdp/include
+IMS_QIMF_SIGCOMP = $(SRCROOT)/ims/QIMF/core/sigcomp
+IMS_QIMF_SINGO = $(SRCROOT)/ims/QIMF/core/singo
+IMS_QIMF_SIP = $(SRCROOT)/ims/QIMF/core/sip
+IMS_QIMF_SIP_INC = $(SRCROOT)/ims/QIMF/core/sip/include
+IMS_QIMF_DEFLATE = $(SRCROOT)/ims/QIMF/core/deflate
+endif
+#end of IMS integration
+
+#
+# Videophone related paths
+#
+IMSCORE=     $(SRCROOT)/IMS/ims_core
+# IMSCORE_INC= $(SRCROOT)/IMS/ims_core/include
+IMSCORE_RV=  $(SRCROOT)/IMS/ims_core/radvision
+IMSCORE_SIPT=$(SRCROOT)/IMS/ims_core/sipt
+QVP=         $(SRCROOT)/services/qvp
+QVP_STRIP=   $(SRCROOT)/services/qvp/exclude
+
+# Rabindra - use CSVT from source
+CSVT= $(SRCROOT)/multimedia/videophone/csvt
+CSVT_UI_INC= $(CSVT)/ui/inc
+CSVT_UI_SRC= $(CSVT)/ui/src
+CSVT_CONFIG_INC= $(CSVT)/config/inc
+CSVT_CONFIG_SRC= $(CSVT)/config/src
+CSVT_H324_INC= $(CSVT)/h324/inc
+CSVT_H324_SRC= $(CSVT)/h324/src
+CSVT_H245_ASN_INC= $(CSVT)/h245_asn/inc
+CSVT_H245_ASN_SRC= $(CSVT)/h245_asn/src
+CSVT_MODEM_INC= $(CSVT)/modem/inc
+CSVT_MODEM_SRC= $(CSVT)/modem/src
+CSVT_QVPAPP_INC= $(CSVT)/qvpapp/inc
+CSVT_QVPAPP_SRC= $(CSVT)/qvpapp/src
+CSVT_CORE_API_INC= $(CSVT)/core_api/inc
+CSVT_CORE_API_SRC= $(CSVT)/core_api/src
+VIDEOPHONE_LOGGING_INC= $(SRCROOT)/multimedia/videophone/logging/inc
+VIDEOPHONE_LOGGING_SRC= $(SRCROOT)/multimedia/videophone/logging/src
+VIDEOPHONE_RESOURCES= $(SRCROOT)/multimedia/videophone/resources/en/256color
+
+QVPCODEC=    $(SRCROOT)/multimedia/videophone/vt_codec
+QVPCODEC_AUDIOSRC = $(QVPCODEC)/audio/src
+QVPCODEC_AUDIOINC = $(QVPCODEC)/audio/inc
+QVPCODEC_CODECAPISRC = $(QVPCODEC)/codec_api/src
+QVPCODEC_CODECAPIINC = $(QVPCODEC)/codec_api/inc
+QVPCODEC_DECODERSRC = $(QVPCODEC)/decoder/src
+QVPCODEC_DECODERINC = $(QVPCODEC)/decoder/inc
+QVPCODEC_ENCODERSRC = $(QVPCODEC)/encoder/src
+QVPCODEC_ENCODERINC = $(QVPCODEC)/encoder/inc
+# VIDEOPHONE=  $(SRCROOT)/apps/VideoPhone
+BREW_GIF=    $(SRCROOT)/apps/BREWapi/Src
+
+BTHOSTCORE_SRC=    $(SRCROOT)/wconnect/bthost/core/src
+BTHOSTCOREHCI_SRC= $(SRCROOT)/wconnect/bthost/core/hci/src
+BTHOSTCORERPC_SRC=  $(SRCROOT)/wconnect/bthost/corerpc/src
+BTHOSTSOCCFG_SRC=  $(SRCROOT)/wconnect/bthost/soccfg/src
+BTHOSTPF_SRC=      $(SRCROOT)/wconnect/bthost/pf/src
+BTHOSTPFRPC_SRC=   $(SRCROOT)/wconnect/bthost/pfrpc/src
+BTFTM_SRC=         $(SRCROOT)/wconnect/bthost/ftm/src
+BTHOSTFTMRPC_SRC=  $(SRCROOT)/wconnect/bthost/ftmrpc/src
+BTHOSTIBT_SRC=     $(SRCROOT)/wconnect/bthost/brew/ibt/src
+BTHOSTIBTBMP1_0_SRC=   $(SRCROOT)/wconnect/bthost/brew/ibt/src/bmp1_0
+BTHOSTSTATAPP_SRC= $(SRCROOT)/wconnect/bthost/brew/statapp/src
+BTHOSTSTATEXT_SRC= $(SRCROOT)/wconnect/bthost/brew/statext/src
+
+BTHOSTCORE_INC=    $(SRCROOT)/wconnect/bthost/core/inc
+BTHOSTCORE_PROTECTED=    $(SRCROOT)/wconnect/bthost/core/protected
+BTHOSTCOREHCI_PROTECTED= $(SRCROOT)/wconnect/bthost/core/hci/protected
+BTHOSTCORERPC_INC=  $(SRCROOT)/wconnect/bthost/corerpc/inc
+BTHOSTPF_INC=      $(SRCROOT)/wconnect/bthost/pf/inc
+BTHOSTPFRPC_INC=   $(SRCROOT)/wconnect/bthost/pfrpc/inc
+BTHOSTSTATAPP_INC= $(SRCROOT)/wconnect/bthost/brew/statapp/inc
+BTHOSTSTATEXT_INC= $(SRCROOT)/wconnect/bthost/brew/statext/inc
+BTFTM_INC=         $(SRCROOT)/wconnect/bthost/ftm/inc
+BTHOSTFTMRPC_INC=  $(SRCROOT)/wconnect/bthost/ftmrpc/inc
+
+BTHOSTCORERPC=$(SRCROOT)/wconnect/bthost/corerpc
+BTHOSTPFRPC=(SRCROOT)/wconnect/bthost/pfrpc
+
+BTFTM_INC_PATHS=  $(BTFTM_INC)
+
+BTHOST_INC_PATHS=  $(BTHOSTFTMRPC_INC) \
+
+# CONTACT=     $(SRCROOT)/apps/contact
+COREAPP=     $(SRCROOT)/apps/core
+COREAPP_RPC= $(SRCROOT)/apps/core/rpc
+NETSETTINGS= $(SRCROOT)/apps/NetSettings
+AUXSETTINGS= $(SRCROOT)/apps/AUXSettings
+-include $(SRCROOT)/multimedia/camcorder/build/path/camcorder_incpaths.min
+# PICTBRIDGEAPP= $(SRCROOT)/apps/pictbridge
+#ifeq ($(IMAGE), MODEM_PROC)
+#ifeq ($(USES_UMTS), yes)#
+#DSMP_UMTS_SRC=     $(SRCROOT)/modem/data/umts/multi_proc/src
+#DSMP_UMTS_INC=     $(SRCROOT)/modem/data/umts/multi_proc/inc
+#DSMP_UMTS_RPC_SRC= $(SRCROOT)/modem/data/umts/multi_proc/rpc/src
+#DSMP_UMTS_RPC_INC= $(SRCROOT)/modem/data/umts/multi_proc/rpc/inc
+#endif
+#endif
+
+
+CAMSENSOR=   $(SRCROOT)/drivers/camsensor
+CUST=        $(SRCROOT)/build/cust
+DATASTATS=   $(SRCROOT)/apps/datastats
+DCVS=        $(SRCROOT)/core/power/dcvs/inc
+SERVICES_API= $(SRCROOT)/core/api/services
+DIALER=      $(SRCROOT)/apps/dialer
+
+CPRM=        $(SRCROOT)/services/cprm
+DKPROV=      $(SRCROOT)/services/dkprov
+SDCC_CPRM=   $(SRCROOT)/drivers/sdcc_cprm
+
+FLDDBG=      $(SRCROOT)/apps/flddbg
+FTM=  $(SRCROOT)/services/ftm
+FTM_LIB=  $(SRCROOT)/services/ftm/lib
+#-include $(FTM)/ftm_incpaths.min
+
+FTM_HWTC=    $(SRCROOT)/test/ftm_hwtc
+GRAPH=       $(SRCROOT)/services/graph
+ifeq ($(USES_ATI_GFX_HW), yes)
+  GRAPH_ATI_AHI= $(SRCROOT)/services/ahi2dati
+  GRAPH_ATI_GLES= $(SRCROOT)/services/glesati
+  ifeq ($(USES_COMPILE_ATI_LIBS), yes)
+    GRAPH_ATI_AHI_SOURCE= $(SRCROOT)/services/ahi2datisrc
+    GRAPH_ATI_GLES_SOURCE= $(SRCROOT)/services/glesatisrc
+    GRAPH_ATI_GLES_INC= $(SRCROOT)/services/glesati/gles
+
+    GRAPH_ATI_EGLTOOLS= $(SRCROOT)/services/glesatisrc/EGLTools
+    GRAPH_ATI_EGLTOOLS_IMAGEON= $(SRCROOT)/services/glesatisrc/EGLTools/Imageon
+    GRAPH_ATI_GLESTOOLS= $(SRCROOT)/services/glesatisrc/GLESTools
+    GRAPH_ATI_GLESTOOLS_IMAGEON= $(SRCROOT)/services/glesatisrc/GLESTools/Imageon
+    GRAPH_ATI_Q3DTOOLS= $(SRCROOT)/services/glesatisrc/Q3DTools
+    GRAPH_ATI_Q3DTOOLS_IMAGEON= $(SRCROOT)/services/glesatisrc/Q3DTools/Imageon
+    GRAPH_ATI_QSTREAM= $(SRCROOT)/services/glesatisrc/QStream/Interface
+    GRAPH_ATI_QXPROFILER= $(SRCROOT)/services/glesatisrc/QXProfiler
+
+  endif
+endif
+GSTK_INC=     $(SRCROOT)/modem/uim/gstk/inc
+GSTK_SRC=     $(SRCROOT)/modem/uim/gstk/src
+ESTK_INC=     $(SRCROOT)/modem/uim/estk/inc
+ESTK_SRC=     $(SRCROOT)/modem/uim/estk/src
+TSIF_DRV=    $(SRCROOT)/services/dtv/drivers/tsif
+IPL=         $(SRCROOT)/services/ipl
+JPEG=        $(SRCROOT)/services/jpeg
+LCD=         $(SRCROOT)/drivers/lcd
+MDP_COMMON=  $(SRCROOT)/drivers/mdp
+ifeq ($(TARGET_ID), 7500)
+    ifeq ($(ASIC),7500B)
+        MDP=       $(SRCROOT)/drivers/mdp/asic20
+    else
+        MDP=       $(SRCROOT)/drivers/mdp/asic10
+    endif
+endif
+ifneq ($(TARGET_ID), 7500)
+    MDP=         $(SRCROOT)/drivers/mdp
+    QMDP=        $(SRCROOT)/apps/qmdp
+endif
+DISP=        $(SRCROOT)/services/disp
+DISP2D= $(SRCROOT)/services/disp/disp2d
+DISPBL=      $(SRCROOT)/services/disp/dispbl
+MDDI=        $(SRCROOT)/drivers/mddi
+MEDIAPLAYER= $(SRCROOT)/apps/MediaPlayer
+MSUITE_LIB=  $(SRCROOT)/apps/mobilesuite
+MSMSUPPORT=  $(SRCROOT)/services/msmsupport
+# NETDIAGNOSTICS=  $(SRCROOT)/apps/netdiagnostics
+#++cjb - TODO
+QIDS_RPC=    $(SRCROOT)/services/qids_rpc
+SECURITY=       $(SRCROOT)/apps/mobilesuite/security
+SECURITY_ADAPTION= $(SRCROOT)/apps/mobilesuite/security/services/adaption
+MS_SEC_CONFIG=   $(SRCROOT)/apps/mobilesuite/security/services/ms/sec/config
+MS_SEC_CRYPTLIB= $(SRCROOT)/apps/mobilesuite/security/services/ms/sec/cryptlib
+MS_SEC_INC=      $(SRCROOT)/apps/mobilesuite/security/services/ms/sec/include
+MS_SEC_PLUGIN=   $(SRCROOT)/apps/mobilesuite/security/services/ms/sec/plugin
+MS_SEC_SOURCE=   $(SRCROOT)/apps/mobilesuite/security/services/ms/sec/source
+MS_SEC_SWWIM=    $(SRCROOT)/apps/mobilesuite/security/services/ms/sec/swwim
+MS_SEC_SWWIM_CRYPTO= $(SRCROOT)/apps/mobilesuite/security/services/ms/sec/swwim/crypto
+REMOTE_APIS= $(SRCROOT)/services/remote_apis
+SMS_LISTENER= $(SRCROOT)/apps/mobilesuite/smslistener
+TMT=          $(SRCROOT)/apps/mobilesuite/tmt
+TMT_COMMON=   $(SRCROOT)/apps/mobilesuite/tmt/apps/common
+MMS_APP=      $(SRCROOT)/apps/mobilesuite/tmt/apps/mms_app
+MMS_APP_RES=  $(SRCROOT)/apps/mobilesuite/tmt/apps/mms_app/Resources
+WAP_APP=      $(SRCROOT)/apps/mobilesuite/tmt/apps/wap_app
+WAP_APP_RES=  $(SRCROOT)/apps/mobilesuite/tmt/apps/wap_app/Resources
+TMT_ADAPTION= $(SRCROOT)/apps/mobilesuite/tmt/services/adaption
+MS_MIC_ADAPT=   $(SRCROOT)/apps/mobilesuite/tmt/services/ms/mic/adapt
+MS_MIC_CONFIG=  $(SRCROOT)/apps/mobilesuite/tmt/services/ms/mic/config
+MS_MIC_INC=     $(SRCROOT)/apps/mobilesuite/tmt/services/ms/mic/include
+MS_MIC_SOURCE=  $(SRCROOT)/apps/mobilesuite/tmt/services/ms/mic/source
+MS_MMS_CONFIG=  $(SRCROOT)/apps/mobilesuite/tmt/services/ms/mms/config
+MS_MMS_INC=     $(SRCROOT)/apps/mobilesuite/tmt/services/ms/mms/include
+MS_MMS_SOURCE=  $(SRCROOT)/apps/mobilesuite/tmt/services/ms/mms/source
+MS=          $(SRCROOT)/build/ms
+
+#++cjb - TODO 
+NVIM=        $(SRCROOT)/services/nv
+OGLES_OEM_SRC=    $(SRCROOT)/apps/opengles/oem/src
+OGLES_OEM_INC=    $(SRCROOT)/apps/opengles/oem/inc
+
+
+
+#++cjb - TODO
+PLT=         $(SRCROOT)/test/plt
+#++cjb- TODO
+PROFILING=   $(SRCROOT)/tools/profiling
+ifeq ($(USES_UMTS), yes)
+    #Vijay: 6275 4.0 Additions
+    QTCAM=       $(SRCROOT)/apps/qtcam
+    QTCAM_COMMON=$(SRCROOT)/apps/qtcam/common
+    QTCAM_CORE=  $(SRCROOT)/apps/qtcam/core
+    QTCAM_UI=    $(SRCROOT)/apps/qtcam/UI
+    #end: 6275 4.0 Additions
+endif
+
+RFA=   $(SRCROOT)/modem/rfa
+RPC=         $(SRCROOT)/services/rpc
+SAF=         $(SRCROOT)/services/graph
+
+
+#++cjb - TODO
+SVCPRG=      $(SRCROOT)/apps/svcprg
+SVG =        $(SRCROOT)/services/svg
+THERM=       $(SRCROOT)/drivers/therm
+TPROF=       $(SRCROOT)/services/profile
+TMC=         $(SRCROOT)/services/tmc
+TVENC=       $(SRCROOT)/drivers/tvenc
+ifeq ($(USES_UMTS), yes)
+    UITEST=      $(SRCROOT)/apps/uitest
+endif
+USB_CARKIT=  $(SRCROOT)/drivers/usb/carkit
+MP4FILEFMT_PARSER=   $(SRCROOT)/multimedia/mmservices/mpeg4fileformat/parser/inc
+MP4FILEFMT_WRITER=   $(SRCROOT)/multimedia/mmservices/mpeg4fileformat/writer/inc
+
+ifeq ($(USES_HWTC), yes)
+HWTC=        $(SRCROOT)/test/hwtc
+endif
+
+XMLLIB=      $(SRCROOT)/services/xmllib
+
+# WLANHS Related
+WLANHS_API=  $(SRCROOT)/wconnect/api/wlanhs
+WLANHS_RAPI_INC=  $(SRCROOT)/wconnect/api/rapi/wlanhs/inc
+WLANHS_RAPI_LIB=  $(SRCROOT)/wconnect/api/rapi/wlanhs/lib
+
+CTAROOT=     $(SRCROOT)/services/cta
+
+ifeq ($(USES_JAVA), yes)
+JAVA_DIR=    $(SRCROOT)/apps/Java
+JAVA_CFG=    $(SRCROOT)/apps/Java/custom_config
+JAVA_AMS=    $(SRCROOT)/apps/Java/ams
+endif
+
+# OpenVG
+OVG           = $(SRCROOT)/services/openvg
+OVG_INC       = $(SRCROOT)/apps/openvg/inc
+OVG_OEM_INC   = $(SRCROOT)/apps/openvg/oem/inc
+OVG_OEM_SRC   = $(SRCROOT)/apps/openvg/oem/src
+
+
+#
+# OpenGL ES Sample App
+#
+GLES_INC=         $(SRCROOT)/apps/opengles/inc
+ifeq ($(USES_GLES_SAMPLES),yes)
+OGLES_SAMPLES=    $(SRCROOT)/apps/opengles/samples
+endif
+
+#
+# ATI Test Apps
+#
+ifeq ($(USES_ATITESTS),yes)
+ATITESTS_INC=    $(SRCROOT)/apps/opengles/Tests
+ATITESTS_DIR=    $(SRCROOT)/apps/opengles/Tests
+endif
+
+#
+# Boot image and headers
+#
+OEMSBL        = $(SRCROOT)/secboot/oemsbl
+QCSBL         = $(SRCROOT)/secboot/qcsbl
+ifeq ($(TARGET_ID), 7500)
+    ifeq ($(ASIC),7500B)
+        CFG_DATA      = $(SRCROOT)/secboot/cfg_data/asic20
+    else
+        CFG_DATA      = $(SRCROOT)/secboot/cfg_data/asic10
+    endif
+endif
+ifneq ($(TARGET_ID), 7500)
+    CFG_DATA_BASE = $(SRCROOT)/secboot/cfg_data
+    CFG_DATA      = $(CFG_DATA_BASE)
+endif
+
+LIBSTD=      $(PLATFORM_ROOT)/libstd
+LIBSTDINC=   $(PLATFORM_ROOT)/libstd/inc
+
+A1PK_DIR=$(PLATFORM_ROOT)/cs
+# Include paths to be added to ALL_PATHS
+CS_INC=            $(A1PK_DIR)/inc
+
+OEMSYSCLOCK=$(BREW_SRC_DIR)/src/OEM/OEMSysClock/msm
+OEMMEDIA=$(BREW_SRC_DIR)/src/OEM/OEMMedia/msm
+OEMMEDIAINC=$(BREW_SRC_DIR)/src/OEM/OEMMedia/inc
+OEMSOUND=$(BREW_SRC_DIR)/src/OEM/OEMSound
+OEMSOUNDINC=$(OEMSOUND)
+OEMNET=$(BREW_SRC_DIR)/src/OEM/OEMNet/msm
+OEMNETINC=$(OEMNET)/inc $(BREW_SRC_DIR)/inc/OEM
+OEMNOTIFY=$(BREW_SRC_DIR)/src/OEM/OEMNotify/src
+OEMNOTIFYINC=$(BREW_SRC_DIR)/src/OEM/OEMNotify/inc
+OEMCONFIGITEM=$(BREW_SRC_DIR)/src/OEM/OEMConfigItem/src
+OEMCONFIGITEMINC=$(BREW_SRC_DIR)/src/OEM/OEMConfigItem/inc
+OEMSHELLBEEP=$(BREW_SRC_DIR)/src/OEM/OEMShellBeep
+OEMSERVINGNETWORKS=$(BREW_SRC_DIR)/src/OEM/OEMServingNetworks/msm
+OEMANNUNCIATORCONTROL=$(BREW_SRC_DIR)/src/OEM/OEMAnnunciatorControl
+############################################################
+
+# Rolled up aliases
+#
+BREWAPI=  $(BREWAPI_AEE) $(BREWAPI_OEM_INC)
+
+
+
+# BREWERY_AEE=             $(BREW_AEE) $(BREW_SRC_DIR)/inc
+# BREWERY_AEE1_INC=        $(BREW_SRC_DIR)/src/aee/inc
+BREWERY_OEMNOTIFY_INC=   $(BREW_SRC_DIR)/src/OEM/OEMNotify/inc
+# BREWERY_OEM_SRC=         $(BREW_SRC_DIR)/src/OEM
+BREWERY_BAR=             $(BREW_SRC_DIR)/bin/en/256Color
+
+BREW+=     $(BREWERY_AEE) $(BREWERY_AEE1_INC) \
+           $(BREWERY_OEMNOTIFY_INC) $(OEMCONFIGITEMINC) $(OEMSOUND) $(OEMFS) \
+$(OEMMEMGRP) $(OEMSECURESYSCLOCK) $(OEMSYSCLOCK) $(OEMSHELLBEEP) \
+$(OEMSERVINGNETWORKS) $(OEMANNUNCIATORCONTROL)
+ZIF=      $(RFA)
+ifeq ($(USES_UMTS), yes)
+
+
+    #QTV_REAL=    $(SRCROOT)/services/Qtv/real
+    #QVP=         $(SRCROOT)/services/qvp
+    #QVPCODEC=    $(SRCROOT)/services/qvp/exclude
+    # QVPPW1=      $(SRCROOT)/services/qvp/pwlib/include
+    # QVPPW2=      $(SRCROOT)/services/qvp/pwlib/include/ptclib
+    # QVPPW3=      $(SRCROOT)/services/qvp/pwlib/include/ptlib
+    # QVPPW4=      $(SRCROOT)/services/qvp/pwlib/include/ptlib/msos/ptlib
+    RECENTCALLS= $(SRCROOT)/apps/RecentCalls
+    IPL=         $(SRCROOT)/services/ipl
+    TS_CAMIF_DRV=$(SRCROOT)/services/dtv/drivers/ts_camif
+
+    # STRIDE locations
+    #
+    ifeq ($(USES_STRIDE),yes)
+
+        STRIDEDIR     = $(SRCROOT)/tools/STRIDE# # Path to STRIDE rootdir
+        STRIDEDIR := $(subst \,/,$(STRIDEDIR))#
+
+        STRIDEINC     = $(STRIDEDIR)/inc#                  # Path to STRIDE include dir
+        STRIDEINC := $(subst \,/,$(STRIDEINC))#
+        STRIDERT      = $(STRIDEDIR)/runtime#              # Path to STRIDE Runtime
+        STRIDERT := $(subst \,/,$(STRIDERT))#
+
+        STRIDEPALMEM  = $(STRIDEDIR)/runtime/pal/s2mem#    # Path to S2 Mem module
+        STRIDEPALMEM := $(subst \,/,$(STRIDEPALMEM))#
+        STRIDEPALSLAP = $(STRIDEDIR)/runtime/pal/s2slap#   # Path to S2 SLAP module
+        STRIDEPALSLAP := $(subst \,/,$(STRIDEPALSLAP))#
+        STRIDEPALTEST = $(STRIDEDIR)/runtime/pal/Test#     # Path to PAL Test routines
+        STRIDEPALTEST := $(subst \,/,$(STRIDEPALTEST))#
+
+
+        STRIDEAPPSDIR     = $(SRCROOT)/apps/STRIDE# # Path to STRIDE rootdir
+        STRIDEAPPSDIR := $(subst \,/,$(STRIDEAPPSDIR))#
+        STRIDEAPPSINC = $(STRIDEAPPSDIR)/inc# # Path to APPS inc dir
+        STRIDEAPPSINC := $(subst \,/,$(STRIDEAPPSINC))#
+        STRIDEAPPSSRC = $(STRIDEAPPSDIR)/src# # Path to APPS src dir
+        STRIDEAPPSSRC := $(subst \,/,$(STRIDEAPPSSRC))#
+        STRIDEIMDIR     = $(SRCROOT)/apps/STRIDE/IM# # Path to STRIDE IM dir
+        STRIDEIMDIR := $(subst \,/,$(STRIDEIMDIR))#
+    endif
+
+    ZIF=      $(RFA)
+
+endif
+
+INO_DRV_INC= $(SRCROOT)/core/hwengines/ino/inc
+
+#-----------------------------------------------------------------------------------
+# Set value of BASE_PATHS - Non recursive set - static paths should be set here
+#-----------------------------------------------------------------------------------
+BASE_PATHS:=\
+                $(AU_APIS) \
+                $(AU_RAPIS) \
+                $(CS_INC) \
+                $(ADIE) \
+                $(MULTIMEDIA_API) \
+                $(APR_API) \
+                $(MMAUDIO_API) \
+                $(BTFTM_INC_PATHS)\
+                $(BTHOST_SRC_PATHS) \
+                $(FMHOST_INC_PATHS) \
+                $(BUIW_XMOD) \
+                $(QCC_BASE) \
+                $(CONTACT) \
+                $(COREAPP) \
+                $(COREAPP_RPC) \
+                $(CUST) \
+                $(DATASTATS) \
+                $(DCVS)/inc \
+                $(SERVICES_API) \
+                $(DIALER) \
+                $(DISP) \
+                $(DISP2D) \
+                $(DISPBL) \
+                $(DRVLIB) \
+                $(FLDDBG) \
+                $(FTM_PATH) \
+                $(INO_DRV_INC) \
+                $(LCD) \
+                $(MAO) \
+                $(MDDI) \
+                $(MDP) \
+                $(QMDP) \
+                $(MODEM_PATHS) \
+		$(MIBIB) \
+                $(MS) \
+                $(NETDIAGNOSTICS) \
+                $(NETSETTINGS) \
+                $(AUXSETTINGS) \
+                $(NV) \
+                $(OEM_RAPI) \
+                $(OSSL) \
+                $(PBPRINT) \
+                $(PDSM_COMM) \
+                $(PE) \
+                $(PROFILING) \
+                $(CAMERA_BASE) \
+                $(QALBUM) \
+                $(QCAMCOMMON) \
+                $(QCAMERA) \
+                $(RAPTOR) \
+                $(REMOTE_APIS) \
+                $(RPC) \
+                $(RRC) \
+                $(FTM_HWTC) \
+                $(STA) \
+                $(SVCPRG) \
+                $(TARGETDIR) \
+                $(TPROF) \
+                $(TSIF_DRV) \
+                $(TVENC) \
+                $(UART) \
+                $(UTILS) \
+                $(UASMS ) \
+                $(HSU_INC_PATHS) \
+                $(XMLLIB) \
+                $(LIBSTD) \
+                $(LIBSTDINC)
+
+#-----------------------------------------------------------------------------------
+# Set value of ALL_PATHS - Recursive set - dynamically altered paths go here
+#-----------------------------------------------------------------------------------
+ALL_PATHS=\
+                $(UIONE) \
+                $(CS_INC) \
+                $(BREW) \
+                $(OEM_IBITMAPFX_INC) \
+                $(OEM_ICAMERA_INC) \
+                $(OEM_IMAGEPRO_INC) \
+                $(BREW_STATIC_EXTENSIONS_IIPL_INC) \
+                $(BREW_STATIC_EXTENSIONS_IYCBCR_INC) \
+                $(BREW_APPMGR) \
+                $(BREW_STATIC_EXTENSIONS) \
+                $(BREW_STATIC_EXTENSIONS_OEM_INC) \
+                $(BREW_STATIC_EXTENSIONS_OEM_SRC) \
+                $(BTLINUX)/soccfg/inc \
+                $(BTLINUX)/ftm/inc \
+                $(QCC_STATIC_EXT) \
+                $(GSTK_INC) \
+                $(GSTK_SRC) \
+                $(ESTK_INC) \
+                $(ESTK_SRC) \
+		$(DCTSTK_SRC) \
+                $(HWENGINES_API_INC) \
+                $(SME_IPSEC_INC) \
+	        $(SME_IPSEC_SRC) \
+		$(SME_AKAALGO_INC) \
+		$(SME_AKAALGO_SRC) \
+                $(WLANHS_RAPI_INC) \
+                $(WLANHS_API)
+
+ BASE_PATHS += \
+                $(DAL_INC) \
+                $(DALFW_INC) \
+                $(DALSYS_INC) \
+                $(CTAROOT) \
+ 		$(CTAROOT)/cta_core \
+ 		$(CTAROOT)/fta_common \
+ 		$(CTAROOT)/xmlutil \
+                $(HALROOT_INC) \
+		$(MPROC_RAPI_INC) \
+		$(MPROC_API_INC) \
+                $(SENSORS_RAPI_INC) \
+                $(TIME_RAPI_INC) \
+                $(WIREDCONNECTIVITY_API_INC) \
+                $(SRCROOT)/drivers/hw/inc \
+                $(TOUCH_SCREEN_ADC_RAPI)\
+                $(HS_RAPI)
+
+
+ifeq ($(USES_UMTS), yes)
+    BASE_PATHS += \
+                $(CB) \
+                $(CLKREGIM) \
+                $(CLKREGIM)/inc \
+                $(CLKREGIM)/src/rpc \
+                $(EGL) \
+                $(FTM_HWTC) \
+                $(GLES) \
+                $(LSM) \
+                $(MAC) \
+                $(MGP) \
+                $(MGPAI2) \
+                $(MGPAI2_AI) \
+                $(MGPAI2_AI2) \
+                $(MGPLIBS) \
+                $(MGPLIBS_CALIB) \
+                $(MGPLIBS_CWTEST) \
+                $(MGPLIBS_FFT) \
+                $(MGPLIBS_HIO) \
+                $(MGPLIBS_IO) \
+                $(MGPLIBS_NMEA) \
+                $(MGPLIBS_PDOP) \
+                $(MGPLIBS_PIO) \
+                $(MGPLIBS_RF) \
+                $(MGPLIBS_RTC) \
+                $(MGPLIBS_SIO) \
+                $(MGPLIBS_WAKEUP) \
+                $(MGPME) \
+                $(MGPME_CC) \
+                $(MGPME_MC) \
+                $(MGPME_ME_ETC) \
+                $(MGPOS) \
+                $(MGPPE) \
+                $(MGPPE_CD) \
+                $(MGPPE_NF) \
+                $(MGPPE_PE_ETC) \
+                $(PBL) \
+                $(PDAPI) \
+                $(QGLDRV) \
+                $(QMI) \
+                $(STRIDEAPPSINC) \
+                $(STRIDEAPPSSRC) \
+                $(STRIDEDIR) \
+                $(STRIDEIMDIR) \
+                $(STRIDEINC) \
+                $(STRIDEPALMEM) \
+                $(STRIDEPALSLAP) \
+                $(STRIDEPALTEST) \
+                $(STRIDERT) \
+                $(STRIDETSGPAL) \
+                $(UITEST)
+endif #USES_UMTS = yes
+
+#---------------------------------------------------------------------------------
+# Add apps proc only paths
+#---------------------------------------------------------------------------------
+
+
+#---------------------------------------------------------------------------------
+# Set value of REDUCED_PATHS
+#---------------------------------------------------------------------------------
+
+ifneq ($(BUILD_TOOL_CHAIN_EXE), yes)
+
+export REDUCED_PATHS = \
+                $(AU_APIS) \
+                $(AU_RAPIS) \
+                $(BUSPERF) \
+                $(CONTACT) \
+                $(COREAPP) \
+                $(COREAPP_RPC) \
+                $(CUST) \
+                $(DATASTATS) \
+                $(DCVS)/inc \
+                $(SERVICES_API) \
+                $(DIAG) \
+                $(DIALER) \
+                $(DISP) \
+                $(DISP2D) \
+                $(DISPBL) \
+                $(DRVLIB) \
+                $(BABYLON) \
+                $(ENC) \
+                $(FLDDBG) \
+                $(GPS) \
+                $(INO_DRV_INC) \
+                $(LCD) \
+                $(MDDI) \
+                $(MDP) \
+                $(QMDP) \
+                $(MS) \
+                $(NETDIAGNOSTICS) \
+                $(NVIM) \
+                $(PDSM_COMM) \
+                $(PE) \
+                $(PROFILING) \
+                $(REMOTE_APIS) \
+                $(RPC) \
+                $(TARGETDIR) \
+                $(TPROF) \
+                $(UASMS) \
+                $(VIDEOFMT) \
+                $(XMLLIB) \
+                $(HSU_INC_PATHS)
+
+
+
+#-----------------------------------------------------------------
+# set value of TOOLS_PATHS and INCLUDE_PREFIX
+#-----------------------------------------------------------------
+TOOLS_PATHS=\
+        $(CUST) $(CAMCORDER_CUST_INC) $(MS) $(MIBIB) \
+        $(BABYLON) $(MODEM_TOOLS_PATHS)
+
+ifneq ($(BUILD_UNIX), yes)
+TOOLS_PATHS += $(UTILS)
+endif
+
+#++cjb
+#-------------------------------------------------------------------------------
+# Include CoreBSP include paths
+#-------------------------------------------------------------------------------
+$(warning COREBSP including: $(COREBSP_BUILD)/incpaths.min)
+include $(COREBSP_BUILD)/incpaths.min
+$(warning COREBSP includes created as: $(COREBSP_INCPATHS_FILE))
+#--cjb
+
+
+export MJNAND_EXE_GCC_INCPATHS=\
+	$(SERVICES_API)
+
+INCLUDE_PREFIX = -I
+
+# Lint tool uses lowercase -i
+ifeq ($(DO_LINT),yes)
+INCLUDE_PREFIX = -i
+endif
+ifeq ($(DO_TARGET_LINT),yes)
+INCLUDE_PREFIX = -i
+endif
+
+TOOLS_INCLUDES = $(addprefix $(INCLUDE_PREFIX), $(TOOLS_PATHS))
+# Intra-GERAN regional include files for use in GERAN min files
+GERAN_INCLUDES = $(addprefix $(INCLUDE_PREFIX), $(GERAN_PATHS))
+
+# Bluetooth include files for Bluetooth min files
+BTHOST_INCLUDES = $(addprefix $(INCLUDE_PREFIX), $(BTHOST_SRC_PATHS))
+
+#
+# Bluetooth Factory Test Mode (FTM) related paths for Linux
+#
+BTLINUX =    $(SRCROOT)/wconnect/bthost
+
+
+# ALL_INCLUDES includes with a --via file (ARM compilers only)
+# BASE_INCLUDES is CONSTANT from this file (not recursive)
+# XALL_INCLUDES is the -I version of ALL_INCLUDES (Does NOT use the --via file,
+#nor does it include the base includes)
+
+BASE_INCLUDES = $(addprefix $(INCLUDE_PREFIX), $(BASE_PATHS))
+XALL_INCLUDES = $(addprefix $(INCLUDE_PREFIX), $(ALL_PATHS))
+ALL_INCLUDES = $(COREBSP_XALL_INCLUDES) $(XALL_INCLUDES) --via $(COREBSP_INCPATHS_FILE) --via $(INCPATHS_FILE) 
+
+ ifneq ($(BUILD_TOOL_CHAIN),yes)
+   export ALL_INCLUDES = $(COREBSP_XALL_INCLUDES) $(XALL_INCLUDES) --via $(COREBSP_INCPATHS_FILE) --via $(INCPATHS_FILE) 
+ else
+   ALL_INCLUDES = $(addprefix $(INCLUDE_PREFIX), $(REDUCED_PATHS)) --via $(COREBSP_INCPATHS_FILE)
+  endif
+
+COMPLETE_INCLUDES = $(COREBSP_BASE_INCLUDES) $(BASE_INCLUDES) $(XALL_INCLUDES)
+
+-include $(RFA)/target/rfa_incpaths.min
+
+#-----------------------------------------------------------------
+# Setup file indirection of ALL_INCLUDES to shorten commandline
+#  length. Non-ARM compilers will need to use a different solution
+#-----------------------------------------------------------------
+
+export TARGETDIR
+
+INCPATHS_FILE := ../../build/ms/$(TARGETDIR)/$(TARGETDIR).inc
+
+define CREATE_INCPATHS_FILE
+        @echo ------------------------------------------------------------------
+        @echo Creating include paths file
+        @echo $(BASE_INCLUDES) > $(INCPATHS_FILE)
+        @echo ------------------------------------------------------------------
+endef
+endif
+
+
+
+
+
+

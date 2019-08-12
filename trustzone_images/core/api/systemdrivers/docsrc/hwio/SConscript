@@ -1,0 +1,46 @@
+#=============================================================================
+# HWIO API LIBRARY
+#
+# Target:    All
+# Processor: All
+#
+#=============================================================================
+# $Header: //source/qcom/qct/core/systemdrivers/hwio/common/main/latest/build/SConscript#3 $
+#=============================================================================
+#  Copyright 2010 QUALCOMM Incorporated.
+#  All Rights Reserved.
+#  QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+Import('env')
+env = env.Clone()
+
+#---------------------------------------------------------------------------
+# Setup the rules for document generation
+#---------------------------------------------------------------------------
+
+env['DOCTITLE']="HWIO API"
+env['DOCREVISION']="1.0"
+
+DOCSRCPATH = "${BUILD_ROOT}/core/api/systemdrivers"
+env.Replace(DOCSRCPATH = DOCSRCPATH)
+
+docsrcfiles = [
+  '${DOCSRCPATH}/docsrc/hwio/introduction.tex',
+  '${DOCSRCPATH}/docsrc/hwio/mainpage.h',
+  '${DOCSRCPATH}/DDIHWIO.h',
+  '${DOCSRCPATH}/HALhwio.h',
+  '${DOCSRCPATH}/msm.h',
+  '${DOCSRCPATH}/msmp.h',
+  '${DOCSRCPATH}/msmhwio.h',
+  '${DOCSRCPATH}/hwioreg_block.h',
+  '${DOCSRCPATH}/msmshift.h',
+  ]
+
+try:
+  target_doc = env.PdfDocument('HWIO', docsrcfiles)
+  env.AddDocs('CORE_DOCS', target_doc)
+except:
+  pass
+
+

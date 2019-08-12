@@ -1,0 +1,68 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub main( @argv)
+{
+    my ( $duration, $handle) = @argv;
+    my $rc;
+
+    if ( !defined( $duration)) {
+        $duration = 10;     //seconds
+    }
+
+    if ( defined( $handle)) {
+        sloption( "script_handles_indications");    // this is a lie
+        print( "script_handles_indications\n");
+    }
+
+    my $client = slopen();
+    print( "slopen() client handle $client\n");
+
+    my $timeout = 6;    // seconds
+
+    my $all_req  = slnew_req( "smgr", "all_info");
+    my $all_resp = slsend_recv( $client, $all_req, $timeout);
+    my ( $count) = slget( $all_resp, { info});
+
+    my $report_id = 1;
+
+    my $i = 0;
+    while ( $i < $count) {
+        my ( $sid, $sname) = slget( $all_resp, { info.$i, sensor_id, short_name});
+
+        my $sngl_req   = slnew_req( "smgr", "sngl_info", { sensor_id => $sid});
+        my $sngl_resp  = slsend_recv( $client, $sngl_req, $timeout);
+        my ( $entries) = slget( $sngl_resp, { info});
+
+        my $j = 0;
+        while ( $j < $entries) {
+            my ( $sensor_id, $datatype, $max_rate) = slget( $sngl_resp, { info.$j, sensor_id, datatype, max_rate} );
+
+            print( "add_req report_id $report_id, sensor_id $sensor_id, datatype $datatype, max_rate $max_rate\n");
+            my $add_req = slnew_req( "smgr", "report", { report_id => $report_id, action => "add", report_rate => $max_rate,
+                                      item => 0, sensor_id => $sensor_id, datatype => $datatype});
+            my $add_resp = slsend_recv( $client, $add_req, $timeout);
+            my ( $result, $err) = slget( $add_resp, { result, err});
+            print( "add_resp result:err $result:$err\n");
+            $j += 1;
+            $report_id += 1;
+        }
+        $i += 1;
+    }
+
+
+    sleep( $duration);       // seconds
+
+    my $del_id = 1;;
+    while ( $del_id < $report_id) {
+        print( "delete report_id $del_id\n");
+        my $del_req = slnew_req( "smgr", "report", { report_id => $del_id, action => "delete"});
+        my $del_resp = slsend_recv( $client, $del_req, $timeout);
+        $del_id += 1;
+    }
+
+    $rc  = slclose( $client);
+    print( "slclose() rc $rc\n");
+}

@@ -1,0 +1,146 @@
+#===============================================================================
+#
+# F3 Trace Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$
+#  $DateTime$
+#  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/13/13   rh      Turned NV on permanently for modem image
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# SUPPORTED IMAGES
+#-------------------------------------------------------------------------------
+DIAG_F3_TRACE_IMAGES = [
+   'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+   'APPS_IMAGE', 'CBSP_APPS_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'
+]
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/services/diag/f3_trace/src"
+
+env.VariantDir('${BUILDPATH}/f3_trace/src', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Features and Definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   #'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   #'HAL',
+   #'HWENGINES',
+   #'IODEVICES',
+   #'MPROC',
+   #'POWER',
+   'SERVICES',
+   #'STORAGE',
+   #'SYSTEMDRIVERS',
+   #'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#++++++++++++++++++++++++++++++
+# F3 TRACE CORE
+#++++++++++++++++++++++++++++++
+DIAG_F3_TRACE_SOURCES =  [
+   '${BUILDPATH}/f3_trace/src/diag_f3_trace.c',
+   '${BUILDPATH}/f3_trace/src/diag_f3_trace_cmd.c',
+]
+
+env.AddLibrary(DIAG_F3_TRACE_IMAGES, '${BUILDPATH}/diag_f3_trace', DIAG_F3_TRACE_SOURCES)
+
+if 'USES_RCINIT' in env:
+    env.AddRCInitFunc(
+       DIAG_F3_TRACE_IMAGES,
+       {
+        'sequence_group'     : 'RCINIT_GROUP_1',
+        'init_name'          : 'diag_f3_trace',
+        'init_function'      : 'diag_f3_trace_init',
+        'dependencies'       : ['diag_f3_trace_nvcfg','diag_f3_trace_devcfg'] #must run after configs
+       })
+
+
+#++++++++++++++++++++++++++++++
+# DAL DEVICE CONFIG SUPPORT
+#++++++++++++++++++++++++++++++
+
+if 'USES_DEVCFG' in env:
+    DIAG_F3_TRACE_DEVCFG_SOURCES =  [
+       '${BUILDPATH}/f3_trace/src/diag_f3_trace_devcfg.c',
+    ]
+    env.AddLibrary(DIAG_F3_TRACE_IMAGES,'${BUILDPATH}/diag_f3_trace_devcfg',DIAG_F3_TRACE_DEVCFG_SOURCES)
+
+    DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+    env.AddDevCfgInfo(DEVCFG_IMG, 
+      {
+        'devcfg_xml' : '${BUILD_ROOT}/core/services/diag/f3_trace/src/diag_f3_trace_devcfg.xml'
+      })
+
+    if 'USES_RCINIT' in env:
+      env.AddRCInitFunc(
+       DIAG_F3_TRACE_IMAGES,
+       {
+        'sequence_group'     : 'RCINIT_GROUP_1',
+        'init_name'          : 'diag_f3_trace_devcfg',
+        'init_function'      : 'diag_f3_trace_devcfg_init',
+        'dependencies'       : ['dalsys',]         
+       })
+
+#++++++++++++++++++++++++++++++
+#    NV CONFIG SUPPORT
+#++++++++++++++++++++++++++++++
+
+DIAG_F3_TRACE_NVCFG_SOURCES =  [
+   '${BUILDPATH}/f3_trace/src/diag_f3_trace_nvcfg.c',
+]
+env.AddLibrary(DIAG_F3_TRACE_IMAGES,'${BUILDPATH}/diag_f3_trace_nvcfg',DIAG_F3_TRACE_NVCFG_SOURCES)
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(
+    DIAG_F3_TRACE_IMAGES,
+    {
+     'sequence_group'     : 'RCINIT_GROUP_1',
+     'init_name'          : 'diag_f3_trace_nvcfg',
+     'init_function'      : 'diag_f3_trace_nvcfg_init',
+     'dependencies'       : ['diag_f3_trace_devcfg']     #nv config can overwrite devcfg
+    })

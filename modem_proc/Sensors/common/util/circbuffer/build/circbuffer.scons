@@ -1,0 +1,104 @@
+#===============================================================================
+#
+# circular buffer Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013-2014 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/Sensors/common/util/circbuffer/build/circbuffer.scons#1 $
+#  $DateTime: 2016/12/13 08:00:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985213 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/04/2014  MW     Added SENSORS_DD_DEV_FLAG for HD22
+# 06/18/2013  pk     Initial version
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/util/circbuffer/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+if env.has_key('SNS_BLAST'):
+    env.Append(CPPPATH = [
+        "${BUILD_ROOT}/Sensors/common/inc",
+        "${BUILD_ROOT}/Sensors/common/util/circbuffer/inc",
+        "${BUILD_ROOT}/core/api/sensors",
+    ])
+else:
+    env.Append(CPPPATH = [
+        "${BUILD_ROOT}/Sensors/common/inc",
+        "${BUILD_ROOT}/Sensors/common/util/circbuffer/inc",
+        "${BUILD_ROOT}/Sensors/api",
+    ])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+CIRCBUFFER_SOURCES = [
+    '${BUILDPATH}/sns_circ_buffer.c',
+]   
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+    # Sources that should not be shared
+    CIRC_BUFF_CLEAN_SOURCES = env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/common/util/circbuffer/src')
+    CIRC_BUFF_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/util/circbuffer/inc')
+
+    # Add binary library
+    if env.has_key('SNS_BLAST'):
+        circbuffer_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 
+            'CORE_QDSP6_SENSOR_SW'],
+            "${BUILDPATH}/CIRCBUFFER", CIRCBUFFER_SOURCES)
+		
+        # Clean sources
+        env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+        CIRC_BUFF_CLEAN_SOURCES)
+    else:
+        circbuffer_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+        "${BUILDPATH}/CIRCBUFFER", CIRCBUFFER_SOURCES)
+		
+        # Clean sources
+        env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+        CIRC_BUFF_CLEAN_SOURCES)
+
+else:
+    circbuffer_lib = env.Library('${BUILDPATH}/CIRCBUFFER', CIRCBUFFER_SOURCES)
+
+    if env.has_key('SNS_BLAST'):
+        env.AddLibsToImage(
+               ['CBSP_QDSP6_SW_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+               circbuffer_lib)
+    else:
+        env.AddLibsToImage(
+               ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+               circbuffer_lib)
+

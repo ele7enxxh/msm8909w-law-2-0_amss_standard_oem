@@ -1,0 +1,99 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;=======================================================
+                       =====================
+    2 00000000         ;===  Copyright (c) 2015 Qualcomm Technologies Incorpora
+                       ted. All Rights Reserved.
+    3 00000000         ;=======================================================
+                       =====================
+    4 00000000                 AREA             DAL_ASM, CODE, READONLY
+    5 00000000         ;=======================================================
+                       =====================
+    6 00000000                 EXPORT           DALFW_LockedGetW
+    7 00000000         ;==  pTarget= r0
+    8 00000000         DALFW_LockedGetW
+    9 00000000 E1901F9F        ldrex            r1,[r0]     ;tag and fetch valu
+                                                            e
+   10 00000004 E1A00001        mov              r0,r1
+   11 00000008 E12FFF1E        bx               r14
+   12 0000000C                 EXPORT           DALFW_LockedConditionalSetW
+   13 0000000C         ;== pTarget=r0, value = r1
+   14 0000000C         DALFW_LockedConditionalSetW
+   15 0000000C E1802F91        strex            r2, r1, [r0]
+   16 00000010 E1A00002        mov              r0, r2      ; return outcome 0 
+                                                            = success
+   17 00000014 E12FFF1E        bx               r14
+   18 00000018                 END
+Command Line: --debug --dwarf2 --cpu=Cortex-A7 --apcs=/noswst/interwork -o/loca
+l/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/
+b/trustzone_images/core/dal/framework/build/tzbsp_no_xpu/cortexA7/MATAANAA/dal_
+asm_rvct.o -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-
+2_20161130_222454/b/trustzone_images/core/dal/framework/build -I/local/mnt/work
+space/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzon
+e_images/build/cust -I. -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8
+909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee
+/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_
+20161130_222454/b/trustzone_images/core/api/dal -I/local/mnt/workspace/CRMBuild
+s/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/
+api/mproc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2
+_20161130_222454/b/trustzone_images/core/api/services -I/local/mnt/workspace/CR
+MBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images
+/core/api/rapi/services/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-0000
+4-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/systemdrivers -I
+/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_22
+2454/b/trustzone_images/core/api/systemdrivers/pmic -I/local/mnt/workspace/CRMB
+uilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/c
+ore/api/systemdrivers/hwio/msm8909w -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.
+c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/systemdr
+ivers/hwio/msm8909w/phys -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M
+8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/kernel -I/local/mnt
+/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/tru
+stzone_images/core/api/kernel/libstd -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5
+.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/dal/framewo
+rk/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20
+161130_222454/b/trustzone_images/core/dal/framework/sys/inc -I/local/mnt/worksp
+ace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_
+images/core/dal/config -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M89
+09AAAAANAZT-2_20161130_222454/b/trustzone_images/core/mproc/smem/inc -I/local/m
+nt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/t
+rustzone_images/core/services/utils/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.
+2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/systemdr
+ivers/busywait/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AA
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+AAANAZT-2_20161130_222454/b/trustzone_images/core/systemdrivers/clk/inc -I/loca
+l/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/
+b/trustzone_images/core/systemdrivers/hal/qgic/inc -I/local/mnt/workspace/CRMBu
+ilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/co
+re/kernel/lk/kernel/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8
+909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/lk/arch/inc -I/lo
+cal/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_22245
+4/b/trustzone_images/core/kernel/lk/platform/inc -I/local/mnt/workspace/CRMBuil
+ds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core
+/kernel/vmidmt/hal/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M89
+09AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/vmidmt/hal/inc/890
+9w -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_201611
+30_222454/b/trustzone_images/core/kernel/xpu2/hal/inc -I/local/mnt/workspace/CR
+MBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images
+/core/kernel/xpu2/hal/inc/8909w -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-
+00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/mmu/inc -
+I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_2
+22454/b/trustzone_images/core/kernel/hypervisor/inc -I/local/mnt/workspace/CRMB
+uilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/c
+ore/kernel/hypervisor/inc/8909w -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-
+00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/smmu/smmu
+500 -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161
+130_222454/b/trustzone_images/core/kernel/smmu/smmu500/8909w/tz --list=/local/m
+nt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/t
+rustzone_images/core/dal/framework/build/tzbsp_no_xpu/cortexA7/MATAANAA/dal_asm
+_rvct.o.lst --sitelicense /local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8
+909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/dal/framework/build/tzbs
+p_no_xpu/cortexA7/MATAANAA/dal_asm_rvct.o.i

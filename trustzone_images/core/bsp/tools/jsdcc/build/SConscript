@@ -1,0 +1,342 @@
+#===============================================================================
+#
+# eMMC JTAG tool build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/bootloaders/msm7x30/main/latest/osbl/build/SConscript#10 $
+#  $DateTime: 2009/07/23 12:15:48 $
+#  $Author: wduembeg $
+#  $Change: 976313 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011-05-26   ah      Updated for 4.1 compiler
+# 2010-08-19   rh      Use DDR memory for 8660
+# 2010-07-14   rh      Force enable debug symbol - again
+# 2010-07-07   rh      Force enable debug symbol
+# 2010-06-22   rh      Update the location of the scl file
+# 2010-06-08   rh      Branch the script for compilation on Scorpion processor
+# 2010-03-16   rh      Add missing IMEM value for 7x30
+# 2010-02-22   rh      Add IMEM value for 8660 and CMM script generator
+# 2009-10-10   rcc     Merged in changes from the integration team
+#===============================================================================
+import os
+Import('env')
+env=env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles aliases
+aliases = [
+   'jsdcc', 'all', 'arm11', 
+   'modem', 'amss', 'amss_arm11',
+]
+
+image_name = str(aliases[0]).upper()
+env.Replace(PROC = 'scorpion')
+
+if not env.CheckAlias(image_name, aliases):
+   Return()
+
+#------------------------------------------------------------------------------
+# Init defualt values this PROC/Image
+#------------------------------------------------------------------------------
+#env = env.Clone()
+
+# Init root env soo all scosntructs will add their libs
+env.Replace(ROOT_ENV = env)
+env.Replace(LIBS = [])
+
+# set other variables used by the build system...
+env.Replace(PLAT = 'boot')
+env.Replace(LIBPATH = env.subst('${LIBPATH}/${PROC}'))
+env.Replace(BUILDPATH = 'tool/' + image_name.lower())
+env.Replace(BUILD_ID = env.subst('${BUILD_ID}A'))
+env.Replace(CUST_H = env.subst('CUST${BUILD_ID}.H').lower())
+
+# set image type
+env.Replace(APPS_PROC = env.subst('${PROC}'))
+env.Replace(JSDCC_TOOL_IMAGE = env.subst('${PROC}'))
+
+# add environment variables
+env.Replace(BUILD_TOOL_CHAIN = 'yes')
+
+#===============================================================================
+# BOOT/OSBL build rules
+#===============================================================================
+
+
+#------------------------------------------------------------------------------
+# Print banner
+#------------------------------------------------------------------------------
+env.PrintImageBanner(image_name)
+
+#------------------------------------------------------------------------------
+# configure and load in uses and path variables,
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.Tool('rvct', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+env.Tool('modem_defs', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])   
+
+if env['MSMID'] in ['8660']:
+   CODE_START_ADDR = "0x40001000"
+   DATA_ADDR = "0x40030000"
+
+if env['MSMID'] in ['8960']:
+   CODE_START_ADDR = "0x2A001000"
+   DATA_ADDR = "0x2A030000"
+
+# Force debug and symbols for flash tools, required by T32 swbp interface
+env.Replace(ARM_DBG = "-g --dwarf2")     # Enable DWARF2 format debug tables
+
+#------------------------------------------------------------------------------
+# Set extension flags for JSDCC
+#------------------------------------------------------------------------------
+if env['BUILD_VER'] == "":
+   env.Replace(BUILD_VER = '0')
+
+env.Append(CPPDEFINES = [
+   "BUILD_TOOL_CHAIN",
+   "BOOT_WATCHDOG_DISABLED",
+   "FEATURE_HS_USB_BASIC",
+   "SADDR=" + CODE_START_ADDR,
+   "PADDR=" + DATA_ADDR,
+   "BOOT_MODULE_BUILD_VERSION=" + env['BUILD_VER'],
+   "BOOT_HEAP_SIZE=0x10000",
+   "FEATURE_STANDALONE_MODEM",
+   "SDCC_USES_SCORPION_WAIT",
+   "FEATURE_HS_USB_BASIC",
+])
+
+# load Core BSP Lib build rule scripts
+env.LoadCoreBSPLibScripts()
+
+# load External Lib build rule scripts
+#env.LoadExternalLibScripts()
+
+#print env.Dump()
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+prebuild_libs = [
+# from pre-build units
+   # CS libraries
+      File(env['PLAT_ROOT'] + '/libstd/lib/RVCT22arm11_Release/a1std.lib'),
+]
+
+if env.get('ARMTOOLSVERSION', 0) >= 4:
+        arm_libs = [
+                # ARM Libs (this need to be last, otherwise linker will use ARMlibs functions
+                # which we want to override)
+                File(env.SubstRealPath('${ARMLIB}/armlib/c_5.l')),
+                File(env.SubstRealPath('${ARMLIB}/armlib/g_5s.l')),
+                File(env.SubstRealPath('${ARMLIB}/armlib/m_5s.l'))
+        ]
+else:
+        arm_libs = [
+                # ARM Libs (this need to be last, otherwise linker will use ARMlibs functions
+                # which we want to override)
+                File(env.SubstRealPath('${ARMLIB}/armlib/c_t__un.l')),
+                File(env.SubstRealPath('${ARMLIB}/armlib/g_t_p.l')),
+                File(env.SubstRealPath('${ARMLIB}/armlib/m_t_pu.l'))
+        ]
+
+subsystem = ARGUMENTS.get('subsystem', None)
+if not subsystem:
+   env.AddLibsToImage('JSDCC_TOOL_IMAGE', prebuild_libs)
+   env.AddLibsToImage('JSDCC_TOOL_IMAGE', arm_libs)
+
+root_env = env['ROOT_ENV']
+libs = root_env['LIBS']
+libs_path = env['LIBPATH']
+
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+JSDCC_SRC = "${BUILD_ROOT}/core/storage/tools/jsdcc"
+
+#env.VariantDir('${BUILDPATH}', JSDCC_SRC, duplicate=0)
+env.VariantDir('.', JSDCC_SRC, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'CS',
+   'DSM',
+   'MODEM_1X',
+   'MODEM_ADIE',
+   'MODEM_DATA',
+   'MODEM_FTM',
+   'MODEM_GERAN',
+   'MODEM_GPS',
+   'MODEM_HDR',
+   'MODEM_MDSP',
+   'MODEM_NAS',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+   'MODEM_UIM',
+   'MODEM_WCDMA',
+   'MULTIMEDIA_AUDIO',
+   'MULTIMEDIA_DISPLAY',
+   'MULTIMEDIA_GRAPHICS',
+   'MULTIMEDIA',
+   'WIRELESSCONNECTIVITY',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BUSES',
+   'DEBUGTOOLS',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'POWER',
+   'SECUREMSM',
+   'SENSORS',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h   
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+
+JSDCC_TARGET_SOURCES = [
+   'jnand_printf.c',
+   'jsdcc_id.c',
+   'jsdcc_imem_init.c',
+   'jsdcc_main.c',
+   'jsdcc_msm.c',
+   'jsdcc_start.s',
+   'jsdcc_param.c'
+]
+
+JSDCC_BSP_PLATFORM = env['MSMID']
+
+#Match up MSM to reuse BSP files
+if env['MSMID'] in ['8960']:
+   JSDCC_BSP_PLATFORM = '8660'
+
+JSDCC_BSP_SOURCE = 'bsp/jsdcc_bsp_' + JSDCC_BSP_PLATFORM + '.c' 
+
+jsdcc_tool_obj = env.Object([
+   JSDCC_TARGET_SOURCES,
+   JSDCC_BSP_SOURCE
+])
+
+#-------------------------------------------------------------------------------
+# Generation of the JTAG parameter CMM file
+#-------------------------------------------------------------------------------
+fp = open('jsdcc_param.cmm', 'w')
+fp.write(';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  \n')
+fp.write(';;  GENERATED FILE - DO NOT EDIT       \n')
+fp.write(';;                                     \n')
+fp.write(';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  \n')
+fp.write('global &JsdcCodeAddr \n')
+fp.write('&JsdcCodeAddr=' + CODE_START_ADDR + '\n')
+fp.write('global &JsdcParamAddr \n')
+fp.write('&JsdcParamAddr=' + DATA_ADDR + '\n')
+
+fp.write('global &JsdcRomBegin \n')
+fp.write('&JsdcRomBegin=00000000 \n')
+fp.write('global &JsdcRomEnd \n')
+fp.write('&JsdcRomEnd=0FFFFFFF \n')
+            
+fp.close()
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+# user overide default units
+if subsystem:
+   jsdcc_units = env['LIBS']
+else:
+   #============================================================================
+   # OSBL Environment
+   #============================================================================
+
+   #----------------------------------------------------------------------------
+   # Beging building OSBL
+   #----------------------------------------------------------------------------
+   env.Replace(TARGET_NAME = 'jsdcc')
+   env.Replace(TARGET_BLD_KCFG = 'A')
+   env.Replace(TARGET_IMAGE = 'APPS_PROC')
+
+   #----------------------------------------------------------------------------
+   # Generate scatter load file
+   #----------------------------------------------------------------------------
+   target_scl = env.SclBuilder('${TARGET_NAME}', 
+      '${BUILD_ROOT}/core/storage/tools/jsdcc/jsdcc_in.scl')
+
+   #----------------------------------------------------------------------------
+   # Generate jsdcc elf
+   #----------------------------------------------------------------------------
+   jsdcc_elf = env.Program('${TARGET_NAME}', jsdcc_tool_obj, LIBS=libs, LIBPATH=libs_path)
+   env.Depends(jsdcc_elf, target_scl)
+   Clean(jsdcc_elf, env.subst('${TARGET_NAME}.map'))
+   Clean(jsdcc_elf, env.subst('${TARGET_NAME}.sym'))
+
+   #----------------------------------------------------------------------------
+   # Generate jsdcc bin
+   #----------------------------------------------------------------------------
+   target_bin = env.BinBuilder('${TARGET_NAME}', jsdcc_elf)
+
+   #----------------------------------------------------------------------------
+   # Adding the generated CMM script
+   #----------------------------------------------------------------------------
+   param_cmm = 'jsdcc_param.cmm'
+
+   #----------------------------------------------------------------------------
+   # Install the generated files
+   #----------------------------------------------------------------------------
+   install_target_bin = env.Install(JSDCC_SRC, [jsdcc_elf, target_bin, param_cmm])
+
+   #============================================================================
+   # Define units that will be build
+   #============================================================================
+   jsdcc_units = env.Alias ('arm11_jsdcc_units', [
+      jsdcc_elf,
+      target_bin,
+      install_target_bin
+   ])
+
+#print env.Dump()
+
+
+# add aliases
+for alias in aliases:
+   env.Alias(alias, jsdcc_units)

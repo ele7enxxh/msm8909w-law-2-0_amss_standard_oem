@@ -1,0 +1,77 @@
+<!-- ================================================================================================== -->
+<!-- GPIO configs.                                                                                      -->
+<!--                                                                                                    -->
+<!-- Source:  IP Catalog                                                                                -->
+<!-- ================================================================================================== -->
+<!--
+
+     BLSP_UART1_TX_DATA     DAL_GPIO_CFG(  0, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART1_RX_DATA     DAL_GPIO_CFG(  1, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART1_CTS_N       DAL_GPIO_CFG(  2, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART1_RFR_N       DAL_GPIO_CFG(  3, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+     BLSP_UART2_TX_DATA     DAL_GPIO_CFG(  4, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART2_RX_DATA     DAL_GPIO_CFG(  5, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART2_CTS_N       DAL_GPIO_CFG(  6, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART2_RFR_N       DAL_GPIO_CFG(  7, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+======================================================================================================= -->
+
+<driver name="NULL">
+
+  <global_def>
+    <string name="UART_PHY_DEVICE_1"      type=DALPROP_DATA_TYPE_STRING> /core/buses/uart/1  </string>
+    <string name="UART_PHY_DEVICE_2"      type=DALPROP_DATA_TYPE_STRING> /core/buses/uart/2  </string>
+    
+    <string name="blsp1_ahb_clock_name"  type=DALPROP_DATA_TYPE_STRING> gcc_blsp1_ahb_clk        </string>
+    
+    <string name="uartbam_1_clock_name"  type=DALPROP_DATA_TYPE_STRING> gcc_blsp1_uart1_apps_clk </string>
+    <string name="uartbam_2_clock_name"  type=DALPROP_DATA_TYPE_STRING> gcc_blsp1_uart2_apps_clk </string>
+   </global_def>
+
+  <!-- =================================================================== -->
+  <!-- TARGET SPECIFIC UART PROPERTIES                                  -->
+  <!-- =================================================================== -->
+  <device id="/core/buses/uart">
+      <props name="UartMainPortPhy"  type=DALPROP_ATTR_TYPE_STRING_PTR>  UART_PHY_DEVICE_1 </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UART1                                                            -->
+  <!-- =================================================================== -->
+
+  <device id="/core/buses/uart/1">
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008012           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c002           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c032           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x20008022           </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0x78AF000            </props>
+    <props name="IsLoopback"     type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="BitRate"        type=DALPROP_ATTR_TYPE_UINT32>         115200               </props>
+    <props name="UartClockName"  type=DALPROP_ATTR_TYPE_STRING_PTR>     uartbam_1_clock_name </props>
+    <props name="PClockName"     type=DALPROP_ATTR_TYPE_STRING_PTR>     blsp1_ahb_clock_name </props>
+    <props name="Irq"            type=DALPROP_ATTR_TYPE_UINT32>         243                  </props>
+    <props name="UartIntSelOffset" type=DALPROP_ATTR_TYPE_UINT32>       0x000140C0           </props>
+    <props name="UartIntSelVal"  type=DALPROP_ATTR_TYPE_UINT32>         0x001                </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UART2                                                            -->
+  <!-- =================================================================== -->
+
+  <device id="/core/buses/uart/2">
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008052           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c042           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c072           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x20008062           </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0x78B0000            </props>
+    <props name="IsLoopback"     type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="BitRate"        type=DALPROP_ATTR_TYPE_UINT32>         115200               </props>
+    <props name="UartClockName"  type=DALPROP_ATTR_TYPE_STRING_PTR>     uartbam_2_clock_name </props>
+    <props name="PClockName"     type=DALPROP_ATTR_TYPE_STRING_PTR>     blsp1_ahb_clock_name </props>
+    <props name="Irq"            type=DALPROP_ATTR_TYPE_UINT32>         243                  </props>
+    <props name="UartIntSelOffset" type=DALPROP_ATTR_TYPE_UINT32>       0x000140C0           </props>
+    <props name="UartIntSelVal"  type=DALPROP_ATTR_TYPE_UINT32>         0x002                </props>
+  </device>
+
+ </driver>

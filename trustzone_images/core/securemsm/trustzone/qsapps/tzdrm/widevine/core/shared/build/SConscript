@@ -1,0 +1,102 @@
+#===============================================================================
+#
+# Widevine TZ Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/03/14   rk      Added new path for app_common_svc_handler.h
+# 01/15/13   cz      Used BUILDPATH
+# 06/01/12   cz      Split tzapps to widevine and other images
+# 09/19/11   cz      Initialized
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/widevine/core/shared"
+
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --arm')
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${COREBSP_ROOT}/api/services",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsee/include/crypto/",
+   "${COREBSP_ROOT}/api/securemsm/trustzone/qsee",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/services/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/common/app_common_svc/shared/inc",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/applib/qsee/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/inc",   
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/scheduler/shared/inc",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/scheduler/shared/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/tzcommon/crypto/shared/src",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/widevine/core/shared/inc/",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/tzdrm/widevine/wv_svc/shared/inc/",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES'
+]
+
+env.RequirePublicApi(CBSP_API)
+
+#----------------------------------------------------------------------------
+# PLAYREADY Shared Library
+#----------------------------------------------------------------------------   
+
+SME_WIDEVINE_CORE_SHARED_LIB_SOURCES = [
+        '${BUILDPATH}/src/widevine_entry.c',
+        '${BUILDPATH}/src/widevine_main.c',
+]
+
+sme_widevine_core_shared_lib = '${BUILDPATH}/sme_widevine_core_shared'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary (['WIDEVINE_IMAGE'],sme_widevine_core_shared_lib, [SME_WIDEVINE_CORE_SHARED_LIB_SOURCES])
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+NOSHIP_SOURCES = env.FindFiles("*", SRCPATH + "/inc")
+env.CleanPack('WIDEVINE_IMAGE', NOSHIP_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

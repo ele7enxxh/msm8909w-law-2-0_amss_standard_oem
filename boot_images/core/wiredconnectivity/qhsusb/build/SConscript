@@ -1,0 +1,43 @@
+#===============================================================================
+#
+# QHSUSB SCONS FILE
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by QUALCOMM Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: 
+#  $DateTime: 
+#  $Author: 
+#  $Change: 
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who       what, where, why
+# --------    ---       ---------------------------------------------------------
+# 11/05/14    bs        added for 8956
+# 07/20/12    sy        Fixing Linux errors
+# 2013-10-25  shreyasr  Initial Draft for 8916 Created
+#===============================================================================
+Import('env')
+
+# set default script name for supported targets
+
+# enable the conscript for 8909
+if env['MSM_ID'] in ['8909', '8909w']:
+   env.SConscript("qhsusb_8909.sconscript", exports='env')
+
+# enable the conscript for 8952
+if env['MSM_ID'] in ['8952']:
+   env.SConscript("qhsusb_8952.sconscript", exports='env') 
+
+# enable the conscript for 8956
+if env['MSM_ID'] in ['8956']:
+   env.SConscript("qhsusb_8956.sconscript", exports='env') 

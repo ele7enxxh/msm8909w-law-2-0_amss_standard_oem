@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Restrictions in China DSDx devices -->
+<policy name        = "generic"
+        schema_ver  = "1"
+        policy_ver  = "4000.5.2"
+>
+
+  <initial>
+    <actions>
+
+      <mcc_list name="restrictions:home_mccs">
+        460 455
+      </mcc_list>
+
+      <plmn_list name ="ct_imsi_plmn">
+        460-03 460-11
+      </plmn_list>
+      
+      <boolean_define name="restrictions:home" initial="false" />
+      <boolean_define name="restrictions:is_ct" initial="false" />
+      
+    </actions>
+  </initial>
+ 
+  <!-- Rule# 1 -->
+  <rule>
+    <conditions>
+      <true/>
+    </conditions>
+    <actions>
+      <boolean_set name="restrictions:home">
+        <location_mcc_in list="restrictions:home_mccs" />
+      </boolean_set>
+      <continue />
+    </actions>
+  </rule>
+  
+  <!-- Rule# 2 -->
+  <!-- findout if subs has CT card  -->
+  <rule precond="IMSI">
+    <conditions>
+      <true/>
+    </conditions>
+    <actions>
+      <boolean_set name="restrictions:is_ct">
+          <any_of>
+          <imsi_mcc_in session="1x" list="restrictions:home_mccs" />
+          <imsi_plmn_in list="ct_imsi_plmn" />
+      </any_of>
+      </boolean_set>
+      <continue />
+    </actions>
+  </rule>
+
+  <!-- Rule# 3 -->
+  <!-- restirct CT card to limited GSM mode if in Home  -->
+  <rule>
+    <conditions>
+      <boolean_test name="restrictions:home" />
+      <boolean_test name="restrictions:is_ct" />
+    </conditions>
+    <actions>
+      <svc_mode> LIMITED </svc_mode>
+      <rat_capability base="none">
+        <include> GSM </include>
+      </rat_capability>
+    </actions>
+  </rule>
+  
+</policy>

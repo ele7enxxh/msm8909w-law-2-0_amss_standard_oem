@@ -1,0 +1,568 @@
+;=============================================================================
+;
+; ClockTree.cmm 
+;  
+; Script to parse out information from the Clock Driver.
+;
+; ============================================================================
+;
+; Copyright (c) 2011 Qualcomm Technologies Incorporated.  All Rights Reserved.  
+; QUALCOMM Proprietary and Confidential. 
+;
+; ============================================================================
+; $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/clock/scripts/ClockDriver.cmm#1 $
+; $DateTime: 2016/12/13 07:59:23 $
+; $Author: mplcsds1 $
+; ============================================================================
+
+local &idx
+local &choice
+local &subscript
+
+
+;-----------------------------------------------------------------------------
+; Print welcome
+;-----------------------------------------------------------------------------
+&subscript=0
+
+ENTRY &subscript
+
+if "&subscript"==""
+(
+  AREA.RESet
+  WINPOS 0. 0. 100% 100%
+  AREA.Create CLOCK
+  AREA.view CLOCK
+)
+
+AREA.Select CLOCK
+AREA.Clear CLOCK
+
+print ""
+print ""
+print "[----------------------------------------------- CLOCK DRIVER TOOL -----------------------------------------------]"
+print ""
+
+;-----------------------------------------------------------------------------
+; Main Menu
+;-----------------------------------------------------------------------------
+
+MainMenu:
+
+print "1: Show enabled clocks"
+print "2: Show enabled sources"
+print "3: Show XO voters"
+print "4: Show voltage voters"
+print "5: Display clocks as table"
+print "6: Display sources as table"
+print "7: Update driver flags"
+print "x: Exit"
+print ""
+
+print "Enter option:"
+enter &choice
+print "&choice"
+
+if "&choice"=="x"
+(
+  if "&subscript"==""
+  (
+    AREA.CLEAR CLOCK
+    AREA.RESET
+    WINCLEAR
+    term.close 
+  )
+  
+  enddo (0==0)
+)
+else if "&choice"=="1"
+(
+  gosub DisplayEnabledClocks
+)
+else if "&choice"=="2"
+(
+  gosub DisplayEnabledSources
+)
+else if "&choice"=="3"
+(
+  gosub DisplayXOVoters
+)
+else if "&choice"=="4"
+(
+  gosub DisplayVoltageVoters
+)
+else if "&choice"=="5"
+(
+  gosub DisplayClockTable
+)
+else if "&choice"=="6"
+(
+  gosub DisplaySourceTable
+)
+else if "&choice"=="7"
+(
+  gosub UpdateDriverFlags
+)
+
+goto MainMenu
+
+
+;-----------------------------------------------------------------------------
+; DisplayEnabledClocks
+;-----------------------------------------------------------------------------
+
+DisplayEnabledClocks:
+  print "[--- Enabled Clocks ---]"
+  &idx=0.
+  &clks=v.value(Clock_DriverCtxt.DrvCtxt.nNumClocks)
+  while &idx<&clks
+  (
+    &suppressible=0
+    &ref=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].nReferenceCount)
+    if &ref>0
+    (
+      ; Check for the SUPPRESSIBLE flag which indicates that this clock
+      ; shall not prevent XO shutdown from occurring.
+      &flags=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].nFlags)
+      if (&flags&(0x200))==0x200
+      (
+        &suppressible=1
+      )
+      
+      &domain=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain)
+      if &domain!=0
+      (
+        ; Check for the SUPPRESSIBLE flag which indicates that clocks in this domain
+        ; shall not prevent XO shutdown from occurring.
+        &flags=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain->nFlags)
+        if (&flags&(0x200))==0x200
+        (
+          &suppressible=1
+        )
+      
+        &src=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain->pSource)
+        if &src!=0
+        (
+          ;var.print "(&idx)  " %string Clock_DriverCtxt.DrvCtxt.aClocks[&idx].szName "  [" Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain->pSource->eSource ", " Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain->VRegRequest.eVRegLevel ", Suppressible=" &suppressible "]"
+          var.print "(&idx)  " %string Clock_DriverCtxt.DrvCtxt.aClocks[&idx].szName "  [" Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain->pSource->pBSPConfig->eSource ", " Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain->VRegRequest.eVRegLevel ", Suppressible=" &suppressible "]"
+        )
+        else
+        (
+          ; Check for the "XO_VOTE" flag which indicates that this clock
+          ; always votes for LPXO even if it has no source.
+          &flags=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].nFlags)
+          if (&flags&(0x2000))==0x2000
+          (
+            var.print "(&idx)  " %string Clock_DriverCtxt.DrvCtxt.aClocks[&idx].szName "  [HAL_CLK_SOURCE_LPXO, " Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain->VRegRequest.eVRegLevel ", Suppressible=" &suppressible "]"
+          )
+          else
+          (
+            var.print "(&idx)  " %string Clock_DriverCtxt.DrvCtxt.aClocks[&idx].szName "  [" Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain->VRegRequest.eVRegLevel ", Suppressible=" &suppressible "]"
+          )
+        )
+      )
+      else
+      (
+        var.print "(&idx)  " %string Clock_DriverCtxt.DrvCtxt.aClocks[&idx].szName "  [No Domain, Suppressible=" &suppressible "]"
+      )
+    )
+    &idx=&idx+1.
+  )
+  print ""
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplayEnabledSources
+;-----------------------------------------------------------------------------
+
+DisplayEnabledSources:
+  print "[--- Enabled Sources ---]"
+  &idx=0.
+  &srcs=v.value(Clock_DriverCtxt.DrvCtxt.nNumSources)
+  while &idx<&srcs
+  (
+    &ref=v.value(Clock_DriverCtxt.DrvCtxt.aSources[&idx].nReferenceCount)
+    &refsupp=v.value(Clock_DriverCtxt.DrvCtxt.aSources[&idx].nReferenceCountSuppressible)
+    if &ref>0||&refsupp>0
+    (
+      ;var.print "(&idx)  " Clock_DriverCtxt.DrvCtxt.aSources[&idx].eSource "  [RefCount=" %decimal Clock_DriverCtxt.DrvCtxt.aSources[&idx].nReferenceCount+Clock_DriverCtxt.DrvCtxt.aSources[&idx].nReferenceCountSuppressible " (Suppressible=" Clock_DriverCtxt.DrvCtxt.aSources[&idx].nReferenceCountSuppressible ")]" 
+      var.print "(&idx)  " Clock_DriverCtxt.DrvCtxt.aSources[&idx].pBSPConfig->eSource "  [RefCount=" %decimal Clock_DriverCtxt.DrvCtxt.aSources[&idx].nReferenceCount+Clock_DriverCtxt.DrvCtxt.aSources[&idx].nReferenceCountSuppressible " (Suppressible=" Clock_DriverCtxt.DrvCtxt.aSources[&idx].nReferenceCountSuppressible ")]" 
+    )
+    &idx=&idx+1.
+  )
+  print ""
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplayXOVoters
+;-----------------------------------------------------------------------------
+
+DisplayXOVoters:
+  print "[--- XO Voters ---]"
+  print "Clocks:"
+  &idx=0.
+  &clks=v.value(Clock_DriverCtxt.DrvCtxt.nNumClocks)
+  while &idx<&clks
+  (
+    &voter=0
+    &ref=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].nReferenceCount)
+    if &ref>0
+    (
+      &domain=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain)
+      if &domain!=0
+      (
+        &cflags=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].nFlags)
+        &dflags=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain->nFlags)
+        &src=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain->pSource)
+        if (&src!=0)&&((&dflags&(0x200))==0)&&((&cflags&(0x200))==0)
+        (
+          &voter=1
+        )
+      )
+    )
+
+    if &voter==1
+    (
+      var.print "(&idx)  " %string Clock_DriverCtxt.DrvCtxt.aClocks[&idx].szName
+    )
+    &idx=&idx+1.
+  )
+  print "Sources:"
+  &idx=0.
+  &sources=v.value(Clock_DriverCtxt.DrvCtxt.nNumSources)
+  while &idx<&sources
+  (
+    &voter=0
+    &ref=v.value(Clock_DriverCtxt.DrvCtxt.aSources[&idx].nReferenceCount)
+    if (&ref>0)
+    (
+      var.print "(&idx)  " %string Clock_DriverCtxt.DrvCtxt.aSources[&idx].szName
+    )
+    &idx=&idx+1.
+  )
+  
+  print ""
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplayVoltageVotersAtLevel
+;-----------------------------------------------------------------------------
+
+DisplayVoltageVotersAtLevel:
+  entry &level &levelname
+  
+  print &levelname ":"
+  &idx=0.
+  &clks=v.value(Clock_DriverCtxt.DrvCtxt.nNumClocks)
+  while &idx<&clks
+  (
+    &ref=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].nReferenceCount)
+    if &ref>0
+    (
+      &domain=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain)
+      if &domain!=0
+      (
+        &vreg=v.value(Clock_DriverCtxt.DrvCtxt.aClocks[&idx].pDomain->VRegRequest.eVRegLevel)
+        if &vreg==&level
+        (
+          var.print "(&idx)  " %string Clock_DriverCtxt.DrvCtxt.aClocks[&idx].szName
+        )
+      )
+    )
+    &idx=&idx+1.
+  )
+  
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplayVoltageVoters
+;-----------------------------------------------------------------------------
+
+DisplayVoltageVoters:
+  print "[--- Voltage Voters (CX)---]"
+  
+  gosub DisplayVoltageVotersAtLevel 6 "HIGH"
+  gosub DisplayVoltageVotersAtLevel 5 "NOMINAL_PLUS"
+  gosub DisplayVoltageVotersAtLevel 4 "NOMINAL"
+  gosub DisplayVoltageVotersAtLevel 3 "LOW"
+  gosub DisplayVoltageVotersAtLevel 2 "LOW_MINUS"
+  gosub DisplayVoltageVotersAtLevel 1 "RETENTION"
+  
+  print ""
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplayClockTable
+;-----------------------------------------------------------------------------
+
+DisplayClockTable:
+  &clks=v.value(Clock_DriverCtxt.DrvCtxt.nNumClocks)-1
+  var.tab %string Clock_DriverCtxt.DrvCtxt.aClocks[0..&clks]
+  return
+
+
+;-----------------------------------------------------------------------------
+; DisplaySourceTable
+;-----------------------------------------------------------------------------
+
+DisplaySourceTable:
+  &srcs=v.value(Clock_DriverCtxt.DrvCtxt.nNumSources)-1
+  var.tab Clock_DriverCtxt.DrvCtxt.aSources[0..&srcs]
+  return
+  
+;-----------------------------------------------------------------------------
+; DisplayFlagHelp
+;-----------------------------------------------------------------------------
+
+DisplayFlagHelp:
+
+  print ""
+  print "------- Flags Available --------"
+  print ""
+  print " LOG_x_STATE_CHANGE"
+  print "   Enable logging of enable/disable calls to all clocks, sources, "
+  print "   or power domains as specified by x."
+  print " LOG_CLOCK_FREQ_CHANGE"
+  print "   Enable logging of frequency changes to all clocks."
+  print " LOG_CLOCK_CONFIG_CHANGE"
+  print "   Enable logging of configuration changes to all clocks."
+  print " LOG_CLOCK_RESET"
+  print "   Enable logging of resets to all clocks."
+  print " LOG_VOLTAGE_CHANGE"
+  print "   Enable logging of vdd requirement changes."
+  print " DO_NOT_DISABLE_x"
+  print "   Ignore requests to disable all clocks, sources, or power domains as specified by x."
+  
+  return
+  
+  
+;-----------------------------------------------------------------------------
+; TestAndPrintFlag
+;-----------------------------------------------------------------------------
+
+TestAndPrintFlag:
+
+  entry &flag &flagname
+  local &flags
+
+  &flags=v.value(Clock_DriverCtxt.DrvCtxt.nGlobalFlags)
+  
+  if (&flags&(&flag))==(&flag)
+  (
+    print "(x) " &flagname
+  )
+  else
+  (
+    print "( ) " &flagname
+  )
+
+  return
+
+;-----------------------------------------------------------------------------
+; ToggleFlag
+;-----------------------------------------------------------------------------
+
+ToggleFlag:
+
+  entry &flag
+  local &flags
+  
+  &flags=v.value(Clock_DriverCtxt.DrvCtxt.nGlobalFlags)
+  
+  if (&flags&(&flag))==(&flag)
+  (
+    &flags=(&flags&(~(&flag)))
+  )
+  else
+  (
+    &flags=(&flags|&flag)
+  )
+  
+  v Clock_DriverCtxt.DrvCtxt.nGlobalFlags=&flags
+  
+  return
+  
+
+;-----------------------------------------------------------------------------
+; SetFlag
+;-----------------------------------------------------------------------------
+
+SetFlag:
+
+  entry &flag
+  local &flags
+  
+  &flags=v.value(Clock_DriverCtxt.DrvCtxt.nGlobalFlags)
+  
+  &flags=(&flags|&flag)
+  
+  v Clock_DriverCtxt.DrvCtxt.nGlobalFlags=&flags
+  
+  return
+  
+  
+;-----------------------------------------------------------------------------
+; ClearFlag
+;-----------------------------------------------------------------------------
+
+ClearFlag:
+
+  entry &flag
+  local &flags
+  
+  &flags=v.value(Clock_DriverCtxt.DrvCtxt.nGlobalFlags)
+  
+  &flags=(&flags&(~(&flag)))
+
+  v Clock_DriverCtxt.DrvCtxt.nGlobalFlags=&flags
+  
+  return
+  
+  
+;-----------------------------------------------------------------------------
+; UpdateDriverFlags
+;-----------------------------------------------------------------------------
+
+UpdateDriverFlags:
+
+  &LOG_CLOCK_STATE_CHANGE=0x0001
+  &LOG_CLOCK_FREQ_CHANGE=0x0002
+  &LOG_CLOCK_CONFIG_CHANGE=0x0004
+  &LOG_CLOCK_RESET=0x0008
+  &LOG_SOURCE_STATE_CHANGE=0x0010
+  &LOG_POWER_DOMAIN_STATE_CHANGE=0x0020
+  &LOG_VOLTAGE_CHANGE=0x0040
+  &LOG_SOURCE_FREQ_CHANGE=0x0080
+  &DO_NOT_DISABLE_CLOCKS=0x0100
+  &DO_NOT_DISABLE_SOURCES=0x0200
+  &DO_NOT_DISABLE_POWER_DOMAINS=0x0400
+  local &flags
+
+  &flags=v.value(Clock_DriverCtxt.DrvCtxt.nGlobalFlags)
+  
+  print ""
+  print "-------- Current Flags ---------"
+  print ""
+  gosub TestAndPrintFlag &LOG_CLOCK_STATE_CHANGE        "LOG_CLOCK_STATE_CHANGE"
+  gosub TestAndPrintFlag &LOG_CLOCK_FREQ_CHANGE         "LOG_CLOCK_FREQ_CHANGE"
+  gosub TestAndPrintFlag &LOG_CLOCK_CONFIG_CHANGE       "LOG_CLOCK_CONFIG_CHANGE"
+  gosub TestAndPrintFlag &LOG_CLOCK_RESET               "LOG_CLOCK_RESET"
+  gosub TestAndPrintFlag &LOG_SOURCE_STATE_CHANGE       "LOG_SOURCE_STATE_CHANGE"
+  gosub TestAndPrintFlag &LOG_POWER_DOMAIN_STATE_CHANGE "LOG_POWER_DOMAIN_STATE_CHANGE"
+  gosub TestAndPrintFlag &LOG_VOLTAGE_CHANGE            "LOG_VOLTAGE_CHANGE"
+  gosub TestAndPrintFlag &LOG_SOURCE_FREQ_CHANGE        "LOG_SOURCE_FREQ_CHANGE"
+  gosub TestAndPrintFlag &DO_NOT_DISABLE_CLOCKS         "DO_NOT_DISABLE_CLOCKS"
+  gosub TestAndPrintFlag &DO_NOT_DISABLE_SOURCES        "DO_NOT_DISABLE_SOURCES"
+  gosub TestAndPrintFlag &DO_NOT_DISABLE_POWER_DOMAINS  "DO_NOT_DISABLE_POWER_DOMAINS"
+  
+  print ""
+  print "--------- Toggle Flag ----------"
+  print ""
+  print " 1: LOG_CLOCK_STATE_CHANGE"
+  print " 2: LOG_CLOCK_FREQ_CHANGE"
+  print " 3: LOG_CLOCK_CONFIG_CHANGE"
+  print " 4: LOG_CLOCK_RESET"
+  print " 5: LOG_SOURCE_STATE_CHANGE"
+  print " 6: LOG_POWER_DOMAIN_STATE_CHANGE"
+  print " 7: LOG_VOLTAGE_CHANGE"
+  print " 8: LOG_SOURCE_FREQ_CHANGE"
+  print " 9: DO_NOT_DISABLE_CLOCKS"
+  print "10: DO_NOT_DISABLE_SOURCES"
+  print "11: DO_NOT_DISABLE_POWER_DOMAINS"
+  print ""
+  print "12: ENABLE ALL"
+  print "13: DISABLE ALL"
+  print ""
+  print " x: Exit"
+  print ""
+  
+  print "Enter option:"
+  enter &flag_choice
+  print "&flag_choice"
+
+  if "&flag_choice"=="1"
+  (
+    gosub ToggleFlag &LOG_CLOCK_STATE_CHANGE
+  )
+  else if "&flag_choice"=="2"
+  (
+    gosub ToggleFlag &LOG_CLOCK_FREQ_CHANGE
+  )
+  else if "&flag_choice"=="3"
+  (
+    gosub ToggleFlag &LOG_CLOCK_CONFIG_CHANGE
+  )
+  else if "&flag_choice"=="4"
+  (
+    gosub ToggleFlag &LOG_CLOCK_RESET
+  )
+  else if "&flag_choice"=="5"
+  (
+    gosub ToggleFlag &LOG_SOURCE_STATE_CHANGE
+  )
+  else if "&flag_choice"=="6"
+  (
+    gosub ToggleFlag &LOG_POWER_DOMAIN_STATE_CHANGE
+  )
+  else if "&flag_choice"=="7"
+  (
+    gosub ToggleFlag &LOG_VOLTAGE_CHANGE
+  )
+  else if "&flag_choice"=="8"
+  (
+    gosub ToggleFlag &LOG_SOURCE_FREQ_CHANGE
+  )
+  else if "&flag_choice"=="9"
+  (
+    gosub ToggleFlag &DO_NOT_DISABLE_CLOCKS
+  )
+  else if "&flag_choice"=="10"
+  (
+    gosub ToggleFlag &DO_NOT_DISABLE_SOURCES
+  )
+  else if "&flag_choice"=="11"
+  (
+    gosub ToggleFlag &DO_NOT_DISABLE_POWER_DOMAINS
+  )
+  else if "&flag_choice"=="12"
+  (
+    gosub SetFlag &LOG_CLOCK_STATE_CHANGE
+    gosub SetFlag &LOG_CLOCK_FREQ_CHANGE
+    gosub SetFlag &LOG_CLOCK_CONFIG_CHANGE
+    gosub SetFlag &LOG_CLOCK_RESET
+    gosub SetFlag &LOG_SOURCE_STATE_CHANGE
+    gosub SetFlag &LOG_POWER_DOMAIN_STATE_CHANGE
+    gosub SetFlag &LOG_VOLTAGE_CHANGE
+    gosub SetFlag &LOG_SOURCE_FREQ_CHANGE
+    gosub SetFlag &DO_NOT_DISABLE_CLOCKS
+    gosub SetFlag &DO_NOT_DISABLE_SOURCES
+    gosub SetFlag &DO_NOT_DISABLE_POWER_DOMAINS
+  )
+  else if "&flag_choice"=="13"
+  (
+    gosub ClearFlag &LOG_CLOCK_STATE_CHANGE
+    gosub ClearFlag &LOG_CLOCK_FREQ_CHANGE
+    gosub ClearFlag &LOG_CLOCK_CONFIG_CHANGE
+    gosub ClearFlag &LOG_CLOCK_RESET
+    gosub ClearFlag &LOG_SOURCE_STATE_CHANGE
+    gosub ClearFlag &LOG_POWER_DOMAIN_STATE_CHANGE
+    gosub ClearFlag &LOG_VOLTAGE_CHANGE
+    gosub ClearFlag &LOG_SOURCE_FREQ_CHANGE
+    gosub ClearFlag &DO_NOT_DISABLE_CLOCKS
+    gosub ClearFlag &DO_NOT_DISABLE_SOURCES
+    gosub ClearFlag &DO_NOT_DISABLE_POWER_DOMAINS
+  )
+  else if "&flag_choice"=="x"
+  (
+    print ""
+    return
+  )
+  
+  goto UpdateDriverFlags
+
+

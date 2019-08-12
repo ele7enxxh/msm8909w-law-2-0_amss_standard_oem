@@ -1,0 +1,481 @@
+; ============================================================================
+;
+;  PMICDump.cmm
+;
+;  Script to dump PMIC register values to an XML file.
+;
+;  Execution:
+;    PMICDump.cmm [ filename ] 
+;                 [ register_list_0 slaveid0_0 slaveid1_0 ]
+;                 [ register_list_1 slaveid0_1 slaveid1_1 ]
+;
+;  <filename> is the output dump file name.  It will default to
+;    c:\temp\pmicdump.xml
+;
+;  The next three parameters define how to dump one of the PMICs on the
+;  platform.  Either 0, 1 or 2 sets can be provided.  If none are provided
+;  then the interactive dialog window will be shown.
+;
+;  <register_list_x> is a file containing a list of register addresses.
+;  <slaveidx_y> are the SPMI slave ids for the two PMIC slaves.
+;
+;  ====================================================================
+;
+;  Copyright (c) 2012 Qualcomm Technologies Incorporated.  All Rights Reserved.
+;  QUALCOMM Proprietary and Confidential.
+;
+;  ====================================================================
+;
+;  $Header: //components/rel/core.mpss/3.5.c12.3/systemdrivers/pmic/scripts/PMICDump.cmm#1 $
+;  $DateTime: 2016/12/13 07:59:23 $
+;  $Author: mplcsds1 $
+;
+; ============================================================================
+;
+
+ENTRY &dumpfile &pm0_reglist &pm0_sid0 &pm0_sid1 &pm1_reglist &pm1_sid0 &pm1_sid1
+
+;-----------------------------------------------------------------------------
+; SPMI variables
+;-----------------------------------------------------------------------------
+
+&PMIC_ARB_CHNLn_CMD=0xFC4CF800
+&PMIC_ARB_CHNLn_STATUS=0xFC4CF808
+&PMIC_ARB_CHNLn_RDATA0=0xFC4CF818
+&CHNLn_OFFSET=0x80
+
+&SPMIOwnerChannel=2  ; MPSS Channel
+
+;-----------------------------------------------------------------------------
+; Determine the file name to save to.
+;-----------------------------------------------------------------------------
+
+IF "&dumpfile"==""
+(
+  &dumpfile="c:\temp\pmicdump.xml"
+)
+
+;-----------------------------------------------------------------------------
+; Set up local flag for whether to include the trim registers or not.
+;-----------------------------------------------------------------------------
+
+LOCAL &include_trim
+&include_trim=1
+
+;-----------------------------------------------------------------------------
+; Check for non-interactive mode.
+;-----------------------------------------------------------------------------
+
+IF "&pm0_reglist"!=""
+(
+  GOSUB StartDump
+  GOSUB DumpPMIC &pm0_reglist &pm0_sid0 &pm0_sid1
+  IF "&pm1_reglist"!=""
+  (
+    GOSUB DumpPMIC &pm1_reglist &pm1_sid0 &pm1_sid1
+  )
+  PRINT "PMIC Dump Complete"
+  
+  ENDDO
+)
+
+;-----------------------------------------------------------------------------
+; Create the dialog
+;-----------------------------------------------------------------------------
+
+DIALOG
+(
+  HEADER "PMIC Register Dump Tool"
+   
+  POS 0. 0. 35. 8.
+  BOX "Configuration"
+  
+  POS 1. 1.5 10. 1.
+  TEXT "Log File:"
+  POS 12. 1.5 20. 1.
+  LOGFILE: EDIT "c:\temp\pmicdump.xml" ""
+  
+  POS 1. 3. 10. 1.
+  TEXT10: TEXT "Platform:"
+  POS 12. 3. 20. 1.
+  PLAT: PULLDOWN "Generic,msm8974_pm8941_pm8841,msm8974_pm8941v2_pm8841,msm8974_pm8941v3_pm8841v2,mdm9x25_pm8019" 
+  (
+    IF DIALOG.STRING(PLAT)=="Generic"
+    (
+      DIALOG.SET PMICA.CHK
+      DIALOG.SET PMICA.MODEL ""
+      DIALOG.SET PMICA.REGLIST ""
+      DIALOG.SET PMICA.SID0 "0"
+      DIALOG.SET PMICA.SID1 "1"
+
+      DIALOG.SET PMICB.CHK "OFF"
+      DIALOG.SET PMICB.MODEL ""
+      DIALOG.SET PMICB.REGLIST ""
+      DIALOG.SET PMICB.SID0 ""
+      DIALOG.SET PMICB.SID1 ""
+    )
+    ELSE IF DIALOG.STRING(PLAT)=="msm8974_pm8941_pm8841"
+    (
+      DIALOG.SET PMICA.CHK
+      DIALOG.SET PMICA.MODEL "pm8941"
+      DIALOG.SET PMICA.REGLIST "pm8941/PMICRegisterList.txt"
+      DIALOG.SET PMICA.SID0 "0"
+      DIALOG.SET PMICA.SID1 "1"
+
+      DIALOG.SET PMICB.CHK
+      DIALOG.SET PMICB.MODEL "pm8841"
+      DIALOG.SET PMICB.REGLIST "pm8841/PMICRegisterList.txt"
+      DIALOG.SET PMICB.SID0 "4"
+      DIALOG.SET PMICB.SID1 "5"
+    )
+    ELSE IF DIALOG.STRING(PLAT)=="msm8974_pm8941v2_pm8841"
+    (
+      DIALOG.SET PMICA.CHK
+      DIALOG.SET PMICA.MODEL "pm8941"
+      DIALOG.SET PMICA.REGLIST "pm8941v2/PMICRegisterList.txt"
+      DIALOG.SET PMICA.SID0 "0"
+      DIALOG.SET PMICA.SID1 "1"
+
+      DIALOG.SET PMICB.CHK
+      DIALOG.SET PMICB.MODEL "pm8841"
+      DIALOG.SET PMICB.REGLIST "pm8841/PMICRegisterList.txt"
+      DIALOG.SET PMICB.SID0 "4"
+      DIALOG.SET PMICB.SID1 "5"
+    )
+    ELSE IF DIALOG.STRING(PLAT)=="msm8974_pm8941v3_pm8841v2"
+    (
+      DIALOG.SET PMICA.CHK
+      DIALOG.SET PMICA.MODEL "pm8941"
+      DIALOG.SET PMICA.REGLIST "pm8941v3/PMICRegisterList.txt"
+      DIALOG.SET PMICA.SID0 "0"
+      DIALOG.SET PMICA.SID1 "1"
+
+      DIALOG.SET PMICB.CHK
+      DIALOG.SET PMICB.MODEL "pm8841"
+      DIALOG.SET PMICB.REGLIST "pm8841v2/PMICRegisterList.txt"
+      DIALOG.SET PMICB.SID0 "4"
+      DIALOG.SET PMICB.SID1 "5"
+    )
+    ELSE IF DIALOG.STRING(PLAT)=="mdm9x25_pm8019"
+    (
+      DIALOG.SET PMICA.CHK
+      DIALOG.SET PMICA.MODEL "pm8019"
+      DIALOG.SET PMICA.REGLIST "pm8019/PMICRegisterList.txt"
+      DIALOG.SET PMICA.SID0 "0"
+      DIALOG.SET PMICA.SID1 "1"
+
+      DIALOG.SET PMICB.CHK "OFF"
+      DIALOG.SET PMICB.MODEL ""
+      DIALOG.SET PMICB.REGLIST ""
+      DIALOG.SET PMICB.SID0 ""
+      DIALOG.SET PMICB.SID1 ""
+    )
+  )
+  POS 1. 4.5 10. 1.
+  TEXT30: TEXT "Processor:"
+  POS 12. 4.5 20. 1.
+  OWNER: PULLDOWN "MPSS,RPM,APCS,TZ,WCNSS,LPASS"
+  (
+  )
+
+  POS 1. 6. 10. 1.
+  TEXT20: TEXT "Include Trim:"
+  POS 12. 6. 1. 1.
+  TRIM.CHK: CHECKBOX "" ""
+
+  ; Instructions Box
+  POS 36. 0. 29. 8.
+  BOX "Instructions"
+  POS 37. 1. 27. 1.
+  TEXT "1. Select the platform you are running on."
+  POS 37. 2. 27. 1.
+  TEXT "2. If desired, change selected PMICs or"
+  POS 37. 3. 27. 1.
+  TEXT "   choose an alternate register list."
+  POS 37. 4. 27. 1.
+  TEXT "3. Click 'Dump'."
+  POS 37. 5. 27. 1.
+  TEXT "4. Analyze at go/pm-rda"
+  
+  POS 0. 8. 65. 7.
+  BOX "PMIC Selection"
+  
+  POS 3. 9.5 10. 1.
+  TEXT "PMIC"
+  POS 12. 9.5 10. 1.
+  TEXT "Register List"
+  POS 49. 9.5 7. 1.
+  TEXT "SlaveID 0"
+  POS 57. 9.5 7. 1.
+  TEXT "SlaveID 1"
+
+  ; Define the PMIC A row
+  POS 1. 11. 2. 1.
+  PMICA.CHK: CHECKBOX "" ""
+  POS 3. 11. 8. 1.
+  PMICA.MODEL: EDIT "" ""
+  POS 12. 11. 30. 1.
+  PMICA.REGLIST: EDIT "" ""
+  POS 42.5 11. 5.
+  BUTTON "Select..."
+  (
+    LOCAL &filename
+    DIALOG.FILE *.*
+    ENTRY &filename
+    DIALOG.SET PMICA.REGLIST "&filename"
+  )
+  POS 49. 11. 4. 1.
+  PMICA.SID0: EDIT "0" ""
+  POS 57. 11. 4. 1.
+  PMICA.SID1: EDIT "1" ""
+  
+  ; Define the PMIC B row
+  POS 1. 12.5 2. 1.
+  PMICB.CHK: CHECKBOX "" ""
+  POS 3. 12.5 8. 1.
+  PMICB.MODEL: EDIT "" ""
+  POS 12. 12.5 30. 1.
+  PMICB.REGLIST: EDIT "" ""
+  POS 42.5 12.5 5.
+  BUTTON "Select..."
+  (
+    LOCAL &filename
+    DIALOG.FILE *.*
+    ENTRY &filename
+    DIALOG.SET PMICB.REGLIST "&filename"
+  )
+  POS 49. 12.5 4. 1.
+  PMICB.SID0: EDIT "4" ""
+  POS 57. 12.5 4. 1.
+  PMICB.SID1: EDIT "5" ""
+  
+  POS 20. 15. 10. 1.5
+  DEFBUTTON "Dump" 
+  (
+    GOSUB SetOwnerChannel DIALOG.STRING(OWNER)
+
+    &plat=DIALOG.STRING(PLAT)
+    &dumpfile=DIALOG.STRING(LOGFILE)
+    GOSUB StartDump &plat
+
+    IF DIALOG.BOOLEAN(TRIM.CHK)
+    (
+      &include_trim=1
+    )
+    ELSE
+    (
+      &include_trim=0
+    )
+
+    IF DIALOG.BOOLEAN(PMICA.CHK)
+    (
+      &reglist=DIALOG.STRING(PMICA.REGLIST)
+      &sid0=DIALOG.STRING(PMICA.SID0)
+      &sid1=DIALOG.STRING(PMICA.SID1)
+      &model=DIALOG.STRING(PMICA.MODEL)
+      GOSUB DumpPMIC &reglist &sid0 &sid1 &model
+    )
+
+    IF DIALOG.BOOLEAN(PMICB.CHK)
+    (
+      &reglist=DIALOG.STRING(PMICB.REGLIST)
+      &sid0=DIALOG.STRING(PMICB.SID0)
+      &sid1=DIALOG.STRING(PMICB.SID1)
+      &model=DIALOG.STRING(PMICB.MODEL)
+      GOSUB DumpPMIC &reglist &sid0 &sid1 &model
+    )
+
+    GOSUB CloseDump
+  )
+  POS 35. 15. 10. 1.5
+  BUTTON "Close" "JUMPTO winclose"
+  CLOSE "JUMPTO winclose"
+)
+STOP
+
+winclose:
+DIALOG.END
+ENDDO
+
+
+;=============================================================================
+;=============================================================================
+; SUBROUTINES
+;=============================================================================
+;=============================================================================
+
+
+;=============================================================================
+; SUB: StartDump
+;=============================================================================
+
+StartDump:
+  ENTRY &target
+
+  PRINT "Saving PMIC register values..."
+  OPEN #1 &dumpfile /Create
+  WRITE #1 "<pmicDump version='1'>"
+  WRITE #1 "  <timestamp>" CLOCK.DATE() ", " CLOCK.TIME() "</timestamp>"
+  WRITE #1 "  <generator>Trace32</generator>"
+
+  if "&target"==""
+  (
+    WRITE #1 "  <target>"
+  )
+  ELSE
+  (
+    WRITE #1 "  <target name='&target'>"
+  )
+
+  RETURN
+
+
+;=============================================================================
+; SUB: DumpPMIC
+;=============================================================================
+
+DumpPMIC:
+
+  ENTRY &reglist &sid0 &sid1 &pmic
+  LOCAL &spmi_slave
+  GLOBAL &ReadValue
+
+  ;-----------------------------------------------------------------------------
+  ; Add header information.
+  ;-----------------------------------------------------------------------------
+
+  IF "&pmic"==""
+  (
+    WRITE #1 "    <pmic>"
+  )
+  ELSE
+  (
+    WRITE #1 "    <pmic model='&pmic'>"
+  )
+  WRITE #1 "      <bus type='spmi' slaveid0='&sid0' slaveid1='&sid1' />"
+
+  ;-----------------------------------------------------------------------------
+  ; Save each register value.
+  ;-----------------------------------------------------------------------------
+
+  OPEN #2 &reglist /Read
+
+  READ #2 %line &addr
+  
+  WHILE !EOF()
+  (
+    &pmic_sid=&addr>>16.
+    IF &pmic_sid==0
+    (
+      &spmi_slave=&sid0
+    )
+    ELSE IF &pmic_sid==1
+    (
+      &spmi_slave=&sid1
+    )
+    ELSE
+    (
+      &spmi_slave=0xFF
+    )
+
+    IF "&spmi_slave"!="0xFF"
+    (
+      &spmi_addr=&addr&0xFFFF
+      &spmi_offset=&addr&0xFF
+      IF (&include_trim==1)||(&spmi_offset<0xF0)
+      (
+        GOSUB SPMIRead &spmi_addr &spmi_slave
+        ENTRY &status &data
+        IF (&status==1)
+        (
+          WRITE #1 "      <register address='0x" &addr "' value='0x" &data "' />"
+        )
+      )
+    )
+
+    READ #2 %line &addr
+  )
+
+  ;-----------------------------------------------------------------------------
+  ; Close up the XML element.
+  ;-----------------------------------------------------------------------------
+
+  WRITE #1 "    </pmic>"
+
+  RETURN
+
+
+;=============================================================================
+; SUB: CloseDump
+;=============================================================================
+
+CloseDump:
+  WRITE #1 "  </target>"
+  WRITE #1 "</pmicDump>"
+  CLOSE #1
+  PRINT "PMIC register data sent to &dumpfile"
+
+  RETURN
+
+
+;=============================================================================
+; SUB: SPMIRead
+;=============================================================================
+
+SPMIRead:
+
+  ENTRY &RegisterAddress &SlaveId
+
+  &cmd=(0x1<<0x1B)|(&SlaveId<<0x14)|(&RegisterAddress<<0x4)
+
+  DATA.SET A:&PMIC_ARB_CHNLn_CMD+&CHNLn_OFFSET*&SPMIOwnerChannel %LONG &cmd
+
+  &status=0
+  WHILE (&status==0)
+  (
+    WAIT 1.ms
+    &status=DATA.LONG(A:&PMIC_ARB_CHNLn_STATUS+&CHNLn_OFFSET*&SPMIOwnerChannel)
+  )
+
+  &data=DATA.LONG(A:&PMIC_ARB_CHNLn_RDATA0+&CHNLn_OFFSET*&SPMIOwnerChannel)
+
+  RETURN &status &data
+
+
+;=============================================================================
+; SUB: SetOwnerChannel
+;=============================================================================
+
+SetOwnerChannel:
+
+  ENTRY &OwnerName
+
+  IF &OwnerName=="APCS"
+  (
+    &SPMIOwnerChannel=0
+  )
+  ELSE IF &OwnerName=="TZ"
+  (
+    &SPMIOwnerChannel=1
+  )
+  ELSE IF &OwnerName=="MPSS"
+  (
+    &SPMIOwnerChannel=2
+  )
+  ELSE IF &OwnerName=="LPASS"
+  (
+    &SPMIOwnerChannel=3
+  )
+  ELSE IF &OwnerName=="RPM"
+  (
+    &SPMIOwnerChannel=4
+  )
+  ELSE IF &OwnerName=="WCNSS"
+  (
+    &SPMIOwnerChannel=5
+  )
+
+  RETURN
+
+
+

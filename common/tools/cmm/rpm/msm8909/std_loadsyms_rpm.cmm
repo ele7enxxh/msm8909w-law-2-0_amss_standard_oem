@@ -1,0 +1,76 @@
+//============================================================================
+//  Name:                                                                     
+//    std_loadsyms_rpm.cmm 
+//
+//  Description:                                                              
+//    Script to load RPM symbols
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 10/25/2012 AJCheriyan	Fixed script to load symbols from any build
+// 08/08/2012 AJCheriyan	Changed the strippart option
+// 07/10/2012 AJCheriyan    Created for B-family 
+//
+
+// ARG0 - Build from which symbols have to loaded
+
+ENTRY &ARG0
+&RPMBUILD="&ARG0"
+
+MAIN:
+	IF ("&RPMBUILD"!="")
+	(
+		// Load the elf file first 
+    	//D.LOAD.ELF "&RPMBUILD/rpm_proc/core/bsp/rpm/build/*.elf" /nocode /strippart	"rpm_proc" /sourcepath "&RPMBUILD/rpm_proc"
+		D.LOAD.ELF "&RPMBUILD/rpm_proc/core/bsp/rpm/build/*.elf" /nocode /noclear /noreg
+
+    	// Load anything else from the build
+	    // Load the relative path info for the build
+	    //do std_utils EXECUTESCRIPT EXIT &RPMBUILD/rpm_proc/core/products/scripts/std_toolsconfig.cmm
+			
+		// Program the menus for general debugging
+		//do std_utils EXECUTESCRIPT EXIT &RPMBUILD/rpm_proc/core/products/scripts/std_scripts.men
+			
+		// Load the extensions for the system
+	    //do std_utils EXECUTESCRIPT EXIT &RPMBUILD/rpm_proc/core/products/scripts/std_extensions.cmm
+	)
+	ELSE
+	(
+		// Load the elf file first 
+    	//D.LOAD.ELF "&RPM_BUILDROOT/rpm_proc/core/bsp/rpm/build/*.elf" /nocode /strippart "rpm_proc" /sourcepath "&RPM_BUILDROOT/rpm_proc"
+		D.LOAD.ELF "&RPM_BUILDROOT/rpm_proc/core/bsp/rpm/build/*.elf" /nocode /noclear /noreg
+
+    	// Load anything else from the build
+	    // Load the relative path info for the build
+	    //do std_utils EXECUTESCRIPT EXIT &RPM_BUILDROOT/rpm_proc/core/products/scripts/std_toolsconfig.cmm
+			
+		// Program the menus for general debugging
+		//do std_utils EXECUTESCRIPT EXIT &RPM_BUILDROOT/rpm_proc/core/products/scripts/std_scripts.men
+			
+		// Load the extensions for the system
+	    //do std_utils EXECUTESCRIPT EXIT &RPM_BUILDROOT/rpm_proc/core/products/scripts/std_extensions.cmm
+
+	)
+
+
+	GOTO EXIT
+
+
+
+
+FATALEXIT:
+    END
+
+EXIT:
+    ENDDO
+
+

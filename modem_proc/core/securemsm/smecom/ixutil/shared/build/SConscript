@@ -1,0 +1,127 @@
+#===============================================================================
+#
+# smecom_ixutil_shared Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/securemsm/smecom/main/latest/ixutil/shared/build/SConscript#1 $
+#  $DateTime: 2009/10/16 07:31:30 $
+#  $Author: nkotekar $
+#  $Change: 1055693 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/24/11   nk      Removed wstring implentation
+# 01/31/11   nk      Including Modem dependencies.
+# 03/30/10   nk      Initial Revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/smecom"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+   'MODEM_API',
+   'MODEM_UIM',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+SME_PROTECTED_API = [
+                      'DRMCOM',
+                      'DRMOMA',
+                      'DRMMS',
+                      'SMECOM',
+                      'CHDLR',
+                      'CHDLRCOM',
+                      'SMESQL',
+                      'STATICEXT',
+]
+env.RequireProtectedApi(SME_PROTECTED_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = ['_ARM_', '__arm', 'ARM', 'ARM_BREW_BUILD'])
+env.Append(ARMCC_OPT = ' -Ec --loose_implicit_cast ')
+env.Append(ARMCPP_OPT = ' -Ec --loose_implicit_cast ')
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------
+# IxUTIL_SHARED Interface
+#----------------------------------------------------------------------------
+IXUTIL_SHARED_SOURCES = [
+	'${BUILDPATH}/ixutil/shared/src/iovec.cpp', 
+	'${BUILDPATH}/ixutil/shared/src/IxBase64.cpp',
+	'${BUILDPATH}/ixutil/shared/src/IxObjectRegistry.cpp',
+	'${BUILDPATH}/ixutil/shared/src/IxSysUtils.cpp', 
+	'${BUILDPATH}/ixutil/shared/src/UxBuf.cpp',
+	'${BUILDPATH}/ixutil/shared/src/UxDebugNew.cpp', 
+	'${BUILDPATH}/ixutil/shared/src/UxString.cpp',
+	'${BUILDPATH}/ixutil/shared/src/ipcerror.c',
+	'${BUILDPATH}/ixutil/shared/src/tracker.c', 
+	'${BUILDPATH}/ixutil/shared/src/UxMalloc.c', 
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+IXUTIL_SHARED_IMAGES = [
+	'SINGLE_IMAGE', 
+	'CBSP_SINGLE_IMAGE',
+	'MODEM_IMAGE',  
+	'CBSP_MODEM_IMAGE',
+	'APPS_IMAGE',   
+	'CBSP_APPS_IMAGE',
+	'QDSP6_SW_IMAGE', 
+	'CBSP_QDSP6_SW_IMAGE'
+]
+
+if env.has_key('USES_SEC'):
+	env.AddBinaryLibrary(IXUTIL_SHARED_IMAGES,'${BUILDPATH}/sme_ixutil_shared', IXUTIL_SHARED_SOURCES)
+

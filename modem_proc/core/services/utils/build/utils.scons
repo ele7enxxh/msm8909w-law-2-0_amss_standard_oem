@@ -1,0 +1,175 @@
+#===============================================================================
+#
+# Utils Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/mdm9x00/main/latest/services/utils/build/SConscript#1 $
+#  $DateTime: 2009/08/03 19:02:03 $
+#  $Author: wduembeg $
+#  $Change: 986488 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPDEFINES=["FEATURE_BLAST"])
+
+if 'USES_QURT_DEMAND_PAGE' in env:
+    env.Append(CPPDEFINES = ["QZIP_MEMHEAP_SIZE=0x300000"])
+else:
+    env.Append(CPPDEFINES = ["QZIP_MEMHEAP_SIZE=0x0"])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/services/utils/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'BREW',
+   'CS',
+   'MODEM_PMIC',
+   'MULTIMEDIA_DISPLAY',
+])
+
+
+if env.has_key('USES_MBA'):
+    env.Append(CPPDEFINES = ["FEATURE_MBA_MEMHEAP_IMAGE"])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'SECUREMSM',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequirePublicApi(['DHMS',], area='QMIMSGS')
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi('SERVICES_UTILS', "${INC_ROOT}/core/services/utils/src")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+UTILS_SOURCES = [
+   '${BUILDPATH}/bit.c',
+   '${BUILDPATH}/cmd.c',
+   '${BUILDPATH}/crc.c',
+   '${BUILDPATH}/intconv.c',
+   '${BUILDPATH}/list.c',
+   '${BUILDPATH}/md5c.c',
+   '${BUILDPATH}/memheap.c',
+   '${BUILDPATH}/misc.c',
+   '${BUILDPATH}/queue.c',
+   '${BUILDPATH}/qw.c',
+   '${BUILDPATH}/ran.c',   
+]
+
+if 'QMIMSGS_MPSS' in env:
+   UTILS_SOURCES += [
+      '${BUILDPATH}/dynamic_heap.c',
+      '${BUILDPATH}/mem_share_qmi_client.c',
+      '${BUILDPATH}/mem_share_qmi_poll_client.c', 
+   ]
+
+UTILS_MBA_SOURCES =  [
+   '${BUILDPATH}/${SRC_DIR}/memheap.c',
+   '${BUILDPATH}/amssheap.c',
+   '${BUILDPATH}/memheap_mba_stub.c',
+   '${BUILDPATH}/mba_uncached_heap.c',
+   '${BUILDPATH}/crc.c',
+]
+
+UTILS_ARM_SOURCES = [
+   '${BUILDPATH}/amssheap.c',
+   '${BUILDPATH}/amssheap_debug.c',
+   '${BUILDPATH}/modem_mem.c',
+]
+
+UTILS_QDSP6_SOURCES = [
+   '${BUILDPATH}/qmalloc.c'
+]
+
+UTILS_UMTS_SOURCES = [
+   '${BUILDPATH}/sys_eplmn_list.c'
+]
+
+UTILS_CPP_SOURCES = [
+   '${BUILDPATH}/memutils.cpp'
+]
+
+UTILS_A_SOURCES = [
+   '${BUILDPATH}/miscasm.s'
+]
+
+TOOLS_SOURCES =[
+   '${BUILDPATH}/crc.c',
+]
+
+utils_obj = env.Object([UTILS_SOURCES, UTILS_CPP_SOURCES, UTILS_A_SOURCES, UTILS_ARM_SOURCES])
+
+
+utils_lib = env.Library('${BUILDPATH}/utils', [utils_obj])
+
+utils_umts = env.Library('${BUILDPATH}/utils_umts', UTILS_UMTS_SOURCES)
+
+env.AddObject(['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], 
+   [UTILS_SOURCES, UTILS_CPP_SOURCES, UTILS_ARM_SOURCES])
+
+env.AddLibrary(['MBA_CORE_SW'],'${BUILDPATH}/utils_mba', UTILS_MBA_SOURCES)   
+
+env.AddObject(['NAND_TOOLS_IMAGE', 'NAND_TOOLS_EXE', 'HOSTDL_IMAGE', 'EHOSTDL_IMAGE',
+   'NAND_UTILS_IMAGE', 'OSBL_BOOT_IMAGE', 'APPSBL_BOOT_IMAGE'], TOOLS_SOURCES)
+
+## For Mem share qmi polling
+MEM_SHARE_QMI_POLL_RCINIT_IMAGE = []
+
+# Add to RCINIT image
+MEM_SHARE_QMI_POLL_RCINIT_IMAGE.extend(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'])
+
+if 'USES_RCINIT' in env and env.IsTargetEnable(['QMIMSGS_MPSS']):
+	env.AddRCInitTask(
+	MEM_SHARE_QMI_POLL_RCINIT_IMAGE,
+	{
+	   'sequence_group'      : 'RCINIT_GROUP_0',         # required
+       'thread_name'         : 'memshare_qmiclient',     # required
+	   'thread_entry'        : 'mem_share_qmi_poll_task',    # NOT AVAILABLE
+	   'stack_size_bytes'    : '4096',
+       'priority_amss_order' : 'TC_PRI_ORDER',               # Experimental, TC_PRI_ORDER = 100
+       'cpu_affinity'        : 'REX_ANY_SMT_MASK',
+       'dependencies'               : ['qmi_fw']
+    })

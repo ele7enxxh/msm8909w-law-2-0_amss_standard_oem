@@ -1,0 +1,39 @@
+<!--
+  This XML file contains target specific information for MPM
+  driver for targets using device config feature.
+
+  Copyright (c) 2013-2014 QUALCOMM Technologies Incorporated.
+  All Rights Reserved.
+  Qualcomm Confidential and Proprietary   
+-->
+
+#include "DDIInterruptController.h"
+<!-- 
+ * The following physical address for the
+ * processor as defined by the RPM.  The start address is 
+ * defined to be at the wakeup_time- not enable request.
+ * (see rpm_proc\core\power\mpm\src\vmpm_*.c)
+-->
+#define RPM_MPM_MSS_WAKEUP_TIME_PA     (0x000611D0) /* (0x000611D8 - 8) */
+
+<driver name="NULL">
+  <device id="/dev/core/power/mpm">
+
+    <props name="vmpm_pinNumMappingTable" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+      devcfg_MpmInterruptPinNum_Mapping
+    </props>
+
+    <props name="vmpm_procRegionStartPA" type=DALPROP_ATTR_TYPE_UINT32>
+      RPM_MPM_MSS_WAKEUP_TIME_PA
+    </props>
+
+    <props name="vmpm_wakeupIrq" type=DALPROP_ATTR_TYPE_UINT32>
+      33
+    </props>
+
+    <props name="vmpm_wakeupIrqFlags" type=DALPROP_ATTR_TYPE_UINT32>
+      DALINTRCTRL_ENABLE_RISING_EDGE_TRIGGER
+    </props>
+
+  </device>
+</driver>

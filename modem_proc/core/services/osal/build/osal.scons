@@ -1,0 +1,96 @@
+#===============================================================================
+#
+# OSAL Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/msm7x30/main/latest/boot/appsproc/build/msm7x30.sconscript#3 $
+#  $DateTime: 2009/07/19 21:27:25 $
+#  $Author: wduembeg $
+#  $Change: 971778 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/services/osal"
+
+ 
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES',
+   'MPROC',
+   'SYSTEMDRIVERS',
+   'DEBUGTOOLS',
+   'DAL',
+   
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+OSAL_SOURCES = [
+   '${BUILDPATH}/rex/src/osal_rex.c',
+]
+
+OSAL_QDSP_SOURCES = [
+   '${BUILDPATH}/rex/src/osal_rex.c',
+]
+
+OSAL_MBA_SOURCES =  [
+   '${BUILDPATH}/qurt/src/osal_qurt.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+OSAL_LIB_IMAGES = [
+	'SINGLE_IMAGE', 
+	'CBSP_SINGLE_IMAGE',
+	'MODEM_IMAGE',  
+	'CBSP_MODEM_IMAGE',
+	'APPS_IMAGE',   
+	'CBSP_APPS_IMAGE',
+	'WCN_IMAGE', 
+	'CORE_GSS'
+]
+
+env.AddLibrary(OSAL_LIB_IMAGES,'${BUILDPATH}/osal',OSAL_SOURCES)
+
+env.AddLibrary(['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+   '${BUILDPATH}/osal_qdsp6',OSAL_QDSP_SOURCES)
+
+env.AddLibrary(['MBA_CORE_SW'],'${BUILDPATH}/osal_mba',OSAL_MBA_SOURCES)

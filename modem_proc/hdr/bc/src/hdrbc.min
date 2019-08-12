@@ -1,0 +1,83 @@
+#-------------------------------------------------------------------------------
+# HDR Broadcast source file(s)
+#-------------------------------------------------------------------------------
+
+HDRBC_SOURCES=\
+	hdrbctask.c
+
+#-------------------------------------------------------------------------------
+# HDR Broadcast include file(s) path
+#-------------------------------------------------------------------------------
+HDR_CINCPATH=\
+        $(COMMON)       \
+        $(ADC)          \
+        $(ADSP)         \
+        $(AVS)          \
+        $(CM)           \
+        $(BIO)          \
+        $(BOOT)         \
+        $(CLK)          \
+        $(CP)           \
+        $(DATA)         \
+        $(DEC)          \
+        $(DFM)          \
+        $(DIAG)         \
+        $(ENC)          \
+        $(FTM)          \
+        $(GPS)          \
+        $(HS)           \
+        $(HW)           \
+        $(MUX)          \
+        $(MDSP)         \
+        $(QDSP)         \
+        $(NV)           \
+        $(PM)           \
+        $(PLT)          \
+        $(RF)           \
+        $(SBI)          \
+        $(SIO)          \
+        $(SRCH)         \
+        $(TLMM)         \
+        $(TRAMP)        \
+        $(TRERM)        \
+        $(UASMS)        \
+        $(UI)           \
+        $(VBATT)        \
+        $(USB)
+
+#-----------------------------------------------------------------------------
+# HDR Broadcast object file(s)
+#-----------------------------------------------------------------------------
+
+HDRBC_OBJS :=  $(addprefix $(TARGETDIR)/, $(HDRBC_SOURCES:%.c=%.o))
+$(HDRBC_OBJS): INCLUDES = $(addprefix -I, $(HDR_CINCPATH))
+
+HDRBC_DEPS :=  $(addprefix $(TARGETDIR)/, $(HDRBC_SOURCES:%.c=%.dep) )
+$(HDRBC_DEPS): INCLUDES = $(addprefix -I, $(HDR_CINCPATH))
+
+#-----------------------------------------------------------------------------
+# HDR Broadcast source files search path
+#-----------------------------------------------------------------------------
+
+vpath %.c $(HDRBC)/src
+
+#-----------------------------------------------------------------------------
+# HDR Broadcast Lint
+#-----------------------------------------------------------------------------
+### Start Lint block ###
+ifdef DO_LINT
+  include $(HDR)/lib_hdrbc.min  
+
+  # Linting HDRBC Unit
+  HDRBC_COMBINED_SOURCES := $(HDRBC_LIB_SOURCES) $(HDRBC_SOURCES)
+  
+  HDRBC_LINT_OBJS := $(addprefix $(LINTDIR)/, $(HDRBC_COMBINED_SOURCES:%.c=%.lint))
+  
+  # Add the HDR specific lint rules
+  $(HDRBC_LINT_OBJS) : LINT_FLAGS := $(LINT_FLAGS) hdr.lnt
+
+  # Specify group target for linting HDR subsystem
+  $(LINTDIR)/hdrbc_lint : $(HDRBC_LINT_OBJS)
+
+endif
+### End Lint block ###

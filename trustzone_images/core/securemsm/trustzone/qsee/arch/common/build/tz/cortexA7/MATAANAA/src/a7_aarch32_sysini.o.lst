@@ -1,0 +1,281 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;-------------------------------------------------------
+                       ------------------------
+    2 00000000         ; SYSINI
+    3 00000000         ; Version: 3.8 (experimental)
+    4 00000000         ; CPU:     Cortex-A7
+    5 00000000         ; Mode:    AArch32
+    6 00000000         ;-------------------------------------------------------
+                       ------------------------
+    7 00000000         ;-------------------------------------------------------
+                       ------------------------
+    8 00000000                 AREA             RO, CODE, READONLY
+    9 00000000                 ARM
+   10 00000000         ; Export functions and global variables
+   11 00000000                 EXPORT           a7_aarch32_sysini
+   12 00000000                 PRESERVE8
+   13 00000000         ;-------------------------------------------------------
+                       ------------------------
+   14 00000000         ;-------------------------------------------------------
+                       ----------------
+   15 00000000         ; a7_aarch32_sysini
+   16 00000000         ; Inputs- None
+   17 00000000         ; Description - This function initializes several implem
+                       entation defined
+   18 00000000         ; CPU registers. Fixes for several ARM errata are also a
+                       pplied here.
+   19 00000000         ;-------------------------------------------------------
+                       ------------------------
+   20 00000000         a7_aarch32_sysini
+   21 00000000         ; ------------------------------------------------------
+                       ---------------------
+   22 00000000         ; Set SMP Bit -  must be set before caches and MMU are e
+                       nabled
+   23 00000000         ; ------------------------------------------------------
+                       ---------------------
+   24 00000000 EE110F30        MRC              p15, 0, r0, c1, c0, 1 ; Read Au
+                                                            xiliary Control Reg
+                                                            ister
+   25 00000004 E3800040        ORR              r0, r0, #(0x1 << 6) 
+                                                            ; Set SMP bit
+   26 00000008 EE010F30        MCR              p15, 0, r0, c1, c0, 1 ; Write A
+                                                            uxiliary Control Re
+                                                            gister
+   27 0000000C F57FF06F        ISB
+   28 00000010 F57FF04F        DSB
+   29 00000014         ; ------------------------------------------------------
+                       ---------------------
+   30 00000014         ; Disable Adv. SIMD & FP through Floating-point Exceptio
+                       n Control register
+   31 00000014         ; FPEXC
+   32 00000014         ; ------------------------------------------------------
+                       ---------------------
+   33 00000014         ;MOV r0, #0
+   34 00000014         ;VMSR FPEXC, r0; Write Floating-point Exception Control 
+                       Register
+   35 00000014         ;ISB
+   36 00000014         ; ------------------------------------------------------
+                       ---------------------
+   37 00000014         ; Disable VFP / NEON, remove full access to CP 10/11 spa
+                       ce
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   38 00000014         ; through CPACR register
+   39 00000014         ; ------------------------------------------------------
+                       ---------------------
+   40 00000014 E3A00000        MOV              r0, #0
+   41 00000018 EE010F50        MCR              p15, 0, r0, c1, c0, 2
+   42 0000001C F57FF06F        ISB
+   43 00000020         ; ------------------------------------------------------
+                       ---------------------
+   44 00000020         ; Enable non-secure access to coprocessors 10, 11 throug
+                       h NSACR
+   45 00000020         ; Non-Secure Access Control Register
+   46 00000020         ; ------------------------------------------------------
+                       ---------------------
+   47 00000020         ; MRC p15, 0, r0, c1, c1, 2 ; Read Non-Secure Access Con
+                       trol Register data
+   48 00000020         ; MOV r1, #3<<10;
+   49 00000020         ; BIC r0, r0, r1        ; Write 0b11 to bits 11:10
+   50 00000020         ; MCR p15, 0, r0, c1, c1, 2 ; Write Non-Secure Access Co
+                       ntrol Register data
+   51 00000020         ; ------------------------------------------------------
+                       ---------------------
+   52 00000020         ; Disable Secure Invasive and Non-Invasive Debug
+   53 00000020         ; through SDER - Secure Debug Enable Register
+   54 00000020         ; This is a Restricted access register, meaning it exist
+                       s only in the Secure
+   55 00000020         ; state.
+   56 00000020         ; This should ideally be set by Secure Monitor code
+   57 00000020         ; ------------------------------------------------------
+                       ---------------------
+   58 00000020 EE110F31        MRC              p15, 0, R0, c1, c1, 1 
+                                                            ; Read SDER into R0
+                                                            
+   59 00000024 E3C00003        BIC              R0, R0, #3  ; Disable bits [0] 
+                                                            and [1]
+   60 00000028 EE010F31        MCR              p15, 0, R0, c1, c1, 1 
+                                                            ; Write R0 to SDER
+   61 0000002C F57FF06F        ISB
+   62 00000030         ; ------------------------------------------------------
+                       --------------------
+   63 00000030         ; Disable debugging through SDCR - Secure Debug Configur
+                       ation Register
+   64 00000030         ; ------------------------------------------------------
+                       --------------------
+   65 00000030         ;MRC p15, 0, R0, c1, c3, 1 ; Read SDCR into R0
+   66 00000030         ;MOV R1, #3<<14
+   67 00000030         ;BIC R0, R0, R1; Clear bits 14 and 15
+   68 00000030         ;MOV R1, #1<<17
+   69 00000030         ;BIC R0, R0, R1; Clear bit 17
+   70 00000030         ;ORR R0, R0, #3<<20 ; Set bits 20 and 21
+   71 00000030         ;MCR p15, 0, R0, c1, c3, 1 ; Write R0 to SDCR
+   72 00000030         ;ISB
+   73 00000030 F57FF04F        DSB
+   74 00000034 F57FF06F        ISB                          ;Make sure all chan
+                                                            ges are propagated 
+                                                            before returning fr
+                                                            om sysini
+   75 00000038 E12FFF1E        BX               lr
+   76 0000003C                 END                          ; End of sysini 
+Command Line: --debug --dwarf2 --diag_suppress=1480,1786,2523 --cpu=Cortex-A7 -
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+-fpu=SoftVFP --apcs=/noswst/interwork -o/local/mnt/workspace/CRMBuilds/TZ.BF.2.
+5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/
+trustzone/qsee/arch/common/build/tz/cortexA7/MATAANAA/src/a7_aarch32_sysini.o -
+I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_2
+22454/b/trustzone_images/core/securemsm/trustzone/qsee/arch/common/build -I/loc
+al/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454
+/b/trustzone_images/build/cust -I. -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c
+10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/tru
+stzone/qsee/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909A
+AAAANAZT-2_20161130_222454/b/trustzone_images/core/api/boot -I/local/mnt/worksp
+ace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_
+images/core/api/boot/qfprom -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-0000
+4-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/securemsm -I/loc
+al/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454
+/b/trustzone_images/core/api/securemsm/crypto -I/local/mnt/workspace/CRMBuilds/
+TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/ap
+i/securemsm/tzos -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAA
+ANAZT-2_20161130_222454/b/trustzone_images/core/api/rapi/securemsm/inc -I/local
+/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b
+/trustzone_images/core/buses/api/spmi -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.
+5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/buses/api/
+spi -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161
+130_222454/b/trustzone_images/core/buses/api/icb -I/local/mnt/workspace/CRMBuil
+ds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core
+/buses/api/i2c -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAAN
+AZT-2_20161130_222454/b/trustzone_images/core/api/dal -I/local/mnt/workspace/CR
+MBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images
+/core/api/debugtools -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909
+AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/hwengines -I/local/mnt/
+workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trus
+tzone_images/core/api/mproc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-0000
+4-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/power -I/local/m
+nt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/t
+rustzone_images/core/api/services -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c1
+0-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/rapi/servi
+ces/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_2
+0161130_222454/b/trustzone_images/core/api/storage -I/local/mnt/workspace/CRMBu
+ilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/co
+re/api/systemdrivers -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909
+AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/systemdrivers/pmic -I/l
+ocal/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_2224
+54/b/trustzone_images/core/api/systemdrivers/hwio/msm8909w -I/local/mnt/workspa
+ce/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_i
+mages/core/api/systemdrivers/hwio/msm8909w/phys -I/local/mnt/workspace/CRMBuild
+s/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/
+api/kernel -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-
+2_20161130_222454/b/trustzone_images/core/api/kernel/libstd -I/local/mnt/worksp
+ace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_
+images/core/boot/mibib/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004
+-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/boot/secboot3/src -I/
+local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222
+454/b/trustzone_images/core/boot/qfprom/hw/core_2_0 -I/local/mnt/workspace/CRMB
+uilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/c
+ore/boot/qfprom/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909A
+AAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/unifiedcrypto/shar
+ed/sha/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-
+2_20161130_222454/b/trustzone_images/core/securemsm/unifiedcrypto/shared/sha/in
+c -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_2016113
+0_222454/b/trustzone_images/core/securemsm/unifiedcrypto/environment/inc -I/loc
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+al/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454
+/b/trustzone_images/core/securemsm/unifiedcrypto/core/sha/inc -I/local/mnt/work
+space/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzon
+e_images/core/securemsm/cryptodrivers/ce/shared/inc -I/local/mnt/workspace/CRMB
+uilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/c
+ore/securemsm/trustzone/qsee/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5
+.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/t
+rustzone/qsee/arch/armv7/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10
+-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/secma
+th/shared/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANA
+ZT-2_20161130_222454/b/trustzone_images/core/securemsm/secrsa/shared/inc -I/loc
+al/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454
+/b/trustzone_images/core/securemsm/secrsa/shared/src -I/local/mnt/workspace/CRM
+Builds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/
+core/securemsm/secboot/api -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004
+-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/dal/framework/inc -I/
+local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222
+454/b/trustzone_images/core/dal/framework/sys/inc -I/local/mnt/workspace/CRMBui
+lds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/cor
+e/dal/config -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZ
+T-2_20161130_222454/b/trustzone_images/core/debugtools/version/src -I/local/mnt
+/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/tru
+stzone_images/core/hwengines/bam/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5
+.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/mproc/smem/
+inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161
+130_222454/b/trustzone_images/core/power/dcvs/inc -I/local/mnt/workspace/CRMBui
+lds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/cor
+e/services/utils/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909
+AAAAANAZT-2_20161130_222454/b/trustzone_images/core/storage/sd_mgr/inc -I/local
+/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b
+/trustzone_images/core/systemdrivers/busywait/inc -I/local/mnt/workspace/CRMBui
+lds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/cor
+e/systemdrivers/clk/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8
+909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/systemdrivers/hal/qgic/i
+nc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_201611
+30_222454/b/trustzone_images/core/kernel/lk/kernel/inc -I/local/mnt/workspace/C
+RMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_image
+s/core/kernel/lk/arch/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-
+M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/lk/platform/inc
+ -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130
+_222454/b/trustzone_images/core/kernel/vmidmt/hal/inc -I/local/mnt/workspace/CR
+MBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images
+/core/kernel/vmidmt/hal/inc/8909w -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c1
+0-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/xpu2/ha
+l/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_201
+61130_222454/b/trustzone_images/core/kernel/xpu2/hal/inc/8909w -I/local/mnt/wor
+kspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzo
+ne_images/core/kernel/mmu/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00
+004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/hypervisor/
+inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161
+130_222454/b/trustzone_images/core/kernel/hypervisor/inc/8909w -I/local/mnt/wor
+kspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzo
+ne_images/core/kernel/smmu/smmu500 -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c
+10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/smmu/s
+mmu500/8909w/tz -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAA
+NAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/service
+s/img_auth/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAAN
+AZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/arch/msm
+8909/cfg/mmu -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZ
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+T-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/arch/msm89
+09/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20
+161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/arch/common/inc 
+-I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_
+222454/b/trustzone_images/core/securemsm/trustzone/image_version/inc -I/local/m
+nt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/t
+rustzone_images/core/securemsm/trustzone/qsee/arch/msm8909w/src -I/local/mnt/wo
+rkspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustz
+one_images/core/securemsm/trustzone/qsee/arch/msm8909w/cfg/common --predefine="
+SYSINI_STUBS SETL {TRUE}" --list=/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-0
+0004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzo
+ne/qsee/arch/common/build/tz/cortexA7/MATAANAA/src/a7_aarch32_sysini.o.lst --si
+telicense /local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_2
+0161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/arch/common/bui
+ld/tz/cortexA7/MATAANAA/src/a7_aarch32_sysini.o.i

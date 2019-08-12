@@ -1,0 +1,130 @@
+#===============================================================================
+#
+# MODEM_CFG Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcfg_fwk/mcfg_qmi/build/mcfg_qmi.scons#1 $
+#  $DateTime: 2016/12/13 08:00:27 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/14/12   sbt     Initial creation
+#===============================================================================
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Required Public, Restricted & Protected APIs
+#-------------------------------------------------------------------------------
+
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'BUSES',
+    'HAL',
+    'HWENGINES',
+    'IODEVICES',
+    'MPROC',
+    'POWER',
+    'SECUREMSM',
+    'STORAGE',
+    'DAL',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+]
+
+MODEM_PUBLIC_APIS = [
+    'MCS',
+    'MCFG',
+]
+
+MODEM_RESTRICTED_APIS = [
+    'MCFG',
+]
+
+MODEM_PROTECTED_APIS = [
+    'MCFG',
+]
+
+MPSS_QMI_API_PUBLIC_APIS = [
+    'PDC',
+    'COMMON',
+]
+
+
+#-------------------------------------------------------------------------------
+# We need the Core BSP APIs
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_PUBLIC_APIS, area="CORE")
+
+#-------------------------------------------------------------------------------
+# We need the MPSS Public APIs (old 'API' location or new QMIMSGS )
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MPSS_QMI_API_PUBLIC_APIS, area='QMIMSGS')
+
+#-------------------------------------------------------------------------------
+# We need MODEM PUBLIC APIs
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need MODEM RESTRICTED APIs
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+env.RequirePublicApi([
+    'MCS',
+    ], area='mcs')
+
+env.RequirePublicApi(['UIM','PUBLIC'], area='uim')
+
+#-------------------------------------------------------------------------------
+# We need our protected APIs within MCFG subsystem
+#-------------------------------------------------------------------------------
+env.RequireProtectedApi(MODEM_PROTECTED_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_MCFG",
+])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+MCFG_PROC_SOURCES = [
+  '${BUILDPATH}/qmi_pdc_svc.c',
+  '${BUILDPATH}/qmi_pdc_msg.c',
+  '${BUILDPATH}/persistent_device_configuration_impl_v01.c',
+]
+
+# Add our library to the MODEM_AMSS image
+if 'USES_GNSS_SA' not in env:
+  env.AddLibrary(['MODEM_MODEM'], '${BUILDPATH}/mcfg_qmi', MCFG_PROC_SOURCES)
+

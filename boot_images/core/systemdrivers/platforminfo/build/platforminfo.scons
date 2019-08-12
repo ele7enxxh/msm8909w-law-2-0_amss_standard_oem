@@ -1,0 +1,82 @@
+#=============================================================================
+# PLATFORMINFO LIBRARY
+#
+# Target:    All
+# Processor: All
+#
+#=============================================================================
+# $Header: $
+#=============================================================================
+#                    Copyright 2011 Qualcomm Technologies Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+import os
+
+Import('env')
+env = env.Clone()
+
+if env['MSM_ID'] not in ['8974', '9x25', '8x10', '8x26', '8084', '8x62', '8092', '9x35', '8994', '8916', '8936', '8909','8909w', '9x45', '8956', '8952']:
+   Return();
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "../"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',
+   'MPROC',
+   'DEBUGTOOLS',
+
+   # Must be last due to comdef.h issues
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Define sources
+#-------------------------------------------------------------------------------
+
+PLATFORMINFO_SOURCES = [
+   '${BUILDPATH}/src/PlatformInfo.c',
+   '${BUILDPATH}/src/PlatformInfoFwk.c'
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(
+  ['PLATFORMINFO_BOOT_DRIVER'],
+  '${BUILDPATH}/platforminfo', PLATFORMINFO_SOURCES)
+
+#---------------------------------------------------------------------------
+# Invoke document generation SConscript
+#---------------------------------------------------------------------------
+
+if os.path.exists(env['BUILD_ROOT'] + '/core/api/systemdrivers/docsrc/platforminfo/SConscript') :
+  env.SConscript(
+    '${BUILD_ROOT}/core/api/systemdrivers/docsrc/platforminfo/SConscript',
+    exports='env')
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      'devcfg_xml'    : '${BUILD_ROOT}/core/systemdrivers/platforminfo/config/PlatformInfo.xml'
+   })
+

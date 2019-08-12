@@ -1,0 +1,66 @@
+#============================================================================
+#  Name:
+#    jsdcc_bsp.min
+#
+#  Description:
+#    Min file to differentiate the MSM target bsp file
+#
+#
+#  Copyright © 2009-2012 by QUALCOMM, Incorporated.  
+#  All Rights Reserved.
+#  Qualcomm Confidential and Proprietary
+#----------------------------------------------------------------------------
+
+#============================================================================
+#
+#                          EDIT HISTORY FOR MODULE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/tools/jsdcc/bsp/jsdcc_bsp.min#1 $
+#  $DateTime: 2015/09/01 00:30:35 $
+#  $Author: pwbldsvc $
+#  
+# when         who     what, where, why
+# ----------   ---     ------------------------------------------------------
+# 2012-01-17   pa      Compilation support for 8x25 target
+# 2011-01-17   vj      Compilation support for 7627A target
+# 2009-12-03   vj      Initial Revision based on sdcc_bsp.min
+#============================================================================
+
+# Karura
+ifeq ($(TARGET_ID), 7627)
+  JSDCC_BSP_PLATFORM = BSP_7627
+endif
+
+# Unicorn
+ifeq ($(TARGET_ID), 7627A)
+  JSDCC_BSP_PLATFORM = BSP_7627
+endif
+
+# Strider
+ifeq ($(TARGET_ID), 8X25)
+  JSDCC_BSP_PLATFORM = BSP_7627
+endif
+
+# ---------------------------------------------------------------------------
+# BSP_7627 (Karura)
+# ---------------------------------------------------------------------------
+ifeq ($(JSDCC_BSP_PLATFORM), BSP_7627)
+  JSDCC_BSP_PATH=./bsp
+  JSDCC_BSP_SOURCES=jsdcc_bsp_7600.c
+endif
+
+ifndef JSDCC_BSP_PATH         
+$(error Error SDCC BSP Directory Not Found)
+endif
+
+ifndef JSDCC_BSP_SOURCES         
+$(error Error SDCC BSP Source File Not Found)
+endif
+
+JSDCC_BSP_OBJS :=  $(addprefix $(TARGETDIR)/, $(JSDCC_BSP_SOURCES:%.c=%.o))
+
+vpath %.c $(JSDCC_BSP_PATH)
+

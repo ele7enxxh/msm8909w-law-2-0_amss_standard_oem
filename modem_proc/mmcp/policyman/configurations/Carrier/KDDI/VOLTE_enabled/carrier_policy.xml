@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Carrier policy XML for KDDI (VOLTE_enabled) with LTE in Home and G/W/L in Roam. VoLTE is not always assumed ON for this XML. 
+       Power up and LPM is in Full RAT mode.
+$Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/policyman/configurations/Carrier/KDDI/VOLTE_enabled/carrier_policy.xml#1 $
+-->
+
+<policy name        = "generic"
+        changelist  = "$Change: 11985193 $" 
+        enabled     = "true"
+        schema_ver  = "1"
+        policy_ver  = "45.1.6"
+>
+
+  <initial>
+    <actions>
+
+      <!-- List of the HOME MCCs -->
+      <mcc_list name="volte_only_mccs"> 440 441 </mcc_list>
+
+      <!-- List of Japan MCCs -->
+      <mcc_list name="japan_mccs"> 440 441 </mcc_list>
+
+      <!-- List of China MCCs -->
+      <mcc_list name="china_mccs"> 460 </mcc_list>
+
+      <!-- Define the OOS timer with a 2 minute interval -->
+      <define_timer name="noservice" interval="2" units="min" id="1" />
+
+      <!-- Define specialization -->
+      <specialization> volte_e911_calls </specialization>
+
+      <rf_bands base = "hardware" />
+
+      <!-- UE mode is always NORMAL -->
+      <ue_mode> NORMAL </ue_mode>
+
+      <!-- On any boot, start RAT capability as GWL -->
+      <rat_capability base="none" >
+        <include> GSM WCDMA LTE </include>
+      </rat_capability>
+
+      <feature> normal </feature>
+
+      <!-- On any boot, power up in Limited camping -->
+      <svc_mode> LIMITED </svc_mode>
+
+    </actions>
+  </initial>
+
+  <!--
+  ====================================================================
+    Rules to handle OOS situations.
+  ====================================================================
+  -->
+
+  <!-- RULE #1 -->
+  <!-- If VoLTE is enabled 
+       if CSIM full RAT mode includes CHGWL else GWLT 
+  -->
+  <rule precond="none">
+    <conditions>
+      <phone_operating_mode> ONLINE </phone_operating_mode>
+      <volte_enabled />
+      <enforce_full_rat />
+    </conditions>
+    <actions>
+      <if>
+        <cond>
+          <sim_type> CSIM </sim_type>
+        </cond>
+        <then>
+          <rat_capability base="none">
+            <include> C H G W L </include>
+          </rat_capability>
+        </then>
+        <else>
+          <rat_capability base="none">
+            <include> G W L T </include>
+          </rat_capability>
+        </else>
+      </if>
+      <svc_mode> LIMITED </svc_mode>
+      <call_mode> NORMAL </call_mode>
+    </actions>
+  </rule>
+
+  <!-- RULE #2 -->
+  <!-- In LPM, reset the timer and go to GWL.
+  -->
+  <rule precond="none">
+    <conditions>
+      <phone_operating_mode> SLEEP </phone_operating_mode>
+    </conditions>
+    <actions>
+      <timer_stop name="noservice" />
+      <rat_capability base="none">
+        <include> G W L </include>
+      </rat_capability>
+      <svc_mode> LIMITED </svc_mode>
+      <call_mode> NORMAL </call_mode>
+    </actions>
+  </rule>
+
+  <!-- RULE #3 -->
+  <!-- If VoLTE information is not available or UE is PWROFF,
+         stay in same config
+  -->
+  <rule precond="none">
+    <conditions>
+      <any_of>
+        <volte_enabled state="undef" />
+        <phone_operating_mode> PWROFF </phone_operating_mode>
+      </any_of>
+    </conditions>
+    <actions> 
+      <stop /> 
+    </actions>
+  </rule>
+
+  <!-- RULE #4 -->
+  <!-- If VoLTE is OFF,
+         use CHGWLT and normal E911 calls
+  -->
+  <rule precond="none">
+    <conditions>
+      <phone_operating_mode> ONLINE </phone_operating_mode>
+      <not> <volte_enabled /> </not>
+    </conditions>
+    <actions>
+      <rat_capability base="none">
+        <include> C H G W L T </include>
+      </rat_capability>
+      <svc_mode> FULL </svc_mode>
+      <call_mode> NORMAL </call_mode>
+    </actions>
+  </rule>
+
+  <!-- RULE #5 -->
+  <!-- If the oos timer has expired, VoLTE is enabled, there is no service, 
+         enable Full RAT mode (CHGWL / GWLT) based on CSIM and restart the timer
+  -->
+  <rule precond="none">
+    <conditions>
+      <timer_expired name="noservice" />
+      <volte_enabled />
+      <not> <have_service /> </not>    
+    </conditions>
+    <actions>
+      <expired_timer_handled name="noservice" />
+      <if>
+        <cond>
+          <sim_type> CSIM </sim_type>
+        </cond>
+        <then>
+          <rat_capability base="none">
+            <include> C H G W L </include>
+          </rat_capability>
+        </then>
+        <else>
+          <rat_capability base="none">
+            <include> G W L T </include>
+          </rat_capability>
+        </else>
+      </if>
+      <svc_mode> LIMITED </svc_mode>
+      <call_mode> NORMAL </call_mode>
+    </actions>
+  </rule>
+
+  <!-- RULE #6 -->
+  <!-- If we have no location then we will just wait until we get it - the OOS
+       timer will have put us into full-RAT mode when it expired.
+  -->
+  <if precond="none">
+    <cond>
+      <phone_operating_mode> ONLINE </phone_operating_mode>
+      <not> <have_location /> </not>  
+    </cond>
+    <then> 
+      <timer_start name="noservice" />
+    </then>
+    <else>
+      <timer_stop name="noservice" />
+      <svc_mode> FULL </svc_mode>
+      <continue />
+    </else>
+  </if>
+
+  <!--
+  ====================================================================
+    Rules to handle KDDI VoLTE-only and roaming requirements.
+  ====================================================================
+  -->
+
+  <select>
+
+  <!-- If in Japan with VoLTE enabled restrict RATs to LTE and call mode VOLTE -->
+    <case>
+      <all_of>
+        <volte_enabled />
+        <location_mcc_in list="japan_mccs" />
+      </all_of>
+      <actions>
+        <rat_capability base="none">
+          <include> L </include>
+        </rat_capability>
+        <call_mode> VOLTE </call_mode>
+      </actions>
+    </case>
+
+  <!-- If in China with CSIM and VoLTE enabled restrict RATs to CHGWL and call mode VOLTE -->
+    <case>
+      <all_of>
+        <volte_enabled />
+        <sim_type> CSIM </sim_type>
+        <location_mcc_in list="china_mccs" />
+      </all_of>
+      <actions>
+        <rat_capability base="none">
+          <include> C H G W L </include>
+        </rat_capability>
+        <call_mode> NORMAL </call_mode>
+      </actions>
+    </case>
+
+  <!-- If in China with VoLTE enabled restrict RATs to GWLT and call mode NORMAL -->
+    <case>
+      <all_of>
+        <volte_enabled />
+        <location_mcc_in list="china_mccs" />
+      </all_of>
+      <actions>
+        <rat_capability base="none">
+          <include> G W L T </include>
+        </rat_capability>
+        <call_mode> NORMAL </call_mode>
+      </actions>
+    </case>
+
+  <!-- In all other cases (roaming) use CHGWL and normal E911 calls -->  
+    <case>
+      <true />
+      <actions>
+        <rat_capability base="none">
+          <include> C H G W L </include>
+        </rat_capability>
+        <call_mode> NORMAL </call_mode>
+      </actions>
+    </case>
+  </select>
+
+</policy>

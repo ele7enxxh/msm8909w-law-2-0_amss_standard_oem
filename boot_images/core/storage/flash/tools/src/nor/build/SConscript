@@ -1,0 +1,148 @@
+#===============================================================================
+#
+# NOR Tools build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime:  $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/16/14   sb      I2C NOR tool support on cortex-a7
+# 03/19/14   whc     Set I2C_NOR as default
+# 10/09/13   wc      Add SPI NOR tools support for 9x35
+# 08/21/12   sb      Add SPI NOR tools support for 9x25
+# 12/28/11   sv      Add I2C NOR support for 8064 and 8930
+# 07/20/11   sv      Add feature flag to decide SPI/I2C NOR device
+# 06/22/11   eo      Add initial nor tools support to 9x15
+# 05/27/11   sv      Optimize scons script in including libraries
+# 04/06/11   jz      Build NOR tools for 8960 to run on RPM
+# 03/21/11   jz      Disable watchdog for RUMI build
+# 10/18/10   bn      Code clean up
+# 09/10/10   sv      Initial Revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+if env.has_key('USES_RUMI') :
+  env.Append(CPPDEFINES = ["FLASH_WATCHDOG_DISABLED"])
+
+# Use I2C NOR as default. If SPI NOR flag is enabled then use SPI NOR
+# device id instead of I2C NOR id for device attach
+# SPI NOR can be enabled by passing USES_FLAGS=USES_SPI as command
+# line parameter while building
+if env.has_key('USES_SPI_NOR'):
+   env.Append(CPPDEFINES = ["FLASH_NOR_DEVICE_ID=DALDEVICEID_FLASH_DEVICE_1"])
+else :
+   env.Append(CPPDEFINES = ["FLASH_NOR_DEVICE_ID=DALDEVICEID_FLASH_DEVICE_2"])
+
+# Define watchdog reset register for given target 
+if env['MSM_ID'] in ['9x25', '9x35']:
+   env.Append(CPPDEFINES = ["FLASH_WATCHDOG_RESET_ADDR=0xFC180040"])  
+elif env['MSM_ID'] in ['8974']:
+   env.Append(CPPDEFINES = ["FLASH_WATCHDOG_RESET_ADDR=0xF9017004"]) 
+elif env['MSM_ID'] in ['9x45', '8909','8909w']:
+   env.Append(CPPDEFINES = ["FLASH_WATCHDOG_RESET_ADDR=0x00280040"]) 
+ 
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/flash/tools/src/nor"
+
+if not env.SubstPathExists(SRCPATH):
+   SRCPATH = "${BUILD_ROOT}/drivers/flash/tools/src/nor"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'BOOT',
+   'SERVICES',
+   'STORAGE',
+   'HAL',
+   'SYSTEMDRIVERS',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+   ]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+# For include file nor_wrapper.h from tools/src/nor
+env.RequireProtectedApi(['STORAGE_FLASH'])
+
+env.PublishPrivateApi('STORAGE_FLASH_NOR_TOOLS', [
+      "${INC_ROOT}/core/storage/flash/tools/src/nor/config_v1",
+   ])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+NOR_TOOLS_STARTUP_SOURCES = [
+   '${BUILDPATH}/nor_start.s',
+]
+
+NOR_TOOLS_STARTUP_RPM_SOURCES = [
+   '${BUILDPATH}/nor_start_rpm.s',
+]
+
+NOR_CONFIG_V1_SOURCES = [
+   '${BUILDPATH}/config_v1/nor_core_v1.c',
+]
+
+NOR_COMMON_SOURCES = [
+   '${BUILDPATH}/nor_param.c',
+   '${BUILDPATH}/nor_core.c',
+   '${BUILDPATH}/nor_entry.c',
+]
+
+NOR_ARM_SOURCES = [
+   '${BUILDPATH}/nor_wrapper.c',
+   '${BUILDPATH}/nor_mem_init.c',
+   '${BUILDPATH}/nor_stress.c',
+   '${BUILDPATH}/nor_dump.c',
+   '${BUILDPATH}/nor_utils.c',
+]
+
+
+PRINT_SOURCES = [
+   '${BUILDPATH}/flash_log.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibrary(['NOR_TOOLS_IMAGE'],
+   '${BUILDPATH}/nor_arm', NOR_ARM_SOURCES)
+
+env.AddLibrary(['NOR_TOOLS_IMAGE'],
+   '${BUILDPATH}/nor_common', NOR_COMMON_SOURCES)
+
+env.AddLibrary(['NOR_TOOLS_IMAGE'],
+   '${BUILDPATH}/nor_config_v1', NOR_CONFIG_V1_SOURCES)
+
+if env['MSM_ID'] in ['8960', '9x15', '8064', '8930', '8974', '9x25', '9x35']:
+   env.AddObject(['NOR_TOOLS_IMAGE'], NOR_TOOLS_STARTUP_RPM_SOURCES)
+else:
+   env.AddObject(['NOR_TOOLS_IMAGE'], NOR_TOOLS_STARTUP_SOURCES)
+
+if env.has_key('USES_PRINTF') and env['USES_PRINTF'] == "yes": 
+   env.AddLibrary(['NOR_TOOLS_IMAGE'],
+   '${BUILDPATH}/nor_log', PRINT_SOURCES)

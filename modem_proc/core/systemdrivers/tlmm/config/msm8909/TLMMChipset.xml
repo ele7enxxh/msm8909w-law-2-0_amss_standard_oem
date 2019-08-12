@@ -1,0 +1,31 @@
+<driver name="TLMM">
+   #include "msmhwiobase.h"
+   #include "TlmmDefs.h"
+   #include "DALTLMMPropDef.h"
+   #include "PlatformIO_CDP.xml"
+   #include "PlatformIO_MTP.xml"
+   #include "PlatformIO_RCM.xml"
+   #include "PlatformIO_QRD.xml"
+   <global_def>
+     <var_seq name="tlmm_port_cfg" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+      TLMM_RFFE_CTL, 0x00108000, 0xFFFFFFFF, 0x55555555, 0x0,
+      0xFFFFFFFF, 0, 0, 0, 0,
+      end
+     </var_seq>
+   </global_def>
+   <device id=DALDEVICEID_TLMM>
+     <props name="tlmm_base" type=DALPROP_ATTR_TYPE_UINT32>
+      TLMM_BASE_PHYS
+     </props>
+     <props name="tlmm_offset" type=DALPROP_ATTR_TYPE_UINT32>
+      0x0
+     </props>
+     <props name="tlmm_total_gpio" type=DALPROP_ATTR_TYPE_UINT32>
+      113
+     </props>
+     <props name="tlmm_ports" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>
+      tlmm_port_cfg
+     </props>
+   </device>
+</driver>
+

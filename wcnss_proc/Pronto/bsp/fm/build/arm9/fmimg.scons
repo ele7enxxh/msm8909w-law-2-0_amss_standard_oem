@@ -1,0 +1,168 @@
+#===============================================================================
+#
+# FM ARM9 build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //depot/asic/sandbox/users/acheung/8960/AMSS/products/8960/core/bsp/coreimg/build/arm9/SConscript#2 $
+#  $DateTime: 2010/07/08 22:54:14 $
+#  $Author: rfavero $
+#  $Change: 1361269 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = [
+   'fm', 'all', 'ccu_all', 'pronto_r33d_fm'
+]
+
+# init environment variables
+env.InitImageVars(
+   alias_list = aliases,         # aliases
+   proc='arm9',                 # proc
+   config='wcn',            # config type, proc_name
+   plat='rex',
+   target='PRONTO_IMG_${BUILD_ID}',# target (elf, image file name)
+   build_tags = ['CORE', 'CORE_WCN', 'QDSS_EN_IMG'],
+   deprecated_build_tags = ['CBSP_WCN_IMAGE', 'WCN_IMAGE', 'FM_IMAGE'],
+   tools = ['${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py', 
+   #'${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/pil_splitter_builder',
+   '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+   'buildspec_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py'
+	]
+   )
+
+if not env.CheckAlias():
+   Return()
+
+# Suppress WLAN extended constant initialiser warning
+env.Append(CFLAGS = ["--diag_suppress=1296"])
+env.Append(CFLAGS = ["--diag_suppress=550"])
+
+#------------------------------------------------------------------------------
+# Init default values this PROC/Image
+#------------------------------------------------------------------------------
+env.Replace(USES_DEVCFG = 'yes')
+
+# replace AMSS CUST file, add ours to #undef unwanted features
+env.Replace(AMSS_CUST_H = env.subst('CUST${BUILD_ID}.H').lower())
+env.Replace(CUST_H = 'cust_pronto_img.h')
+
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+
+if (env.has_key('USES_R33D')) and (env.has_key('USES_BT_SMDL')): 
+        env.Append(CPPDEFINES = ["BT_SMDL_EMU"])
+		
+
+# add uBSP image include path
+env.PublishPrivateApi('uBSPimg', ["${BUILD_ROOT}/Pronto/bsp/prontoimg/inc"])
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('arm', toolpath = ["${BUILD_ROOT}/tools/build/scons/scripts"])
+
+# add define for original AMSS custfile
+env.Append(CPPDEFINES = [
+   "AMSS_CUST_H=\\\"${AMSS_CUST_H}\\\"",
+   "CUST_H=\\\"${CUST_H}\\\"",
+   "BUILD_TARGET=\\\"${BUILD_TARGET}\\\"",
+   "BUILD_VER=\\\"${BUILD_VER}\\\"",
+   "BUILD_ASIC=\\\"${BUILD_ASIC}\\\"",
+   "FEATURE_COREIMG",
+   "FEATURE_RIVAIMG",
+   "PRONTO_IMAGE",
+   "WCN_IMAGE",
+   "IMAGE_WCN_PROC",
+   "DAL_REX_NATIVE_PLATFORM",
+   "WCN_WORKLOOP_STACK_SIZE=4096", 
+   "WCN_PRONTO",
+   "BT_SMDL_EMU",
+   "FEATURE_RIVAIMG",
+   "WCONN_TRACE_ENABLED"
+#   "USE_DIAG_IF_LOGGING",
+])
+
+if env['MSM_ID'] in ['8916']:
+   env.Append(CPPDEFINES = [
+      "WCN_PRONTO_BEAR",
+      "WCSS_WCSS_BASE=0x0A000000",
+      ])
+else:
+   env.Append(CPPDEFINES = [
+      "WCSS_WCSS_BASE=0xFB000000",
+      ])
+
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+prontoimg_libs = []
+prontoimg_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load au_name libs/objs build rules.
+#au_name_libs, au_name_objs = env.LoadAUSoftwareUnits('au_name')
+#prontoimg_libs.extend(au_name_libs)
+#prontoimg_objs.extend(au_name_objs)
+
+# load Core BSP libs/objs build rules.
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+prontoimg_libs.extend(core_libs)
+prontoimg_objs.extend(core_objs)
+
+prontoservices_libs, prontoservices_objs = env.LoadAUSoftwareUnits('rivaservices')
+prontoimg_libs.extend(prontoservices_libs)
+prontoimg_objs.extend(prontoservices_objs)
+
+products_libs, products_objs = env.LoadAUSoftwareUnits('products')
+prontoimg_libs.extend(products_libs)
+prontoimg_objs.extend(products_objs)
+
+fm_libs, fm_objs = env.LoadAUSoftwareUnits('fm')
+prontoimg_libs.extend(fm_libs)
+prontoimg_objs.extend(fm_objs)
+
+#------------------------------------------------------------------------------
+# Load in CBSP common build rules
+#------------------------------------------------------------------------------
+env.Replace(PRONTOIMG_LIBS = prontoimg_libs)
+env.Replace(PRONTOIMG_OBJS = prontoimg_objs)
+
+env.Replace(IMAGE_NAME = 'pronto_core')
+
+env.LoadToolScript('REX_FMImage', toolpath = ['${BUILD_ROOT}/Pronto/bsp/fm/build/${PROC}'])
+

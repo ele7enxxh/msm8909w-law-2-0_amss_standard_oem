@@ -1,0 +1,68 @@
+#===============================================================================
+#
+# SSE Log
+#
+# GENERAL DESCRIPTION
+#    SSE Log
+#
+# Copyright (c) 2012-2013 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/sse/log/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.RequireProtectedApi(['MCDR_SDK'])
+env.RequireProtectedApi(['MCTL_SDK'])
+
+#-------------------------------------------------------------------------------
+# Include PATH
+#-------------------------------------------------------------------------------
+INC_PATH_API = ["${INC_ROOT}/core/api/kernel/libstd/stringl"]
+env.Append(CPPPATH = INC_PATH_API)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SSE_LOG_API_SRC = "${COREBSP_ROOT}/securemsm/sse/log/src"
+
+env.VariantDir('${BUILDPATH}', SSE_LOG_API_SRC, duplicate=0)
+env.Append(CPPDEFINES = 'SSE_LOG_GLOBAL')
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SOURCES = [ '${BUILDPATH}/sselog.c',]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary([
+  'TLTESTHDMI_IMAGE',
+  'DRTESTHDMI_IMAGE',
+  'DRTS_IMAGE',
+  'TLTSSAMPLE_IMAGE',
+  'TLSECURETOUCH_IMAGE',
+  'TOUCHSAMPLE_IMAGE',
+  'SECURETOUCH_IMAGE',
+  ],
+  '${BUILDPATH}/sselog',
+  SOURCES)
+

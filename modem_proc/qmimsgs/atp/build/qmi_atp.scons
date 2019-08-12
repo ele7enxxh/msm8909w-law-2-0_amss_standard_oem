@@ -1,0 +1,66 @@
+#===============================================================================
+#
+# ATP (Application Traffic Pairing) QMI APIs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated. All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/qmimsgs/atp/build/qmi_atp.scons#1 $
+#  $DateTime: 2016/12/13 07:58:26 $
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/13/13   pm      Baseline version
+#===============================================================================
+Import('env')
+env = env.Clone()
+from glob import glob
+from os.path import join, basename
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# ------------------------------------------------------------------------------
+# Include Paths
+#---------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# APIs needed to build the ATP APIs
+#-------------------------------------------------------------------------------
+
+env.RequirePublicApi([
+  'COMMON', 
+  'ATP',
+  ])
+
+env.RequirePublicApi([
+  'MPROC',
+  ], area='CORE')
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+ATP_C_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                 for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Add our library to the following build tags:
+env.AddLibrary (['QMIMSGS_MPSS'], '${BUILDPATH}/qmimsgs_atp', [ATP_C_SOURCES])
+
+# Load test units
+env.LoadSoftwareUnits()

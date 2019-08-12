@@ -1,0 +1,91 @@
+#=============================================================================
+# CLOCK DRIVER MSM8909 LIBRARY
+#
+# Target:    MSM8909
+# Processor: Apps-SBL
+#
+#=============================================================================
+# $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/systemdrivers/clock/hw/msm8909w/build/clock_sbl.scons#1 $
+#=============================================================================
+#  Copyright 2012 Qualcomm Technologies Incorporated.
+#  All Rights Reserved.
+#  QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-----------------------------------------------------------------------------
+# Allow designated initilizers
+#-----------------------------------------------------------------------------
+env.Append(CCFLAGS = ' --gnu')
+
+#-----------------------------------------------------------------------------
+# Image: SBL
+#-----------------------------------------------------------------------------
+
+CLOCK_SBL_SOURCES = [
+   '${BUILDPATH}/src/ClockSBL.c',
+   '${BUILDPATH}/src/ClockSBLConfig.c',
+   '${BUILDPATH}/src/ClockSBLCPU.c',
+   '${BUILDPATH}/src/ClockTools.c',
+   '${BUILDPATH}/src/ClockTLMMSpare.c'
+]
+
+CLOCK_SBL_EMMC_SOURCES = [
+   '${BUILDPATH}/src/ClockSBL.c',
+   '${BUILDPATH}/src/ClockSBLConfig.c',
+   '${BUILDPATH}/src/ClockSBLCPU.c',
+   '${BUILDPATH}/src/ClockTools.c',
+   '${BUILDPATH}/src/ClockTLMMSpareStub.c',
+]
+
+CLOCK_TOOLS_SOURCES = [
+   '${BUILDPATH}/src/ClockSBLConfig.c',
+   '${BUILDPATH}/src/ClockTools.c'
+]
+
+ClockChipsetSBL_lib = env.Library('${BUILDPATH}/Clock_msm8909_SBL', CLOCK_SBL_SOURCES)
+ClockChipsetSBLEmmc_lib = env.Library('${BUILDPATH}/Clock_msm8909_emmc_SBL', CLOCK_SBL_EMMC_SOURCES)
+ClockChipsetTools_lib = env.Library('${BUILDPATH}/Clock_msm8909_Tools', CLOCK_TOOLS_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+#env.AddLibsToImage(['CLOCK_BOOT_DRIVER'], ClockChipsetSBL_lib)
+env.AddLibsToImage( ['EMMCBLD_IMAGE', 'EHOSTDL_IMAGE', 'HOSTDL_IMAGE'], ClockChipsetSBLEmmc_lib )
+#env.AddLibsToImage(['JSDCC_TOOL_IMAGE', 'EMMCBLD_IMAGE'], ClockChipsetTools_lib)
+env.AddLibsToImage(['SBL1_BOOT', 'CLOCK_BOOT_DRIVER'], ClockChipsetSBL_lib)
+env.AddLibsToImage(['JSDCC_TOOL_IMAGE'], ClockChipsetTools_lib)
+
+#-----------------------------------------------------------------------------
+# Generate HWIO
+#-----------------------------------------------------------------------------
+
+if env.has_key('HWIO_IMAGE'):
+  env.AddHWIOFile('HWIO', [
+    {
+      'filename': '${INC_ROOT}/core/systemdrivers/clock/hw/msm8909/src/ClockHWIO.h',
+      'modules': [
+        'GCC_CLK_CTL_REG',
+        'APCS_SH_KPSS_PLL',
+        'APCS_KPSS_GLB',
+        'WCSS_A_PMU',
+        'TCSR_TCSR_REGS',
+        'TLMM_CSR',
+      ],
+      'output-fval': True,
+      'output-offsets': True,
+      'header':
+          '#include <HALhwio.h>\n' +
+          '#include <msmhwiobase.h>\n'
+    }])
+

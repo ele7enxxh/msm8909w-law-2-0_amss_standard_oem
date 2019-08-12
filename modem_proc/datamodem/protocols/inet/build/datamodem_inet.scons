@@ -1,0 +1,319 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/datacommon/inet/rel/10.02.02/build/datacommon_inet.scons#3 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/11/15   kc      Moved CLAT source files to lib
+# 10/10/14   ssh     IP Translation Engine 464XLAT 
+# 11/22/13   ds      Added protocols utility functions file. 
+# 11/11/13   rk      Removed feature mobileap.
+# 09/01/12   ss      Added TFTP ALG file.
+# 08/15/12   cp      Added support for PRC NAT.
+# 12/13/11   ss      Stateless DHCP server sources added.
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+	
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_DS",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    'GPS',
+    'IPSEC',
+    'ECALL',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    'GPS',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+#MODEM_PROTECTED_APIS = [
+#    'DATA_ATCOP',
+#    ]
+#env.RequireProtectedApi(MODEM_PROTECTED_APIS)
+
+#-------------------------------------------------------------------------------
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#-------------------------------------------------------------------------------
+REQUIRED_NON_SCONS_APIS = [
+    'WCONNECT', 
+    'BREW',	 
+    ]
+
+if REQUIRED_NON_SCONS_APIS != []:
+  env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Non-compliant Private Header Include Paths (Must be removed for CRM builds)
+#-------------------------------------------------------------------------------
+#if ARGUMENTS.get('SCONS_VIOLATIONS_LEVEL',0) > 99:
+#		print "SCONS VIOLATIONS enabled" 
+#		
+#		env.PublishPrivateApi('VIOLATIONS',[
+#			'${INC_ROOT}/modem/data/1x/707/src',
+#			])
+#		
+#		env.RequirePrivateApi('VIOLATIONS')
+
+#-------------------------------------------------------------------------------
+#  OffTarget/QTF
+#-------------------------------------------------------------------------------
+if 'USES_MOB' in env:
+  env.RequireRestrictedApi(['DATAMODEM_QTF_OFT'])
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+DATAMODEM_INET_DHCP_CLIENT_SOURCES = [
+   '${BUILDPATH}/src/dhcp_client_client.c',
+   '${BUILDPATH}/src/dhcp_client_config.c',
+   '${BUILDPATH}/src/dhcp_client_core_v4.c',
+   '${BUILDPATH}/src/dhcp_client_mgr.c',
+   '${BUILDPATH}/src/dhcp_client_storage.c',
+   '${BUILDPATH}/src/dhcp_client_timer.c',
+   ]
+
+
+DATAMODEM_INET_DHCP_SERVER_SOURCES = [
+   '${BUILDPATH}/src/dhcp_am_mp.c',
+   '${BUILDPATH}/src/dhcp_am_ps_iface.c',
+   '${BUILDPATH}/src/dhcp_server_ps_iface.c',
+   '${BUILDPATH}/src/dhcp_core_v4.c',
+   '${BUILDPATH}/src/dhcp_mgr.c',
+   ]  
+
+
+DATAMODEM_INET_COMMON_SOURCES = [
+   '${BUILDPATH}/src/inet_stubs.c',
+   '${BUILDPATH}/src/ps_icmp.c',
+   '${BUILDPATH}/src/ps_icmp_error.c',
+   '${BUILDPATH}/src/ps_igmp.c',
+   '${BUILDPATH}/src/ps_ip_addr.c',
+   '${BUILDPATH}/src/ps_ip_fraghdl.c',
+   '${BUILDPATH}/src/ps_ip4.c',
+   '${BUILDPATH}/src/ps_ip4_frag.c',
+   '${BUILDPATH}/src/ps_ip4_hdr.c',
+   '${BUILDPATH}/src/ps_lo.c',
+   '${BUILDPATH}/src/ps_stat_icmpv4.c',
+   '${BUILDPATH}/src/ps_stat_ipv4.c',
+   '${BUILDPATH}/src/ps_tcphdr.c',
+   '${BUILDPATH}/src/ps_tcpshell.c',
+   '${BUILDPATH}/src/ps_tcptimer.c',
+   '${BUILDPATH}/src/ps_inet_mem_pool.c',
+   '${BUILDPATH}/src/ps_stat_tcp.c',
+   '${BUILDPATH}/src/ps_stat_udp.c',
+   '${BUILDPATH}/src/ps_iputil.c',
+   '${BUILDPATH}/src/ps_pkt_info_utils.c',
+   '${BUILDPATH}/src/token_bucket.c',
+   '${BUILDPATH}/src/ps_proto_utils.c',
+   '${BUILDPATH}/src/ps_proto_init.c',
+   ]
+
+DATAMODEM_INET_COMMON_CPP_SOURCES = [
+   '${BUILDPATH}/src/ps_inet_init.cpp',
+   '${BUILDPATH}/src/ps_tcp_async.cpp',
+   ]
+
+DATAMODEM_INET_NON_SOCK_REARCH_SOURCES = [
+   '${BUILDPATH}/src/ps_ip.c',
+   '${BUILDPATH}/src/ps_tcpin.c',
+   '${BUILDPATH}/src/ps_tcpsubr.c',
+   '${BUILDPATH}/src/ps_tcpout.c',
+   '${BUILDPATH}/src/ps_udp.c',
+   ]
+
+DATAMODEM_INET_SOCK_REARCH_C_SOURCES = [
+   '${BUILDPATH}/src/ps_ip.c',
+   '${BUILDPATH}/src/ps_tcpin.c',
+   '${BUILDPATH}/src/ps_tcpout.c',
+   '${BUILDPATH}/src/ps_udp.c',
+   '${BUILDPATH}/src/ps_tcpsubr.c',
+   '${BUILDPATH}/src/ps_inet_event_mgr.c',
+   '${BUILDPATH}/src/dssicmp.c',
+   '${BUILDPATH}/src/dsstcp.c',
+   '${BUILDPATH}/src/dssudp.c',
+   '${BUILDPATH}/src/dsstcpi.c',
+   '${BUILDPATH}/src/dss_ps.c',
+   '${BUILDPATH}/src/dsstcp_async.c',
+   ]
+
+DATAMODEM_INET_SOURCES = []
+
+if 'USES_DATAMODEM_INET' in env:
+   DATAMODEM_INET_SOURCES += DATAMODEM_INET_COMMON_SOURCES + DATAMODEM_INET_COMMON_CPP_SOURCES
+
+   if 'USES_DATAMODEM_INET_DHCP_SERVER' in env:
+      DATAMODEM_INET_SOURCES += DATAMODEM_INET_DHCP_SERVER_SOURCES
+       
+   if 'USES_DATAMODEM_INET_DHCP_CLIENT' in env:
+      DATAMODEM_INET_SOURCES += DATAMODEM_INET_DHCP_CLIENT_SOURCES
+
+#include DS rearch files related to inet
+if 'USES_DATAMODEM_INET_SOCK_REARCH' in env:
+   DATAMODEM_INET_SOURCES += DATAMODEM_INET_SOCK_REARCH_C_SOURCES 
+else:
+   DATAMODEM_INET_SOURCES += DATAMODEM_INET_NON_SOCK_REARCH_SOURCES
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/inet',[DATAMODEM_INET_SOURCES, ])
+
+
+#code shipped as binary library
+LIB_DATAMODEM_INET_RSVP_SOURCES = [
+   '${BUILDPATH}/src/ps_rsvp.c',
+   '${BUILDPATH}/src/ps_rsvpi.c',
+   '${BUILDPATH}/src/ps_stat_rsvp.c',
+   ]
+
+LIB_DATAMODEM_INET_SOURCES = [
+   '${BUILDPATH}/src/ps_mcast.c',
+   '${BUILDPATH}/src/ps_mcasti.c',
+   '${BUILDPATH}/src/ps_mld.c',
+   ]
+
+LIB_DATAMODEM_INET_IPV6_SOURCES = [
+   '${BUILDPATH}/src/dhcp6_client_client.c',
+   '${BUILDPATH}/src/dhcp6_client_config.c',
+   '${BUILDPATH}/src/dhcp6_client_core.c',
+   '${BUILDPATH}/src/dhcp6_client_mgr.c',
+   '${BUILDPATH}/src/dhcp6_common.c',
+   '${BUILDPATH}/src/dhcp6_am_mp.c',
+   '${BUILDPATH}/src/dhcp6_server_am.c',
+   '${BUILDPATH}/src/dhcp6_server_core.c',
+   '${BUILDPATH}/src/dhcp6_server_ps_iface.c',
+   '${BUILDPATH}/src/dhcp6_sl_server_mgr.c',
+   '${BUILDPATH}/src/ps_icmp6.c',
+   '${BUILDPATH}/src/ps_icmp6_msg.c',
+   '${BUILDPATH}/src/ps_icmp6_nd.c',
+   '${BUILDPATH}/src/ps_icmp6_options.c',
+   '${BUILDPATH}/src/ps_ip6.c',
+   '${BUILDPATH}/src/ps_ip6_frag.c',
+   '${BUILDPATH}/src/ps_ip6_hdr.c',
+   '${BUILDPATH}/src/ps_ip6_sm.c',
+   '${BUILDPATH}/src/ps_stat_icmpv6.c',
+   '${BUILDPATH}/src/ps_stat_ipv6.c',
+   '${BUILDPATH}/src/ps_clat_rt_acl.c',
+   '${BUILDPATH}/src/ps_clat_iface_hdlr.c',
+   '${BUILDPATH}/src/ps_clat_sm.c',
+   '${BUILDPATH}/src/ps_clat_translate.c',
+   '${BUILDPATH}/src/ps_dns_proxy.c',
+   '${BUILDPATH}/src/ps_dns_proxy_ext.c',
+   ]
+
+if 'USES_DATAMODEM_INET' in env:
+   if 'USES_DATAMODEM_INET_RSVP' in env:
+      LIB_DATAMODEM_INET_SOURCES += LIB_DATAMODEM_INET_RSVP_SOURCES
+
+   if 'USES_MODEM_DATAMODEM_IPV6' in env:
+      LIB_DATAMODEM_INET_SOURCES += LIB_DATAMODEM_INET_IPV6_SOURCES
+
+   env.AddBinaryLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/lib_inet',[LIB_DATAMODEM_INET_SOURCES, ], pack_exception=['USES_CUSTOMER_GENERATE_LIBS','USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'])

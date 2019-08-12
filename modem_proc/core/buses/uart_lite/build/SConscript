@@ -1,0 +1,114 @@
+#===============================================================================
+#
+# UART Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/18/14   RC      Added the 8936 target xml file
+# 09/25/13   VV      Initial revision.
+#===============================================================================
+import os.path
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+#-------------------------------------------------------------------------------
+#  Publish protected APIs
+#-------------------------------------------------------------------------------
+
+#  There are none.
+
+#-------------------------------------------------------------------------------
+#  Figure out UART_ROOT dynamically.  Look at the usual suspects.
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/buses/uart_lite"
+
+env.Replace( UART_ROOT = SRCPATH )
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+#-------------------------------------------------------------------------------
+#  Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('BUSES_UART_LITE_API', [
+        '${INC_ROOT}/core/buses/uart_lite/hw',
+        '${INC_ROOT}/core/buses/uart_lite/inc',
+        '${INC_ROOT}/core/buses/uart_lite/src',
+])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'BUSES',
+   'HAL',
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+]
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+
+env.Append(CPPDEFINES = [
+   "UART_LOG_ALL",
+])
+
+UART_SOURCES = [
+   '${BUILDPATH}/src/Uart.c',
+   '${BUILDPATH}/src/Uart_dal_os.c',
+   '${BUILDPATH}/src/Uart_hal.c',
+   '${BUILDPATH}/src/Uart_log.c',
+
+]
+
+#-------------------------------------------------------------------------------
+# Set the path to the UART config file.
+#-------------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG,
+   {
+            '8994_xml' : ['${BUILD_ROOT}/core/buses/uart_lite/config/uart_modem_8994.xml'],
+            '9635_xml' : ['${BUILD_ROOT}/core/buses/uart_lite/config/uart_modem_9x35.xml'],
+            '8936_xml' : ['${BUILD_ROOT}/core/buses/uart_lite/config/uart_modem_8936.xml'],
+            '8909_xml' : ['${BUILD_ROOT}/core/buses/uart_lite/config/uart_modem_8909.xml'],
+            '8937_xml' : ['${BUILD_ROOT}/core/buses/uart_lite/config/uart_modem_8937.xml'],
+            '8952_xml' : ['${BUILD_ROOT}/core/buses/uart_lite/config/uart_modem_8952.xml'],
+			'8976_xml' : ['${BUILD_ROOT}/core/buses/uart_lite/config/uart_modem_8976.xml']	
+   })
+
+IMAGES = ['CORE_MODEM', 'CORE_QDSP6_SW', 'APPS_IMAGE', 'CBSP_APPS_IMAGE']
+env.AddLibrary(IMAGES, '${BUILDPATH}/UART_LITE', UART_SOURCES)
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE']
+   if 0:
+      # Enable the UART tx-source test on the first UART port
+      env.AddRCInitFunc(
+       RCINIT_IMG,
+       {
+        'sequence_group'             : 'RCINIT_GROUP_7',
+        'init_name'                  : 'uartlite_test',
+        'init_function'              : 'uartlite_test',
+        'dependencies'               : ['sio',]
+       })

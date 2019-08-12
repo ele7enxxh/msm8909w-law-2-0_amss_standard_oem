@@ -1,0 +1,107 @@
+#===============================================================================
+#
+# MCS CFCM Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2016 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcs/cfcm/build/cfcm.scons#1 $
+
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+#-------------------------------------------------------------------------------
+# Skip Compilation on APQ builds
+#-------------------------------------------------------------------------------
+
+if 'USES_GNSS_SA' in env:
+	Return()
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for CXM MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+    "MSG_BT_SSID_DFLT=MSG_SSID_DFLT",
+])
+
+#-------------------------------------------------------------------------------
+# Need to get access to MCS Protected headers
+#-------------------------------------------------------------------------------
+env.RequireProtectedApi(['MCS'])
+
+#-------------------------------------------------------------------------------
+# Necessary API's for test purposes
+#-------------------------------------------------------------------------------
+env.RequirePublicApi('QTF', area='mob')
+
+# --------------------------------------------------------------------------- #
+# Determine applicability of IOE featurization                                #
+# --------------------------------------------------------------------------- #
+if 'BUILD_ID' in env:
+    id = env['BUILD_ID'].lower()
+    if ('lwgioe' in id) or ('lteonly' in id) or ('lwgniaioe' in id) or ('lcgioe' in id):
+        env.Append(CPPDEFINES = ["FEATURE_MCS_CFCM_IOE"])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+CFCM_SRC = ['${BUILDPATH}/' + basename(fname)
+                       for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Add our library to the Modem Modem image
+env.AddLibrary(['MODEM_MODEM','MOB_MCS_COPPER'], '${BUILDPATH}/cfcm', CFCM_SRC)
+
+#-------------------------------------------------------------------------------
+# Continue loading software units
+# Load test units
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+#-------------------------------------------------------------------------------
+# Add CFCM task to RCInit
+#-------------------------------------------------------------------------------
+if 'USES_MODEM_RCINIT' in env:
+    RCINIT_TASK_CFCM = {
+                    'thread_name'          : 'CFCM',
+                    'sequence_group'       : env.subst('$MODEM_PROTOCOL'),
+                    'stack_size_bytes'     : env.subst('$CFCM_STKSZ'),
+                    'priority_amss_order'  : 'CFCM_TASK_PRIORITY',
+                    'stack_name'           : 'cfcm_stack',
+                    'stack_size_bytes'     : '4096',
+                    'thread_entry'         : 'cfcm_task',
+                    'tcb_name'             : 'cfcm_tcb',
+                    'cpu_affinity'         : 'REX_ANY_CPU_AFFINITY_MASK',
+                    'policy_optin'         : ['default', 'ftm', ],
+                }
+
+if 'USES_MODEM_RCINIT' in env:
+    env.AddRCInitTask(['MODEM_MODEM','MOB_MCS_CFCM'], RCINIT_TASK_CFCM)

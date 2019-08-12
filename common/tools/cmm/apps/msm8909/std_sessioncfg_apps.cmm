@@ -1,0 +1,64 @@
+//============================================================================
+//  Name:                                                                     
+//    std_sessioncfg_rpm.cmm 
+//
+//  Description:                                                              
+//    Script to setup sub-system level features
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/10/2012 AJCheriyan    Created for B-family 
+//
+
+// We support only one argument for all session config scripts
+// ARG0 - Chipset Name. Can be used to setup sub-system according to target if needed 
+// Using this argument should be avoided unless absolutely necessary
+ENTRY &ARG0
+
+LOCAL &FILE
+
+MAIN:
+
+	// Do common environment setup
+	do std_setupenv.cmm
+
+	// Clear the windows
+	WINCLEAR
+	
+	// Load anything else from the meta build
+	do std_utils EXECUTESCRIPT EXIT &APPS_METASCRIPTSDIR/std_commands_apps.men	
+
+	// Now APPS specific setup
+	// APPS Build should be populated already
+	IF ("&APPS_BUILDROOT"!="")
+	(
+		IF ("&HLOS"=="LA")
+		(
+			// Load the LINUX menu file
+		 	&FILE="&APPS_BUILDROOT/demo/arm/kernel/linux/linux.men"
+			do std_utils EXECUTESCRIPT EXIT &FILE
+		)
+	)
+	ELSE
+	(
+		PRINT %ERROR "APPS Build Information not populated"
+		GOTO FATALEXIT
+	)
+
+
+FATALEXIT:
+	END
+
+EXIT:
+   ENDDO
+   
+

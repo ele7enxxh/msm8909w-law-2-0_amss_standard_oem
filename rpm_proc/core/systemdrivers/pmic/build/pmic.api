@@ -1,0 +1,39 @@
+#===============================================================================
+#
+# Core APIs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/rpm.bf/2.1.1/core/systemdrivers/pmic/build/pmic.api#1 $
+#  $DateTime: 2015/02/25 02:53:43 $
+#  $Author: pwbldsvc $
+#  $Change: 7538753 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/25/12   hs      Moved to core\systemdrivers.
+# 03/07/12   hs      Created
+#===============================================================================
+Import('env')
+
+if env.has_key('MODEM_PROC'):
+   env.PublishPublicApi('RFA',[
+        "${INC_ROOT}/modem/api/rfa",              
+        ])
+else:
+  env.PublishPublicApi('SYSTEMDRIVERS_PMIC',[
+        "${INC_ROOT}/core/api/systemdrivers/pmic",              
+        ])
+
+env.LoadAPIUnits()

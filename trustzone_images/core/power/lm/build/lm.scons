@@ -1,0 +1,24 @@
+
+#=============================================================================
+# TZ LM DRIVER
+#
+#
+#=============================================================================
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/power/lm/build/lm.scons#1 $
+#=============================================================================
+#  Copyright 2014 Qualcomm Technologies Incorporated.
+#  All Rights Reserved.
+#  QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+Import('env')
+env.Append(CFLAGS = "--c99")
+#-----------------------------------------------------------------------------
+# Invoke chipset build file
+#-----------------------------------------------------------------------------
+
+if env['MSM_ID'] in ['8909', '9x07']:
+  env.SConscript('../hw/${CHIPSET}/build/lm_chipset.scons', exports='env')
+elif env['MSM_ID'] in ['8909w']:
+  env.SConscript('../hw/msm8909/build/lm_chipset.scons', exports='env')
+

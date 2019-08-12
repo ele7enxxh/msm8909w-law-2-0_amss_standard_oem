@@ -1,0 +1,90 @@
+
+#===============================================================================
+#
+# IOD Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+#  Copyright (c) 2015 Qualcomm Technologies, Inc. 
+#  All Rights Reserved.
+#  Confidential and Proprietary - Qualcomm Technologies, Inc.
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/Sensors/common/usam/algo/iod/build/iod.scons#1 $
+#===============================================================================
+
+Import('env')
+from glob import glob
+from os.path import join, basename
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/usam/algo/iod/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/framework/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/util/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/algo/iod/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/dl/inc",   
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+])
+
+env.Append(CPPDEFINES = ["DEBUG_ALGO"])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+IOD_SOURCES = [
+      '${BUILDPATH}/iod.c',
+      '${BUILDPATH}/iod_msg.c',
+      '${BUILDPATH}/iod_utils.c',
+      '${BUILDPATH}/iod_algo.c',
+      '${BUILDPATH}/iod_feature.c',
+      '${BUILDPATH}/iod_gmm_probability_computation.c',
+      '${BUILDPATH}/iod_hmm.c',
+      '${BUILDPATH}/iod_posterior_probability_computation.c',
+      '${BUILDPATH}/iod_stats_model.c',
+   ]
+
+   
+algo_iod_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+                                    '${BUILDPATH}/sam_algo_iod',  IOD_SOURCES)
+
+# Sources and headers that should not be shared
+IOD_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/common/usam/algo/iod/src')
+IOD_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/usam/algo/iod/inc')
+
+# Clean sources
+env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], IOD_CLEAN_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SNS_ISLAND_INCLUDE_ALGO_IOD' in env['CPPDEFINES']:
+   iod_sections = ['.text.IOD', '.data.IOD', '.rodata.IOD']
+   env.AddIslandLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], algo_iod_lib, iod_sections)

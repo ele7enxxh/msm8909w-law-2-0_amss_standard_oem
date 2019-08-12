@@ -1,0 +1,47 @@
+
+#include "DALDeviceId.h"
+
+<driver name="Uart">
+
+  <!-- ===================================================================== -->
+  <!-- GPIO definitions                                                      -->
+  <!-- ===================================================================== -->
+
+  <global_def>    
+    <var_seq name="g_uart1dm_gpio_cfg" type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x2001c1c1, 0x2000c1d1, 0x2000c1e1, 0x2000c1f1, end </var_seq>
+    <var_seq name="g_uart2_gpio_cfg"   type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x2001c201, 0x2000c211, 0x2000c221, 0x2000c231, end </var_seq>
+    <var_seq name="g_uart3_gpio_cfg"   type=DALPROP_DATA_TYPE_UINT32_SEQ> 0x2001c241, 0x2000c251, 0x2000c261, 0x2000c271, end </var_seq>
+  </global_def>
+
+  <!-- ===================================================================== -->
+  <!-- UART1DM                                                               -->
+  <!-- ===================================================================== -->
+
+  <device id=DALDEVICEID_UARTDM_DEVICE_1>
+    <props name="GpioCfg"    type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> g_uart1dm_gpio_cfg </props>    
+    <props name="ManagePCLK" type=DALPROP_ATTR_TYPE_UINT32>         1                  </props>
+    <props name="UartBase"   type=DALPROP_ATTR_TYPE_UINT32>         0x89600000         </props>
+  </device>
+
+  <!-- ===================================================================== -->
+  <!-- UART2                                                                 -->
+  <!-- ===================================================================== -->
+
+  <device id=DALDEVICEID_UARTGSBI_DEVICE_2>
+    <props name="GpioCfg"    type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> g_uart2_gpio_cfg </props>    
+    <props name="ManagePCLK" type=DALPROP_ATTR_TYPE_UINT32>         1                </props>
+    <props name="UartBase"   type=DALPROP_ATTR_TYPE_UINT32>         0x8d100000       </props>
+  </device>
+
+  <!-- ===================================================================== -->
+  <!-- UART3                                                                 -->
+  <!-- ===================================================================== -->
+
+  <device id=DALDEVICEID_UARTGSBI_DEVICE_4>
+    <props name="GpioCfg"    type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR> g_uart3_gpio_cfg </props>    
+    <props name="ManagePCLK" type=DALPROP_ATTR_TYPE_UINT32>         1                </props>
+    <props name="UartBase"   type=DALPROP_ATTR_TYPE_UINT32>         0x8d000000       </props>
+  </device>
+
+</driver>
+

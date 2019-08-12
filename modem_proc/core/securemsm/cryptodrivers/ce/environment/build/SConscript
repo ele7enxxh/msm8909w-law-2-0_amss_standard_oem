@@ -1,0 +1,52 @@
+#===============================================================================
+#
+# SECUREMSM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/msm7x30/main/latest/securemsm/build/SConscript#4 $
+#  $DateTime: 2009/10/07 11:43:48 $
+#  $Author: wduembeg $
+#  $Change: 1047079 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+#-------------------------------------------------------------------------------
+# Adding LPR to the build
+#-------------------------------------------------------------------------------
+if 'USES_CORESLEEP_TOOL' in env:
+    xml_file = env['BUILD_ROOT'] + '/core/securemsm/cryptodrivers/ce/environment/src/lpr_crypto_nav_bcr_hm.xml'
+    env.AddCoreSleepLPR('CBSP_QDSP6_SW_IMAGE', {'sleep_lpr_xml' : [xml_file]})
+
+
+if 'USES_RCINIT' in env:
+    RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+    env.AddRCInitFunc(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_1',                       # required
+      'init_name'                  : 'crypto_sleep_init',                                 # required
+      'init_function'              : 'CeELBamSleepinit',                         # opt
+     })

@@ -1,0 +1,62 @@
+#===============================================================================
+#
+# MTF Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcs/mtf/build/mtf.scons#1 $
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Exit immediately for PLT builds
+#-------------------------------------------------------------------------------
+if 'USES_PLT' in env:
+    Return()
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Publish our incpath as a Private API (will automatically add to our incpath)
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('MODEM_MCS', ["${INC_ROOT}/modem/mcs/mtf/inc"])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+MTF_LIB_SRC = [
+    '${BUILDPATH}/cp_mutex.c',
+    '${BUILDPATH}/ref_cnt_obj.c',
+]
+
+# Compile the multi_thread source and convert to a binary library
+env.AddBinaryLibrary(['MODEM_MODEM','MOB_MCS_MTF'],
+                     '${BUILDPATH}/mtf',
+                     MTF_LIB_SRC,
+                     pack_exception=['USES_CUSTOMER_GENERATE_LIBS', 'USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'])

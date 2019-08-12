@@ -1,0 +1,47 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for HAL QDSS-STM Library.
+#
+# Copyright (c) 2009-2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/debugtools/sandbox/users/prasads/qdss/stm/hal/main/latest/build/stmhal.scons#1 $
+
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'DEBUGTRACE',
+   'SERVICES',
+   'HAL',
+   'DAL',
+   'SYSTEMDRIVERS',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireProtectedApi(['DEBUGTRACE'])
+env.RequirePrivateApi('QDSS_TFUNNEL_HAL')
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+TFUNNEL_HAL_SRC = [
+    '${BUILDPATH}/halqdss_tfunnel.c'
+]
+
+env.AddLibrary(['MODEM_IMAGE','RPM_IMAGE','CORE_QDSP6_SW','WCN_IMAGE','CBSP_WCN_IMAGE','CORE_GSS'],'${BUILDPATH}/tfunnel_hal',TFUNNEL_HAL_SRC)

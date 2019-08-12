@@ -1,0 +1,420 @@
+/*!
+  @file
+  lte_rrc_esmgr.stm
+
+  @brief
+  State machine description of eMBMS Service Manager (ESMGR) state machine
+
+*/
+
+/*===========================================================================
+
+  Copyright (c) 2011 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_esmgr.stm#1 $
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+09/07/11   da      Initial version
+===========================================================================*/
+
+/*===========================================================================
+
+                       STATE MACHINE DESCRIPTION
+
+This is a state machine for RRC EMBMS service manager module.
+
+The eMBMS service manager module in RRC manages all the upper layer interactions 
+for eMBMS actions related to activating a service, deactivating a service and other
+modem centric eMBMS procedures. ESMGR complements the functionality of  the eMBMS 
+procedure (EMP) that interacts with the lower layers to read SIB13 and 
+configures/releases MCCH/MTCHs.   
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_ESMGR_SM
+{
+  ENTRY                                 lte_rrc_esmgr_sm_entry;
+  EXIT                                  NULL;
+  INITIAL_STATE                         DISABLED;
+  INSTANCES                             1;
+  ERROR_HOOK                            lte_rrc_stm_error;
+  DEBUG_HOOK                            lte_rrc_stm_debug;
+  INPUT_DEF_FILE                        lte_rrc_stm.h;
+  INPUT_DEF_FILE                        lte_rrc_int_msg.h;
+
+  /*!
+  DISABLED state: In this state, eMBMS service has not been enabled by QMI NAS. 
+  RRC eMBMS service manager  (EMGR) is ready to receive LTE_RRC_EMBMS_ENABLE_REQ 
+  to enable eMBMS services. In this state SIB13 is not monitored/read.
+  */
+  STATE DISABLED
+  {
+    ENTRY                               NULL;
+    EXIT                                NULL;
+
+    INPUTS
+    {
+  
+      /*! LTE_RRC_EMBMS_ENABLE_REQ is used to enable eMBMS service */
+      LTE_RRC_EMBMS_ENABLE_REQ            lte_rrc_esmgr_sm_enable_req;
+
+      /*! LTE_RRC_EMBMS_DISABLE_REQ is used to disable eMBMS service */
+      LTE_RRC_EMBMS_DISABLE_REQ           lte_rrc_esmgr_sm_disable_req;
+
+      /*! LTE_RRC_EMBMS_ACT_TMGI_REQ is used to activate a particular service\TMGI */
+      LTE_RRC_EMBMS_ACT_TMGI_REQ          lte_rrc_esmgr_sm_act_tmgi_req;
+
+      /*! LTE_RRC_EMBMS_DEACT_TMGI_REQ is used to deactivate a particular service\TMGI */
+      LTE_RRC_EMBMS_DEACT_TMGI_REQ        lte_rrc_esmgr_sm_deact_tmgi_req;
+      
+      /*! LTE_RRC_EMBMS_ACT_DEACT_TMGI_REQ is used to activate/deactivate a particular service\TMGI */
+      LTE_RRC_EMBMS_ACT_DEACT_TMGI_REQ    lte_rrc_esmgr_sm_act_deact_tmgi_req;
+
+      /*! LTE_RRC_EMBMS_AVAIL_TMGI_LIST_REQ is used for retreiving the list of
+          available eMBMS services */
+      LTE_RRC_EMBMS_AVAIL_TMGI_LIST_REQ   lte_rrc_esmgr_sm_avail_tmgi_list_req;
+
+      /*! LTE_TLB_RRC_CFG_REQ from TLB/MAC when activating loopback C mode*/
+      LTE_TLB_RRC_CFG_REQ                 lte_rrc_esmgr_sm_tlb_cfg_req;
+
+      /*!LTE_RRC_EMBMS_SIGNAL_STRENGTH_REQ is used to start signal level reporting for EMBMS*/
+      LTE_RRC_EMBMS_SIGNAL_STRENGTH_REQ       lte_rrc_esmgr_sm_sig_strength_req;
+
+      /*! LTE_CPHY_MBSFN_SIGNAL_STRENGTH_CNF is used to receive SIGNAL_STRENGTH reports from ML1*/
+      LTE_CPHY_MBSFN_SIGNAL_STRENGTH_CNF      lte_rrc_esmgr_sm_sig_strength_cnf;
+
+      /*! LTE_RRC_EMBMS_AVAIL_SAI_LIST_REQ is used for retreiving the list of
+          available SAIs */
+      LTE_RRC_EMBMS_AVAIL_SAI_LIST_REQ   lte_rrc_esmgr_sm_avail_sai_list_req;
+
+      /*! LTE_RRC_CMAPI_EMBMS_COV_STATUS_REQ is used to get eMBMS coverage status */
+      LTE_RRC_CMAPI_EMBMS_COV_STATUS_REQ       lte_rrc_esmgr_sm_cmapi_embms_cov_status;
+
+      /*! LTE_RRC_CMAPI_EMBMS_DATAMCS_REQ is used to get eMBMS datamcs info */
+      LTE_RRC_CMAPI_EMBMS_DATAMCS_REQ       lte_rrc_esmgr_sm_cmapi_embms_datamcs_req;
+
+      /*! LTE_RRC_STOPPED_INDI handled for notifying upper layers */
+      LTE_RRC_STOPPED_INDI                  lte_rrc_esmgr_sm_lte_stopped;
+        
+      /*! MM_CM_EMERGENCY_MODE_STATUS_IND is used to notify emergency calls begin/end */
+      MM_CM_EMERGENCY_MODE_STATUS_IND       lte_rrc_esmgr_sm_cm_emer_mode_ind;
+      
+      /*! LTE_RRC_DSDS_TRM_PRIORITY_REQ is used to set TRM priority */
+      LTE_RRC_DSDS_TRM_PRIORITY_REQ             lte_rrc_esmgr_sm_trm_prio_req;
+      
+      /*! LTE_RRC_ESMGR_AVAIL_TMGI_LIST_INDI is used to convey the available services\TMGIs */
+      LTE_RRC_ESMGR_AVAIL_TMGI_LIST_INDI      lte_rrc_esmgr_sm_avail_tmgi_list_indi;
+    }
+  }
+
+  /*!
+  ENABLED state: When eMBMS service manager receives LTE_RRC_EMBMS_ENABLE_REQ  
+  from QMI NAS, it moves to this state. EMGR can move to this state even when 
+  LTE stack is inactive. In this state EMGR actively listens to LTE_RRC_SIB_UPDATED_INDI 
+  to see if SIB13 is being scheduled in the camped cell. On receiving 
+  LTE_RRC_EMBMS_ACT_TMGI_REQ,  if within eMBMS coverage, EMGR sends 
+  LTE_RRC_ESMGR_ACT_TMGI_REQI to EMP to activate the service.On receiving 
+  LTE_RRC_ESMGR_ACT_TMGI_CNFI from EMP, EMGR sends back LTE_RRC_EMBMS_ACT_TMGI_CNF to 
+  QMI DS. 
+  */
+  STATE ENABLED
+  {
+    ENTRY                               NULL;
+    EXIT                                NULL;
+
+    INPUTS
+    {
+    
+      /*! LTE_RRC_EMBMS_ENABLE_REQ is used to enable eMBMS service */
+      LTE_RRC_EMBMS_ENABLE_REQ                 lte_rrc_esmgr_sm_enable_req;
+
+      /*! LTE_RRC_EMBMS_DISABLE_REQ is used to disable eMBMS service */
+      LTE_RRC_EMBMS_DISABLE_REQ                lte_rrc_esmgr_sm_disable_req;
+
+      /*! LTE_RRC_EMBMS_ACT_TMGI_REQ is used to activate a particular service\TMGI */
+      LTE_RRC_EMBMS_ACT_TMGI_REQ               lte_rrc_esmgr_sm_act_tmgi_req;
+
+      /*! LTE_RRC_EMBMS_DEACT_TMGI_REQ is used to deactivate a particular service\TMGI */
+      LTE_RRC_EMBMS_DEACT_TMGI_REQ             lte_rrc_esmgr_sm_deact_tmgi_req;
+
+      /*! LTE_RRC_EMBMS_AVAIL_TMGI_LIST_REQ is used for retreiving the list of
+          available eMBMS services */
+      LTE_RRC_EMBMS_AVAIL_TMGI_LIST_REQ       lte_rrc_esmgr_sm_avail_tmgi_list_req;
+
+      /*! LTE_RRC_EMBMS_AVAIL_SAI_LIST_REQ is used for retreiving the list of
+          available SAIs */
+      LTE_RRC_EMBMS_AVAIL_SAI_LIST_REQ   lte_rrc_esmgr_sm_avail_sai_list_req;
+
+      /*! LTE_RRC_ESMGR_ACT_TMGI_CNFI is used to convey the result of the req for 
+        activating a particular service\TMGI */
+      LTE_RRC_ESMGR_ACT_TMGI_CNFI             lte_rrc_esmgr_sm_act_tmgi_cnfi;
+
+      /*! LTE_RRC_ESMGR_DEACT_TMGI_CNFI is used to convey the result of the req for 
+        deactivating a particular service\TMGI */
+      LTE_RRC_ESMGR_DEACT_TMGI_CNFI           lte_rrc_esmgr_sm_deact_tmgi_cnfi;
+
+      /*! LTE_RRC_ESMGR_ACT_DEACT_TMGI_CNFI is sent from EMP as response to 
+          LTE_RRC_ESMGR_ACT_DEACT_TMGI_REQI
+       */
+      LTE_RRC_ESMGR_ACT_DEACT_TMGI_CNFI       lte_rrc_esmgr_sm_act_deact_tmgi_cnfi;
+
+      /*! LTE_RRC_EMBMS_ACT_DEACT_TMGI_REQ is used to activate/deactivate a particular service\TMGI */
+      LTE_RRC_EMBMS_ACT_DEACT_TMGI_REQ        lte_rrc_esmgr_sm_act_deact_tmgi_req;
+
+      /*! LTE_RRC_ESMGR_AVAIL_TMGI_LIST_INDI is used to convey the available services\TMGIs */
+      LTE_RRC_ESMGR_AVAIL_TMGI_LIST_INDI      lte_rrc_esmgr_sm_avail_tmgi_list_indi;
+
+      /*! LTE_RRC_EMP_DEACT_TMGI_INDI is used to convey the deactivation of a 
+        TMGI because of service end */
+      LTE_RRC_EMP_DEACT_TMGI_INDI             lte_rrc_esmgr_sm_deact_tmgi_cnfi;
+      
+      /*! LTE_RRC_SERVICE_IND handled for notifying upper layers during Out of Coverage */
+      LTE_RRC_SERVICE_IND                     lte_rrc_esmgr_sm_service_ind;
+
+      /*! LTE_RRC_STOPPED_INDI handled for notifying upper layers */
+      LTE_RRC_STOPPED_INDI                    lte_rrc_esmgr_sm_lte_stopped;
+
+      /*! LTE_RRC_EMP_OOS_WARN_INDI from EMP when OOS is detected */
+      LTE_RRC_EMP_OOS_WARN_INDI               lte_rrc_esmgr_sm_oos_warn_indi;
+        
+      /*!LTE_RRC_EMBMS_SIGNAL_STRENGTH_REQ is used to start signal level reporting for EMBMS*/
+      LTE_RRC_EMBMS_SIGNAL_STRENGTH_REQ       lte_rrc_esmgr_sm_sig_strength_req;
+
+      /*! LTE_TLB_RRC_CFG_REQ from TLB/MAC when activating loopback C mode*/
+      LTE_TLB_RRC_CFG_REQ                     lte_rrc_esmgr_sm_tlb_cfg_req;
+
+      /*! LTE_TLB_LB_OPEN_IND from TLB for deactivating loopback C mode*/
+      LTE_TLB_LB_OPEN_IND                 lte_rrc_esmgr_sm_tlb_open_ind;
+
+      /*! LTE_CPHY_MBSFN_SIGNAL_STRENGTH_CNF is used to receive SIGNAL_STRENGTH reports from ML1*/
+      LTE_CPHY_MBSFN_SIGNAL_STRENGTH_CNF      lte_rrc_esmgr_sm_sig_strength_cnf;
+
+      /*! LTE_RRC_SIB_UPDATED_INDI for SIB13/SIB15 */
+      LTE_RRC_SIB_UPDATED_INDI                lte_rrc_esmgr_sm_sib_updated_indi;
+
+      /*! LTE_RRC_ACT_TMGI_GUARD_TMRI for guarding activate TMGI requests */
+      LTE_RRC_ACT_TMGI_GUARD_TMRI             lte_rrc_esmgr_sm_act_tmgi_guard_tmri;
+
+      /*! LTE_RRC_CONNECTED_INDI for MBMS interest indication transmission */
+      LTE_RRC_CONNECTED_INDI                  lte_rrc_esmgr_sm_connected_indi;
+
+      /*! LTE_RRC_CONNECTED_INDI for MBMS interest indication transmission */
+      LTE_CPHY_BEST_MBMS_NEIGH_FREQ_CNF       lte_rrc_esmgr_sm_best_neigh_freq_cnf;
+
+      /*! LTE_RRC_MBMS_INTEREST_IND_TMRI for tracking HO/CRE trigger */
+      LTE_RRC_MBMS_INTEREST_IND_TMRI          lte_rrc_esmgr_sm_mbms_interest_ind_tmri;
+
+      /*! LTE_RRC_HANDOVER_STARTED_INDI to indicate HO has started */
+      LTE_RRC_HANDOVER_STARTED_INDI           lte_rrc_esmgr_sm_handover_cre_started_indi;
+
+      /*! LTE_RRC_HANDOVER_COMPLETED_IND to indicate HO is complete */
+      LTE_RRC_HANDOVER_COMPLETED_IND          lte_rrc_esmgr_sm_handover_cre_completed_indi;
+
+      /*! LTE_RRC_CRE_STARTED_INDI to indicate RLF has triggered */
+      LTE_RRC_CRE_STARTED_INDI                lte_rrc_esmgr_sm_handover_cre_started_indi;
+
+      /*! LTE_RRC_CRE_COMPLETED_INDI to indicate RLF recovery is complete */
+      LTE_RRC_CRE_COMPLETED_INDI              lte_rrc_esmgr_sm_handover_cre_completed_indi;
+
+      /*! LTE_RRC_GET_SIBS_CNFI to indicate mandatory SIBs were read */
+      LTE_RRC_GET_SIBS_CNFI                   lte_rrc_esmgr_sm_get_sibs_cnfi;
+
+      /*! LTE_RRC_CAMPED_INDI to check if serving cell has changed */
+      LTE_RRC_CAMPED_INDI                     lte_rrc_esmgr_sm_camped_indi;
+
+      /*! LTE_RRC_SIB_NOT_RCVD_INDI for SIB13/SIB15 */
+      LTE_RRC_SIB_NOT_RCVD_INDI               lte_rrc_esmgr_sm_sib_not_rcvd_indi;
+
+      /*! LTE_RRC_ESMGR_CLEAR_CFL_WAIT_TMRI for clearing CFL */
+      LTE_RRC_ESMGR_CLEAR_CFL_WAIT_TMRI       lte_rrc_esmgr_sm_clear_cfl_wait_tmri;
+
+      /*! LTE_RRC_CMAPI_EMBMS_COV_STATUS_REQ is used to get eMBMS coverage status */
+      LTE_RRC_CMAPI_EMBMS_COV_STATUS_REQ       lte_rrc_esmgr_sm_cmapi_embms_cov_status;
+
+      /*! LTE_RRC_CMAPI_EMBMS_DATAMCS_REQ is used to get eMBMS datamcs info */
+      LTE_RRC_CMAPI_EMBMS_DATAMCS_REQ       lte_rrc_esmgr_sm_cmapi_embms_datamcs_req;
+      
+      /*! LTE_RRC_DSDS_TRM_PRIORITY_REQ is used to set TRM priority */
+      LTE_RRC_DSDS_TRM_PRIORITY_REQ             lte_rrc_esmgr_sm_trm_prio_req;
+
+      /*!LTE_CPHY_RF_UNAVAILABLE_IND rcvd from ML1 to when RF is unavailable */
+      LTE_CPHY_RF_UNAVAILABLE_IND             lte_rrc_esmgr_sm_rf_unavail_ind;
+
+      /*!LTE_CPHY_RF_AVAILABLE_IND rcvd from ML1 to when RF is available */
+      LTE_CPHY_RF_AVAILABLE_IND             lte_rrc_esmgr_sm_rf_avail_ind;
+
+      /*! MM_CM_EMERGENCY_MODE_STATUS_IND is used to notify emergency calls begin/end */
+      MM_CM_EMERGENCY_MODE_STATUS_IND       lte_rrc_esmgr_sm_cm_emer_mode_ind;
+      
+      /*! To process NAS domain pref indi and send coverage status if required*/
+      LTE_RRC_NAS_DOMAIN_PREF_IND        lte_rrc_esmgr_sm_nas_domain_pref_ind;
+    }
+  }
+
+  /*!
+  WAIT_FOR_CNF state: In this state, EMGR has sent LTE_RRC_EMGR_ACT_TMGI_REQI or 
+  LTE_RRC_EMGR_DEACT_TMGI_REQI to EMP and is waiting for the service to be 
+  setup/released. On receiving an activate/deactivate from uppler layers in this 
+  state, EMGR pends the requests until EMP completes processing on the previous 
+  request.Currently not more than 5 commands from upper layers can be pended. If 
+  upper layers try to send more commands than allowed, EMGR would send failure with 
+  status max_cmd_reached.
+  */
+  STATE WAIT_FOR_CNF
+  {
+    ENTRY                               NULL;
+    EXIT                                NULL;
+
+    INPUTS
+    {
+
+      /*! LTE_RRC_EMBMS_ENABLE_REQ is used to enable eMBMS service */
+      LTE_RRC_EMBMS_ENABLE_REQ            lte_rrc_esmgr_sm_enable_req;
+
+      /*! LTE_RRC_EMBMS_DISABLE_REQ is used to disable eMBMS service */
+      LTE_RRC_EMBMS_DISABLE_REQ           lte_rrc_esmgr_sm_disable_req;
+
+      /*! LTE_RRC_EMBMS_ACT_TMGI_REQ is used to activate a particular service\TMGI */
+      LTE_RRC_EMBMS_ACT_TMGI_REQ          lte_rrc_esmgr_sm_pend_cmd;
+
+      /*! LTE_RRC_EMBMS_DEACT_TMGI_REQ is used to deactivate a particular service\TMGI */
+      LTE_RRC_EMBMS_DEACT_TMGI_REQ        lte_rrc_esmgr_sm_pend_cmd;
+
+      /*! LTE_RRC_EMBMS_AVAIL_TMGI_LIST_REQ is used for retreiving the list of
+          available eMBMS services */
+      LTE_RRC_EMBMS_AVAIL_TMGI_LIST_REQ   lte_rrc_esmgr_sm_avail_tmgi_list_req;
+
+      /*! LTE_RRC_EMBMS_ACT_DEACT_TMGI_REQ is used to activate/deactivate a particular service\TMGI */
+      LTE_RRC_EMBMS_ACT_DEACT_TMGI_REQ    lte_rrc_esmgr_sm_pend_cmd;
+
+      /*! LTE_RRC_ESMGR_AVAIL_TMGI_LIST_INDI is used to convey the available services\TMGIs */
+      LTE_RRC_ESMGR_AVAIL_TMGI_LIST_INDI  lte_rrc_esmgr_sm_avail_tmgi_list_indi;
+
+      /*! LTE_RRC_EMBMS_AVAIL_SAI_LIST_REQ is used for retreiving the list of
+          available SAIs */
+      LTE_RRC_EMBMS_AVAIL_SAI_LIST_REQ   lte_rrc_esmgr_sm_avail_sai_list_req;
+
+      /*! LTE_RRC_ESMGR_ACT_TMGI_CNFI is sent from EMP as response to 
+          LTE_RRC_ESMGR_ACT_TMGI_REQI
+       */
+      LTE_RRC_ESMGR_ACT_TMGI_CNFI         lte_rrc_esmgr_sm_act_tmgi_cnfi;
+
+      /*! LTE_RRC_ESMGR_ACT_TMGI_CNFI is sent from EMP as response to 
+          LTE_RRC_ESMGR_ACT_TMGI_REQI
+       */
+      LTE_RRC_ESMGR_DEACT_TMGI_CNFI       lte_rrc_esmgr_sm_deact_tmgi_cnfi;
+
+      /*! LTE_RRC_EMP_DEACT_TMGI_INDI is used to convey the deactivation of a 
+        TMGI because of service end */
+      LTE_RRC_EMP_DEACT_TMGI_INDI         lte_rrc_esmgr_sm_deact_tmgi_cnfi;
+
+      /*! LTE_RRC_ESMGR_ACT_DEACT_TMGI_CNFI is sent from EMP as response to 
+          LTE_RRC_ESMGR_ACT_DEACT_TMGI_REQI
+       */
+      LTE_RRC_ESMGR_ACT_DEACT_TMGI_CNFI   lte_rrc_esmgr_sm_act_deact_tmgi_cnfi;
+
+      /*!  LTE_RRC_SERVICE_IND indication from CSP */
+      LTE_RRC_SERVICE_IND                 lte_rrc_esmgr_sm_service_ind;
+
+      /*! LTE_RRC_STOPPED_INDI handled for notifying upper layers */
+      LTE_RRC_STOPPED_INDI                lte_rrc_esmgr_sm_lte_stopped;
+
+      /*! LTE_RRC_EMP_OOS_WARN_INDI from EMP when OOS is detected */
+      LTE_RRC_EMP_OOS_WARN_INDI           lte_rrc_esmgr_sm_oos_warn_indi;
+
+      /*!LTE_RRC_EMBMS_SIGNAL_STRENGTH_REQ is used to start signal level reporting for EMBMS*/
+      LTE_RRC_EMBMS_SIGNAL_STRENGTH_REQ       lte_rrc_esmgr_sm_sig_strength_req;
+
+      /*! LTE_CPHY_MBSFN_SIGNAL_STRENGTH_CNF is used to receive SIGNAL_STRENGTH reports from ML1*/
+      LTE_CPHY_MBSFN_SIGNAL_STRENGTH_CNF      lte_rrc_esmgr_sm_sig_strength_cnf;
+
+      /*! LTE_RRC_SIB_UPDATED_INDI for SIB13/SIB15 */
+      LTE_RRC_SIB_UPDATED_INDI            lte_rrc_esmgr_sm_sib_updated_indi;
+
+      /*! LTE_RRC_ACT_TMGI_GUARD_TMRI for guarding activate TMGI requests */
+      LTE_RRC_ACT_TMGI_GUARD_TMRI         lte_rrc_esmgr_sm_act_tmgi_guard_tmri;
+
+      /*! LTE_RRC_CONNECTED_INDI for MBMS interest indication transmission */
+      LTE_RRC_CONNECTED_INDI                  lte_rrc_esmgr_sm_connected_indi;
+
+      /*! LTE_RRC_CONNECTED_INDI for MBMS interest indication transmission */
+      LTE_CPHY_BEST_MBMS_NEIGH_FREQ_CNF       lte_rrc_esmgr_sm_best_neigh_freq_cnf;
+
+      /*! LTE_RRC_MBMS_INTEREST_IND_TMRI for tracking HO/CRE trigger */
+      LTE_RRC_MBMS_INTEREST_IND_TMRI          lte_rrc_esmgr_sm_mbms_interest_ind_tmri;
+
+      /*! LTE_RRC_HANDOVER_STARTED_INDI to indicate HO has started */
+      LTE_RRC_HANDOVER_STARTED_INDI           lte_rrc_esmgr_sm_handover_cre_started_indi;
+
+      /*! LTE_RRC_HANDOVER_COMPLETED_IND to indicate HO is complete */
+      LTE_RRC_HANDOVER_COMPLETED_IND          lte_rrc_esmgr_sm_handover_cre_completed_indi;
+
+      /*! LTE_RRC_CRE_STARTED_INDI to indicate RLF has triggered */
+      LTE_RRC_CRE_STARTED_INDI                lte_rrc_esmgr_sm_handover_cre_started_indi;
+
+      /*! LTE_RRC_CRE_COMPLETED_INDI to indicate RLF recovery is complete */
+      LTE_RRC_CRE_COMPLETED_INDI              lte_rrc_esmgr_sm_handover_cre_completed_indi;
+
+      /*! LTE_RRC_GET_SIBS_CNFI to indicate mandatory SIBs were read */
+      LTE_RRC_GET_SIBS_CNFI                   lte_rrc_esmgr_sm_get_sibs_cnfi;
+
+      /*! LTE_RRC_CAMPED_INDI to check if serving cell has changed */
+      LTE_RRC_CAMPED_INDI                     lte_rrc_esmgr_sm_camped_indi;
+
+      /*! LTE_RRC_SIB_NOT_RCVD_INDI for SIB13/SIB15 */
+      LTE_RRC_SIB_NOT_RCVD_INDI                lte_rrc_esmgr_sm_sib_not_rcvd_indi;
+
+      /*! LTE_RRC_ESMGR_CLEAR_CFL_WAIT_TMRI for clearing CFL */
+      LTE_RRC_ESMGR_CLEAR_CFL_WAIT_TMRI       lte_rrc_esmgr_sm_clear_cfl_wait_tmri;
+
+      /*! LTE_RRC_CMAPI_EMBMS_COV_STATUS_REQ is used to get eMBMS coverage status */
+      LTE_RRC_CMAPI_EMBMS_COV_STATUS_REQ       lte_rrc_esmgr_sm_cmapi_embms_cov_status;
+
+      /*! LTE_RRC_CMAPI_EMBMS_DATAMCS_REQ is used to get eMBMS datamcs info */
+      LTE_RRC_CMAPI_EMBMS_DATAMCS_REQ       lte_rrc_esmgr_sm_cmapi_embms_datamcs_req;
+
+      /*! LTE_RRC_DSDS_TRM_PRIORITY_REQ is used to set TRM priority */
+      LTE_RRC_DSDS_TRM_PRIORITY_REQ             lte_rrc_esmgr_sm_trm_prio_req;
+
+      /*!LTE_CPHY_RF_UNAVAILABLE_IND rcvd from ML1 to when RF is unavailable */
+      LTE_CPHY_RF_UNAVAILABLE_IND             lte_rrc_esmgr_sm_rf_unavail_ind;
+
+      /*!LTE_CPHY_RF_AVAILABLE_IND rcvd from ML1 to when RF is available */
+      LTE_CPHY_RF_AVAILABLE_IND             lte_rrc_esmgr_sm_rf_avail_ind;
+
+      /*! MM_CM_EMERGENCY_MODE_STATUS_IND is used to notify emergency calls begin/end */
+      MM_CM_EMERGENCY_MODE_STATUS_IND       lte_rrc_esmgr_sm_cm_emer_mode_ind;
+
+      /*! LTE_TLB_LB_OPEN_IND from TLB for deactivating loopback C mode*/
+      LTE_TLB_LB_OPEN_IND                 lte_rrc_esmgr_sm_tlb_open_ind;
+      
+      /*! To process NAS domain pref indi and send coverage status if required*/
+      LTE_RRC_NAS_DOMAIN_PREF_IND        lte_rrc_esmgr_sm_nas_domain_pref_ind;
+    }
+  }
+}
+

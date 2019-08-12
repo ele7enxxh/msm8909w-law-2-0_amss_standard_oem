@@ -1,0 +1,62 @@
+TZ_CODE_LR 0x87E80000 ALIGN 0x10000
+{
+  TZBSP_CODE +0x0
+  {
+    tzbsp_entry.o (TZBSP_VECTOR_TABLE, +FIRST)
+    HALvmidmtGenImpl.o (+RO-CODE)
+    .ANY (+RO-CODE)
+  }
+}
+TZ_DATA_RO +0x0 ALIGN 4096
+{
+  TZBSP_RO_DATA +0x0 ALIGN 4096
+  {
+    .ANY (+RO-DATA)
+  } 
+}
+TZ_DATA_RW +0x0 ALIGN 4096
+{
+  TZBSP_RAM_RW +0x0 ALIGN 4096
+  {
+    .ANY (+RW)
+    .ANY (_tz_syscall)
+  }
+  TZBSP_RAM_ZI +0x0
+  {
+    .ANY (+ZI)
+  }
+}
+TZ_L2_POOL AlignExpr(ImageLimit(TZ_DATA_RW), 1024)
+{
+  L2_POOL +0x0
+  {
+    * (L2_TT_MEM)
+  }
+}
+TZBSP_DAL_HEAP ((((0x87E80000 + ((0x87E80000 + 0x00080000) - (0x87E80000))) - 0x4000)) - (0x8000 + 0x1000))
+{
+  TZBSP_DAL_HEAP ((((0x87E80000 + ((0x87E80000 + 0x00080000) - (0x87E80000))) - 0x4000)) - (0x8000 + 0x1000))
+  {
+    .ANY (TZBSP_HEAP_AREA)
+  }
+}
+TZ_STACK ((((0x87E80000 + ((0x87E80000 + 0x00080000) - (0x87E80000))) - 0x4000)) - 0x1000)
+{
+  TZBSP_STACK +0x0 FILL 0xCDCDCDCD 0x1000
+  {
+  }
+}
+TZ_L1 ((0x87E80000 + ((0x87E80000 + 0x00080000) - (0x87E80000))) - 0x4000)
+{
+  L1 ((0x87E80000 + ((0x87E80000 + 0x00080000) - (0x87E80000))) - 0x4000)
+  {
+    * (L1_TT_MEM)
+  }
+}
+TZBSP_UNCACHED_ZI (((((0x87E80000 + ((0x87E80000 + 0x00080000) - (0x87E80000))) - 0x4000)) - (0x8000 + 0x1000)) - 0x1000)
+{
+  TZBSP_UNCACHED_ZI +0x0
+  {
+    .ANY1 (TZBSP_UNCACHED_ZI*)
+  }      
+}

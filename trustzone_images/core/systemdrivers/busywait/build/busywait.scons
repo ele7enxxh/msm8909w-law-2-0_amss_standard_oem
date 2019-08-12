@@ -1,0 +1,91 @@
+#=============================================================================
+# BUSYWAIT
+#
+# Targets:    MSM8974, MDM9x25
+# Processors: ARM7, ARM9, ARM11, QDSP6, Scorpion/Krait/Sparrow
+#
+#=============================================================================
+#                    Copyright 2012 Qualcomm Technologies Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#=============================================================================
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/systemdrivers/busywait/build/busywait.scons#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     -----------------------------------------------------------
+# 05/22/12   pbitra     Initial version.
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/systemdrivers/busywait/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'SECUREMSM',
+
+   # Must be last due to comdef.h issues
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+BUSYWAIT_SOURCES =  [
+  '${BUILDPATH}/busywait_qtimer_nondal.c'
+]
+
+if env['MSM_ID'] == '8916':
+  env.Append(CPPDEFINES = ['QTIMER_ADDR=0x0B024000']) 
+  env.Append(CPPDEFINES = ['QTIMER_AC_ADDR=0x0B020000']) 
+  env.Append(CPPDEFINES = ['QTIMER_FRAME=2'])
+elif env['MSM_ID'] == '8936':
+  env.Append(CPPDEFINES = ['QTIMER_ADDR=0x0B124000']) 
+  env.Append(CPPDEFINES = ['QTIMER_AC_ADDR=0x0B120000']) 
+  env.Append(CPPDEFINES = ['QTIMER_FRAME=2'])
+elif env['MSM_ID'] == '8909':
+  env.Append(CPPDEFINES = ['QTIMER_ADDR=0x0B024000']) 
+  env.Append(CPPDEFINES = ['QTIMER_AC_ADDR=0x0B020000']) 
+  env.Append(CPPDEFINES = ['QTIMER_FRAME=2'])
+elif env['MSM_ID'] == '9x07':
+  env.Append(CPPDEFINES = ['QTIMER_ADDR=0x0B024000']) 
+  env.Append(CPPDEFINES = ['QTIMER_AC_ADDR=0x0B020000']) 
+  env.Append(CPPDEFINES = ['QTIMER_FRAME=2'])
+elif env['MSM_ID'] == '8909w':
+  env.Append(CPPDEFINES = ['QTIMER_ADDR=0x0B024000']) 
+  env.Append(CPPDEFINES = ['QTIMER_AC_ADDR=0x0B020000']) 
+  env.Append(CPPDEFINES = ['QTIMER_FRAME=2'])
+else:
+  env.Append(CPPDEFINES = ['QTIMER_ADDR=0xF9024000']) 
+  env.Append(CPPDEFINES = ['QTIMER_AC_ADDR=0xF9020000']) 
+  env.Append(CPPDEFINES = ['QTIMER_FRAME=2'])
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(['TZOS_IMAGE'], '${BUILDPATH}/busywait_lib', BUSYWAIT_SOURCES)
+
+

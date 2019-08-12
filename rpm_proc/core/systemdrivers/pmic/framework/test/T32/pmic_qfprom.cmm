@@ -1,0 +1,75 @@
+;============================================================================
+;  Name:
+;    pmic_sbl1.cmm
+;
+;  Description:
+;    JTAG script to Turn ON QFPROM Rails
+;
+;  Copyright (c) 2012 Qualcomm Technologies Incorporated. 
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/rpm.bf/2.1.1/core/systemdrivers/pmic/framework/test/T32/pmic_qfprom.cmm#1 $
+; $DateTime: 2015/02/25 02:53:43 $ $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; --------   ---     --------------------------------------------------------
+; 08/05/12   umr     Initial revision
+;============================================================================;
+
+
+ENTRY &OwnerChannel
+
+if "&OwnerChannel"=="" 
+(
+  print "Info: Defaulting Owner to KraitTZ!"
+  &OwnerChannel=1
+)
+
+;S2A Config to 2.15 V
+
+  ;Range select
+  do spmi_bus.cmm Write &OwnerChannel 1 0x1740 0x1
+  ;Check for error
+
+  ;Config VSET
+  do spmi_bus.cmm Write &OwnerChannel 1 0x1741 0x18
+  ;Check for error
+
+  ;Force PWM
+  do spmi_bus.cmm Write &OwnerChannel 1 0x1745 0x80
+  ;Check for error
+
+  ;Enable Rail
+  do spmi_bus.cmm Write &OwnerChannel 1 0x1746 0x80
+  ;Check for error
+              
+
+;LDO-12 Config to 1.8 V
+  ;Range select
+  do spmi_bus.cmm Write &OwnerChannel 1 0x4B40 0x03
+  ;Check for error
+
+  ;Config VSET
+  do spmi_bus.cmm Write &OwnerChannel 1 0x4B41 0x0C
+  ;Check for error
+
+  ;Force NPM
+  do spmi_bus.cmm Write &OwnerChannel 1 0x4B45 0x80
+  ;Check for error
+
+  ;Enable Rail
+  do spmi_bus.cmm Write &OwnerChannel 1 0x4B46 0x80
+  ;Check for error
+              
+EXIT:
+  ENDDO
+
+FATALEXIT:
+  END
+              
+

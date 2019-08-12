@@ -1,0 +1,89 @@
+#===============================================================================
+#
+# Trusted Storage Library
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+#===========================================================================
+#  Copyright (c) 2015 Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+#  Qualcomm Technologies Confidential and Proprietary
+#===========================================================================
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsapps/libs/storage/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains configurable changes made to the module.
+#  The config folder will be shipped to customers 
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/25/15   mr      Initial Implementation
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/libs/storage"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+#env.Append(ARMCC_OPT = ' -marm')
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/storage/inc/",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsapps/libs/storage/src/",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES',
+   'SECUREMSM',
+   'MINK',
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+
+INC_PATH_QSEE = [
+      "${INC_ROOT}/core/api/kernel/libstd/stringl",
+	  "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+      "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/services/src",
+]
+env.Append(CPPPATH = INC_PATH_QSEE)
+
+#----------------------------------------------------------------------------
+# CONFIG Shared Library
+#----------------------------------------------------------------------------   
+
+TRUSTED_STORAGE_LIB_SOURCES = [      
+        '${BUILDPATH}/src/gpFileService.c',
+		'${BUILDPATH}/src/gpPersistObjCrypto.c',
+		'${BUILDPATH}/src/gpPersistObjFileIO.c',
+]
+
+trusted_storage_lib = '${BUILDPATH}/trusted_storage_lib'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary (['SAMPLEAPP_IMAGE'],trusted_storage_lib, [TRUSTED_STORAGE_LIB_SOURCES])
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

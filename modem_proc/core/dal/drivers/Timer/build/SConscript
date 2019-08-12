@@ -1,0 +1,99 @@
+#===============================================================================
+# Copyright (c) 2009 - 2010 Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#  $Header: //source/qcom/qct/core/pkg/mpss/rel/1.0/modem_proc/core/dal/drivers/Timer/build/SConscript#1 $
+#  $DateTime: 2011/07/12 11:42:57 $
+#  $Author: cbirch $
+#  $Change: 1831834 $
+#===============================================================================
+# DAL Timer Lib
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${DAL_ROOT}/drivers/Timer/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+env.Replace(SRC_DIR='${PLAT}')
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+])
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.UsesInc([
+   "${DAL_API}",
+   "${DEBUGTOOLS_API}",
+   "${HWENGINES_API}",
+   "${MPROC_API}",
+   "${SERVICES_API}",
+   "${SYSTEMDRIVERS_API}",
+   "${KERNEL_API}",
+])
+
+env.UsesInc([
+   "${DAL_LEGACY}",
+   "${DEBUGTOOLS_LEGACY}",
+   "${HWENGINES_LEGACY}",
+   "${MPROC_LEGACY}",
+   "${SERVICES_LEGACY}",
+   "${SYSTEMDRIVERS_LEGACY}",
+
+   # needs to be last also contains wrong comdef.h
+   "${KERNEL_LEGACY}",
+])
+
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+
+DAL_TIMER_SOURCES =  [
+   '${BUILDPATH}/DALTimerInfo.c',
+   '${BUILDPATH}/DALTimerFwk.c',
+   '${BUILDPATH}/${SRC_DIR}/DALTimer.c'
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibrary([
+   'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+   'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+   'APPS_IMAGE', 'CBSP_APPS_IMAGE','QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'CORE_SPS', 'CORE_RPM', 'RPM_IMAGE',
+   'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN'],
+   '${BUILDPATH}/DALTimer', DAL_TIMER_SOURCES)
+
+if env.has_key('USES_QPIC_NAND') is True:
+   env.AddLibrary(['MBA_CORE_SW'], '${BUILDPATH}/DALTimer', DAL_TIMER_SOURCES)

@@ -1,0 +1,23 @@
+#===============================================================================
+#                    Copyright 2013 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+SRCPATH = "${BUILD_ROOT}/core/kernel/qurt_mba"
+env.Tool('custconfig_builder', toolpath = ['.'])
+
+if env.IsKeyEnable('MBA_CORE_SW'):
+    cust_config_objname = "${BUILDPATH}/cust_config.o"
+    CUST_CONFIG_SRC = [ env.CustConfigBuilder(cust_config_objname, env['CONFIG_XML']) ]
+    env.AddLibrary(['MBA_CORE_SW'], '${BUILDPATH}/cust_config', CUST_CONFIG_SRC)
+#-------------------------------------------------------------------------------
+# Pack Info
+#-------------------------------------------------------------------------------
+IMAGE_SOURCES = ['MODEM_MODEM','CBSP_MODEM_IMAGE','MODEM_IMAGE','CORE_MODEM','CORE_QDSP6_SW']
+
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles('*', SRCPATH + '/kernel'))
+CLEAN_LIST.extend(env.FindFiles('*', SRCPATH + '/libs'))
+CLEAN_LIST.extend(env.FindFiles('*', SRCPATH + '/osam'))
+env.CleanPack(IMAGE_SOURCES, CLEAN_LIST) 

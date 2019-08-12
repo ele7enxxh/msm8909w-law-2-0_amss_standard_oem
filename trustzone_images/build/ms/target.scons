@@ -1,0 +1,70 @@
+#===============================================================================
+#
+# Multimedia build rules
+#
+# GENERAL DESCRIPTION
+#    Multimedia build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //source/qcom/qct/multimedia2/bsp/build/msm7x30/brew/main/latest/SConstruct#2 $
+#
+#===============================================================================
+import os
+import glob
+import time
+
+print "------------------------------------------------------------------------------"
+print "   Loading OEM build system"
+print "------------------------------------------------------------------------------"
+
+#------------------------------------------------------------------------------
+# Get system Environment
+#------------------------------------------------------------------------------
+env = DefaultEnvironment(ENV = os.environ, tools = ['mingw'])
+
+env = env.Clone()
+
+env.Append(CFLAGS="--diag_error=warning")
+env.Append(ASFLAGS = " --diag_suppress=1480,1786,2523 ")
+
+#------------------------------------------------------------------------------
+# Set global variables and defaults
+#------------------------------------------------------------------------------
+#t_start = time.clock()
+BUILD_ROOT = '../../'
+TARGET_ROOT = '../../..'
+env.Replace(BUILD_ROOT = BUILD_ROOT)
+env.Replace(TARGET_ROOT = TARGET_ROOT)
+env.Tool('ComSConstruct', toolpath = ['${BUILD_ROOT}/tools/build/scons/build'])
+#t_end = time.clock()
+#print "** SConstruct Elapsed time = " + str(round(t_end - t_start, 3))
+#------------------------------------------------------------------------------
+# Generate BuildProducts.txt
+#------------------------------------------------------------------------------
+DIR_ROOT = '../../../'
+env.Replace(DIR_ROOT = DIR_ROOT)
+fh = open(env['DIR_ROOT'] + "BuildProducts.txt", "a")
+fh.write ("./trustzone_images/build/ms/bin/" + env['BUILD_ID'] + "/tz.mbn\n")
+if env['MSM_ID'] not in ['8909','8909w','9x07']:
+  fh.write ("./trustzone_images/build/ms/bin/" + env['BUILD_ID'] + "/hyp.mbn\n")
+if env['MSM_ID'] not in ['9x07']:
+  fh.write ("./trustzone_images/build/ms/bin/" + env['BUILD_ID'] + "/sampleapp.mbn\n")
+  fh.write ("./trustzone_images/build/ms/bin/" + env['BUILD_ID'] + "/cmnlib.mbn\n")
+  fh.write ("./trustzone_images/build/ms/bin/" + env['BUILD_ID'] + "/keymaster.mbn\n")
+  fh.write ("./trustzone_images/build/ms/bin/" + env['BUILD_ID'] + "/playready.mbn\n")
+  fh.write ("./trustzone_images/build/ms/bin/" + env['BUILD_ID'] + "/widevine.mbn\n")
+fh.write ("./trustzone_images/build/ms/bin/" + env['BUILD_ID'] + "/tzbsp_no_xpu.mbn\n")
+fh.close()
+#-------------------------------------------------------------------------------
+# PreProcessor file cleanup
+#-------------------------------------------------------------------------------
+PP_CLEAN_SOURCES = env.FindFiles(['*.o.pp'], "${BUILD_ROOT}/core/")
+PP_CLEAN_SOURCES += env.FindFiles(['*.o.i'], "${BUILD_ROOT}/core/")
+PP_CLEAN_SOURCES += env.FindFiles(['*.o.lst'], "${BUILD_ROOT}/core/")
+
+env.CleanPack('TZOS_IMAGE', PP_CLEAN_SOURCES)

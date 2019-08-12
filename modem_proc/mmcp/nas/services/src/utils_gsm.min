@@ -1,0 +1,27 @@
+#-------------------------------------------------------------------------------
+# Common Utilities
+#-------------------------------------------------------------------------------
+UTILS_GSM_SOURCES =\
+        cfa_msm.c  \
+        gsbitstream.c     \
+        gslog.c           \
+        gslock.c          \
+        gsmem.c           \
+        gsmsg.c           \
+        gsnetfunc.c      \
+        gsnvif.c          \
+        gstimer.c         \
+        gsvoiceif.c       \
+        gsclassmark.c     \
+        sys_plmn_selection.c	\
+        sys_eplmn_list.c \
+        bearer_capability_utils.c 
+
+ifeq ($(USES_LTE), yes)
+UTILS_GSM_SOURCES +=\
+        lte_nas_log.c
+endif
+
+UTILS_GSM_OBJS :=  $(addprefix $(TARGETDIR)/, $(UTILS_GSM_SOURCES:%.c=%.o))
+UTILS_GSM_DEPS :=  $(addprefix $(TARGETDIR)/, $(UTILS_GSM_SOURCES:%.c=%.dep))
+vpath %.c $(NAS_SERVICES)

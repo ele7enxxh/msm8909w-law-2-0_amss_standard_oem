@@ -1,0 +1,154 @@
+#===============================================================================
+#
+# HOTPLUG Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$  $DateTime$  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who  what, where, why
+# ----------  ---  -------------------------------------------------------------
+# 2013-05-24  rp   Add UFS support to Hotplug.
+# 2012-05-09  wek  Add the include path for build config script.
+# 2012-03-14  rp   Seperate EFS and Hotplug counters.
+# 2012-03-08  wek  Rename macros and remove header files to compile for boot.
+# 2012-01-17  wek  Compile for bootloaders 2.0
+# 2011-11-03  dks  Make Hotplug independent of EFS.
+# 2011-06-02  dks  Migrate from TMC to rcinit.
+# 2011-03-31  wek  Implement GPT/MBR partition table parser.
+# 2011-03-25  dks  Support Golden-Copy in RAM for fusion.
+# 2011-03-03  dks  Add device setup calls.
+# 2010-12-03  rp   Featurize FS-TAR module.
+# 2010-10-14  vr   Remove default inclusion of HOTPLUG for boot.
+# 2010-08-26  rp   Enable HFAT for BOOT module based on flag.
+# 2010-06-28  wek  Supress EFS1 related warnings.
+# 2010-06-14  vr   Hotplug to compile without EFS for 8660 SBL1.
+# 2010-03-23  dks  Add libs to QDSP6 to compile for Voyager.
+# 2010-03-19  wek  Unify features defined for boot in all sconscripts.
+# 2010-03-17  vr   Add romfs feature flag when building for boot.
+# 2010-03-05  vr   Add support for QEFS2 in BOOT
+# 2010-02-26  yog  Map legacy messages to MSG_SSID_FS
+#===============================================================================
+# Import methods to get compile time configuration.
+import sys
+Import('env')
+env = env.Clone()
+efs_scripts_path = env.RealPath('${BUILD_ROOT}/core/storage/efs/build/')
+sys.path.append(efs_scripts_path)
+
+from fs_build_config import *
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/hotplug/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'MODEM_1X',
+   'MODEM_GERAN',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+   'MODEM_WCDMA',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# AMSS source files
+#-----------------------------------------------------------------------------
+
+HOTPLUG_SOURCES = [
+    '${BUILDPATH}/fs_blockdev.c',
+    '${BUILDPATH}/fs_blockdev_devnull.c',
+    '${BUILDPATH}/fs_blockdev_devnull_driver.c',
+    '${BUILDPATH}/fs_blockdev_driver.c',
+    '${BUILDPATH}/fs_blockdev_ftl.c',
+    '${BUILDPATH}/fs_blockdev_ftl_driver.c',
+    '${BUILDPATH}/fs_blockdev_sd.c',
+    '${BUILDPATH}/fs_blockdev_sd_cprm.c',
+    '${BUILDPATH}/fs_blockdev_sd_cprm_driver.c',
+    '${BUILDPATH}/fs_blockdev_sd_driver.c',
+    '${BUILDPATH}/fs_blockdev_usb.c',
+    '${BUILDPATH}/fs_blockdev_usb_driver.c',
+    '${BUILDPATH}/fs_blockdev_ufs.c',
+    '${BUILDPATH}/fs_blockdev_ufs_driver.c',
+    '${BUILDPATH}/fs_hotplug.c',
+    '${BUILDPATH}/fs_hotplug_api.c',
+    '${BUILDPATH}/fs_hotplug_counters.c',
+    '${BUILDPATH}/fs_hotplug_dev.c',
+    '${BUILDPATH}/fs_hotplug_dev_state.c',
+    '${BUILDPATH}/fs_hotplug_discover.c',
+    '${BUILDPATH}/fs_hotplug_events.c',
+    '${BUILDPATH}/fs_hotplug_idle.c',
+    '${BUILDPATH}/fs_hotplug_iter.c',
+    '${BUILDPATH}/fs_hotplug_legacy_hdev.c',
+    '${BUILDPATH}/fs_hotplug_legacy_names.c',
+    '${BUILDPATH}/fs_hotplug_mount.c',
+    '${BUILDPATH}/fs_hotplug_parser.c',
+    '${BUILDPATH}/fs_hotplug_partition.c',
+    '${BUILDPATH}/fs_hotplug_poll.c',
+    '${BUILDPATH}/fs_hotplug_stub.c',
+    '${BUILDPATH}/fs_hotplug_task.c',
+    '${BUILDPATH}/fs_hotplug_usbhost.c'
+]
+hotplug_obj = env.Object(HOTPLUG_SOURCES)
+hotplug_lib = env.Library('${BUILDPATH}/hotplug', hotplug_obj)
+
+#----------------------------------------------------------------------------
+# Get the build configuration flags and add them to the environment
+#----------------------------------------------------------------------------
+fs_build_cpp_defines (hotplug_obj, HOTPLUG_SOURCES, env)
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage(
+   ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE',
+    'DBL_BOOT_IMAGE', 'OSBL_BOOT_IMAGE', 'SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+    'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'SBL1_BOOT_IMAGE', 'SBL2_BOOT_IMAGE',
+    'SBL3_BOOT_IMAGE', 'HOTPLUG_BOOT_DRIVER'], hotplug_lib)

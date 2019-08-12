@@ -1,0 +1,61 @@
+
+
+
+[*======================= COPYRIGHT NOTICE ======================*]
+[* Copyright 2011 QUALCOMM Incorporated.                         *]  
+[* All rights reserved.                                          *] 
+[*                                                               *]   
+[* All data and information contained in or disclosed by this    *]
+[* document is confidential and proprietary information of       *]
+[* QUALCOMM Incorporated and all rights therein are expressly    *]
+[* reserved. By accepting this material the recipient agrees     *]
+[* that this material and the information contained therein is   *]
+[* held in confidence and in trust and will not be used, copied, *]
+[* reproduced in whole or in part, nor its contents revealed in  *]
+[* any manner to others without the express written permission   *]
+[* of QUALCOMM.                                                  *]
+[*===============================================================*]
+
+
+
+HEXAGON QuRT RTOS VERSION 02.00.05 - RELEASE NOTES 
+
+* Overview
+
+    - Bug Fixes 
+    - Kernel
+    - QuRT User library
+    - OSAM
+
+* Bug Fixes
+    - http://aus-bugzilla/show_bug.cgi?id=6696
+    - Allow installing handlers for scheduler IPI interrupts
+
+* Kernel
+    - Do not print "failed to allocate phys mem" message before qurt_has_init=1.
+    - Support PI Futex in Qurt kernel. 
+      this new feature is controlled under a new config flag - CONFIG_PI_FUTEX
+    - Move QURTK_thread_switch_power_collapse out of QURTK.SCHEDULER.text
+    - updating tools version to 5.0.01
+    - New XML configuration to set the max priority of a thread holding a lock on pimutex
+      should be elevated to
+    - kernel support for veneer reduction, a.k.a. complex MMU mapping
+    - set tlb last_replaceable variable for case of non-complex mmu
+
+* QuRT user library
+    - Add API for measurement PC and WB duration pcycles
+    - Remove __QDSP6_ARCH__ and __qdsp6__ definition from qurt_consts.h.
+    - Remove qurt_non_public.h.
+    - API to allow trusted user mode transfer of control
+    - Optimizations to anysignal and signal implementations.
+    - Implement some any-signal APIs with signal functions to reduce redundant code.
+
+* OSAM
+
+    - fix T32 stack output which previously display corrupted information for threads that are
+      not currently running
+    - For task list and pagetable, only visible lines in the window are processed
+    - remove v2/v3 handling
+    - format pagetable to show precisely 5 hex digits;
+    - remove dead code in qurt_t32_v4.c;
+    - update osam and config.c for CONFIG_MP flag;

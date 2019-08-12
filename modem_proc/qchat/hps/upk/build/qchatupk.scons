@@ -1,0 +1,582 @@
+# Copyright (c) 2013 Qualcomm Technologies, Inc. All rights reserved.
+#
+#  This software is the confidential and proprietary information of
+#  Qualcomm Technologies, Inc. ("Proprietary Information").  You shall
+#  not disclose such Proprietary Information, and shall use it only in
+#  accordance with the terms of the license agreement you entered into
+#  with Qualcomm Technologies, Inc.
+# -------------------------------------------------------------------------------- #
+#                       Q C H A T U P K . S C O N S                                      
+#
+# DESCRIPTION                                                                      
+#       Scons file for the qchatupk. This file compiles following libraries.
+#           - data1x_qchatupk.lib
+#           - hdr_qchatupk.lib
+#           - qchatupk_pal_cdma.lib (PAL for CDMA build)
+#           - qchatupk_pal_multimode.lib (PAL for Mulitmode build)
+#           - qchatupk_pal_umts.lib (PAK for UMTS build)
+#           - wcdma_qchatupk.lib
+#                                                                                  
+#                                                                                  
+# INITIALIZATION AND SEQUENCING REQUIREMENTS                                       
+#       None.                                                                      
+#
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/qchat/hps/upk/build/qchatupk.scons#1 $
+# $DateTime: 2016/12/13 07:57:51 $
+# 
+#  when        who      what, where, why
+# ---------   -----     ------------------------------------------------------------
+# 04/14/11    Suren     Initial version created.
+#
+#===================================================================================#
+
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+import os
+Import('env')
+env = env.Clone()
+
+if 'USES_QCHAT' not in env:
+    Return()
+    
+env.Append(CDEFINES = [
+    "BREW_STATIC_APP",
+    "AEE_STATIC",
+    "FEATURE_QCHAT_CDMA_PAL",
+    "FEATURE_HDR_BCMCS_DYNAMIC_MODEL",
+    "FEATURE_QCHAT_USES_MODEM_HEAP",
+    "FEATURE_QCHAT_WCDMA",
+    "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+    ])
+
+env.Append(CPPDEFINES = [
+    "BREW_STATIC_APP",
+    "AEE_STATIC",
+    "FEATURE_QCHAT_CDMA_PAL",
+    "FEATURE_HDR_BCMCS_DYNAMIC_MODEL",
+    "FEATURE_QCHAT_WCDMA",
+    "FEATURE_QCHAT_USES_MODEM_HEAP",
+    "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+    ])
+
+#Suren: TODO Revisit this later.
+env.Append(CDEFINES = [
+     "FEATURE_QCHAT_MSG2P0",
+     "MSG_BT_SSID_DFLT=MSG_SSID_QCHAT_UPK",
+     "FEATURE_QCHAT_USES_MODEM_HEAP",
+])
+   
+env.Append(CPPDEFINES = [
+    "FEATURE_QCHAT_MSG2P0",
+    "MSG_BT_SSID_DFLT=MSG_SSID_QCHAT_UPK",
+    "FEATURE_QCHAT_USES_MODEM_HEAP",
+])
+
+if 'USES_QCHAT_5P1' in env:
+    env.Append(CDEFINES = [
+        "USES_QCHAT_5P1",
+    ])
+   
+    env.Append(CPPDEFINES = [
+        "USES_QCHAT_5P1",
+    ])
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+env.Replace(QCHATUPK_ROOT = '${QCHAT_ROOT}/hps/upk')
+SRCPATH = "${QCHATUPK_ROOT}"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+if 'QCHAT_PIC_ROOT' in os.environ:
+    if os.environ.get('QCHAT_PIC_ROOT').startswith('..'):
+        env.Replace(QCHAT_PIC_ROOT = os.path.abspath('../' + str(os.environ.get('QCHAT_PIC_ROOT'))))
+    else:
+        env.Replace(QCHAT_PIC_ROOT = os.environ.get('QCHAT_PIC_ROOT'))
+
+env.RequirePublicApi([
+        'MVS',
+        ],
+        area='AVS')
+        
+env.RequirePublicApi([
+        'DEBUGTRACE',
+
+        # needs to be last also contains wrong comdef.h
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        'DATAMODEM',
+        'PROTOCOLS',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'RF',
+        'C2K',
+        'GERAN',
+        'COMMON',
+        'WCDMA',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='GERAN')
+        
+env.RequirePublicApi([
+        'GPS',
+        ],
+        area='GPS')
+
+env.RequirePublicApi([
+        'HDR',
+        'PUBLIC',
+        'COMMON',
+        'CP',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='LTE')
+
+env.RequirePublicApi([
+        'MCFG',
+        ],
+        area='MCFG')
+
+env.RequirePublicApi([
+        'MCS',
+        ],
+        area='MCS')
+
+env.RequirePublicApi([
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'MPOWER',
+        ],
+        area='MPOWER')
+        
+env.RequirePublicApi([
+        'ONEX',
+        'PUBLIC',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'QCHAT',
+        ],
+        area='QMIMSGS')
+
+env.RequirePublicApi([
+        'CDMA',
+        'COMMON',
+        'GSM',
+        'LM',
+        'MEAS',
+        'WCDMA',
+        'GNSS',
+        'LTE',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'UIM',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'OSYS',
+        'A2',
+        'QSH',
+        ],
+        area='UTILS')
+        
+env.RequirePublicApi([
+        'WCDMA',
+        'PUBLIC',
+        ],
+        area='WCDMA')
+        
+CORE_APIS = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'POWER',
+    'SYSTEMDRIVERS',
+    'SERVICES',
+    'STORAGE',
+    'WIREDCONNECTIVITY',
+    'IODEVICES',
+    'MPROC',
+    'MEMORY',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+   
+RFA_APIS = [
+    'RFA'
+    ]
+   
+MODEM_PUBLIC_APIS = [
+    'DATA',
+    'DATACOMMON',
+    'DATAMODEM',
+    'GERAN',
+    'GPS',
+    'HDR',
+    'MCS',
+    'MMODE',
+    'NAS',
+    'ONEX',
+    'MMCP',
+    'PBM',
+    'QCHAT',
+    'RFA',
+    'UIM',
+    'UTILS',
+    'WCDMA',
+    'WMS',
+    ]
+   
+MODEM_RESTRICTED_APIS = [
+    'DATA',
+    'DATACOMMON',
+    'DATAMODEM',
+    'GERAN',
+    'FW',
+    'GPS',
+    'HDR',
+    'MCS',
+    'MDSP',
+    'MMCP',
+    'MMODE',
+    'NAS',
+    'ONEX',
+    'RFA',
+    'UIM',
+    'UTILS',
+    'WCDMA',
+    'WMS',
+    ]
+
+# MULTIMEDIA APIs
+MULTIMEDIA_PUBLIC_APIS = [
+    'AUDIO',
+    ]
+
+#-------------------------------------------------------------------------------
+# VIOLATIONS
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('VIOLATIONS',[
+        #OneX
+        '${INC_ROOT}/1x/cust/inc',
+        '${INC_ROOT}/1x/variation/inc',
+        '${INC_ROOT}/1x/cp/inc',
+        '${INC_ROOT}/1x/drivers/inc',
+        '${INC_ROOT}/1x/drivers/inc/${CHIPSET}',
+        '${INC_ROOT}/1x/mux/inc',
+        '${INC_ROOT}/1x/srch/inc',
+
+        #Data
+        '${INC_ROOT}/datamodem/cust/inc',
+        '${INC_ROOT}/datamodem/variation/inc',
+        '${INC_ROOT}/datamodem/3gpp2/1xrlp/inc',
+        '${INC_ROOT}/datamodem/3gpp2/doqos/inc',
+        '${INC_ROOT}/datamodem/3gpp2/ds707/inc',
+        '${INC_ROOT}/datamodem/3gpp2/dsmgr/inc',
+        '${INC_ROOT}/datamodem/3gpp/dsmgr/inc',
+        '${INC_ROOT}/datamodem/3gpp2/hdrdata/inc',
+        '${INC_ROOT}/datamodem/3gpp2/jcdma/inc',
+        '${INC_ROOT}/datamodem/interface/atcop/inc',
+        '${INC_ROOT}/datamodem/interface/sysapi/inc',
+        '${INC_ROOT}/datamodem/protocols/mip/inc',
+
+        #Data public
+        '${INC_ROOT}/datamodem/3gpp2/api/',
+        '${INC_ROOT}/datamodem/interface/api/',
+        '${INC_ROOT}/datamodem/protocols/api/',
+        
+        #GERAN
+        '${INC_ROOT}/geran/cust/inc',
+        '${INC_ROOT}/geran/variation/inc',
+
+        #HDR
+        '${INC_ROOT}/hdr/cust/inc',
+        '${INC_ROOT}/hdr/variation/inc',
+        '${INC_ROOT}/hdr/bc/inc',
+        '${INC_ROOT}/hdr/cp/inc',
+        '${INC_ROOT}/hdr/mac/src', #dep - hdramaci.h
+
+        #HDR, public
+        '${INC_ROOT}/hdr/common/api',
+        '${INC_ROOT}/hdr/common/inc',
+        '${INC_ROOT}/hdr/cp/api/',
+        '${INC_ROOT}/hdr/drivers/api',
+        '${INC_ROOT}/hdr/mac/api',
+        '${INC_ROOT}/hdr/srch/api',
+
+        #MCS
+        '${INC_ROOT}/mcs/cust/inc',
+        '${INC_ROOT}/mcs/variation/inc',
+        '${INC_ROOT}/mcs/hwio/inc',
+        '${INC_ROOT}/mcs/hwio/inc/${CHIPSET}',
+
+        #UTILS, should have been public!
+        '${INC_ROOT}/utils/osys',
+
+        #WCDMA 
+        '${INC_ROOT}/wcdma/cust/inc',
+        '${INC_ROOT}/wcdma/variation/inc',
+        '${INC_ROOT}/wcdma/diag/inc',
+        '${INC_ROOT}/wcdma/l1/offline/inc',
+        '${INC_ROOT}/wcdma/l1/offline/src',
+        '${INC_ROOT}/wcdma/l2/inc',
+        '${INC_ROOT}/wcdma/mac/inc',
+        '${INC_ROOT}/wcdma/rlc/inc',
+        '${INC_ROOT}/wcdma/rrc/inc',
+        '${INC_ROOT}/wcdma/rrc/src',
+        '${INC_ROOT}/wcdma/common/inc',
+
+        #QChat OSAL
+        '${INC_ROOT}/qchat/hps/multiproc/qmi/serialization/inc',
+        '${INC_ROOT}/qchat/hps/osal/common/inc',
+        '${INC_ROOT}/qchat/hps/osal/amss/inc',
+       ])
+
+#-------------------------------------------------------------------------------
+# We need the Core API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+
+#-------------------------------------------------------------------------------
+# We need the RFA API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(RFA_APIS, area="RFA")
+
+#-------------------------------------------------------------------------------
+# We need the MODEM PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need different restricted API's within MODEM
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+env.RequireRestrictedApi([
+   'FW'
+   ])
+#-------------------------------------------------------------------------------
+# We need the MULTIMEDIA PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MULTIMEDIA_PUBLIC_APIS, area="MULTIMEDIA")
+
+#-------------------------------------------------------------------------------
+# We need the QCHAT PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(['QCHAT'], area='API')
+
+# Add definition of product line
+QCHATUPK_PRODUCT_LINE = env.get('PRODUCT_LINE')
+QCHATUPK_PRODUCT_LINE = QCHATUPK_PRODUCT_LINE.replace('.', '_')
+QCHATUPK_PRODUCT_LINE = 'QCHATUPK_' + QCHATUPK_PRODUCT_LINE
+env.Append(CPPDEFINES = QCHATUPK_PRODUCT_LINE)
+
+#-------------------------------------------------------------------------------
+# We need QCHATUPK's API
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('QCHATUPK_INC', [
+    "${INC_ROOT}/qchat/hps/inc",
+    "${QCHATUPK_ROOT}/cdma/inc",
+    "${QCHATUPK_ROOT}/common/inc",
+    "${QCHATUPK_ROOT}/qmi/inc",    
+    "${QCHATUPK_ROOT}/wcdma/inc",
+    "${QCHATUPK_ROOT}/lte/inc",
+    ])
+
+QCHATUPK_HDR_SOURCES = [
+    '${BUILDPATH}/cdma/src/qchatupk_dos.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdramac.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdrcmac.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdrampati.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdrcon.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdrdos.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdrmc.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdrhmpsa.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdridle.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdrpac_mdm.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdrbcframe.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdrbccpreg.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdr.c',
+    '${BUILDPATH}/cdma/src/qchatupk_hdr_utils.c',
+    '${BUILDPATH}/common/src/qchatupk_license.c',
+    '${BUILDPATH}/lte/src/qchatupk_query_lte.c',
+    ]
+   
+QCHATUPK_DATA_SOURCES = [
+    '${BUILDPATH}/cdma/src/qchatupk_ds707_sdb.c',
+    '${BUILDPATH}/cdma/src/qchatupk_ds707_sdb_mdm.c',
+    '${BUILDPATH}/cdma/src/qchatupk_dsbc_1xhdr.c',
+    '${BUILDPATH}/cdma/src/qchatupk_mccsup.c',
+    '${BUILDPATH}/cdma/src/qchatupk_data.c',
+    '${BUILDPATH}/cdma/src/qchatupk_query_amss.c',
+    '${BUILDPATH}/cdma/src/qchatupk_dssocket.c',
+    '${BUILDPATH}/cdma/src/qchatupk_ds707_epzid_hyst.c',
+    '${BUILDPATH}/cdma/src/qchatupk_ds707_pkt_mgr.c',
+    '${BUILDPATH}/common/src/qchatupk_license.c',
+    ]
+   
+QCHATUPK_WCDMA_SOURCES = [
+    '${BUILDPATH}/wcdma/src/qchatupk_srch.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_wl1m.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_rrccu.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_wcdma.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_rrcdispatcher.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_drx.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_rrcpg1.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_rrcllc.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_rrctvm.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_wenc.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_l1msetup.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_macrach.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_gmmreg.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_rrcmisc.c',
+    '${BUILDPATH}/wcdma/src/wcdmal1shim.c',
+    '${BUILDPATH}/wcdma/src/wcdmarrcshim.c',
+    '${BUILDPATH}/wcdma/src/qchatupk_mcalwcdma_edl.c',
+    '${BUILDPATH}/lte/src/qchatupk_query_lte.c',
+    '${BUILDPATH}/common/src/qchatupk_license.c',
+    ]
+
+QCHATUPK_PAL_CDMA_SOURCES = [
+    '${BUILDPATH}/common/src/amssiqchatmgr.c',
+    '${BUILDPATH}/common/src/qchatmgr_pal.c',
+    '${BUILDPATH}/common/src/qchatmgr_pal_cdma.c',
+    '${BUILDPATH}/common/src/qchatmgr_pal_lte.c',
+    '${BUILDPATH}/common/src/qchatupk_license.c',
+    '${BUILDPATH}/common/src/qchatupk_pal_cdma_opts.c',
+    ]
+
+QCHATUPK_PAL_UMTS_SOURCES = [
+    '${BUILDPATH}/common/src/amssiqchatmgr.c',
+    '${BUILDPATH}/common/src/qchatmgr_pal.c',
+    '${BUILDPATH}/common/src/qchatmgr_pal_wcdma.c',
+    '${BUILDPATH}/common/src/qchatmgr_pal_lte.c',
+    '${BUILDPATH}/common/src/qchatupk_license.c',
+    ]
+
+QCHATUPK_PAL_MULTIMODE_SOURCES = [
+    '${BUILDPATH}/common/src/amssiqchatmgr.c',
+    '${BUILDPATH}/common/src/qchatmgr_pal.c',
+    '${BUILDPATH}/common/src/qchatmgr_pal_cdma.c',
+    '${BUILDPATH}/common/src/qchatmgr_pal_wcdma.c',
+    '${BUILDPATH}/common/src/qchatmgr_pal_lte.c',
+    '${BUILDPATH}/common/src/qchatupk_license.c',
+    '${BUILDPATH}/common/src/qchatupk_pal_cdma_opts.c',
+    ]
+
+QCHATUPK_DLC_MM_PAL_SOURCES = []
+QCHATUPK_DLC_UMTS_PAL_SOURCES = []
+QCHATUPK_DLC_CDMA_PAL_SOURCES = []
+
+QCHATUPK_QMI_MM_SOURCES = []
+QCHATUPK_QMI_UMTS_SOURCES = []
+QCHATUPK_QMI_CDMA_SOURCES = []
+
+if 'USES_EXPORT_QCHAT' in env:
+    QCHATUPK_DLC_MM_PAL_SOURCES.append([
+        '${BUILDPATH}/qmi/src/qchatupkmgr.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_common.cpp',
+        '${BUILDPATH}/qmisrc/qchatupk_cdma.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_opts_glue.cpp',
+        ])
+
+    QCHATUPK_DLC_UMTS_PAL_SOURCES.append([
+        '${BUILDPATH}/qmi/src/qchatupkmgr.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_common.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_opts_glue.cpp'
+        ])
+
+    QCHATUPK_DLC_CDMA_PAL_SOURCES.append([
+        '${BUILDPATH}/qmi/src/qchatupkmgr.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_common.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_cdma.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_opts_glue.cpp',
+        ])
+
+if 'USES_QCHAT_QMI' in env:
+    QCHATUPK_QMI_MM_SOURCES.append([
+        '${BUILDPATH}/qmi/src/qmi_qchat_svc_main.cpp',
+        '${BUILDPATH}/qmi/src/qchatupkmgr.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_common.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_cdma.cpp',
+    ])
+
+if 'USES_QCHAT_QMI' in env:
+    QCHATUPK_QMI_UMTS_SOURCES.append([
+        '${BUILDPATH}/qmi/src/qmi_qchat_svc_main.cpp',
+        '${BUILDPATH}/qmi/src/qchatupkmgr.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_common.cpp',
+    ])
+
+if 'USES_QCHAT_QMI' in env:
+    QCHATUPK_QMI_CDMA_SOURCES.append([
+        '${BUILDPATH}/qmi/src/qmi_qchat_svc_main.cpp',
+        '${BUILDPATH}/qmi/src/qchatupkmgr.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_common.cpp',
+        '${BUILDPATH}/qmi/src/qchatupk_cdma.cpp'        
+    ])
+
+#HDR and DATA libs
+if 'USES_HDR' in env:   
+    env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/data1x_qchatupk', QCHATUPK_DATA_SOURCES)
+    env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/hdr_qchatupk', QCHATUPK_HDR_SOURCES)
+
+#WCMDA lib
+if 'USES_UMTS' in env:
+    env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/wcdma_qchatupk', QCHATUPK_WCDMA_SOURCES)
+   
+#PAL UMTS
+if 'USES_UMTS' in env:
+    if 'USES_HDR' not in env:
+        env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/qchatupk_pal_umts', 
+                                         QCHATUPK_PAL_UMTS_SOURCES + 
+                                         QCHATUPK_DLC_UMTS_PAL_SOURCES +
+                                         QCHATUPK_QMI_MM_SOURCES)
+
+#PAL CDMA
+if 'USES_HDR' in env:
+    if 'USES_UMTS' not in env:
+        env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/qchatupk_pal_cdma', 
+                                         QCHATUPK_PAL_CDMA_SOURCES + 
+                                         QCHATUPK_DLC_CDMA_PAL_SOURCES +
+                                         QCHATUPK_QMI_CDMA_SOURCES)
+
+#PAL Multimode
+if 'USES_HDR' in env:
+    if 'USES_UMTS' in env:
+        env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/qchatupk_pal_multimode', 
+                                         QCHATUPK_PAL_MULTIMODE_SOURCES + 
+                                         QCHATUPK_DLC_MM_PAL_SOURCES +
+                                         QCHATUPK_QMI_CDMA_SOURCES)

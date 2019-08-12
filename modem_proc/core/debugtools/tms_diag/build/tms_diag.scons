@@ -1,0 +1,99 @@
+#===============================================================================
+#
+# ERR INJECT Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Author: mplcsds1 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/27/14   dav     Created separate file for TMS DIAG
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# SUPPORTED IMAGES
+#-------------------------------------------------------------------------------
+
+TMS_DIAG_IMGS = [
+  'MODEM_IMAGE',
+  'CBSP_MODEM_IMAGE',
+  'SINGLE_IMAGE',
+  'CBSP_SINGLE_IMAGE',
+  'APPS_IMAGE',
+  'CBSP_APPS_IMAGE',
+  'QDSP6_SW_IMAGE',
+  'CBSP_QDSP6_SW_IMAGE',
+  'CORE_GSS', 'WCN_IMAGE'
+]
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/debugtools/tms_diag/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Features and Definitions
+#-------------------------------------------------------------------------------
+
+if 'USES_DEVCFG' in env:
+    env.Append(CPPDEFINES=['TMS_DIAG_USES_DEVCFG'])
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+env.RequireExternalApi([
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'SERVICES',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+TMS_DIAG_SOURCES = [
+   '${BUILDPATH}/tms_diag.c',
+]
+
+env.AddLibrary(
+    TMS_DIAG_IMGS,
+    '${BUILDPATH}/tms_diag', TMS_DIAG_SOURCES )
+
+#-------------------------------------------------------------------------------
+# Libraries
+#-------------------------------------------------------------------------------
+
+# Devcfg Registrations
+if 'USES_DEVCFG' in env:
+  DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+  env.AddDevCfgInfo(DEVCFG_IMG,
+  {
+    'soc_xml' : ['${BUILD_ROOT}/core/debugtools/tms_diag/src/tms_diag_root.xml']
+  })
+

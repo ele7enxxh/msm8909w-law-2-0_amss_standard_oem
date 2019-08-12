@@ -1,0 +1,192 @@
+#===============================================================================
+#
+# NAND Tools build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012, 2014 by QUALCOMM Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/rel/1.2/boot_images/core/storage/flash/tools/src/nand/build/SConscript#2 $
+#  $DateTime: 2011/08/04 22:04:12 $
+#  $Author: coresvc $
+#  $Change: 1868724 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/30/14   sb       Watchdog changes for 9x45
+# 07/14/14   sb       Remove nand stress to reduce tool size
+# 06/19/14   sb       Update to support 8909
+# 06/04/14   sb       Update to support 9x45
+# 10/19/12   sv       Update the Watchdog address
+# 09/13/12   sv       Add HWENGINES in Internal CBSP dependency list
+# 06/22/11   eo       Added nand tools support for 9x15
+# 05/27/11   sv       Optimize scons script in including libraries
+# 09/26/10   sv       Disable watchdog for RUMI builds
+# 08/26/10   sb       To allow compilation of nand_tools with OSBL for GOBI flashing model
+# 08/12/10   nr       Replaced nand_log.c with flash_log.c
+# 07/13/10   bb       Added support for 6615
+# 11/25/09   jz       Fixed indentation and include paths for nand tools configs
+# 11/28/09   op       Support Fota on Halcyon. 
+# 11/16/09   jz       Fixed include paths for nand_tools.exe generation
+# 10/13/09   jz       Cleaned up include paths in scons build 
+# 10/09/09   mm       Removed deleted file from tools
+# 09/21/09   jz       Moved handling of USES_PRINTF to image level sconscript
+# 09/15/09   jz       Moved the logic to build nand_tools.exe here
+# 09/08/09   eo       Update MDM9K SCONS scripts to new SCONS framework
+# 08/12/09   mh       Branched and updated to generate libraries only
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+if env.has_key('USES_RUMI') :
+   env.Append(CPPDEFINES = ["FLASH_WATCHDOG_DISABLED"])
+
+# Define watchdog reset register for given target.
+if env['MSM_ID'] in ['9x45', '8909','8909w']:
+   env.Append(CPPDEFINES = ["FLASH_WATCHDOG_RESET_ADDR=0x004AA000"])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/flash/tools/src/nand"
+
+if not env.SubstPathExists(SRCPATH):
+   SRCPATH = "${BUILD_ROOT}/drivers/flash/tools/src/nand"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'BOOT',
+   'SERVICES',
+   'STORAGE',
+   'HWENGINES',
+]
+
+if not env.has_key('NAND_TOOLS_EXE'):
+   CBSP_API += [
+      'HAL',
+      'SYSTEMDRIVERS',
+      # needs to be last also contains wrong comdef.h
+      'KERNEL',
+   ]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+# For include file nand_wrapper.h from tools/src/nand
+env.RequireProtectedApi(['STORAGE_FLASH'])
+
+# For SecureBoot 2.0 targets
+env.PublishPrivateApi('STORAGE_FLASH_NAND_TOOLS', [
+   "${INC_ROOT}/core/storage/flash/tools/src/nand/config_v2",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+if env['PROC'] in ['arm7']:
+   NAND_TOOLS_STARTUP_SOURCES = [
+      '${BUILDPATH}/nand_start_rpm.s',
+   ]
+else:
+   NAND_TOOLS_STARTUP_SOURCES = [
+      '${BUILDPATH}/nand_start.s',
+]
+
+NAND_CONFIG_V1_SOURCES = [
+   '${BUILDPATH}/config_v1/nand_core_v1.c',
+]
+
+NAND_CONFIG_V1_SIM_SOURCES = [
+   '${BUILDPATH}/config_v1/nand_sim_v1.c',
+]
+
+NAND_CONFIG_V2_SOURCES = [
+   '${BUILDPATH}/config_v2/nand_core_v2.c',
+]
+
+NAND_CONFIG_V2_SIM_SOURCES = [
+   '${BUILDPATH}/config_v2/nand_sim_v2.c',
+]
+
+NAND_HOSTDL_SOURCES = [
+   '${BUILDPATH}/nand_core.c',
+   '${BUILDPATH}/nand_partition.c',
+   '${BUILDPATH}/nand_param.c',
+   '${BUILDPATH}/nand_tools.c',
+   '${BUILDPATH}/nand_wrapper.c',
+   '${BUILDPATH}/nand_entry.c',
+   '${BUILDPATH}/nand_stubs.c',
+]
+
+NAND_OSBL_SOURCES = [
+   '${BUILDPATH}/nand_core.c',
+   '${BUILDPATH}/nand_partition.c',
+   '${BUILDPATH}/nand_param.c',
+   '${BUILDPATH}/nand_tools.c',
+   '${BUILDPATH}/nand_wrapper.c',
+   '${BUILDPATH}/nand_entry.c',
+]
+
+NAND_COMMON_SOURCES = [
+   '${BUILDPATH}/nand_param.c',
+   '${BUILDPATH}/nand_partition.c',
+   '${BUILDPATH}/nand_stubs.c',
+   '${BUILDPATH}/nand_core.c',
+   '${BUILDPATH}/nand_entry.c',
+]
+
+NAND_ARM_SOURCES = [
+   '${BUILDPATH}/nand_dump.c',
+   '${BUILDPATH}/nand_wrapper.c',
+   '${BUILDPATH}/nand_utils.c',
+   '${BUILDPATH}/nand_mem_init.c',
+]
+
+NAND_X86_FLASH_SOURCES = [
+   '${BUILDPATH}/nand_sim.c',
+]
+
+PRINT_SOURCES = [
+   '${BUILDPATH}/flash_log.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddObject(['NAND_TOOLS_IMAGE'], NAND_TOOLS_STARTUP_SOURCES)
+
+env.AddLibrary(['NAND_TOOLS_IMAGE'],
+   '${BUILDPATH}/nand_arm', NAND_ARM_SOURCES)
+
+env.AddLibrary(['NAND_TOOLS_IMAGE'],
+   '${BUILDPATH}/nand_common', NAND_COMMON_SOURCES)
+
+env.AddLibrary(['DEVICEPROGRAMMER_NAND_IMAGE','HOSTDL_IMAGE', 'EHOSTDL_IMAGE'],
+   '${BUILDPATH}/nand_hostdl', NAND_HOSTDL_SOURCES)
+
+env.AddObject('NAND_TOOLS_EXE', NAND_COMMON_SOURCES + NAND_X86_FLASH_SOURCES)
+
+# Following configuiration is not used currently
+# Place holder for future targets that will use config v1
+if env['MSM_ID'] in ['9x45', '8909','8909w'] :
+   env.AddLibrary(['NAND_TOOLS_IMAGE', 'HOSTDL_IMAGE', 'EHOSTDL_IMAGE','DEVICEPROGRAMMER_NAND_IMAGE'],
+   '${BUILDPATH}/nand_config_v2', NAND_CONFIG_V2_SOURCES)
+   env.AddObject('NAND_TOOLS_EXE', NAND_CONFIG_V2_SOURCES)
+   env.AddObject('NAND_TOOLS_EXE', NAND_CONFIG_V2_SIM_SOURCES)
+
+if env.has_key('USES_PRINTF') and env['USES_PRINTF'] == "yes": 
+   env.AddLibrary(['NAND_TOOLS_IMAGE', 'HOSTDL_IMAGE', 'EHOSTDL_IMAGE'],
+   '${BUILDPATH}/nand_log', PRINT_SOURCES)

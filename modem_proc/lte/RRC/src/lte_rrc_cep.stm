@@ -1,0 +1,276 @@
+/*!
+  @file
+  lte_rrc_cep.c
+
+  @brief
+  This module contains the entry, exit, and transition functions
+  necessary to implement the following state machines:
+
+  @detail
+  LTE_RRC_CEP_SM ( 1 instance/s )
+
+*/
+
+
+/*===========================================================================
+
+  Copyright (c) 2007 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+04/03/12   ap       Removed SIB2 wait timer and SIB update indication from all SMs 
+12/12/11   kp       Added code for W2L PSHO
+01/12/11   mm       Removed handling Conn Setup DLM in Pending Retry state
+01/11/11   mm       Added handling of MAC_ACCESS_ABORT_REQ/CNF in Access state
+07/07/08   dd 	    Initial rev.
+
+===========================================================================*/
+
+
+/*===========================================================================
+
+                      STATE MACHINE DESCRIPTION
+
+The state machine implements the LTE Connection Establishment Procedure.
+1. CEP initiates RRC connection when it receives the ConnectionEstablish 
+ request from NAS.
+2. It then does Access Barring Check based on SIB2 information and initiates
+ connection setup with an RRCConnectionSetupRequest message. 
+3. On receiving RRCConnectionSetup message from eNB, CEP configures SRB1 and 
+sends RRCConnectionSetupComplete to eNB.
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_CEP_SM
+{
+  ENTRY             lte_rrc_cep_entry;
+  EXIT              lte_rrc_cep_exit;
+  INITIAL_STATE     INACTIVE;
+  ERROR_HOOK        lte_rrc_stm_error;
+  DEBUG_HOOK        lte_rrc_stm_debug;
+  INPUT_DEF_FILE    lte_rrc_stm.h;
+  INPUT_DEF_FILE    lte_rrc_int_msg.h;
+  INPUT_DEF_FILE    lte_rrc_ext_msg.h;
+  INPUT_DEF_FILE    lte_mac_msg.h;
+  INSTANCES         1;
+ 
+ /*! Inactive state: 
+ This is the default state of the SM. When the SM is activated, it sits in this 
+ state until one of the events below triggers a transition. 
+ When RRC is in Idle state, CEP is in Inactive state.
+ */
+  STATE INACTIVE
+  {
+    ENTRY           lte_rrc_cep_sm_inactive_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_RRC_CONN_EST_REQ lte_rrc_cep_sm_conn_est_req;
+
+      LTE_RRC_T302_TMRI lte_rrc_cep_sm_t302_tmri;
+
+      LTE_RRC_T303_TMRI lte_rrc_cep_sm_t303_tmri;
+
+      LTE_RRC_T305_TMRI lte_rrc_cep_sm_t305_tmri;
+      
+      LTE_RRC_STOPPED_INDI lte_rrc_cep_sm_stopped_indi;
+
+      LTE_RRC_CAMPED_INDI lte_rrc_cep_sm_camped_indi;
+
+      LTE_RRC_CONN_ABORT_REQ lte_rrc_cep_sm_conn_abort_req;
+      /*! Handle Conn Abort Req in INACTIVE state*/
+
+      LTE_RRC_IRAT_TO_LTE_PSHO_SUCCESS_INDI lte_rrc_cep_sm_irat_to_lte_psho_success_ind;
+
+      LTE_CPHY_RF_AVAILABLE_IND  lte_rrc_cep_sm_rf_available_ind;
+      
+      LTE_CPHY_RF_UNAVAILABLE_IND  lte_rrc_cep_sm_rf_unavailable_ind;      
+
+      LTE_RRC_NV_REFRESH_INDI lte_rrc_cep_sm_nv_refresh_indi;
+
+      LTE_RRC_SIB_UPDATED_INDI       lte_rrc_cep_sm_sib_updated_indi;
+    }
+  }
+
+    
+ /*! Pending Retry state:
+ The CEP SM sits in this state when we want to retry Connection Setup.
+ This typically happens when access barring check has failed or when 
+ Connection Reject was sent by the eNB with non-zero wait Time... 
+ So, we can retry after T302 expiry 
+ */
+  
+  STATE PENDING_RETRY 
+  {
+    ENTRY        		lte_rrc_cep_sm_pending_retry_entry;
+    EXIT            		lte_rrc_cep_sm_pending_retry_exit;
+    
+    INPUTS
+    {
+      LTE_RRC_T302_TMRI lte_rrc_cep_sm_t302_tmri;
+
+      LTE_RRC_T303_TMRI lte_rrc_cep_sm_t303_tmri;
+
+      LTE_RRC_T305_TMRI lte_rrc_cep_sm_t305_tmri;
+
+      LTE_RRC_CELL_RESEL_STARTED_INDI lte_rrc_cep_sm_cell_resel_started_indi;
+
+      LTE_RRC_CELL_RESEL_CANCELED_INDI lte_rrc_cep_sm_cell_resel_canceled_indi;
+
+      LTE_RRC_NOT_CAMPED_INDI lte_rrc_cep_sm_not_camped_indi;
+
+      LTE_RRC_CAMPED_INDI lte_rrc_cep_sm_camped_indi;
+
+      LTE_RRC_CONN_ABORT_REQ lte_rrc_cep_sm_conn_abort_req;
+
+      LTE_RRC_STOPPED_INDI lte_rrc_cep_sm_est_stopped_indi;
+
+      LTE_RRC_CEP_RESEL_TMRI lte_rrc_cep_sm_resel_tmri;
+
+      LTE_RRC_RRC_CONNECTION_REJECT_DLM lte_rrc_cep_sm_connection_reject_dlm;
+     
+      LTE_MAC_ACCESS_CNF lte_rrc_cep_sm_access_cnf;
+
+      LTE_MAC_RANDOM_ACCESS_PROBLEM_IND lte_rrc_cep_sm_random_access_problem_ind;
+
+      LTE_RRC_ML1_REVOKE_CNFI lte_rrc_cep_ml1_revoke_cnfi;
+
+      LTE_RRC_NEW_CELL_INFO_INDI lte_rrc_cep_sm_new_cell_info_indi;
+
+      LTE_CPHY_RF_AVAILABLE_IND  lte_rrc_cep_sm_rf_available_ind;
+      
+      LTE_CPHY_RF_UNAVAILABLE_IND  lte_rrc_cep_sm_rf_unavailable_ind;      
+      
+      LTE_RRC_CEP_RF_UNAVAILABLE_TMRI lte_rrc_cep_sm_rf_unavailable_tmri;
+      /*! CEP will resume RACH procedure at expiry of the timer*/
+      LTE_RRC_CEP_ACB_DELAY_RACH_TMRI lte_rrc_cep_sm_acb_delay_rach_tmri;
+
+      LTE_RRC_SIB_UPDATED_INDI       lte_rrc_cep_sm_sib_updated_indi;
+    }
+  }
+
+
+ /*! Access state:
+  In this state, L2 is doing access and RRC_CONNECTION_SETUP_REQUEST
+  has been queued up by RRC. CEP is waiting for  RRC_CONECTION_SETUP from the 
+  eNB in this state.
+ */ 
+  STATE ACCESS
+  {
+    ENTRY	lte_rrc_cep_sm_access_entry;
+    EXIT       	lte_rrc_cep_sm_access_exit;
+    INPUTS
+    {
+      LTE_RRC_RRC_CONNECTION_SETUP_DLM lte_rrc_cep_sm_connection_setup_dlm;
+
+      LTE_RRC_RRC_CONNECTION_REJECT_DLM lte_rrc_cep_sm_connection_reject_dlm;
+
+      LTE_RRC_T300_TMRI lte_rrc_cep_sm_t300_tmri;
+
+      LTE_CPHY_RACH_MSG1_SCHED_IND lte_rrc_cep_sm_rach_msg1_sched_ind_handler;
+
+      LTE_MAC_ACCESS_CNF lte_rrc_cep_sm_access_cnf;
+
+      LTE_RRC_CELL_RESEL_STARTED_INDI 
+      lte_rrc_cep_sm_cell_resel_started_indi;
+
+      LTE_RRC_NOT_CAMPED_INDI lte_rrc_cep_sm_not_camped_indi;
+
+      LTE_RRC_CONN_ABORT_REQ	lte_rrc_cep_sm_conn_abort_req;
+
+      LTE_MAC_RANDOM_ACCESS_PROBLEM_IND lte_rrc_cep_sm_random_access_problem_ind;
+
+      LTE_MAC_ACCESS_ABORT_CNF lte_rrc_cep_sm_mac_access_abort_cnf;
+
+      LTE_RRC_STOPPED_INDI lte_rrc_cep_sm_est_stopped_indi;
+	
+      LTE_CPHY_RF_AVAILABLE_IND  lte_rrc_cep_sm_rf_available_ind;
+      
+      LTE_CPHY_RF_UNAVAILABLE_IND  lte_rrc_cep_sm_rf_unavailable_ind;      
+	
+      LTE_RRC_CEP_DEADLOCK_TMRI lte_rrc_cep_sm_deadlock_tmr_expiry;
+
+      LTE_RRC_SIB_UPDATED_INDI       lte_rrc_cep_sm_sib_updated_indi;	
+    }
+  }
+  
+  
+	
+ /* !Configuring SRB1 state:
+  The CEP SM is in this state when SRB1 is being setup by the lower layers.
+ */ 
+  STATE CONFIGURING_SRB1
+  {
+    ENTRY	lte_rrc_cep_sm_csrb1_entry;
+    EXIT        lte_rrc_cep_sm_csrb1_exit;
+    INPUTS
+    {
+      LTE_RRC_CFG_CNFI lte_rrc_cep_sm_cfg_cnfi;
+
+      LTE_MAC_ACCESS_CNF lte_rrc_cep_sm_access_cnf;
+
+      LTE_RRC_NOT_CAMPED_INDI lte_rrc_cep_sm_not_camped_indi;
+
+      LTE_RRC_CONN_ABORT_REQ lte_rrc_cep_sm_conn_abort_req;
+
+      LTE_RRC_STOPPED_INDI lte_rrc_cep_sm_est_stopped_indi;
+
+      LTE_CPHY_RF_AVAILABLE_IND  lte_rrc_cep_sm_rf_available_ind;
+      
+      LTE_CPHY_RF_UNAVAILABLE_IND  lte_rrc_cep_sm_rf_unavailable_ind;      
+
+      LTE_RRC_SIB_UPDATED_INDI       lte_rrc_cep_sm_sib_updated_indi;
+    }
+  }
+ 
+ /* !Connected state:
+  The CEP SM is in this state when RRC is in connected state.
+ */ 
+  STATE CONNECTED
+  {
+    ENTRY      	lte_rrc_cep_sm_connected_entry;
+    EXIT       	lte_rrc_cep_sm_connected_exit;
+    INPUTS
+    {
+      LTE_RRC_CONN_RELEASED_INDI lte_rrc_cep_sm_conn_released_indi;
+
+      LTE_RRC_RRC_CONNECTION_SETUP_COMPLETE_CNFI 
+	lte_rrc_cep_sm_connection_setup_complete_cnfi;
+
+      LTE_RRC_STOPPED_INDI lte_rrc_cep_sm_stopped_indi;
+      
+      LTE_CPHY_RF_AVAILABLE_IND  lte_rrc_cep_sm_rf_available_ind;
+      
+      LTE_CPHY_RF_UNAVAILABLE_IND  lte_rrc_cep_sm_rf_unavailable_ind; 
+
+      LTE_RRC_SIB_UPDATED_INDI       lte_rrc_cep_sm_sib_updated_indi;
+    }
+  }
+
+}
+

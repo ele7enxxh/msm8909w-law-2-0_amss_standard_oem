@@ -1,0 +1,61 @@
+
+AREA.SELECT A000
+AREA.VIEW
+
+LOCAL &reqNode &clientId &reqData &validFlag &validFlagE
+LOCAL &numClients &numClientsPrint &index &indexPrint
+LOCAL &numClkReq &numClkReqPrint &reqArray &clkReq &clkIndex &clkIndexPrint
+LOCAL &clkId &clkFreqHz &freqMatch
+
+PRINT ""
+PRINT "ADSPPM Clock request list"
+PRINT "----------------------"
+&reqNode=V.VALUE(gAdsppmCoreCtx.AdsppmReqQArray[1].link.pNext)
+&numClients=V.VALUE(gAdsppmCoreCtx.AdsppmReqQArray[1].nCnt)
+&numClientsPrint=FORMAT.DECIMAL(0,&numClients)
+PRINT "Number of clients = &numClientsPrint"
+&index=1
+&indexPrint=FORMAT.DECIMAL(0,&index)
+WHILE &index<=&numClients
+(
+    &reqData=V.VALUE(((RMCtxType *)&reqNode).pRequestData)
+    &clientId=FORMAT.DECIMAL(0,V.VALUE(((RMCtxType *)&reqNode).clientId))
+    &validFlag=FORMAT.DECIMAL(0,V.VALUE(((RMCtxType *)&reqNode).validFlag))
+    &validFlagE=FORMAT.DECIMAL(0,V.VALUE(((RMCtxType *)&reqNode).validFlag_Ext))
+    IF &validFlag==1
+    (
+        PRINT "Client &indexPrint"
+        PRINT "  reqNode                  = (RMCtxType *)&reqNode"
+        PRINT "  clientId                 = &clientId"
+        PRINT "  validFlag                = &validFlag"
+        PRINT "  validFlag_Ext            = &validFlagE"
+        PRINT "  reqData                  = (AdsppmClkRequestType)&reqData"
+        &numClkReq=V.VALUE(((AdsppmClkRequestType *)&reqData).numOfClk)
+        &numClkReqPrint=FORMAT.DECIMAL(0,&numClkReq)
+        PRINT "  Number of Clock requests = &numClkReqPrint"
+        &clkIndex=0
+        &clkIndexPrint=FORMAT.DECIMAL(0,&clkIndex)
+        &reqArray=V.VALUE(((AdsppmClkRequestType *)&reqData).pClkArray)
+        WHILE &clkIndex<&numClkReq
+        (
+            ;&clkReq = start_of(reqArray)+(size_of(AdsppmClkValType)*number_of_bytes_per_address*clkIndex)
+            &clkReq=V.VALUE((AdsppmClkValType *)&reqArray)+4*4*&clkIndex
+            &clkId=FORMAT.DECIMAL(0,V.VALUE(((AdsppmClkValType *)&clkReq).clkId))
+            &clkFreqHz=FORMAT.DECIMAL(0,V.VALUE(((AdsppmClkValType *)&clkReq).clkFreqHz))
+            &freqMatch=FORMAT.DECIMAL(0,V.VALUE(((AdsppmClkValType *)&clkReq).freqMatch))
+            PRINT "    Clock request &clkIndexPrint"
+            PRINT "      clkId     = &clkId"
+            PRINT "      clkFreqHz = &clkFreqHz"
+            PRINT "      freqMatch = &freqMatch"
+            &clkIndex=&clkIndex+1
+            &clkIndexPrint=FORMAT.DECIMAL(0,&clkIndex)
+        )
+    )
+    ELSE
+    (
+        PRINT "Client &indexPrint [not requested]"
+    )
+    &reqNode=V.VALUE(((coreUtils_Q_LinkType *)&reqNode).pNext)
+    &index=&index+1
+    &indexPrint=FORMAT.DECIMAL(0,&index)
+)

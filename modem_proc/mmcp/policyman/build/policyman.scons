@@ -1,0 +1,217 @@
+#===============================================================================
+#
+# Policy Manager (PM) SCons 
+#
+# GENERAL DESCRIPTION
+#    SCons build script
+#
+# Copyright (c) 2013-2016 by Qualcomm Technologies INCORPORATED.
+# All Rights Reserved.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/policyman/build/policyman.scons#1 $
+#  $DateTime: 2016/12/13 08:00:05 $
+#
+#===============================================================================
+# from glob import glob
+# from os.path import join, basename
+
+Import('env')
+env = env.Clone()
+
+if 'USES_WPLT' in env:
+   Return()
+
+# --------------------------------------------------------------------------- #
+# Turn off/on debug if requested
+# --------------------------------------------------------------------------- # 
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+#env.Append(CPPDEFINES = [
+#    'MSG_BT_SSID_DFLT=MSG_SSID_SD',
+#])
+
+#-------------------------------------------------------------------------------
+# For MSGR_DEFINE_UMID() calls
+#-------------------------------------------------------------------------------
+if 'USES_MSGR' in env:
+    env.AddUMID('${BUILDPATH}/policyman_msgr.umid', ['../../api/public/policyman_msg.h'])
+
+#-------------------------------------------------------------------------------
+# Publish our Private API
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('POLICYMAN', ["${INC_ROOT}/mmcp/policyman/inc"])
+
+#-------------------------------------------------------------------------------
+# Necessary Public API's
+#-------------------------------------------------------------------------------
+REQUIRED_PUBLIC_APIS = [
+    'MCS',
+    'UIM',
+    'MCFG',
+    ]
+
+REQUIRED_RESTRICTED_APIS = [
+    'MCS',
+    'UIM',
+    'UTILS',
+    ]
+
+CORE_APIS = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'MPROC',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_APIS, area='core')
+env.RequirePublicApi(REQUIRED_PUBLIC_APIS) 
+env.RequireRestrictedApi(REQUIRED_RESTRICTED_APIS)
+
+#--- MOB_POLICYMAN support (begin)
+if 'MOB_POLICYMAN' in env:
+  env.PrintDebugInfo('policyman', "This is a Policyman MOB build")
+
+  #-------------------------------------------------------------------------------
+  # QTF Test headers
+  #-------------------------------------------------------------------------------
+  PRIVATE_OFFTARGET_HEADERS = [
+    "${INC_ROOT}/mmcp/policyman/offt/test/inc",
+    "${INC_ROOT}/mmcp/policyman/offt/test/inc/other",
+    "${INC_ROOT}/mmcp/policyman/offt/emu/api",
+  ]
+
+  env.PublishPrivateApi('POLICYMAN_QTF', PRIVATE_OFFTARGET_HEADERS)
+  env.RequirePrivateApi('POLICYMAN_QTF')
+  env.RequirePublicApi('QTF', area='MOB')
+#--- MOB_POLICYMAN support (end)
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('VIOLATIONS', [
+    '${INC_ROOT}/core/systemdrivers/clk/inc',
+    '${INC_ROOT}/mcfg/api',
+    ])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+POLICYMAN_C_SOURCES = [
+  '${BUILDPATH}/dynarray.c',
+  '${BUILDPATH}/mre_efs.c',
+  '${BUILDPATH}/mre_engine.c',
+  '${BUILDPATH}/mre_lang.c',
+  '${BUILDPATH}/mre_namedobj.c',
+  '${BUILDPATH}/mre_regex.c',
+  '${BUILDPATH}/mre_rules.c',
+  '${BUILDPATH}/mre_set.c',
+  '${BUILDPATH}/mre_util.c',
+  '${BUILDPATH}/mre_xml.c',
+  '${BUILDPATH}/policyman.c',
+  '${BUILDPATH}/policyman_obsolete_apis.c',
+  '${BUILDPATH}/policyman_call_events.c',
+  '${BUILDPATH}/policyman_call_mode.c',
+  '${BUILDPATH}/policyman_cfgitem.c',
+  '${BUILDPATH}/policyman_device_config.c',
+  '${BUILDPATH}/policyman_efs.c',
+  '${BUILDPATH}/policyman_fullrat_config.c',
+  '${BUILDPATH}/policyman_msgr.c',
+  '${BUILDPATH}/policyman_network_events.c',
+  '${BUILDPATH}/policyman_phone_events.c',
+  '${BUILDPATH}/policyman_plmn.c',
+  '${BUILDPATH}/policyman_policies.c',
+  '${BUILDPATH}/policyman_policy.c',
+  '${BUILDPATH}/policyman_rat_capability.c',
+  '${BUILDPATH}/policyman_rat_order.c',
+  '${BUILDPATH}/policyman_refresh.c',  
+  '${BUILDPATH}/policyman_rf.c',
+  '${BUILDPATH}/policyman_serving_system.c',
+  '${BUILDPATH}/policyman_state.c',
+  '${BUILDPATH}/policyman_subs.c',
+  '${BUILDPATH}/policyman_svc_mode.c',
+  '${BUILDPATH}/policyman_task.c',
+  '${BUILDPATH}/policyman_tech.c',
+  '${BUILDPATH}/policyman_thermal_state.c',
+  '${BUILDPATH}/policyman_timer.c',
+  '${BUILDPATH}/policyman_ue_mode.c',
+  '${BUILDPATH}/policyman_uim.c',
+  '${BUILDPATH}/policyman_util.c',
+  '${BUILDPATH}/policyman_voice_domain_pref.c',
+  '${BUILDPATH}/policyman_volte.c',
+  '${BUILDPATH}/policyman_scan_optimization.c',
+  '${BUILDPATH}/policyman_frequency_list.c',
+]
+
+# Add our library to the ModemApps image
+env.AddLibrary( ['MODEM_MODEM', 'MOB_POLICYMAN'], '${BUILDPATH}/policyman', [POLICYMAN_C_SOURCES] )
+
+INTERNAL_XML_FILES = [
+  '../configurations/Carrier/CT/1xSRLTE/internal/carrier_policy.xml',
+  '../configurations/Carrier/Sprint/1xSRLTE/CHGWL_roam/internal/carrier_policy.xml',
+  '../configurations/Carrier/Verizon/1xSRLTE/CHGWL_roam/internal/carrier_policy.xml',   
+  '../configurations/Carrier/CU/CSFB/test/carrier_policy.xml',
+  '../configurations/Carrier/CT/1xSRLTE_Full_Rat/internal/carrier_policy.xml',
+]
+
+# Pack out internal carrier policy XML files
+env.CleanPack(['CLEANPACK_TARGET'], INTERNAL_XML_FILES)
+
+# Build image in which this task belongs
+RCINIT_POLICYMAN = ['MODEM_MODEM', 'MOB_POLICYMAN']
+
+# RC Init Function Dictionary
+RCINIT_INIT_POLICYMAN = {
+  'sequence_group'      : env.subst('$MODEM_PROTOCOL'),
+  'init_name'           : 'policyman_init',
+  'init_function'       : 'policyman_init_before_start',
+  'policy_optin'        : ['default', 'ftm', ],
+  }
+    
+# RC Init Task Dictionary
+RCINIT_TASK_POLICYMAN = {
+      'thread_name'         : 'policyman',
+      'sequence_group'      : env.subst('$MODEM_PROTOCOL'),
+      'stack_size_bytes'    : env.subst('4096'),
+      'priority_amss_order' : 'SHARED_FOREGROUND_SERVICE_PRI_ORDER',
+      'stack_name'          : 'policyman_stack',
+      'thread_entry'        : 'policyman_task',
+      'tcb_name'            : 'policyman_tcb',
+      'cpu_affinity'        : env.subst('$MODEM_CPU_AFFINITY'),
+      'policy_optin'        : ['default', 'ftm', ],
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+  env.PrintDebugInfo('policyman', "RCINIT has been enabled for Policyman")
+  env.AddRCInitFunc(RCINIT_POLICYMAN, RCINIT_INIT_POLICYMAN)
+  env.AddRCInitTask(RCINIT_POLICYMAN, RCINIT_TASK_POLICYMAN)
+
+# Load modules below this one
+env.LoadSoftwareUnits()

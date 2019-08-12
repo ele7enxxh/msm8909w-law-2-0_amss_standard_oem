@@ -1,0 +1,66 @@
+#===============================================================================
+#
+# MCS LIMITSMGR WWAN COEX Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/23/12   ag      Removing modem folder
+# 07/16/12   ag      Using CXM SSID
+# 05/31/12   gs      Initial version.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for CXM MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+    "MSG_BT_SSID_DFLT=MSG_SSID_CXM",
+])
+
+#-------------------------------------------------------------------------------
+# Need to get access to MCS Protected headers
+#-------------------------------------------------------------------------------
+env.RequireProtectedApi(['MCS'])
+
+#-------------------------------------------------------------------------------
+# Necessary API's for test purposes
+#-------------------------------------------------------------------------------
+env.RequirePublicApi('QTF', area='mob')
+	
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+LIMITSMGR_COEX_SRC = ['${BUILDPATH}/' + basename(fname)
+                     for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Add our library to the Modem Modem image
+env.AddLibrary(['MODEM_MODEM','MOB_MCS_LMTSMGR_COEX'], '${BUILDPATH}/wwan_coex', LIMITSMGR_COEX_SRC)
+
+# Load test units
+env.LoadSoftwareUnits()

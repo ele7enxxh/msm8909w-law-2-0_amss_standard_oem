@@ -1,0 +1,194 @@
+#===============================================================================
+#
+# SME CRYPTO SHARED Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 - 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:$
+#  $DateTime:$
+#  $Author:$
+#  $Change:$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/05/14   nk      Kasumi ISR API support
+# 11/01/13   nk      Kasumi extended secapi
+# 09/01/10   ejt     Removed MSM_ID & OS_TYPE & x509 files
+# 05/12/10   nk      Initial Revision
+# 02/23/11   jl	     Removed debug/nodebug from build path.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/crypto/shared"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'DSM',
+   'MODEM_DATA',
+   'MODEM_HDR',
+   'MULTIMEDIA',
+   'MULTIMEDIA_CORE',
+   'MULTIMEDIA_AUDIO',
+   'BREW',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'HWENGINES',
+   'POWER',
+
+   # needs to be last also contains wrong comdef.h
+	'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within SecureMSM
+#-------------------------------------------------------------------------------
+SME_PROTECTED_API = [
+    'SMECOM',
+    'SFS',
+    'SSL',
+    'SMETEST',
+    'CRYPTO',
+    'CRYPTODRIVERS',
+    'STATICEXT',
+]
+env.RequireProtectedApi(SME_PROTECTED_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --arm')
+
+if env['CHIPSET'] == "mdm9x35":
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x00000000'])
+elif env['CHIPSET'] == "msm8x26":
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x0FD5D000'])
+elif env['CHIPSET'] == "msm8926":
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x0FD5D000'])
+elif env['CHIPSET'] == "msm8x10":
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x0DC5D000'])
+elif env['CHIPSET'] == "msm8962":
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x0fc00000'])
+elif env['CHIPSET'] == "msm8916":
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x8E57D000'])
+elif env['CHIPSET'] == "msm8936":
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x8E57D000'])
+elif env['CHIPSET'] == "msm8909":
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x87FFD000'])
+elif env['CHIPSET'] == "mdm9607":
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x87FFD000'])
+elif env['CHIPSET'] == "msm8952":
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x8667D000'])
+elif env['CHIPSET'] == "msm8937":
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x866FD000'])
+else:
+    env.Append(CPPDEFINES = ['SC_MSS_KEY_BASE_ADDR=0x0fc00000'])
+
+
+#----------------------------------------------------------------------------
+# Crypto Shared Library
+#----------------------------------------------------------------------------
+
+if env.get('CHIPSET').startswith('mdm'):
+  	env.Append(CPPDEFINES=["FEATURE_SEC_CHANNEL_NOT_AVAILABLE"])
+	
+SME_CRYPTO_SHARED_LIB_SOURCES = [
+    '${BUILDPATH}/src/secapi.c',
+    '${BUILDPATH}/src/secpkxarm.c', 
+    '${BUILDPATH}/src/secencarm.c', 
+    '${BUILDPATH}/src/secencarmarc4.c', 
+    '${BUILDPATH}/src/secencarmaes.c', 
+    '${BUILDPATH}/src/secencarmdes.c', 
+    '${BUILDPATH}/src/sechsharm.c',
+    '${BUILDPATH}/src/seccryptarm.c',
+    '${BUILDPATH}/src/seccrypthw.c', 
+    '${BUILDPATH}/src/secenchw.c', 
+    '${BUILDPATH}/src/sechshhw.c',   
+    '${BUILDPATH}/src/secnlsfast.c', 
+    '${BUILDPATH}/src/secapidrm.c', 
+    '${BUILDPATH}/src/aes.c',  
+    '${BUILDPATH}/src/secapiaesutils.c', 
+    '${BUILDPATH}/src/seciovec.c', 
+    '${BUILDPATH}/src/seccrypt.c', 
+    '${BUILDPATH}/src/seccrypts.c', 
+    '${BUILDPATH}/src/seccryptsched.c', 
+    '${BUILDPATH}/src/secenc.c', 
+    '${BUILDPATH}/src/sechsh.c', 
+    '${BUILDPATH}/src/secpkx.c', 
+    '${BUILDPATH}/src/secpkxi.c', 
+    '${BUILDPATH}/src/seccsprng.c', 
+    '${BUILDPATH}/src/secpkcs8.c',
+    '${BUILDPATH}/src/secsnow3g.c',
+    '${BUILDPATH}/src/seccryptsnow3g.c',
+    '${BUILDPATH}/src/secapisecurechannel.c',
+    '${BUILDPATH}/src/seczuc.c',
+    '${BUILDPATH}/src/seccryptzuc.c',
+    '${BUILDPATH}/src/seckasumi.c',
+    '${BUILDPATH}/src/seckasumiisr.c',
+    '${BUILDPATH}/src/seccryptkasumi.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if env.has_key('USES_SEC'):
+   env.AddBinaryLibrary(
+     ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+      'MODEM_IMAGE',  'CBSP_MODEM_IMAGE',
+      'APPS_IMAGE',   'CBSP_APPS_IMAGE',
+      'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+      '${BUILDPATH}/sme_crypto_shared',
+      SME_CRYPTO_SHARED_LIB_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Setup RCINIT so we start Seccryptarm task
+#------------------------------------------------------------------------------- 
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+   env.AddRCInitTask(
+    RCINIT_IMG,
+    {
+      'sequence_group'             : 'RCINIT_GROUP_1',                  # required
+      'thread_name'                : 'seccryptarm',                     # required
+      'stack_size_bytes'           : '16384',
+      'priority_amss_order'        : 'SECCRYPTARM_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_CPU_AFFINITY_MASK',
+    })
+

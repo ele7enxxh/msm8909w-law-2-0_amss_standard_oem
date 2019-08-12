@@ -1,0 +1,49 @@
+#===============================================================================
+#
+# MODEM_CFG Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcfg/build/mcfg.scons#1 $
+#  $DateTime: 2016/12/13 07:58:21 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/14/12   sbt     Initial creation
+#===============================================================================
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+
+#-----------------------------------------
+# Publish Protected Include Paths only avail to the rest of MCFG
+#-----------------------------------------
+
+#-------------------------------------------------------------------------------
+# Load cleanpack script to remove private files etc. from customer builds
+#-------------------------------------------------------------------------------
+import os
+if os.path.exists('mcfg_cleanpack.py'):
+    env.LoadToolScript('mcfg_cleanpack.py')
+
+env.Append(HEXAGONCC_WARN = ' -Werror-high -Werror-medium')
+env.Append(HEXAGONCXX_WARN = ' -Werror-high -Werror-medium')
+
+#-----------------------------------------
+# Search for additional Units (must come last)
+#-----------------------------------------
+env.LoadSoftwareUnits()

@@ -1,0 +1,207 @@
+#===============================================================================
+#
+# FLASH DAL Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/rel/1.2/boot_images/core/storage/flash/src/dal/build/SConscript#4 $
+#  $DateTime: 2011/12/19 12:05:02 $
+#  $Author: coresvc $
+#  $Change: 2106076 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/01/14   sb      Initial Revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+# Enable one of the following flash profiling methods. By default stats 
+# framework will not be enabled in all the builds
+# Flash Stats is enabled by appending the following to the build command:
+# USES_FLAGS=USES_FLASH_STATS_FWK
+if env.has_key('USES_FLASH_STATS_FWK'):
+  FLASH_PROFILE_SFWK_ENABLE = True
+else:
+  FLASH_PROFILE_SFWK_ENABLE = False
+
+FLASH_PROFILE_BABYLON_ENABLE = False
+FLASH_PROFILE_LA_ENABLE = False
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/flash/src/dal"
+
+if not env.SubstPathExists(SRCPATH):
+   SRCPATH = "${BUILD_ROOT}/drivers/flash/src/dal"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+# BOOT: needed for miparti.h header inclusion
+# HWENGINES: needed for BAM header files 
+# SERVICES: needed for identifiers like "boolean" defs etc...
+# MPROC: needed when building AMSS
+# SYSTEMDRIVERS: needed for hwio headers
+CBSP_API = [
+   'BOOT',
+   'BUSES',
+   'DAL',   
+   'DEBUGTOOLS',
+   'HAL',   
+   'HWENGINES',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['FLASH_EXTDRV'])
+env.RequireProtectedApi(['STORAGE_FLASH'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+FLASH_DAL_FWK_SOURCES = [
+   '${BUILDPATH}/flash_dal.c',
+   '${BUILDPATH}/flash_dal_fwk.c',
+   '${BUILDPATH}/flash_dal_info.c',
+   '${BUILDPATH}/flash_properties.c',
+   '${BUILDPATH}/flash_dal_util.c',
+]
+
+FLASH_DAL_CONFIG_SOURCES = [
+   '${BUILDPATH}/flash_dal_config.c',
+]
+
+FLASH_DAL_NAND_SOURCES_REDUCED = [
+   '${BUILDPATH}/flash_nand_core.c',
+   '${BUILDPATH}/flash_nand_init.c',
+   '${BUILDPATH}/flash_onfi.c',
+   '${BUILDPATH}/flash_decode_nandids.c',
+   '${BUILDPATH}/flash_nand_entry_reduced.c',
+   '${BUILDPATH}/flash_nand_partition.c',
+   '${BUILDPATH}/flash_nand_config.c',
+   '${BUILDPATH}/flash_otp_config.c',
+   '${BUILDPATH}/flash_nand_get_info.c',
+   '${BUILDPATH}/flash_dal_nand_reduced.c',
+]
+
+FLASH_DAL_NAND_SOURCES = [
+   '${BUILDPATH}/flash_nand_core.c',
+   '${BUILDPATH}/flash_nand_init.c',
+   '${BUILDPATH}/flash_onfi.c',
+   '${BUILDPATH}/flash_decode_nandids.c',
+   '${BUILDPATH}/flash_nand_entry.c',
+   '${BUILDPATH}/flash_nand_partition.c',
+   '${BUILDPATH}/flash_partition_services.c',
+   '${BUILDPATH}/flash_nand_config.c',
+   '${BUILDPATH}/flash_otp_config.c',
+   '${BUILDPATH}/flash_dal_nand_default.c',
+   '${BUILDPATH}/flash_ops_setup.c',
+   '${BUILDPATH}/flash_clocks.c',
+]
+
+#-------------------------------------------------------------------------------
+# Allow Flash Profiling enablement on modem and apps images only.
+#-------------------------------------------------------------------------------
+if env.has_key('BUILD_TOOL_CHAIN') or env.has_key('BUILD_BOOT_CHAIN') :
+   FLASH_PROFILE_SFWK_ENABLE = False
+   FLASH_PROFILE_BABYLON_ENABLE = False
+   FLASH_PROFILE_LA_ENABLE = False
+
+if FLASH_PROFILE_SFWK_ENABLE :
+   env.Append(CPPDEFINES = ["FLASH_PROFILE_STATFWK_ENABLED", 
+      "FLASH_PROFILING_ENABLED"])
+   FLASH_DAL_FWK_SOURCES += [
+      '${BUILDPATH}/flash_profile_sfwk.c',
+      '${BUILDPATH}/flash_profile_common.c',
+   ]
+
+if FLASH_PROFILE_LA_ENABLE :
+   env.Append(CPPDEFINES = ["FLASH_PROFILE_LA_ENABLED", 
+      "FLASH_PROFILING_ENABLED"])
+   FLASH_DAL_FWK_SOURCES += [
+      '${BUILDPATH}/flash_profile_la.c',
+      '${BUILDPATH}/flash_profile_common.c',
+   ]
+
+#------------------------------------------------------------------------------
+script_fname = '${MSM_ID}.sconscript';
+if env.PathExists(script_fname):
+   env.LoadSConscripts(script_fname);
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+target_images = [
+   'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+   'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+   'NAND_MBA_DRIVER',
+   ]
+
+# DAL FWK Library - Include if any flash feature is enabled
+if env.has_key('ENABLE_NAND_DCPU_REDUCED') or \
+env.has_key('ENABLE_NAND_DCPU') or env.has_key('ENABLE_NAND_BAM') or \
+env.has_key('ENABLE_NAND_BAM_REDUCED'):
+   env.AddLibrary(target_images, '${BUILDPATH}/DALflash', FLASH_DAL_FWK_SOURCES)
+
+   #Add flash props to DAL config
+   if 'USES_DEVCFG' in env :
+      DEVCFG_IMG = ['DAL_DEVCFG_IMG', 'DEVCFG_MBA_CORE_SW']
+      Flash_XML_path = '${BUILD_ROOT}/core/storage/flash/src/config/flash_props.xml'
+      env.AddDevCfgInfo(DEVCFG_IMG, 
+      {
+            'soc_xml' : [Flash_XML_path]
+      })
+
+# Libraries for NAND
+if env.has_key('ENABLE_NAND_DCPU_REDUCED') :
+   env.AddLibrary(target_images, '${BUILDPATH}/DALflash_nand_dcpu_reduced',
+   FLASH_DAL_NAND_SOURCES_REDUCED)
+   env.Append(CPPDEFINES = ["FLASH_ENABLE_NAND"])
+elif env.has_key('ENABLE_NAND_DCPU') :
+   env.AddLibrary(target_images, '${BUILDPATH}/DALflash_nand_dcpu', 
+   FLASH_DAL_NAND_SOURCES)
+   env.Append(CPPDEFINES = ["FLASH_ENABLE_NAND"])
+elif env.has_key('ENABLE_NAND_BAM_REDUCED') :
+   env.AddLibrary(target_images, '${BUILDPATH}/DALflash_nand_dma_reduced', 
+   FLASH_DAL_NAND_SOURCES_REDUCED)
+   env.Append(CPPDEFINES = ["FLASH_ENABLE_NAND"])
+   env.Append(CPPDEFINES = ["FLASH_ENABLE_DMA"])
+elif env.has_key('ENABLE_NAND_BAM') :
+   env.AddLibrary(target_images, '${BUILDPATH}/DALflash_nand_dma', 
+   FLASH_DAL_NAND_SOURCES)
+   env.Append(CPPDEFINES = ["FLASH_ENABLE_NAND"])
+   env.Append(CPPDEFINES = ["FLASH_ENABLE_DMA"])
+
+# Remove SMEM dependency
+if env.has_key('DISABLE_SMEM_IN_FLASH') :
+   env.Append(CPPDEFINES = ["FLASH_DISABLE_SMEM"])
+
+# Libraries for combined NAND
+if env.has_key('ENABLE_NAND_BAM'):
+   env.AddLibrary(target_images, '${BUILDPATH}/DALflash_dal_config',
+   FLASH_DAL_CONFIG_SOURCES)
+   env.Append(CPPDEFINES = ["FLASH_ENABLE_DAL_CONFIG"])
+ 

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Carrier Policy for Verizon Voice Domain Configuration 
+$Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/policyman/configurations/Carrier/Verizon/voice_domain/carrier_policy.xml#1 $
+-->
+<policy name        = "generic"
+        changelist  = "$Change: 11985193 $" 
+        enabled     = "true"
+        schema_ver  = "1"
+        policy_ver  = "30.1.2"
+>
+ 
+<initial>
+    <actions>
+	
+      <boolean_define name="cm:rpm_enabled" initial="true" />
+    
+    </actions>
+  </initial>
+  
+  <!-- RULE #1 -->
+  <!-- Set voice domain to TRUE upon seeing US MCCs
+  -->
+  <rule>
+    <conditions>
+      <serving_mcc_in> 310 311 312 313 314 315 316 330 </serving_mcc_in>
+    </conditions>
+
+    <actions>
+      <voice_domain_pref mandatory="true"> IMS_PREF </voice_domain_pref>
+    </actions>
+  </rule>
+
+  <!-- RULE #2 -->
+  <!-- Set voice domain to FALSE
+  -->
+  <rule>
+    <conditions>
+      <true/>
+    </conditions>
+    
+    <actions>
+      <voice_domain_pref mandatory="false"> CS_PREF </voice_domain_pref>
+    </actions>
+  </rule>
+
+
+</policy>

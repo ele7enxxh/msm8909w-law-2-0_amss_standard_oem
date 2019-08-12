@@ -1,0 +1,148 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/24/14   KKO     Created
+#===============================================================================
+import os
+Import('env')
+
+#------------------------------------------------------------------------------
+# Init image vars 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Init aliases array.
+# first alias (0th element in array) is always unique name, there should 
+# never be two images with the same unique name
+aliases = ['audio_root_libs']
+build_tags = ['CORE_QDSP6_SW', 'CORE_ROOT_PD','CORE_MODEM','MULTIMEDIA_ROOT_PD']
+
+build_tools = ['buildspec_builder.py',
+                '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+                '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+                '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+				'${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py',
+                '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py']
+
+#------------------------------------------------------------------------------
+# init environment variables
+env.InitImageVars(
+   alias_list=aliases,                                               # aliases
+   proc='qdsp6',                                                     # proc
+   config='qdsp6_sw',                                                # config type, proc_name
+   plat='qurt',
+   build_tags = build_tags,     #build_tags
+   deprecated_build_tags = ['CBSP_QDSP6_SW_IMAGE'],
+   tools = build_tools
+   )
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+if not env.CheckAlias():
+   Return()
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(USES_DEVCFG = True)
+env.Replace(USES_MULTI_DEVCFG = True)
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_IMG')
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+
+env.Replace(CONFIG_XML = env.FindConfigFiles('cust_config.xml')[0])
+
+env.LoadToolScript('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('qdsp6_defs', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('sleep_lpr_builder', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+env.LoadToolScript('build_utils', toolpath = ['${BUILD_ROOT}/build/scripts'])
+
+env.Append(CFLAGS = ARGUMENTS.get('T_CFLAGS', '') + ' ')
+env.Append(LFLAGS = ARGUMENTS.get('T_LFLAGS', '') + ' ')
+
+# Tell the linker to look for it's config files in the $BUILDPATH directory
+for config_path in env.FindConfigPaths():
+   env.Append(LFLAGS = "-L " + config_path + ' ')
+   
+env.Append(CPPDEFINES=['MODEM_FW_NUM_PRIO=64'])
+env.AddUsesFlags('USES_RCINIT_PLAYBOOK') # MUST OCCUR BEFORE FIRST LoadAreaSoftwareUnits
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+image_libs = []
+image_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load au_name libs/objs build rules.
+
+au_items = env.LoadAreaSoftwareUnits('audio_avs', filter_list=['pd']) 
+image_libs.extend(au_items['LIBS'])
+
+# load APR User PD
+au_name_items = env.LoadAreaSoftwareUnits('apr')
+image_libs.extend(au_name_items['LIBS'])
+image_objs.extend(au_name_items['OBJS'])
+
+image_units = [image_objs, image_libs]
+
+#--- RCINIT Playbook Extension, Library Specific Details ------------------- BEG
+
+# ONLY WHEN DNT_BUILDER SCONS TOOL LOADED
+if 'USES_RCINIT' in env and 'USES_RCINIT_PLAYBOOK' in env:
+   env.AddRcinitPlaylistParams(build_tags,image_units)
+#--- RCINIT Playbook Extension, Library Specific Details ------------------- END
+
+
+#------------------------------------------------------------------------------
+# Putting the image toghther
+#------------------------------------------------------------------------------
+
+if 'IMAGE_BUILD_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Link image
+   #-------------------------------------------------------------------------
+   image_units = []
+   
+   # this is  to generate lf file
+   image_elf = env.ListFileBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}.txt", [image_objs, image_libs], relative_path="${BUILD_ROOT}/build/ms", posix=True)
+
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Post process image
+   #-------------------------------------------------------------------------
+   
+   # this is where any aditional rules after linking are done.
+
+   #=========================================================================
+   # Define targets needed 
+   #
+   image_units += [
+      image_elf,
+   ]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)

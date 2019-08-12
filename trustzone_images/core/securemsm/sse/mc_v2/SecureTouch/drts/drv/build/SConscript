@@ -1,0 +1,70 @@
+#===============================================================================
+#
+# SSE Touch Screen Driver
+#
+# GENERAL DESCRIPTION
+#    SSE Touch Screen Driver - TL Driver Module
+#
+# Copyright (c) 2012 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/sse/mc_v2/SecureTouch/drts/drv/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.RequireProtectedApi(['MCDR_API'])
+env.RequireProtectedApi(['MTK_API'])
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/mc_v2/SecureTouch/drts/drv/inc")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/mc_v2/SecureTouch/drts/controller/inc")
+
+#-------------------------------------------------------------------------------
+# Include PATH
+#-------------------------------------------------------------------------------
+INC_PATH_API = ["${INC_ROOT}/core/api/kernel/libstd/stringl"]
+env.Append(CPPPATH = INC_PATH_API)
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+DR_SRC = "${COREBSP_ROOT}/securemsm/sse/mc_v2/SecureTouch/drts/drv/src"
+
+env.VariantDir('${BUILDPATH}', DR_SRC, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SOURCES = [ 
+            '${BUILDPATH}/drExcHandler.c',
+            '${BUILDPATH}/drIpcHandler.c',
+            '${BUILDPATH}/drMain.c',
+            '${BUILDPATH}/drSmgmt.c',
+            '${BUILDPATH}/drTsUtils.c',
+            '${BUILDPATH}/drUtils.c',
+            '${BUILDPATH}/01_open.c',
+            '${BUILDPATH}/02_close.c',
+            '${BUILDPATH}/03_getData.c',
+          ]
+
+HEADERS = env.FindFiles(['*.h'], DR_SRC + '/../inc')
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary('DRTS_IMAGE', '${BUILDPATH}/drts', SOURCES)
+env.CleanPack('DRTS_IMAGE', HEADERS)

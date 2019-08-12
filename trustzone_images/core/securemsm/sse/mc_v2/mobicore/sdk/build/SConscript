@@ -1,0 +1,63 @@
+#===============================================================================
+#
+# MobiCore SDK
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2013 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/sse/mc_v2/mobicore/sdk/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/sse/mc_v2/mobicore/sdk"
+
+if env.has_key('CHIPSET'):
+   LIBPATH = '${CHIPSET}'
+else:
+   LIBPATH = ''
+
+env.Replace(LIBPATH = LIBPATH)
+env.VariantDir('${LIBPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+tlentry_lib = env.File('${LIBPATH}/lib/TlEntry.lib')
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+IMAGES = [
+  'TLP11_IMAGE',
+  'TLWRAPPER_IMAGE',
+  'TLTESTHDMI_IMAGE',
+  'TLTSSAMPLE_IMAGE',
+  'TLSECURETOUCH_IMAGE',
+  ]
+env.AddFile(IMAGES, tlentry_lib)

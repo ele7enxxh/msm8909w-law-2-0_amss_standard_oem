@@ -1,0 +1,164 @@
+##===============================================================================
+# UIM UIMQMI Subsystem build script
+# GENERAL DESCRIPTION
+#    build script for modem/uim/uimqmi
+#
+#                       COPYRIGHT INFORMATION
+#
+# Copyright (c) 2010 - 2015 QUALCOMM Technologies, Inc (QTI) and its licensors.
+# All Rights Reserved.  QUALCOMM Technologies Proprietary.
+# Export of this technology or software
+# is regulated by the U.S. Government. Diversion contrary to U.S. law prohibited.
+
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/uim/uimqmi/build/main/latest/uim_uimqmi.scons#4 $ $DateTime: 2008/20/15 23:58:06 $ $Author: amitp $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/13/16   ks      QMI UIM HTTP service introduction
+# 11/25/15   sp      Updated copyright
+# 02/03/15   at      Added qmi_uim_encryption.c
+# 11/26/14   av      Changes to make sure task opts for inclusion in FTM mode
+# 09/29/14   kr      removing compiler warnings
+# 03/19/14   kb      Added QTF CRM MOB support
+# 12/11/13   vs      Addition of UIMQMI task and QMI UIM REMOTE
+# 09/23/13   vr      qtf-crm MOB migration
+# 09/18/12   nk      Changes to support modem folder removal
+# 05/14/12   tkl     Add QMI_SIM service
+# 02/23/12   tkl     MPSS/QMI support interfaces logging
+# 06/13/11   at      Added 'SECUREMSM' under CORE_APIS
+# 04/20/11   adp     Moving UIMQMI logging under UIM
+# 04/18/11   nk      Updated for Data Compilation
+# 10/22/10   nk      Moved USES_RUIM check after env.Clone()
+# 10/11/10   nk      Updated with header and UESES Flag Check
+#
+#===============================================================================
+
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+# Verify that USES_RUIM is set, otherwise bail out now
+if 'USES_RUIM' not in env:
+    Return()
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-----------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-----------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_RUIM",
+])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'STORAGE',
+    #'POWER',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'DAL',
+    'SECUREMSM',
+    'MPROC',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+QMI_PUBLIC_APIS = [
+    'UIM',
+    'CAT',
+    'SIM_INTERNAL',
+    'COMMON',
+    'UIMRMT',
+    'UIMHTTP',
+    ]
+
+# We need the Core BSP API's
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+# We need the QMI API's
+env.RequirePublicApi(QMI_PUBLIC_APIS, area="API")
+
+# We need the UIM API's
+env.RequirePublicApi(['UIM', 'MCS', 'MMODE', 'DATACOMMON', 'WMS', 'PBM', 'DATA', 'GPS'])
+
+# We need the UIM "inc" dirs
+env.RequireRestrictedApi(['UIM'])
+
+# We need DataCommon QMI Restricted APIs
+env.RequireRestrictedApi(['DATACOMMON', 'MMODE', 'PBM', 'DATA', 'UIM', 'MCS', 'GPS'])
+
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+UIMQMI_C_SOURCES = [
+    '${BUILDPATH}/qmi_cat.c',
+    '${BUILDPATH}/qmi_cat_decoded.c',
+    '${BUILDPATH}/qmi_uim.c',
+    '${BUILDPATH}/qmi_uim_parsing.c',
+    '${BUILDPATH}/qmi_uim_encryption.c',
+    '${BUILDPATH}/card_application_toolkit_impl_v02.c',
+    '${BUILDPATH}/user_identity_module_impl_v01.c',
+    '${BUILDPATH}/qmi_sim_internal.c',
+    '${BUILDPATH}/qmi_sim_internal_util.c',
+    '${BUILDPATH}/qmi_uim_cat_common.c',
+    '${BUILDPATH}/uimqmi_task.c',
+    '${BUILDPATH}/qmi_uim_remote.c',
+    '${BUILDPATH}/qmi_uim_http.c',
+    '${BUILDPATH}/user_identity_module_remote_impl_v01.c',
+    '${BUILDPATH}/user_identity_module_http_impl_v01.c'
+]
+
+# Add our library to the MODEM_AMSS image
+env.AddLibrary(['MODEM_MODEM','MOB_UIM'], '${BUILDPATH}/uim_uimqmi', UIMQMI_C_SOURCES)
+
+# Load test units
+env.LoadSoftwareUnits()
+
+# Build image for which this task belongs
+RCINIT_UIMQMI = ['MODEM_MODEM', 'MOB_UIM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_UIMQMI = {
+            'sequence_group'      : 'RCINIT_GROUP_4',
+            'init_name'           : 'uimqmi_init',
+            'init_function'       : 'uimqmi_task_init',
+            'dependencies'        : [],
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_UIMQMI= {
+            'thread_name'         : 'uimqmi',
+            'sequence_group'      : 'RCINIT_GROUP_4',
+            'stack_size_bytes'    : '4096',
+            'priority_amss_order' : 'GSDI_PRI_ORDER',
+            'stack_name'          : 'uimqmi_task_stack',
+            'thread_entry'        : 'uimqmi_task',
+            'tcb_name'            : 'uimqmi_task_tcb',
+            'cpu_affinity'        : env.subst('$MODEM_CPU_AFFINITY'),
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+env.AddRCInitTask(RCINIT_UIMQMI, RCINIT_TASK_UIMQMI)
+env.AddRCInitFunc(RCINIT_UIMQMI, RCINIT_INIT_UIMQMI)

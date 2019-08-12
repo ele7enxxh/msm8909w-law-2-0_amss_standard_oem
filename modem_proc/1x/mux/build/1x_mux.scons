@@ -1,0 +1,337 @@
+#==============================================================================#
+#
+#           1 X / M U X   S C O N S   C O N F I G U R A T I O N
+#
+# GENERAL DESCRIPTION
+#    SCons build script for modem/1x/mux
+#
+#  Copyright (c) 2010 - 2013 Qualcomm Technologies, Inc. 
+#  All Rights Reserved Qualcomm Proprietary
+#
+#  Export of this technology or software is regulated by the U.S. Government.
+#  Diversion contrary to U.S. law prohibited.
+#
+#  All ideas, data and information contained in or disclosed by
+#  this document are confidential and proprietary information of
+#  Qualcomm Technologies, Inc. and all rights therein are expressly reserved.
+#  By accepting this material the recipient agrees that this material
+#  and the information contained therein are held in confidence and in
+#  trust and will not be used, copied, reproduced in whole or in part,
+#  nor its contents revealed in any manner to others without the express
+#  written permission of Qualcomm Technologies, Inc.
+#
+#
+#------------------------------------------------------------------------------#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/1x/mux/build/1x_mux.scons#1 $
+#------------------------------------------------------------------------------#
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ----------------------------------------------------------
+# 09/11/13   as      Updated RCInit to support ftm policy option
+# 02/20/13   cjb     Added PACK option for not shipping 1x-L1 source files.
+# 01/18/13   srk     Scons cleanup
+# 03/06/12   srk     Did changes to RCInit framework.
+# 12/20/11   srk     Added RCInit Framework.
+# 05/12/11   vks     Add UTILS to the MODEM API.
+# 05/10/11   vks     Add MPROC to the CORE API.
+# 12/13/10   vks     Add FW to modem api's.
+# 12/10/10   vks     Add LTE to modem api's.
+# 10/14/10   cjb     Workaround for "clk.h".
+# 10/08/10   cjb     Added USES_FLAGS and DEBUG ON/OFF feature support.
+# 09/10/10   cjb     Initial revision.
+#
+#==============================================================================#
+
+################################################################################
+# SIMPLE CONFIGURABLE ITEMS
+################################################################################
+#----------------------------------------------------------------------------#
+# Name of the subsystem to which this unit belongs
+#----------------------------------------------------------------------------#
+SU_NAME = 'ONEX'
+
+#----------------------------------------------------------------------------#
+# Name of this unit
+#----------------------------------------------------------------------------#
+VU_NAME = 'MUX'
+
+#----------------------------------------------------------------------------#
+# Source path
+#----------------------------------------------------------------------------#
+# The path to the source files
+SRCPATH = '../src'
+
+#----------------------------------------------------------------------------#
+# Source files
+# NOTE:
+#     The source files. Either [] or list the files individually
+#     e.g. SRC_FILES = ['foo.c', 'folder/bar.c']
+#----------------------------------------------------------------------------#
+SRC_FILES = []
+
+#----------------------------------------------------------------------------#
+# Published APIs
+#----------------------------------------------------------------------------#
+# RESTRICTED Include Paths for the rest of Modem (if not necessary, set to '')
+RESTRICTED_API = ''
+
+# PROTECTED Include Paths for VUs within the SU (if not necessary, set to '')
+PROTECTED_API = '../inc'
+
+# PRIVATE Include Paths for the VU (if not necessary, set to '')
+PRIVATE_API = ''
+
+#----------------------------------------------------------------------------#
+# Required external APIs
+#----------------------------------------------------------------------------#
+CORE_APIS = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'MPROC',
+    'POWER',
+    'SECUREMSM',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+MULTIMEDIA_APIS = [
+    'AUDIO',
+    ]
+
+MODEM_APIS = [
+    'DATA',
+    'DATACOMMON',
+    'FW',
+    'GERAN',
+    'HDR',
+    'LTE',
+    'MCS',
+    'MDSP',
+    'MMODE',
+    'NAS',
+    'PBM',
+    'RFA',
+    'UIM',
+    'UTILS',
+    'WCDMA',
+    'WMS',
+    ]
+
+#----------------------------------------------------------------------------#
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#----------------------------------------------------------------------------#
+REQUIRED_NON_SCONS_APIS = []
+
+#----------------------------------------------------------------------------#
+# Images the SU will be loaded into (MODEM_APPS and/or MODEM_AMSS)
+#----------------------------------------------------------------------------#
+IMAGES = [
+    'MODEM_MODEM',
+    ]
+
+################################################################################
+# SCONS
+# NOTE: It should not normally be necessary to edit anything below this line.
+################################################################################
+from glob import glob
+from os.path import join, basename
+
+#----------------------------------------------------------------------------#
+# Setup SCons environment
+#----------------------------------------------------------------------------#
+Import('env')
+env = env.Clone()
+
+#----------------------------------------------------------------------------#
+# Check for USES Flags
+#----------------------------------------------------------------------------#
+# Verify that USES_CDMA is set, otherwise bail out now
+if 'USES_CDMA' not in env:
+    Return()
+
+#----------------------------------------------------------------------------#
+# Enable/Disable DEBUG information
+#----------------------------------------------------------------------------#
+# turn OFF debug if requested
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+# turn ON debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2")
+    env.Replace(HEXAGON_DBG = "-g")
+    env.Replace(GCC_DBG = "-g")
+
+#----------------------------------------------------------------------------#
+# Setup source PATH
+#----------------------------------------------------------------------------#
+#FULL_SRCPATH = join('${BUILD_ROOT}',SRCPATH)
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#----------------------------------------------------------------------------#
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#----------------------------------------------------------------------------#
+env.Append(CPPDEFINES = [
+   'MSG_BT_SSID_DFLT=MSG_SSID_1X_MUX',
+])
+
+#----------------------------------------------------------------------------#
+# Publish Restricted Include Paths
+#----------------------------------------------------------------------------#
+#if RESTRICTED_API != '':
+# env.PublishRestrictedApi(SU_NAME, [join('${ONEX_ROOT}', RESTRICTED_API)])
+
+#----------------------------------------------------------------------------#
+# Publish Protected Include Paths
+#----------------------------------------------------------------------------#
+if PROTECTED_API != '':
+# env.PublishProtectedApi(VU_NAME, [join('${ONEX_ROOT}', PROTECTED_API)])
+ env.PublishProtectedApi(VU_NAME, [PROTECTED_API])
+
+#----------------------------------------------------------------------------#
+# Publish Private Include Paths
+#----------------------------------------------------------------------------#
+#if PRIVATE_API != '':
+# env.PublishPrivateApi(VU_NAME, [join('${ONEX_ROOT}', PRIVATE_API)])
+
+#----------------------------------------------------------------------------#
+################## Workaround for "clk.h" dependency issue ###################
+#----------------------------------------------------------------------------#
+#env.PublishPrivateApi('VIOLATIONS',
+#                     ['${INC_ROOT}/core/systemdrivers/clk/inc'])
+
+#----------------------------------------------------------------------------#
+# Request necessary APIs
+#----------------------------------------------------------------------------#
+# ----- We need the following PUBLIC APIs (from outside our area) ----- #
+env.RequirePublicApi(CORE_APIS, area='CORE')
+env.RequirePublicApi(MULTIMEDIA_APIS, area='MULTIMEDIA')
+
+# ----- We also need PUBLIC/RESTRICTED APIs (in same area as we are) ----- #
+env.RequirePublicApi(MODEM_APIS)
+env.RequireRestrictedApi(MODEM_APIS)
+
+# ----- Need to get access to SU's own Public headers ----- #
+env.RequirePublicApi(SU_NAME)
+env.RequireRestrictedApi(SU_NAME)
+
+# ----- We need our PROTECTED API too ("inc" dir of the <VU>) ----- #
+if PROTECTED_API != '':
+  env.RequireProtectedApi(VU_NAME)
+
+# ----- We need our PRIVATE API too ("protected" dir of the <VU>) ----- #
+if PRIVATE_API != '':
+  env.RequirePrivateApi(VU_NAME)
+
+# ----- We need EXTERNAL API (not built with SCons) ----- #
+if REQUIRED_NON_SCONS_APIS != []:
+  env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#----------------------------------------------------------------------------#
+# Generate the library and add to an image
+#----------------------------------------------------------------------------#
+if SRC_FILES == []:
+  # ----- Construct the list of source files by looking for *.c ----- #
+  SOURCES = ['${BUILDPATH}/' + basename(fname)
+                for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+else:
+  # ----- Construct the list of source files from the given list ----- #
+  SOURCES = ['${BUILDPATH}/' + fname
+                for fname in SRC_FILES]
+
+# ----- Compile the source and convert to a library ----- #
+#vu_obj = env.Object(SOURCES)
+#vu_lib = env.Library(join('${BUILDPATH}', VU_NAME.lower()), vu_obj)
+
+# ----- Add our library to the ModemApps image ----- #
+#env.AddLibsToImage(IMAGES, vu_lib)
+
+# env.AddBinaryLibrary() behavior with pack_exceptions:
+#
+#   if( pack_exception not defined )
+#     1x-L1 code is *not* shipped. Hence, create binary library.
+#   else if( pack_eception defined )
+#     1x-L1 code is shipped to customer. Hence, create normal library
+env.AddBinaryLibrary(IMAGES,
+                     join('${BUILDPATH}', VU_NAME.lower()),
+                     SOURCES,
+                     pack_exception=['USES_COMPILE_TDSCDMA_AND_ALL_L1_PROTECTED_LIBS']
+                     )
+
+
+#----------------------------------------------------------------------------#
+# Added RCINIT related task functions - RX, TX
+#----------------------------------------------------------------------------#
+
+# Build image for which this task belongs
+RCINIT_TX = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_TX = {
+	    'sequence_group'      : env.subst('$MODEM_PROTOCOL'),
+	    'init_name'           : 'tx_init',
+	    'init_function'       : 'tx_init',
+            'policy_optin'        : ['default', 'ftm', ],
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_TX = {
+	    'thread_name'         : 'TX',
+	    'sequence_group'      : env.subst('$MODEM_PROTOCOL'),
+	    'stack_size_bytes'    : env.subst('$TX_STKSZ'),
+	    'priority_amss_order' : 'TX_PRI_ORDER',
+	    'stack_name'          : 'tx_stack',
+	    'thread_entry'        : 'tx_task',
+	    'tcb_name'            : 'tx_tcb',
+            'policy_optin'        : ['default', 'ftm', ],
+            'cpu_affinity'	  : env.subst('$MODEM_CPU_AFFINITY')
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+     env.AddRCInitFunc(RCINIT_TX, RCINIT_INIT_TX)
+     env.AddRCInitTask(RCINIT_TX, RCINIT_TASK_TX)
+
+# Build image for which this task belongs
+RCINIT_RX = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_RX = {
+	    'sequence_group'      : env.subst('$MODEM_PROTOCOL'),
+	    'init_name'           : 'rx_init',
+	    'init_function'       : 'rx_init',
+            'policy_optin'        : ['default', 'ftm', ],
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_RX = {
+	    'thread_name'         : 'RX',
+	    'sequence_group'      : env.subst('$MODEM_PROTOCOL'),
+	    'stack_size_bytes'    : env.subst('$RX_STKSZ'),
+	    'priority_amss_order' : 'RX_PRI_ORDER',
+	    'stack_name'          : 'rx_stack',
+	    'thread_entry'        : 'rx_task',
+	    'tcb_name'            : 'rx_tcb',
+            'policy_optin'        : ['default', 'ftm', ],
+            'cpu_affinity'	  : env.subst('$MODEM_CPU_AFFINITY')
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+	    env.AddRCInitFunc(RCINIT_RX, RCINIT_INIT_RX)
+	    env.AddRCInitTask(RCINIT_RX, RCINIT_TASK_RX)

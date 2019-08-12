@@ -1,0 +1,89 @@
+#-------------------------------------------------------------------------------
+# HDR Common source file(s)
+#-------------------------------------------------------------------------------
+
+HDRCOMMON_SOURCES=\
+	hdrbit.c	\
+	hdrbuf.c	\
+	hdrutil.c	\
+	hdrind.c	\
+	hdrlog.c	\
+	hdrlogoem.c	\
+	hdrtrace.c      \
+        hdrl1.c         \
+        hdrshim.c
+
+#-------------------------------------------------------------------------------
+# HDR Common include file(s) path
+#-------------------------------------------------------------------------------
+
+HDR_CINCPATH=\
+        $(COMMON)       \
+        $(ADC)          \
+        $(ADSP)         \
+        $(AVS)          \
+        $(CM)           \
+        $(BIO)          \
+        $(BOOT)         \
+        $(CLK)          \
+        $(CP)           \
+        $(DATA)         \
+        $(DEC)          \
+        $(DFM)          \
+        $(DIAG)         \
+        $(ENC)          \
+        $(FTM)          \
+        $(GPS)          \
+        $(HS)           \
+        $(HW)           \
+        $(MUX)          \
+        $(MDSP)         \
+        $(QDSP)         \
+        $(NV)           \
+        $(PM)           \
+        $(PLT)          \
+        $(RF)           \
+        $(SBI)          \
+        $(SIO)          \
+        $(SRCH)         \
+        $(TLMM)         \
+        $(TRAMP)        \
+        $(TRERM)        \
+        $(UASMS)        \
+        $(UI)           \
+        $(VBATT)        \
+        $(USB)
+
+#-----------------------------------------------------------------------------
+# HDR Common object file(s)
+#-----------------------------------------------------------------------------
+
+HDRCOMMON_OBJS :=  $(addprefix $(TARGETDIR)/, $(HDRCOMMON_SOURCES:%.c=%.o))
+$(HDRCOMMON_OBJS): INCLUDES = $(addprefix -I, $(HDR_CINCPATH))
+
+HDRCOMMON_DEPS :=  $(addprefix $(TARGETDIR)/, $(HDRCOMMON_SOURCES:%.c=%.dep) )
+$(HDRCOMMON_DEPS): INCLUDES = $(addprefix -I, $(HDR_CINCPATH))
+
+#-----------------------------------------------------------------------------
+# HDR Common source files search path
+#-----------------------------------------------------------------------------
+
+vpath %.c $(HDRCOMMON)/src
+
+#-----------------------------------------------------------------------------
+# HDR Common Lint
+#-----------------------------------------------------------------------------
+### Start Lint block ###
+ifdef DO_LINT
+
+  # Linting HDRCOMMON Unit
+  HDRCOMMMON_LINT_OBJS := $(addprefix $(LINTDIR)/, $(HDRCOMMON_SOURCES:%.c=%.lint))
+  
+  # Add the HDR specific lint rules
+  $(HDRCOMMON_LINT_OBJS) : LINT_FLAGS := $(LINT_FLAGS) hdr.lnt
+
+  # Specify group target for linting HDR subsystem
+  $(LINTDIR)/hdrcommon_lint : $(HDRCOMMON_LINT_OBJS)
+
+endif
+### End Lint block ###

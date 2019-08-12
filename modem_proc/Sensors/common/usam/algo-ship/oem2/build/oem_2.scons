@@ -1,0 +1,103 @@
+#===============================================================================
+#
+# OEM_2 Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2015 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:
+#  $DateTime: 2016/12/13 08:00:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985213 $
+#===============================================================================
+
+Import('env')
+from glob import glob
+from os.path import join, basename
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/usam/algo-ship/oem2/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/framework/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/util/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/algo-ship/oem2/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/prov/inc",
+   "${BUILD_ROOT}/Sensors/common/usam/prov/loc/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/debug/inc",
+   "${BUILD_ROOT}/qmimsgs/common/api",
+   "${BUILD_ROOT}/qmimsgs/loc/api",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+OEM_2_SOURCES = [
+      '${BUILDPATH}/oem_2.c',
+      '${BUILDPATH}/oem_2_msg.c',
+   ]
+
+OEM_2_U_SOURCES = [
+      '${BUILDPATH}/oem_2_uimg.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+  # Sources that should not be shared
+  OEM1_CLEAN_SOURCES  = env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/common/usam/algo-ship/oem2/src')
+  OEM1_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/usam/algo-ship/oem2/inc')
+
+  # Add binary library
+  algo_oem_2_lib = env.AddBinaryLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+    '${BUILDPATH}/sam_algo_oem_2', OEM_2_SOURCES)
+
+  algo_oem_2_u_lib = env.AddBinaryLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+    '${BUILDPATH}/sam_algo_oem_2_u', OEM_2_U_SOURCES)
+
+  # Clean sources
+  env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], OEM1_CLEAN_SOURCES)
+else:
+  algo_oem_2_lib = env.AddLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+    '${BUILDPATH}/sam_algo_oem_2', OEM_2_SOURCES)
+	
+  algo_oem_2_u_lib = env.AddLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], 
+    '${BUILDPATH}/sam_algo_oem_2_u', OEM_2_U_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SNS_ISLAND_INCLUDE_ALGO_OEM_2' in env['CPPDEFINES']:
+   env.AddIslandLibrary(['CORE_QDSP6_SENSOR_SW'], algo_oem_2_u_lib )

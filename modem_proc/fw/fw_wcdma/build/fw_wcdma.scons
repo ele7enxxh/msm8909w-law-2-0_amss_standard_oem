@@ -1,0 +1,91 @@
+#===============================================================================
+#
+# fw_wcdma Subsystem build script
+#
+# Copyright (c) 2014 Qualcomm Technologies Incorporated.
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/fw/fw_wcdma/build/fw_wcdma.scons#1 $
+#===============================================================================
+
+from glob import glob
+from os.path import join, basename, split
+
+# --------------------------------------------------------------------------- #
+# Import SCons Environment                                                    #
+# --------------------------------------------------------------------------- #
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Necessary Public & Restricted API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+    'DAL',
+    'DEBUGTOOLS',
+    'MPROC',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'MEMORY',
+    'KERNEL',          # needs to be last
+    ], area='core')
+
+env.RequirePublicApi(['MCS'], area='MCS')
+env.RequirePublicApi(['COMMON'], area='FW')
+
+#-------------------------------------------------------------------------------
+# Autodetect UMID files
+#-------------------------------------------------------------------------------
+path,tech = split(Dir('../').path)
+api_path = env.subst('../api/')
+files = [ ]
+for fname in glob(join(api_path, '*_msg.h')):
+  env.PrintDebugInfo('fw', tech+": AddUMID: " + fname)
+  files.append(fname)
+if len(files) > 0:
+  env.AddUMID('${BUILDPATH}/'+tech+'.umid', files)
+
+
+#-------------------------------------------------------------------------------
+# Export Build Variant and object files
+#-------------------------------------------------------------------------------
+if 'USES_EXCLUDE_WCDMA_FW' in env:
+  Return()
+
+# Choose build variant
+if 'USES_EMULATION_PLATFORM' in env:
+  fw_variant = "QRAFA"
+else:
+  if 'USES_INTERNAL_BUILD' in env:
+    fw_variant = "QSAFA"
+  else:
+    # Nothing much to do here, external is generated under common
+    fw_variant = "QSAFA-external"
+    
+    # Load cleanpack script:
+    if env.PathExists('../pack/fw_cleanpack.py'):
+      env.LoadToolScript('../pack/fw_cleanpack.py')
+         
+if '-external' not in fw_variant:
+  # Setup source PATH
+  SRCPATH = "../bin/"+fw_variant
+  env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+  OBJPATH = env.subst(SRCPATH)
+
+  env.AddOEMObject(['MODEM_MODEM'],  OBJPATH+'/wfw_main.o')
+  env.AddOEMLibrary(['MODEM_MODEM'], OBJPATH+'/'+tech+'.lib')
+  env.AddOEMLibrary(['MODEM_MODEM'], OBJPATH+'/'+tech+'_sdm.lib')

@@ -1,0 +1,145 @@
+/*
+#====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+#
+#                     SCATTER LOADING DESCRIPTION FILE
+#
+#  Copyright 2013 by QUALCOMM Incorporated. All Rights Reserved.
+#
+#  GENERAL DESCRIPTION
+#
+#  The scatter loading description file is used to define the SBL1 DDR Debug memory map.
+#*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*/
+//===========================================================================
+//
+//                           EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+//  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/boot/ddr/common/ddr_debug.scl#1 $
+//  $DateTime: 2015/09/01 00:30:35 $
+//  $Author: pwbldsvc $
+//
+// when       who     what, where, why
+// --------   ---     -------------------------------------------------------
+// 09/13/13   sl      Relocated log buffer.
+// 08/29/13   sl      Updated memory map to save space.
+// 08/20/13   sl      Cleaned up memory map; added DDR tuning.
+// 07/17/13   sr      Initial Version.
+
+/*
+
+           |--------------------|F800 C000  <- L2 TCM START (256KB)
+           | Setup Copy Code    |
+           |--------------------|F804 C000  <- L2 TCM END
+           |                    |
+           |                    |
+           |                    |
+           |--------------------|FC10 0000  <- RPM CODE RAM START (128KB)
+           |  RW Backup         |
+           |--------------------|
+           |  RO                |
+           |--------------------|FC10 7000 (PBL stack area)
+           |  STACK (4KB)       |
+           |--------------------|FC10 8000
+           |  CODE              |
+           |--------------------|FC12 0000  <- RPM CODE RAM END
+           |                    |
+           |                    |
+           |                    |
+           |--------------------|FC19 0000  <- RPM DATA RAM START (64KB)
+           |  ZI                |
+           |--------------------|FC1A 0000  <- RPM DATA RAM END
+           |                    |
+           |                    |
+           |                    |
+           |--------------------|FE80 0000  <- OCIMEM START (24KB)
+           |  Watchdog          |
+           |--------------------|
+           |  RW                |
+           |--------------------|FE80 6000  <- OCIMEN END
+
+*/
+#include "boot_target.h"
+
+#define SCL_DDR_DEBUG_STACK_START    (SCL_RPM_CODE_RAM_BASE + 0x7000)
+#define SCL_DDR_DEBUG_STACK_SIZE     0x1000
+#define SCL_DDR_DEBUG_STACK_BASE     (SCL_DDR_DEBUG_STACK_START + SCL_DDR_DEBUG_STACK_SIZE)
+
+CODE_ROM SCL_SBL1_CODE_BASE SCL_SBL1_TOTAL_SIZE
+{
+  SBL1_ROM SCL_SBL1_CODE_BASE SCL_SBL1_TOTAL_SIZE
+  {
+    sbl1_ddr_debug.o (SBL1_ENTRY, +FIRST)
+    sbl1_copy_ddr_debug.o
+  }
+
+  DDR_DEBUG_WDOG SCL_IMEM_BASE
+  {
+    sbl1_ddr_debug.o (WDOG_ENTRY, +FIRST)
+    * (DDR_DEBUG_TUNING_COOKIE)
+  }
+
+  DDR_DEBUG_RW +0x0
+  {
+    * (+RW)
+  }
+
+  DDR_DEBUG_RW_COPY SCL_RPM_CODE_RAM_BASE EMPTY ImageLength(DDR_DEBUG_RW)
+  {
+  }
+
+  DDR_DEBUG_RO +0x0
+  {
+    * (+RO-DATA)
+  }
+
+  DDR_DEBUG_STACK SCL_DDR_DEBUG_STACK_BASE EMPTY -SCL_DDR_DEBUG_STACK_SIZE
+  {
+  }
+
+  DDR_DEBUG_CODE +0x0
+  {
+    * (+RO-CODE)
+  }
+
+  DDR_DEBUG_ZI SCL_RPM_DATA_RAM_BASE SCL_RPM_DATA_RAM_SIZE
+  {
+    * (+ZI)
+    * (BOOT_INTERNAL_HEAP)
+  }
+
+  SBL1_DDR_ZI SCL_SBL1_DDR_ZI_BASE SCL_SBL1_DDR_ZI_SIZE
+  {
+    qhsusb_scsi*.o (+RO, +RW, +ZI)
+  }
+
+  SBL1_DATA_RW +0x0 EMPTY 0x0
+  {
+  }
+
+  SBL1_DATA_ZI +0x0 EMPTY 0x0
+  {
+  }
+
+  // Placeholder to reserve space for the boot logger's meta info data.
+  SBL1_LOG_META_INFO_SECTION +0x0 EMPTY SCL_BOOT_LOG_META_INFO_SIZE
+  {
+  }
+
+  // Placeholder to reserve buffer space for the boot logger's log messages
+  SBL1_LOG_BUF_SECTION +0x0 EMPTY SCL_SBL1_BOOT_LOG_BUF_SIZE
+  {
+  }
+
+  SBL1_DLOAD_ZI SCL_DLOAD_BUFFERS_BASE EMPTY SCL_DLOAD_BUFFERS_SIZE
+  {
+  }
+
+  SBL1_INDIRECT_VEC_TBL PBL_APPS_INDIRECT_VEC_BASE PBL_APPS_INDIRECT_VEC_SIZE
+  {
+    sbl1_ddr_debug.o(SBL1_INDIRECT_VECTOR_TABLE,+FIRST)
+  }
+
+  ScatterAssert( ImageLimit(DDR_DEBUG_RW) <= SCL_IMEM_BASE + SCL_IMEM_SIZE )
+  ScatterAssert( ImageLimit(DDR_DEBUG_CODE) <= SCL_RPM_CODE_RAM_BASE + SCL_RPM_CODE_RAM_SIZE )
+}

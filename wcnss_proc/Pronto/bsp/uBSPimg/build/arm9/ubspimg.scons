@@ -1,0 +1,199 @@
+#===============================================================================
+#
+# uBSP Image ARM9 build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //depot/asic/sandbox/users/acheung/8960/AMSS/products/8960/core/bsp/coreimg/build/arm9/SConscript#2 $
+#  $DateTime: 2010/07/08 22:54:14 $
+#  $Author: rfavero $
+#  $Change: 1361269 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = ['ubsp', 'uBSP', 'uBSP_img']
+
+# init environment variables
+env.InitImageVars(
+   alias_list = aliases,         # aliases
+   proc='arm9',                 # proc
+   config='wcn',            # config type, proc_name
+   plat='rex',
+   target='uBSP_img_${BUILD_ID}',# target (elf, image file name)
+   build_tags = ['CORE_UBSP', 'UBSP_IMG', 'UBSP_WCN'],
+   deprecated_build_tags = [],
+   tools = ['${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py', 
+   #'${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/pil_splitter_builder',
+   '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+   'buildspec_builder.py'
+	]
+   )
+
+if not env.CheckAlias():
+   Return()
+
+#------------------------------------------------------------------------------
+# Init default values this PROC/Image
+#------------------------------------------------------------------------------
+
+# replace AMSS CUST file, add ours to #undef unwanted features
+env.Replace(AMSS_CUST_H = env.subst('CUST${BUILD_ID}.H').lower())
+#env.Replace(CUST_H = 'cust_ubsp_img.h')
+
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('arm', toolpath = ["${BUILD_ROOT}/tools/build/scons/scripts"])
+
+# add define for original AMSS custfile
+env.Append(CPPDEFINES = [
+   "AMSS_CUST_H=\\\"${AMSS_CUST_H}\\\"",
+   "CUST_H=\\\"${CUST_H}\\\"",
+   "BUILD_TARGET=\\\"${BUILD_TARGET}\\\"",
+   "BUILD_VER=\\\"${BUILD_VER}\\\"",
+   "BUILD_ASIC=\\\"${BUILD_ASIC}\\\"",
+   "UBSP_IMAGE",
+   "IMAGE_WCN_PROC",
+   "DAL_REX_NATIVE_PLATFORM",
+   "USE_DIAG_IF_LOGGING",
+   "DAL_CONFIG_IMAGE_WCN",
+   "DAL_CONFIG_TARGET_ID=0x${MSM_ID}",
+   "WCN_PRONTO",
+   "WCN_PRONTO_V1",
+   "LPWR_IMG_PRESENT",
+   "UBSP_STANDALONE_IMAGE" 
+])
+
+if env['MSM_ID'] in ['8974','8x26','8962']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_BOOT_REMAP_BASE=0x0D200000", 
+      "SCL_SHARED_RAM_BASE=0x0FA00000", 
+      ])
+if env['MSM_ID'] in ['8x10']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_BOOT_REMAP_BASE=0x0D200000", 
+      "SCL_SHARED_RAM_BASE=0x0D900000", 
+      ])
+
+if env['MSM_ID'] in ['8974','8962']:
+	env.Append(CPPDEFINES = [
+		"WCNSS_CODE_SIZE=0x0800000",
+		"WCONN_TRACE_LOG_MAX=65536",
+		"WCONN_IRQ_LOG_MAX=16384",
+		"WCONN_FIQ_LOG_MAX=16384",
+		])
+if env['MSM_ID'] in ['8x10','8x26']:
+	env.Append(CPPDEFINES = [
+		"WCNSS_CODE_SIZE=0x0700000",
+		"WCONN_TRACE_LOG_MAX=16384",
+		"WCONN_IRQ_LOG_MAX=8192",
+		"WCONN_FIQ_LOG_MAX=8192",
+		])
+
+if env['MSM_ID'] in ['8909']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_BOOT_REMAP_BASE=0x8DA00000", 
+      "SCL_SHARED_RAM_BASE=0x87D00000",
+      "SCL_SHARED_RAM_SIZE=0x0100000",
+      "WCONN_TRACE_LOG_MAX=16384",
+      "WCONN_IRQ_LOG_MAX=8192",
+      "WCONN_FIQ_LOG_MAX=8192",
+      "WCNSS_CODE_SIZE=0x0600000",
+      "WCN_PRONTO_BEAR",
+      "WCSS_WCSS_BASE=0x0A000000",
+      ])
+elif env['MSM_ID'] in ['8936']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_BOOT_REMAP_BASE=0x8B600000", 
+      "SCL_SHARED_RAM_BASE=0x86300000",
+      "SCL_SHARED_RAM_SIZE=0x0100000",
+      "WCONN_TRACE_LOG_MAX=16384",
+      "WCONN_IRQ_LOG_MAX=8192",
+      "WCONN_FIQ_LOG_MAX=8192",
+      "WCNSS_CODE_SIZE=0x0600000",
+      "WCN_PRONTO_BEAR",
+      "WCSS_WCSS_BASE=0x0A000000",
+      ])
+elif env['MSM_ID'] in ['8916']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_BOOT_REMAP_BASE=0x8B600000", 
+      "SCL_SHARED_RAM_BASE=0x86300000",
+      "SCL_SHARED_RAM_SIZE=0x0100000",	  
+      "WCNSS_CODE_SIZE=0x0600000",
+      "WCONN_TRACE_LOG_MAX=16384",
+      "WCONN_IRQ_LOG_MAX=8192",
+      "WCONN_FIQ_LOG_MAX=8192",
+      "WCN_PRONTO_BEAR",
+      "WCSS_WCSS_BASE=0x0A000000",
+      ])
+else:
+   env.Append(CPPDEFINES = [
+      "WCSS_WCSS_BASE=0xFB000000",
+      ])
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+ubsp_libs = []
+ubsp_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load uBSP libs/objs build rules.
+ubsp_core_libs, ubsp_core_objs = env.LoadAUSoftwareUnits('core')
+ubsp_libs.extend(ubsp_core_libs)
+ubsp_objs.extend(ubsp_core_objs)
+
+ubsp_wlan_libs, ubsp_wlan_objs = env.LoadAUSoftwareUnits('wlan')
+ubsp_libs.extend(ubsp_wlan_libs)
+ubsp_objs.extend(ubsp_wlan_objs)
+
+ubsp_bt_libs, ubsp_bt_objs = env.LoadAUSoftwareUnits('bt')
+ubsp_libs.extend(ubsp_bt_libs)
+ubsp_objs.extend(ubsp_bt_objs)
+
+ubsp_rivaservices_libs, ubsp_rivaservices_objs = env.LoadAUSoftwareUnits('rivaservices')
+ubsp_libs.extend(ubsp_rivaservices_libs)
+ubsp_objs.extend(ubsp_rivaservices_objs)
+#------------------------------------------------------------------------------
+# Load in CBSP common build rules
+#------------------------------------------------------------------------------
+env.Replace(uBSP_LIBS = ubsp_libs)
+env.Replace(uBSP_OBJS = ubsp_libs)
+
+env.LoadToolScript('REX_uBSPImage', toolpath = ['${BUILD_ROOT}/Pronto/bsp/uBSPimg/build/${PROC}'])
+
+

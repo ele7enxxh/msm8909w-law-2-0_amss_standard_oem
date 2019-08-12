@@ -1,0 +1,409 @@
+#===============================================================================
+#
+# SMD Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2015 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/mproc/smd/build/smd.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/28/14   rv      Added FEATURE_SMDL_PROFILE to enable/disable profile.
+# 06/30/15   rv      Add 8937 XML config.
+# 06/11/15   rv      Add 9607 XML config.
+# 12/31/13   sm      Added defines for SMD priority shift on VUnicore.
+# 12/06/13   an      Add smd_qurt.c for cache management on QDSP.
+# 11/21/13   bt      Add omitted pack flag to Modem's smd_core lib.
+# 10/30/13   bt      Add APQ/MPQ-specific XML config.
+# 10/18/13   bt      Add 8916-specific XML config.
+# 10/17/13   an      diag hook to kick off profiling.
+# 10/11/13   bt      Add 8994 XML config.
+# 08/06/13   pa      Enable loopback on WCN.
+# 05/10/13   bt      Fix bad Scons updates.
+# 05/07/13   bt      Support both multi-image and single-image DevConfig.
+# 04/30/13   bt      Add Pack exception flags for HY31 pack builds.
+# 03/06/13   bt      Deliver DevConfig xml files in packed builds.
+# 02/11/13   bt      Update DevConfig setup.
+# 12/04/12   bt      Explicitly CleanPack all relevant files.
+# 11/15/12   bt      Ship sources for TN Apps.
+# 11/05/12   bt      Add DevConfig for SMD based on target.
+# 10/15/12   bt      Add Modem sources only to Core images, not to MBA.
+# 10/05/12   bt      Add tasked and taskless layers for Nway loopback server.
+# 09/21/12   bt      Add SMDL_NO_STREAMING feature for RPM.
+# 09/13/12   bt      Port build support for RPM proc to B-family Scons.
+# 08/22/12   pa      Enable SMD bridge to be part of Apps build
+# 08/17/12   bt      Replace smd_multibyte_copy.c with smd_mem_access.c, only 
+#                    where needed (Modem, ADSP).
+# 08/14/12   bt      Add smd_multibyte_copy.c for RPM memory accesses.
+# 08/01/12   bt      Add RCINIT to Apps Images, for Sparrow.
+# 06/25/12   bt      Add smd_lb_client to ADSP, for use by smdl_profile.
+# 05/14/12   bt      Remove RequireExternalApi references, not needed.
+# 05/01/12   bt      Add smdl_profile to ADSP, WCNSS; add libs to CORE_QDSP6_SW 
+#                    on ADSP, not to ADSP_PROC, because of non-Core images, and
+#                    make ADSP use DAL OS files, including smdl_dal.c.
+# 03/30/12   pa      Enable WCN builds to use RCINIT
+# 03/26/12   bt      Fix RCINIT smd init duplication.
+# 03/13/12   bt      8974 Sconscript update to use SconsPack.
+# 02/13/12   bt      Initial version for 8974/Badger.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/mproc/smd/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# SMD Lite is not current supported in R33D environments (WLAN RUMI Bringup)
+if env.has_key('USES_R33D'):
+  Return()
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DEBUGTOOLS',
+   'HAL',
+   'DAL',
+   'HWENGINES',
+   'MPROC',
+   'MEMORY',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+# Locally needed by SMD to transition away from CUST*.H and TBC_CORE.BUILDS
+if env.has_key('ADSP_PROC'):
+  env.Append(CPPDEFINES=['MPROC_LPASS_PROC'])
+
+if env.has_key('MODEM_PROC'):
+# env.Append(CPPDEFINES=['MODEM_FW_NUM_PRIO=75'])
+  env.Append(CPPDEFINES=['FEATURE_RCINIT'])
+
+#-------------------------------------------------------------------------------
+# Declare compiler flags for RPM build
+#-------------------------------------------------------------------------------
+if env.has_key('CORE_RPM'):
+  env.Append(CPPDEFINES=['IMAGE_RPM_PROC'])
+  env.Append(CPPDEFINES=['SMDL_NO_STREAMING'])
+
+#-------------------------------------------------------------------------------
+# Priority change for SMD on 8916
+#-------------------------------------------------------------------------------
+# Since MODEM_FW_NUM_PRIO changed from 75 to 64, SMD priority
+# is adjusted by 11 to retain relative priority. As per the 
+# recommendation by architecture team (POC: Don Andrus), there 
+# is a relative shift of 32 for SMD priority. 43=11+32
+
+# SMD High thread priority needs a shift as few of modem L1 threads are 
+# getting shifted so as to retain the relative SMD priority as compared 
+# to modem L1 threads. 8 = 43 - 35 (POC: Setty Manjunath) 
+
+if 'USES_AUDIO_AVS_SOURCES' in env:
+   env.Append(CPPDEFINES=['SMD_PRIORITY_SHIFT=8'])
+else:
+   env.Append(CPPDEFINES=['SMD_PRIORITY_SHIFT=0'])
+
+  
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SMD_CORE = [
+   '${BUILDPATH}/smd.c',
+   '${BUILDPATH}/smd_internal.c',
+   '${BUILDPATH}/smd_lite_api.c',
+   '${BUILDPATH}/smd_main.c',
+   '${BUILDPATH}/smd_sio.c',
+   '${BUILDPATH}/smd_dsm.c',
+   '${BUILDPATH}/smd_dsm_memcpy.c',
+   '${BUILDPATH}/smd_memcpy.c',
+   '${BUILDPATH}/smd_packet_memcpy.c',
+   '${BUILDPATH}/smd_lite_readv.c',
+   '${BUILDPATH}/smd_lite_writev.c',
+   '${BUILDPATH}/smdl_sig.c'
+]
+
+# SMDL Profile, uncomment below line to include the SMDL profile
+#env.Replace(USES_FEATURE_SMDL_PROFILE = 'yes')
+
+if env.has_key('USES_FEATURE_SMDL_PROFILE'):
+   env.Append(CPPDEFINES=['FEATURE_SMDL_PROFILE'])
+
+   SMD_CORE.append([
+     '${BUILDPATH}/smdl_profile.c',
+     '${BUILDPATH}/smdl_profile_rex.c',
+   ])
+
+   SMD_LITE_TEST_OS_REX = [
+      '${BUILDPATH}/smdl_profile_rex.c'
+   ]
+
+   SMD_LITE_TEST_CLIENT = [
+      '${BUILDPATH}/smdl_profile.c'
+   ]
+
+SMD_BRIDGE_SERVER = [
+   '${BUILDPATH}/smd_bridge_target.c',
+   '${BUILDPATH}/smd_bridge_server.c',
+]
+
+SMD_LITE_CORE = [
+   '${BUILDPATH}/smd_internal.c',
+   '${BUILDPATH}/smd_main.c',
+   '${BUILDPATH}/smd_memcpy.c',
+   '${BUILDPATH}/smd_lite_api.c',
+   '${BUILDPATH}/smd_lite_readv.c',
+   '${BUILDPATH}/smd_lite_writev.c',
+   '${BUILDPATH}/smdl_sig.c'
+]
+
+SMD_OS_REX = [
+   '${BUILDPATH}/smd_rex.c'
+]
+
+SMD_OS_QURT = [
+   '${BUILDPATH}/smd_qurt.c'
+]
+
+SMD_LITE_TEST = [
+   '${BUILDPATH}/smdl_echo.c'
+]
+
+SMD_LITE_OS_QURT = [
+   '${BUILDPATH}/smdl_dal.c',
+]
+if env.has_key('USES_FEATURE_SMDL_PROFILE'):
+   SMD_LITE_OS_QURT.append([
+      '${BUILDPATH}/smdl_profile_qurt.c'
+   ])
+
+SMD_LITE_OS_DAL = [
+   '${BUILDPATH}/smdl_dal.c'
+]
+
+SMD_NWAY_LOOPBACK_CORE = [
+   '${BUILDPATH}/smd_loopback_n_way.c'
+]
+
+SMD_NWAY_LOOPBACK_CLIENT = [
+   '${BUILDPATH}/smd_loopback_client.c'
+]
+
+SMD_NWAY_LOOPBACK_SERVER = [
+   '${BUILDPATH}/smd_loopback_server.c',
+   '${BUILDPATH}/smd_loopback_server_dsm.c',
+   '${BUILDPATH}/smd_loopback_server_lite.c',
+   '${BUILDPATH}/smd_loopback_server_memcpy.c',
+   '${BUILDPATH}/smd_loopback_server_task.c'
+]
+
+SMD_NWAY_LOOPBACK_SERVER_LITE = [
+   '${BUILDPATH}/smd_loopback_server.c',
+   '${BUILDPATH}/smd_loopback_server_dsm_stubs.c',
+   '${BUILDPATH}/smd_loopback_server_lite.c',
+   '${BUILDPATH}/smd_loopback_server_memcpy_stubs.c',
+   '${BUILDPATH}/smd_loopback_server_taskless.c'
+]
+
+SMD_PROC_MEM = [
+   '${BUILDPATH}/smd_mem_access.c'
+]
+
+PACK_FLAGS = ['USES_COMPILE_SMD_SMEM_PROTECTED_LIBS']
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+# Add Image-specific Libraries, whose sources should be packed out.
+env.AddBinaryLibrary(['WCN_IMAGE', 'CORE_RPM'],
+                     '${BUILDPATH}/smd_lite',
+                     [SMD_LITE_CORE, SMD_LITE_TEST], pack_exception=PACK_FLAGS)
+
+env.AddBinaryLibrary(['WCN_IMAGE', 'CORE_RPM'], '${BUILDPATH}/smd_dal', 
+                     [SMD_LITE_OS_DAL], pack_exception=PACK_FLAGS)
+                     
+if env.has_key('USES_FEATURE_SMDL_PROFILE'):
+   env.AddBinaryLibrary(['WCN_IMAGE'], '${BUILDPATH}/smdl_prfl_client',
+                        [SMD_LITE_TEST_CLIENT], pack_exception=PACK_FLAGS)
+   env.AddBinaryLibrary(['WCN_IMAGE'], '${BUILDPATH}/smdl_prfl_rex', 
+                        [SMD_LITE_TEST_OS_REX], pack_exception=PACK_FLAGS)
+
+env.AddBinaryLibrary(['CORE_QDSP6_SW', 'WCN_IMAGE'],
+                     '${BUILDPATH}/smd_loopback',
+                     [SMD_NWAY_LOOPBACK_CORE], pack_exception=PACK_FLAGS)
+
+env.AddBinaryLibrary(['CORE_QDSP6_SW', 'WCN_IMAGE'],
+                     '${BUILDPATH}/smd_lb_client',
+                     [SMD_NWAY_LOOPBACK_CLIENT], pack_exception=PACK_FLAGS)
+
+env.AddBinaryLibrary(['WCN_IMAGE'],
+                     '${BUILDPATH}/smd_lb_server_lite',
+                     [SMD_NWAY_LOOPBACK_SERVER_LITE], pack_exception=PACK_FLAGS)
+
+env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smd_proc_mem',
+                     [SMD_PROC_MEM], pack_exception=PACK_FLAGS)
+
+if env.has_key('MODEM_PROC'):
+   env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smd_core',
+                        [SMD_CORE, SMD_OS_REX, SMD_OS_QURT], pack_exception=PACK_FLAGS)
+   env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smd_lb_server',
+                        [SMD_NWAY_LOOPBACK_SERVER], pack_exception=PACK_FLAGS)
+
+if env.has_key('ADSP_PROC'):
+   env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smd_lite',
+                        [SMD_LITE_CORE, SMD_LITE_TEST], 
+                        pack_exception=PACK_FLAGS)
+   env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smd_qurt', 
+                        [SMD_LITE_OS_QURT, SMD_OS_QURT], pack_exception=PACK_FLAGS)
+   env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smd_lb_server_lite',
+                        [SMD_NWAY_LOOPBACK_SERVER_LITE], 
+                        pack_exception=PACK_FLAGS)
+   if env.has_key('USES_FEATURE_SMDL_PROFILE'):
+      env.AddBinaryLibrary(['CORE_QDSP6_SW'], '${BUILDPATH}/smdl_prfl_client',
+                           [SMD_LITE_TEST_CLIENT], pack_exception=PACK_FLAGS)
+
+#-------------------------------------------------------------------------------
+# Add Sources to image
+#-------------------------------------------------------------------------------
+# On TN Apps, all sources can be shipped.
+env.AddLibrary(['CBSP_APPS_IMAGE', 'APPS_IMAGE'],
+               '${BUILDPATH}/smd_core',
+               [SMD_CORE, SMD_OS_REX])
+
+env.AddLibrary(['CBSP_APPS_IMAGE', 'APPS_IMAGE'],
+               '${BUILDPATH}/smd_loopback',
+               [SMD_NWAY_LOOPBACK_CORE])
+
+env.AddLibrary(['CBSP_APPS_IMAGE', 'APPS_IMAGE'],
+               '${BUILDPATH}/smd_lb_client',
+               [SMD_NWAY_LOOPBACK_CLIENT])
+
+env.AddLibrary(['CBSP_APPS_IMAGE', 'APPS_IMAGE'],
+               '${BUILDPATH}/smd_bridge_server',
+               [SMD_BRIDGE_SERVER])
+
+#-------------------------------------------------------------------------------
+# CleanPack (Remove) all remaining files for peripheral processors
+#-------------------------------------------------------------------------------
+PACK_OUT = env.FindFiles(['*.h', '*.c', '*.s'], SRCPATH)
+# Don't include RPM in this list, because it already does we want automatically.
+env.CleanPack(['CORE_QDSP6_SW', 'WCN_IMAGE'], PACK_OUT, 
+              pack_exception=PACK_FLAGS)
+
+#-------------------------------------------------------------------------------
+# RCINIT Task and Init Fields and Initialization
+#-------------------------------------------------------------------------------
+RCINIT_INIT_SMD_INIT = {
+  'sequence_group'             : 'RCINIT_GROUP_0',           # required
+  'init_name'                  : 'smd',                      # required
+  'init_function'              : 'smd_task_init',            # required
+  'dependencies'               : ['sio', 'smem', 'smsm']
+}
+
+RCINIT_INIT_SMDL_INIT = {
+  'sequence_group'             : 'RCINIT_GROUP_0',           # required
+  'init_name'                  : 'smd',                      # required
+  'init_function'              : 'smd_lite_init',            # required
+  'dependencies'               : ['smem']
+}
+
+RCINIT_REXTASK_SMDTASK = {
+  'sequence_group'             : 'RCINIT_GROUP_0',          # required
+  'thread_name'                : 'smdtask',                 # required
+  'thread_entry'               : 'RCINIT_NULL',             # NOT AVAILABLE
+  'stack_size_bytes'           : '8192',
+  'priority_amss_order'        : 'SMD_PRI_ORDER',
+  'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+  'tcb_name'                   : 'smd_tcb',
+}
+
+if env.has_key('USES_FEATURE_SMDL_PROFILE'):
+   RCINIT_INIT_SMD_TEST_INIT = {
+     'sequence_group'             : 'RCINIT_GROUP_2',           # required
+     'init_name'                  : 'smd_test',                 # required
+     'init_function'              : 'smd_profile_diag_init',    # required
+     'dependencies'               : ['diag', 'smd']
+   }
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['MODEM_PROC', 'CBSP_APPS_IMAGE', 'APPS_IMAGE']
+   # SMD INIT
+   if env.has_key('ADSP_PROC'):
+     env.AddRCInitFunc( ['CORE_QDSP6_SW'], RCINIT_INIT_SMDL_INIT )
+   elif env.has_key('WCN_IMAGE'):
+     env.AddRCInitFunc( ['WCN_IMAGE'], RCINIT_INIT_SMDL_INIT )
+   else:
+     env.AddRCInitFunc( RCINIT_IMG,    RCINIT_INIT_SMD_INIT )
+   if env.has_key('USES_FEATURE_SMDL_PROFILE'):
+     env.AddRCInitFunc( RCINIT_IMG,    RCINIT_INIT_SMD_TEST_INIT )
+   # SMD TASK
+   env.AddRCInitTask( RCINIT_IMG, RCINIT_REXTASK_SMDTASK )
+
+#-------------------------------------------------------------------------------
+# Device Config
+#-------------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+  DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+  if env['MSM_ID'] in ['9x25', '9x35']:
+    env.Replace(SMD_PLATFORM = 'mdm')
+  elif env['MSM_ID'] in ['8084', '8092', '8094']:
+    env.Replace(SMD_PLATFORM = 'adr')
+  elif env['MSM_ID'] in ['8916', '8936', '8909']:
+    env.Replace(SMD_PLATFORM = 'amwr')
+  elif env['MSM_ID'] in ['9607']:
+    env.Replace(SMD_PLATFORM = 'amr')
+  else:
+    env.Replace(SMD_PLATFORM = 'msm')
+  SMD_DEVCFG_XML = SRCPATH + '/../config/smd_' + env['SMD_PLATFORM'] + '.xml'
+  env.AddDevCfgInfo(DEVCFG_IMG,
+  {
+    '8974_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_msm.xml'],
+    '8610_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_msm.xml'],
+    '8926_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_msm.xml'],
+    '8626_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_msm.xml'],
+    '8962_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_msm.xml'],
+    '8994_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_msm.xml'],
+    '8952_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_msm.xml'],
+    '8976_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_msm.xml'],	
+    '8937_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_msm.xml'],
+    # 9x25: no WCNSS processor.
+    '9625_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_mdm.xml'],
+    '9635_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_mdm.xml'],
+    # APQ/MPQs: no MPSS or WCNSS processor.
+    '8084_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_adr.xml'],
+    '8092_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_adr.xml'],
+    '8094_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_adr.xml'],
+    # No ADSP processor.
+    '8916_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_amwr.xml'],
+    '8936_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_amwr.xml'],
+    '8909_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_amwr.xml'],
+    # APP, MPSS, RPM
+    '9607_xml' : ['${BUILD_ROOT}/core/mproc/smd/config/smd_amr.xml'],
+    # For single-image DevConfig (WCNSS, RPM, TN Apps, etc)
+    'devcfg_xml' : SMD_DEVCFG_XML,
+  })

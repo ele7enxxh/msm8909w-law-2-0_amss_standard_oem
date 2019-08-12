@@ -1,0 +1,141 @@
+
+#include "DALDeviceId.h"
+#include "dmov.h"
+#include "tlmm_gpio.h"
+
+<driver name="Uart">
+
+  <global_def>    
+    <var_seq name="g_uartgsbi2_gpio_cfg" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+      0x72401, 0x22501, 0x22601, 0x72701, end
+    </var_seq>
+    <var_seq name="g_uartgsbi3_gpio_cfg" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+      0x72801, 0x22901, 0x22a01, 0x72b01, end
+    </var_seq>
+    <var_seq name="g_uartgsbi4_gpio_cfg" type=DALPROP_DATA_TYPE_UINT32_SEQ>
+      0x72c01, 0x22d01, 0x22e01, 0x72f01, end
+    </var_seq>
+  </global_def>
+
+  <!-- UART1DM -->
+
+  <device id=DALDEVICEID_UARTDM_DEVICE_1>
+    <props name="DMOV_DEV" type=DALPROP_ATTR_TYPE_UINT32>
+      DALDEVICEID_DMOV_DEVICE_1
+    </props>
+    <props name="DMOV_CHAN_RX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CHAN_HS_UART_RX 
+    </props>
+    <props name="DMOV_CHAN_TX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CHAN_HS_UART_TX
+    </props>
+    <props name="DMOV_CRCI_RX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CRCI_HS_UART_RX
+    </props>
+    <props name="DMOV_CRCI_TX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CRCI_HS_UART_TX
+    </props>
+    <props name="ManagePCLK" type=DALPROP_ATTR_TYPE_UINT32>
+      1
+    </props>
+    <props name="UartBase" type=DALPROP_ATTR_TYPE_UINT32>
+       0xe4000000
+    </props>
+  </device>
+
+  <!-- GSBI0 -->
+
+  <!-- GSBI1 -->
+
+  <!-- GSBI2 -->
+
+  <device id=DALDEVICEID_UARTGSBI_DEVICE_2>
+    <props name="GpioCfg" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>      
+      g_uartgsbi2_gpio_cfg
+    </props>    
+    <props name="DMOV_DEV" type=DALPROP_ATTR_TYPE_UINT32>
+      DALDEVICEID_DMOV_DEVICE_0
+    </props>
+    <props name="DMOV_CHAN_RX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CHAN_GSBI2_RX
+    </props>
+    <props name="DMOV_CHAN_TX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CHAN_GSBI2_TX
+    </props>
+    <props name="DMOV_CRCI_RX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CRCI_GSBI2_RX
+    </props>
+    <props name="DMOV_CRCI_TX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CRCI_GSBI2_TX
+    </props>
+    <props name="ManagePCLK" type=DALPROP_ATTR_TYPE_UINT32>
+      1
+    </props>
+    <props name="GsbiBase" type=DALPROP_ATTR_TYPE_UINT32>
+       0x7c000000
+    </props>
+    <props name="UartBase" type=DALPROP_ATTR_TYPE_UINT32>
+       0x7c800000
+    </props>
+    <props name="LegacyGsbi" type=DALPROP_ATTR_TYPE_UINT32>
+       1
+    </props>
+  </device>
+
+  <!-- GSBI3 -->
+
+  <device id=DALDEVICEID_UARTGSBI_DEVICE_3>
+    <props name="GpioCfg" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>      
+      g_uartgsbi3_gpio_cfg
+    </props>    
+    <props name="ManagePCLK" type=DALPROP_ATTR_TYPE_UINT32>
+      1
+    </props>
+    <props name="GsbiBase" type=DALPROP_ATTR_TYPE_UINT32>
+       0xcc000000
+    </props>
+    <props name="UartBase" type=DALPROP_ATTR_TYPE_UINT32>
+       0xcc800000
+    </props>
+    <props name="LegacyGsbi" type=DALPROP_ATTR_TYPE_UINT32>
+       1
+    </props>
+  </device>
+
+  <!-- GSBI4 -->
+
+  <device id=DALDEVICEID_UARTGSBI_DEVICE_4>
+    <props name="GpioCfg" type=DALPROP_ATTR_TYPE_UINT32_SEQ_PTR>      
+      g_uartgsbi4_gpio_cfg
+    </props>    
+    <props name="DMOV_DEV" type=DALPROP_ATTR_TYPE_UINT32>
+      DALDEVICEID_DMOV_DEVICE_0
+    </props>
+    <props name="DMOV_CHAN_RX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CHAN_GSBI4_RX 
+    </props>
+    <props name="DMOV_CHAN_TX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CHAN_GSBI4_TX
+    </props>
+    <props name="DMOV_CRCI_RX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CRCI_GSBI4_RX
+    </props>
+    <props name="DMOV_CRCI_TX" type=DALPROP_ATTR_TYPE_UINT32>
+      DMOV_CRCI_GSBI4_TX
+    </props>
+    <props name="ManagePCLK" type=DALPROP_ATTR_TYPE_UINT32>
+      1
+    </props>
+    <props name="GsbiBase" type=DALPROP_ATTR_TYPE_UINT32>
+       0xd8000000
+    </props>
+    <props name="UartBase" type=DALPROP_ATTR_TYPE_UINT32>
+       0xd8800000
+    </props>
+    <props name="LegacyGsbi" type=DALPROP_ATTR_TYPE_UINT32>
+       1
+    </props>
+  </device>
+
+</driver>
+

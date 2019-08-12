@@ -1,0 +1,79 @@
+#===============================================================================
+#
+#                             Edit History
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsee/oem/common/build/SConscript#1 $
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011/07/12   spa     Create initial version
+#
+#===============================================================================
+#                    Copyright (c) 2011 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+# QSEE Lib
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+#SRCPATH = ".."
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/oem/common"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL',
+   'SECUREMSM',   
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+env.RequirePrivateApi(CBSP_APIS)
+
+INC_PATH_API = ["${INC_ROOT}/core/api/securemsm/trustzone/qsee"]
+env.Append(CPPPATH = INC_PATH_API)
+
+INC_PATH_COMMON = ["${INC_ROOT}/core/securemsm/trustzone/qsee/include"]
+env.Append(CPPPATH = INC_PATH_COMMON)
+
+INC_PATH_LK = [
+      "${INC_ROOT}/core/kernel/lk/kernel/inc",
+      "${INC_ROOT}/core/kernel/lk/arch/inc",
+      "${INC_ROOT}/core/kernel/lk/platform/inc",
+]
+env.Append(CPPPATH = INC_PATH_LK)
+
+env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+env.Append(ASFLAGS = " --diag_suppress=1786,2523 ")
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = "--gnu")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+QSEE_OEM_SOURCES = [
+   '${BUILDPATH}/src/oem.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibrary(['TZOS_IMAGE'], '${BUILDPATH}/QSEEOEM', QSEE_OEM_SOURCES)
+

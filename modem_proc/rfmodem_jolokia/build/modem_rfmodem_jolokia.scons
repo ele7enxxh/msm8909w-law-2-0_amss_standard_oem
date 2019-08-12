@@ -1,0 +1,1146 @@
+#====include path optimized=====================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011 - 2014 Qualcomm Technologies Inc. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rfmodem_jolokia/build/modem_rfmodem_jolokia.scons#1 $
+# $DateTime: 2016/12/13 07:59:25 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---   
+# 11/05/14   dr      Disabling compilation for TABASCO
+# 09/11/14   ndb     Add 'USES_JOLOKIA_MODEM' for 'FEATURE_RF_HAS_QTUNER'
+# 06/05/14   dej     Make area to use for rfmodem dynamic
+# 06/02/14   dr      Changing rfmodem root for JOLOKIA
+# 05/27/14   spa     Include CDMA API for FED standalone visibility
+# 03/21/14   oei     For USES_STANDALONE_FW, require FW's restricted API
+# 03/10/14   bsh     Exposing NLIC APIs
+# 01/06/14   adk     Added support for antenna tuners
+# 10/24/13   ra      Modified for FW_LIB build
+# 10/21/13   hdz     Added FEATURE_BOLT_DTR_BASED_TXAGC' and
+#                     'FEATURE_RFLM_TIME_PROFILE 
+# 10/06/13   ra      Support RFLM CCS 
+# 08/22/13   dej     Added inclusion of rfmodem_bolt public apis
+# 07/31/13   ra      Added support for RFLM INC
+# 02/08/13   whz     Added support for RFC WTR2605 TD DSDS
+# 02/08/13   whz     Added support for RFC WTR2605 TD DSDA
+# 01/14/13   dej     Fix rfmodem_dime paths
+# 01/08/13   dej     Move Dime LM to rfmodem_dime
+# 01/02/13   sn      Added support for qfe2320 and cleaned up qfe1320
+# 12/28/12   APU     Added the SVVZ_HCPA card for Dime .                
+# 12/21/12   aka     Added RFDEVICE_WTR2605 folder in public API section
+# 12/21/12   jf      Remove FEATURE_RF_HAS_XPT_SUPPORT
+# 12/19/12   cd      Re-introduce FEATURE_RF_HAS_XPT_SUPPORT
+# 12/17/12   vrb     Moving RFC cards and target into modem specific folders
+# 12/13/12   shb     Added WTR1625, WFR1620 in public API includes
+# 12/13/12   shb     Added WTR1625 APAC and NAEU card paths
+# 12/05/12   av      Added DSDA_CH0, DSDA_CH1 cards
+# 11/29/12   av      Using proper featurization and removing featurization that is not needed
+# 11/27/12   sr      Added configurable test rf-card support.
+# 11/28/12   Saul    Sample Capture. Temp features to FEATURE_RF_HAS_XPT_SUPPORT
+# 11/27/12   sr      Added efs rf-card support and fixed indent issues.
+# 11/20/12   gvn     Not compile LTE for Triton
+# 11/15/12   ec      Allow new GL1 Test Mode API to be compiled into RFGSM CORE
+# 11/15/12   vrb     Added support for msm8x10
+# 11/14/12   av      Dime modem folder removal changes
+# 08/02/12   kai     Added support for QFE1510_HDET
+# 11/05/12   Saul    Common XPT. Changed tech-specific feature to common feature.
+# 10/03/12   jyu     Added CMCC RF card
+# 10/02/12   Saul    CDMA Sample Capture. USES_1X_DIME_SAMPLE_CAPTURE temp feature
+# 09/25/12   sr      Added VZ_SV rf-card.
+# 09/21/12   vrb     Compile individual RFC AG Target files for MDM9x25
+# 09/19/12   kb      Updated to compile 8974 target files for 9x25 CHIPSET too. Will be reverted back once support for 9x25 is provided.
+# 09/12/12   dej     Added LM_TRITON_INC path
+# 09/07/12   kb      Added support to MSM8x26
+# 08/30/12   Saul    CDMA. Added high-level feature USES_1X_EPT_CAL to control RF_1X_EPT_CAL_TEMP
+# 08/29/12   kb      Updated to compile 8974 target files for 9x25 CHIPSET too. Will be reverted back once support for 9x25 is provided.
+# 08/17/12   vrb     Added new RF cards: NA1_TDS and ATT_CA
+# 08/09/12   kb      Add mdm9x25 chipset case for RFC_TARGET_INC
+# 07/31/12   bn      Added QFE1100 (QPOET2) device
+# 07/17/12   sr      Added tdscdma tech support for wtr1605_na1 rf-card
+# 07/10/12   tks     Added support for PA & ASM devices
+# 07/09/12   sr      Removed old rf-cards and added wtr1605_na1 rf-card
+# 07/02/12   kb      Ported the changes from CL 2553575 by dandrus
+# 06/06/12   Saul    CDMA. Sending scripts as Dime shared mem format.
+#                    MC now using mdsp events.
+# 06/21/12   vb      Renamed QTuner driver from qtuner1510 to qfe1510
+# 07/12/12   gh      Added support for rfc_wtr1605_naeu_qf1320_qf1510
+# 06/21/12   vb      Added support for QFE1510
+# 05/29/12   zg      Added support for WTR1605_CHN3_APT  
+# 05/29/12   sar/prp Updated hwtc pack features.
+# 06/09/12   lp      Added mmcp api RFA violations
+# 04/30/12   sar     Removed rtr8600 device files and updated references.
+# 05/08/12   aak     Change to add correct folders for 8930
+# 04/24/12   ac      Added HW ID for WTR1605 NA717_EFS to support binary rfc data
+# 04/13/12   dyc/sar Added support for O2 compiler opt
+# 04/12/12   sr      Added new vreg_mgr files to replace the rfc*pm.c files.
+# 04/11/12   Saul    QFE. Initial support.
+# 03/29/12   sar     Re-added TDSCDMA dir to fix compile error.
+# 03/29/12   sar     Re-added clk dir to fix compile error.
+# 03/29/12   sar     Removed debug message for "USES_FTM_HWTC".
+# 03/31/12   aca     Added support for WTR1605_NA717_BR
+# 03/28/12   sar     Fixed CMI violations by removing external includes.
+#                    Relocated PMIC directory to a new block.
+# 03/26/12   prp     Added USES_FEATURE_RFA_TP_CARDS and USES_FTM_HWTC_DEBUG_ONLY_SECURITY_HOLE
+# 03/22/12   id      Added initial Tx Internal Device Cal support
+# 03/22/12   shb     Added support for WTR1605 SVOC
+# 03/20/12   sr      Added HW ID for NA717_EFS to support binary rfc data
+# 04/20/12   jfc     Updates to HAL and RFD INC to work with Nikel
+# 04/19/12   jfc     Move RFD into the HAL folder
+# 03/26/12   jfc     Give msm8974 chipset own case for RFC_TARGET_INC
+# 03/19/12   jfc     Add LM DIME inc path
+# 03/19/12   jfc     Add msm8974 chipset case for RFC_TARGET_INC
+# 03/09/12   ans     Added RFC selection support 
+# 03/07/12   cri     Added initial DPD support
+# 02/16/12   ans     Added support for TP80 RFC
+# 02/16/12   hy      Added support for TDSCDMA Non-signaling
+# 02/10/12   jn      Added support for run-time GNSS notch selection.
+# 02/09/12   jyu     Added support for TDSCDMA HDET and therm read
+# 02/02/12   ap      Added support for msm8930
+# 01/22/12   adk     Added support for RF card RFC_WTR1605_CHN3
+# 01/20/12   kguo    Merged SVSP changes 
+# 01/11/12   kg/sn   Added support for QFE1320
+# 01/08/12   hs      Added PMIC FTM support.
+# 01/06/12   shb     Avoid exposing RF_DEVICE_PROTECTED files outside library
+# 01/03/12   av      Added IRAT support
+# 12/20/11   aki     Added support for RFCA
+# 12/21/11   tks     Added support for WTR1605 SV Sprint RF card 
+# 11/16/11   ra      Added support for WTR1605 Japan11 and Japan21 RF Cards
+# 11/14/11   vrb     Added support for RF card RFC_RTR8600_NSV_B13_BC1
+# 11/14/11   prp     Replaced USES_FLAGS_ENABLE_RFA and USES_FLAGS_DISABLE_RFA with ENV_UPDATE_RFA
+# 10/21/11   adk     Added support for RF card RFC_RTR8600_NA1025_SV
+# 10/11/11   shb     Renamed existing WTR1605 cards to follow 
+#                    rfc_<rf chip>_<band config>_<optional specifier>
+# 10/11/11   shb     Added NA_Gobi5, EU_Gobi5, NA717 and SVVZ RF cards
+# 10/10/11   pl      Remove LTE L2 violations
+# 09/27/11   aro     Enabled HDR HWTC Module
+# 08/24/11   sar     Removed dependency on platform.
+# 08/30/11   jps     Added EU_TP53 RFC
+# 08/29/11   jps     Added NA713_NSV RFC
+# 08/26/11   jps     Added NA_TP50 RFC
+# 08/24/11   sar     Remove 6 violations from rfa.
+# 08/05/11   whc     Added NA1925 RFC
+# 08/03/11   shb     Deleted N3300, added N5130_CHN RF cards
+# 07/21/11   jhe/shb Added td-scdma and wtr
+# 07/10/11   gy      Added RF_GNF_PROTECTED support
+# 06/24/11   sar     Updated file to remove rfa violations
+# 06/03/11   shb     Renamed RF cards from rtr8600_<band_config> to 
+#                    rfc_rtr8600_<band_config>
+# 06/01/11   sar     Add support for rtr8600_na717, rtr8600_eu, rtr8600_japan2 
+#                    and rtr8600_na713_sv.
+# 05/11/11   prp     Add USES_FLAGS_ENABLE & DISABLE
+# 05/09/11   bmg     Fixes for off-target testing
+# 05/06/11   bmg     Added off-target build support
+# 04/23/11   prp     Created
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+if ('USES_TABASCO_MODEM' in env):
+    Return()
+
+image_env = env.get('IMAGE_ENV')
+if image_env:
+  # IMAGE_ENV will not be found when doing --listapis, so don't crash if it
+  # isn't present
+  if 'RF_GLOBALS' not in image_env:
+    image_env.Replace(RF_GLOBALS = dict())
+  rf_globals = image_env.get('RF_GLOBALS')
+
+
+if 'USES_STANDALONE_FW' in env and 'USES_RF_TEST_APP' in env:
+	env.Append(CPPDEFINES = ['RFLM_FEATURE_BUILD_MODE=RFLM_FEATURE_BUILD_FW_LIB'])
+	env.Append(CPPDEFINES = ['RFLM_FEATURE_RF_TEST_APP'])
+elif 'USES_STANDALONE_FW' in env:
+        env.Append(CPPDEFINES = ['RFLM_FEATURE_BUILD_MODE=RFLM_FEATURE_BUILD_FW_LIB'])
+
+else :
+     pass	
+	
+#usage:  ENV_UPDATE_RFA=CHIPSET,=mdm9x15,USES_NO_DEBUG,delete,USES_HI_SPEED,add
+if ARGUMENTS.get('ENV_UPDATE_RFA'):
+   
+   env_update_string    = ARGUMENTS.get('ENV_UPDATE_RFA')
+   env_update_list      = env_update_string.split(',')
+   item_total           = len(env_update_list)
+   list_index           = 0
+   
+   #note if list is not even number of items, last odd item is ignored
+   while list_index < item_total-1:
+                 
+      item            = env_update_list[list_index]  
+      value           = env_update_list[list_index+1]
+      list_index      += 2
+                                              
+      if(value == 'add'):
+         env[str(item)] = 'yes'
+         print "adding",item,"to env"                                          
+                
+      elif(value == 'delete'):
+         del env[str(item)]
+         print "deleting",item,"from env"
+      
+      else:
+         if(value[0] != '='):
+            print "missing leading = in",value
+            print "not updating ",item
+                 
+         else:
+            value2 = value[1:len(value)]
+            env[str(item)] = value2
+            print "now setting",item,value
+
+
+
+if env.PathExists('${BUILD_ROOT}/rfmodem_jolokia'):
+    env.Replace(RFA_ROOT = '${INC_ROOT}/rfa')
+    env.Replace(RFMODEM_DIMEPM_ROOT = '${INC_ROOT}/rfmodem_jolokia')
+
+if 'USES_STANDALONE_FW' in env:
+        env.Append(CPPDEFINES = ['FEATURE_BOLT_DTR_BASED_TXAGC','FEATURE_RFLM_TIME_PROFILE'])
+
+env.RequirePublicApi(['RFMODEM_PROTECTED_RFLM_AUTOPIN','RFMODEM_JOLOKIA'])
+env.RequirePublicApi([
+        'KERNEL',
+        'SYSTEMDRIVERS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'DAL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MCS',
+        ],
+        area='MCS')
+
+env.RequirePublicApi([
+        'RF',
+        'COMMON',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='LTE')
+
+env.RequirePublicApi([
+        'CDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'RFDEVICE_INTERFACE',
+        ],
+        area='RFDEVICE_INTERFACE')
+
+env.RequirePublicApi([
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'SERVICES',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MEAS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'GSM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'WCDMA',
+        'C2K',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'DEBUGTOOLS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'LM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'MPROC',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'MEMORY',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'POWER',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'RFNV',
+        ],
+        area='RFNV')
+
+env.RequirePublicApi([
+        'GNSS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'TDSCDMA',
+        'LTE',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'MVS',
+        ],
+        area='AVS')
+
+env.RequirePublicApi([
+        'OSYS',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'HDR',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'RFDEVICE_WTR1605',
+        ],
+        area='RFDEVICE_WTR1605')
+
+env.RequirePublicApi([
+        'RFDEVICE_WTR1625',
+        ],
+        area='RFDEVICE_WTR1625')
+
+env.RequirePublicApi([
+        'RFDEVICE_WFR1620',
+        ],
+        area='RFDEVICE_WFR1620')
+
+env.RequirePublicApi([
+        'RFDEVICE_QFE1320',
+        ],
+        area='RFDEVICE_QFE1320')
+		
+env.RequirePublicApi([
+        'RFDEVICE_QFE2320',
+        ],
+        area='RFDEVICE_QFE2320')		
+
+env.RequirePublicApi([
+        'TDSCDMA',
+        ],
+        area='TDSCDMA')
+
+env.RequirePublicApi([
+        'TDSCDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'ONEX',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'STORAGE',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'UIM',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'A2',
+        ],
+        area='UTILS')
+
+env.RequirePublicApi([
+        'GPS',
+        ],
+        area='GPS')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'MPOWER',
+        ],
+        area='MPOWER')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='TDSCDMA')
+
+env.RequirePublicApi([
+        'HWENGINES',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='UTILS')
+        
+
+#manually added
+env.RequirePublicApi([
+        'MYPS',
+        ],
+        area='MYPS')
+
+
+env.RequirePublicApi([
+        'RF_TUNER',
+        ],
+        area='RFA')
+		
+		
+env.RequirePublicApi([
+        'RFDEVICE_WTR2605',
+        ],
+        area='RFDEVICE_WTR2605')
+        
+
+env.RequirePublicApi([
+        'RFTECH_LTE',
+        ],
+        area='RFTECH_LTE')
+
+env.RequirePublicApi([
+        'RFTECH_GSM',
+        ],
+        area='RFTECH_GSM')
+		
+env.RequirePublicApi([
+        'RFTECH_WCDMA',
+        ],
+        area='RFTECH_WCDMA')
+env.RequirePublicApi(['ONEX'])
+
+env.RequirePublicApi([
+        'FW',
+		'DTR'
+        ],
+        area=rf_globals['RFMODEM_AREA'])
+
+
+
+env.RequirePublicApi(['RFTECH_CDMA', 'RFTECH_CDMA_INCONVENIENT'], area='RFTECH_CDMA')
+# The following is still needed for 'modem_proc/modem' builds
+env.RequirePublicApi(['RFTECH_CDMA', 'RFTECH_CDMA_INCONVENIENT'])
+
+env.RequirePublicApi(['RFTECH_TDSCDMA',],area='RFTECH_TDSCDMA')
+
+env.RequirePublicApi(['RFTECH_LTE_DM_INC'],area='RFTECH_LTE')
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+env.RequirePublicApi(['RFMODEM_NLIC'],area=rf_globals['RFMODEM_AREA'])
+
+# WTR1625-WFR1620
+if('USES_WTR1625' in env):
+  env.Append(CPPDEFINES = ['FEATURE_RF_HAS_WTR1625_WFR1620'])
+
+# cust file relocation
+# Protected is "private within the SU" vs. Restricted with is visible to other SUs
+env.PublishProtectedApi('RFA', [
+        '${RFA_ROOT}/cust/inc',
+        '${RFA_ROOT}/variation/inc',
+        '${RFA_ROOT}/rf/cdma/common/rf/inc',
+        '${RFA_ROOT}/rf/common/rf/core/inc',
+        '${RFA_ROOT}/rf/common/rf/atuner/inc',
+        '${RFA_ROOT}/rfc/dime/target/msm8974/inc',
+        '${RFA_ROOT}/rf/hal/common/inc',
+        '${RFA_ROOT}/rf/common/ftm/inc',
+        '${RFA_ROOT}/rf/common/rf/rfc/inc',
+        '${RFA_ROOT}/device/rfdev_intf/inc',
+        '${RFA_ROOT}/rf/cdma/1x/rf/inc',
+        '${RFA_ROOT}/variation/inc',
+        '${RFA_ROOT}/rf/task/common/inc',
+        '${RFA_ROOT}/rf/common/rf/nv/inc',
+        '${RFA_ROOT}/rfc/common/inc',
+        '${RFA_ROOT}/rf/qmi_svc/rfrpe/inc',
+        '${RFA_ROOT}/rf/rfd/common/inc',
+        '${RFA_ROOT}/rf/rfd/nikel/inc',
+        '${RFA_ROOT}/rf/cdma/hdr/rf/inc',
+        '${RFMODEM_DIMEPM_ROOT}/hal/common/inc',
+        '${RFA_ROOT}/rf/mdsp/qdsp6_common/inc',
+        '${RFA_ROOT}/rf/common/rf/mc/inc',
+        '${RFA_ROOT}/rf/common/hwtc/inc',
+        '${RFA_ROOT}/rf/wcdma/rf/core/src',
+        '${RFA_ROOT}/rf/cdma/common/ftm/inc',
+        '${RFA_ROOT}/rf/lte/rf/rfc/inc',
+        '${RFA_ROOT}/rf/mdsp/qdsp6_tdscdma/inc',
+        '${RFA_ROOT}/rf/mdsp/qdsp6_cdma/inc',
+        '${RFA_ROOT}/rf/wcdma/rf/rfc/inc',
+        '${RFA_ROOT}/rf/lte/rf/core/inc',
+        '${RFA_ROOT}/rf/gsm/rf/rfc/inc',
+        '${RFA_ROOT}/rf/gsm/rf/core/src',
+        '${RFA_ROOT}/rf/lte/ftm/inc',
+        '${RFA_ROOT}/rf/lte/rf/nv/inc',
+        '${RFA_ROOT}/rf/tdscdma/rf/core/inc',
+        '${RFA_ROOT}/rf/wcdma/ftm/inc',
+        '${RFA_ROOT}/rf/lte/rf/nv/protected',
+        '${RFA_ROOT}/rf/wcdma/rf/nv/inc',
+        '${RFA_ROOT}/rf/cdma/1x/ftm/inc',
+        '${RFA_ROOT}/rf/gsm/rf/nv/inc',
+        '${RFA_ROOT}/rf/tdscdma/rf/nv/inc',
+        '${RFA_ROOT}/rf/tdscdma/rf/rfc/inc',
+        '${RFMODEM_DIMEPM_ROOT}/lm/inc',
+        '${RFA_ROOT}/rf/cdma/hdr/ftm/inc',
+        '${RFA_ROOT}/rf/gsm/ftm/inc',
+        '${RFA_ROOT}/rfc/vreg_mgr/common/inc',
+        '${RFA_ROOT}/rf/common/stubs/inc',
+        '${RFA_ROOT}/rf/common/rf/zlib/inc',
+        '${RFA_ROOT}/rf/common/rf/zlib/src',
+        '${RFA_ROOT}/rf/gnss/gen8/rf/rfc/inc',
+        '${RFA_ROOT}/device/asm/inc',
+        '${RFA_ROOT}/rf/mdsp/qdsp6_lte/inc',
+        '${RFA_ROOT}/rf/mdsp/qdsp6_wcdma/inc',
+        '${RFA_ROOT}/rf/mdsp/qdsp6_gsm/inc',
+        '${RFA_ROOT}/lm/common/inc',
+        '${RFA_ROOT}/rf/tdscdma/ftm/inc',
+        '${RFA_ROOT}/rf/sv/common/inc',
+        '${RFMODEM_DIMEPM_ROOT}/hal/lte/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/common/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1_tds/common/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_cmcc/common/inc',
+        '${RFMODEM_DIMEPM_ROOT}/hal/wcdma/inc',
+        '${RFMODEM_DIMEPM_ROOT}/hal/gsm/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_att_ca/common/inc',
+        '${RFA_ROOT}/rf/cdma/common/hwtc/inc',
+        '${RFA_ROOT}/rf/task/rex_msgr/inc',
+        '${RFA_ROOT}/rf/meas/rf/rfc/inc',
+        '${RFMODEM_DIMEPM_ROOT}/hal/meas/inc',
+        '${RFA_ROOT}/rf/mdsp/qdsp6_meas/inc',
+        '${RFA_ROOT}/device/pa/inc',
+        '${RFA_ROOT}/device/rffe/inc',
+        '${RFA_ROOT}/rf/common/hwtc/protected',
+        '${RFA_ROOT}/rf/gsm/hwtc/inc',
+        '${RFMODEM_DIMEPM_ROOT}/hal/tdscdma/inc',
+        '${RFA_ROOT}/rf/hal/gnss/gen8a/inc',
+        '${RFA_ROOT}/rf/mdsp/qdsp6_common/protected',
+        '${RFA_ROOT}/rf/wcdma/hwtc/inc',
+        '${RFA_ROOT}/rf/common/rf/core/src',
+        '${RFA_ROOT}/rf/common/rf/atuner/src',
+        '${RFA_ROOT}/rf/lte/rf/mc/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/cdma/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1_tds/cdma/inc',
+        '${RFA_ROOT}/rf/ccs/protected',
+        '${RFA_ROOT}/rf/gnss/gen8/ftm/inc',
+        '${RFA_ROOT}/rf/lte/rf/meas/inc',
+        '${RFA_ROOT}/rf/mdsp/qdsp6_cdma/protected',
+        '${RFA_ROOT}/rf/meas/ftm/inc',
+        '${RFA_ROOT}/rfc/vreg_mgr/wtr1605_nsv/inc',
+        '${RFA_ROOT}/rfc/vreg_mgr/rfc_configurable_test_vreg_mgr/inc',
+        '${RFA_ROOT}/rf/gnss/gen8/rf/core/src',
+        '${RFA_ROOT}/rf/mdsp/qdsp6_gsm/protected',
+        '${RFA_ROOT}/rf/tdscdma/rf/meas/inc',
+        '${RFA_ROOT}/rf/wcdma/rf/meas/inc',
+        '${RFA_ROOT}/device/qfe1100/common/inc',
+        '${RFA_ROOT}/rf/cdma/1x/hwtc/inc',
+        '${RFA_ROOT}/rf/cdma/hdr/hwtc/inc',
+        '${RFA_ROOT}/rf/gnss/gen8/hwtc/inc',
+        '${RFA_ROOT}/rf/lte/hwtc/inc',
+        '${RFA_ROOT}/rf/mdsp/qdsp6_tdscdma/protected',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/common/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/cdma/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/gnss/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/gsm/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/lte/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/tdscdma/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/wcdma/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/common/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/cdma/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/gnss/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/gsm/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/lte/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/wcdma/inc',
+        '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/tdscdma/inc',            
+        '${RFA_ROOT}/gnf/common/algo/protected',
+        '${RFA_ROOT}/gnf/msm8974/wtr1605/algo/protected',
+        '${RFA_ROOT}/rf/cdma/common/hwtc/protected',
+        '${RFA_ROOT}/rf/gsm/ftm/protected',
+        '${RFA_ROOT}/rf/gsm/rf/mc/inc',
+        '${RFA_ROOT}/rf/hal/gnss/gen8a/protected',
+        '${RFA_ROOT}/rf/hal/gnss/gen8b/protected',
+        '${RFA_ROOT}/rf/tdscdma/ftm/protected',
+        '${RFA_ROOT}/rf/wcdma/rf/mc/inc',
+        '${RFA_ROOT}/rfc/vreg_mgr/wtr1605_sv/inc',
+                                 ])
+
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+env.RequireProtectedApi(['RFA'])
+
+                                                                
+env.Replace(HEXAGONCC_OPT = "${HEXAGON_OPT_2}")
+
+if 'RFA_MSDEV' == env['IMAGE_NAME']:
+   # Set force HWIO stuff to our simualtor
+   env.Append(CPPDEFINES = ['HAL_HWIO_EXTERNAL'])
+   env.PublishProtectedApi('RFA_OFFTARGET', [
+      '${RFA_ROOT}/offtarget/framework/inc',
+      '${RFA_ROOT}/offtarget/stubs/inc',
+      ])
+   env.RequireProtectedApi(['RFA_OFFTARGET'])
+
+if 'USES_FEATURE_QFE2320' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE2320'])		
+
+if 'USES_FEATURE_QFE1510_HDET' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1510_HDET'])
+
+if 'USES_FEATURE_QTUNER' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+
+if 'USES_FEATURE_DPD' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_DPD'])
+
+if 'USES_FEATURE_XPT' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_XPT_SUPPORT'])
+   
+if 'USES_1X_EPT_CAL' in env:
+        env.Append(CPPDEFINES = ['RF_1X_EPT_CAL_TEMP'])
+   
+if 'USES_1X_DIME_SAMPLE_CAPTURE' in env:
+        env.Append(CPPDEFINES = ['RF_1X_DIME_SAMPLE_CAPTURE'])
+   
+if 'USES_COMMON_DIME_SAMPLE_CAPTURE' in env:
+        env.Append(CPPDEFINES = ['RF_COMMON_DIME_SAMPLE_CAPTURE'])
+           
+if 'USES_FEATURE_RFA_TP_CARDS' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_TP_CARDS'])
+                
+if 'USES_FTM_HWTC_DEBUG_ONLY_SECURITY_HOLE' in env:
+                print "Add USES_FTM_HWTC"
+                env.Replace(USES_FTM_HWTC = 'yes')
+                print "Enable FEATURE_FTM_HWTC"
+                env.Append(CPPDEFINES = ['FEATURE_FTM_HWTC'])
+
+if 'USES_FEATURE_TX_INT_CAL' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_SUPPORTS_TX_INT_CAL'])
+
+if ( 'USES_DIME_1_0' in env ) or ( 'USES_BOLT_1_0' in env ) or ( 'USES_JOLOKIA_MODEM' in env ):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+ 
+
+#----------------------------------------------------------------------------#
+# Export Protected API to RFA folder. This will be visible only within
+# RFA folder
+#----------------------------------------------------------------------------#
+
+env.PublishProtectedApi( 'RF_CDMA_INC', [
+    '${RFA_ROOT}/rf/cdma/1x/ftm/inc',
+    '${RFA_ROOT}/rf/cdma/1x/rf/inc',
+    '${RFA_ROOT}/rf/cdma/1x/hwtc/inc',
+    '${RFA_ROOT}/rf/cdma/common/ftm/inc',
+    '${RFA_ROOT}/rf/cdma/common/hwtc/inc',
+    '${RFA_ROOT}/rf/cdma/common/rf/inc',
+    '${RFA_ROOT}/rf/cdma/hdr/ftm/inc',
+    '${RFA_ROOT}/rf/cdma/hdr/rf/inc',
+    '${RFA_ROOT}/rf/cdma/hdr/hwtc/inc',
+    ])
+
+env.PublishProtectedApi( 'RF_COMMON_INC', [
+    '${RFA_ROOT}/rf/common/ftm/inc',
+    '${RFA_ROOT}/rf/common/rf/core/inc',
+    '${RFA_ROOT}/rf/common/rf/atuner/inc',
+    '${RFA_ROOT}/rf/common/rf/mc/inc',
+    '${RFA_ROOT}/rf/common/rf/nv/inc',
+    '${RFA_ROOT}/rf/common/rf/rfc/inc',
+    '${RFA_ROOT}/rf/common/rf/zlib/inc',
+    '${RFA_ROOT}/rf/common/stubs/inc',
+    '${RFA_ROOT}/rf/common/hwtc/inc',
+    ])
+
+env.PublishProtectedApi( 'RF_DEVICE_INC', [
+      '${RFA_ROOT}/device/atlas_bbrx/inc',
+      '${RFA_ROOT}/device/rfdev_intf/inc',
+      '${INC_ROOT}/modem/rfdevice_wtr1605/cdma/inc',
+      '${INC_ROOT}/modem/rfdevice_wtr1605/common/inc',
+      '${INC_ROOT}/modem/rfdevice_wtr1605/gnss/inc',
+      '${INC_ROOT}/modem/rfdevice_wtr1605/gsm/inc',
+      '${INC_ROOT}/modem/rfdevice_wtr1605/lte/inc',
+      '${INC_ROOT}/modem/rfdevice_wtr1605/meas/inc',
+      '${INC_ROOT}/modem/rfdevice_wtr1605/wcdma/inc',
+      '${INC_ROOT}/modem/rfdevice_wtr1605/tdscdma/inc',    
+      	'${INC_ROOT}/modem/rfdevice_wtr2605/cdma/inc',
+      '${INC_ROOT}/modem/rfdevice_wtr2605/common/inc',
+      '${INC_ROOT}/modem/rfdevice_wtr2605/gsm/inc',
+      '${INC_ROOT}/modem/rfdevice_wtr2605/wcdma/inc',	   
+      '${RFA_ROOT}/device/qfe_intf/inc',	
+      '${RFA_ROOT}/device/pa/inc',      
+      '${RFA_ROOT}/device/asm/inc',     
+      '${RFA_ROOT}/device/rffe/inc',     
+      '${RFA_ROOT}/device/qfe_intf/inc',
+      '${INC_ROOT}/modem/rfdevice_qfe1510/common/inc',
+      '${INC_ROOT}/rfdevice_qfe1510/common/inc',
+      '${RFA_ROOT}/device/qfe1100/common/inc',	
+      ])
+
+env.PublishProtectedApi( 'RF_GNSS_INC', [
+    '${RFA_ROOT}/rf/gnss/gen8/ftm/inc',
+    '${RFA_ROOT}/rf/gnss/gen8/rf/rfc/inc',
+    '${RFA_ROOT}/rf/gnss/gen8/hwtc/inc',
+    ])
+
+env.PublishProtectedApi( 'RF_GSM_INC', [
+    '${RFA_ROOT}/rf/gsm/ftm/inc',
+    '${RFA_ROOT}/rf/gsm/hwtc/inc',
+    '${RFA_ROOT}/rf/gsm/rf/mc/inc',
+    '${RFA_ROOT}/rf/gsm/rf/nv/inc',
+    '${RFA_ROOT}/rf/gsm/rf/rfc/inc',
+    ])
+
+env.PublishProtectedApi( 'RF_HAL_INC', [
+      '${RFA_ROOT}/rf/hal/common/inc',
+      '${RFA_ROOT}/rf/hal/gnss/gen8a/inc',
+      '${RFMODEM_DIMEPM_ROOT}/api/dm',
+      '${RFMODEM_DIMEPM_ROOT}/hal/cdma/inc',
+      '${RFMODEM_DIMEPM_ROOT}/hal/common/inc',
+      '${RFMODEM_DIMEPM_ROOT}/hal/gsm/inc',
+      '${RFMODEM_DIMEPM_ROOT}/hal/lte/inc',
+      '${RFMODEM_DIMEPM_ROOT}/hal/meas/inc',
+      '${RFMODEM_DIMEPM_ROOT}/hal/wcdma/inc',
+      '${RFMODEM_DIMEPM_ROOT}/hal/tdscdma/inc',
+      ])
+                
+if 'USES_LTE' in env:
+  env.PublishProtectedApi( 'RF_LTE_INC', [
+    '${RFA_ROOT}/rf/lte/ftm/inc',
+    '${RFA_ROOT}/rf/lte/hwtc/inc',
+    '${RFA_ROOT}/rf/lte/rf/core/inc',
+    '${RFA_ROOT}/rf/lte/rf/mc/inc',
+    '${RFA_ROOT}/rf/lte/rf/meas/inc',
+    '${RFA_ROOT}/rf/lte/rf/nv/inc',
+    '${RFA_ROOT}/rf/lte/rf/rfc/inc',
+      ])
+
+env.PublishProtectedApi( 'RF_MDSP_INC', [
+    '${RFA_ROOT}/rf/mdsp/qdsp6_cdma/inc',
+    '${RFA_ROOT}/rf/mdsp/qdsp6_common/inc',
+    '${RFA_ROOT}/rf/mdsp/qdsp6_gsm/inc',
+    '${RFA_ROOT}/rf/mdsp/qdsp6_lte/inc',
+    '${RFA_ROOT}/rf/mdsp/qdsp6_meas/inc',
+    '${RFA_ROOT}/rf/mdsp/qdsp6_wcdma/inc',
+    '${RFA_ROOT}/rf/mdsp/qdsp6_tdscdma/inc',
+      ])
+
+env.PublishProtectedApi( 'RF_MEAS_INC', [
+    '${RFA_ROOT}/rf/meas/ftm/inc',
+    '${RFA_ROOT}/rf/meas/hwtc/inc',
+    '${RFA_ROOT}/rf/meas/rf/core/inc',
+    '${RFA_ROOT}/rf/meas/rf/rfc/inc',
+    ])
+
+env.PublishProtectedApi( 'RF_RFD_INC', [
+    '${RFA_ROOT}/rf/rfd/common/inc',
+    '${RFA_ROOT}/rf/rfd/dime/inc',
+    '${RFA_ROOT}/rf/rfd/nikel/inc',
+    '${RFA_ROOT}/rf/rfd/dime/test/inc',
+                  ])    
+
+env.PublishProtectedApi( 'RF_RFNV_INC', [
+    '${INC_ROOT}/modem/rfnv/inc',
+    '${INC_ROOT}/modem/rfnv/api',
+    ])
+
+
+env.PublishProtectedApi( 'RF_SV_INC', [
+    '${RFA_ROOT}/rf/sv/common/inc',
+    '${RFA_ROOT}/rf/sv/ftm/inc',
+      ])
+    
+
+env.PublishProtectedApi( 'RF_TASK_INC', [
+    '${RFA_ROOT}/rf/task/common/inc',
+    '${RFA_ROOT}/rf/task/rex_msgr/inc',
+    ])
+
+env.PublishProtectedApi( 'RF_WCDMA_INC', [
+    '${RFA_ROOT}/rf/wcdma/ftm/inc',
+    '${RFA_ROOT}/rf/wcdma/hwtc/inc',
+    '${RFA_ROOT}/rf/wcdma/rf/mc/inc',
+    '${RFA_ROOT}/rf/wcdma/rf/meas/inc',
+    '${RFA_ROOT}/rf/wcdma/rf/nv/inc',
+    '${RFA_ROOT}/rf/wcdma/rf/rfc/inc',
+    ])
+
+env.PublishProtectedApi( 'RF_TDSCDMA_INC', [
+    '${RFA_ROOT}/rf/tdscdma/ftm/inc',
+    '${RFA_ROOT}/rf/tdscdma/hwtc/inc',
+    '${RFA_ROOT}/rf/tdscdma/rf/mc/inc',
+    '${RFA_ROOT}/rf/tdscdma/rf/core/inc',
+    '${RFA_ROOT}/rf/tdscdma/rf/meas/inc',
+    '${RFA_ROOT}/rf/tdscdma/rf/nv/inc',
+    '${RFA_ROOT}/rf/tdscdma/rf/rfc/inc',
+    ])
+
+env.PublishProtectedApi( 'RFC_COMMON_INC', [
+    '${RFA_ROOT}/rfc/common/inc',
+    '${RFA_ROOT}/rfc/vreg_mgr/common/inc',
+    '${RFA_ROOT}/rfc/vreg_mgr/wtr1605_nsv/inc',
+    '${RFA_ROOT}/rfc/vreg_mgr/wtr1605_sv/inc',
+    '${RFA_ROOT}/rfc/vreg_mgr/rfc_configurable_test_vreg_mgr/inc',
+
+    ])
+
+env.PublishProtectedApi( 'RFC_RF_CARD_INC', [
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/cdma/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/common/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/gnss/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/gsm/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/lte/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/wcdma/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_wtr1605_na1/tdscdma/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/common/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/cdma/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/gnss/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/gsm/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/lte/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/wcdma/inc',
+      '${RFA_ROOT}/rfc/dime/rf_card/rfc_configurable_test_card/tdscdma/inc',            
+      ])
+
+env.PublishProtectedApi( 'LM_COMMON_INC', [
+    '${RFA_ROOT}/lm/common/inc',
+    ])
+
+env.PublishProtectedApi( 'LM_NIKEL_INC', [
+    '${RFA_ROOT}/lm/nikel/inc',
+    '${RFMODEM_DIMEPM_ROOT}/lm/inc',  # easier to update this than to change all the hal/nikel scons files
+    ])
+
+
+env.PublishProtectedApi( 'LM_DIMEPM_INC', [
+    '${RFMODEM_DIMEPM_ROOT}/lm/inc',
+    ])
+
+env.PublishProtectedApi( 'NLIC_DIMEPM_INC', [
+    '${RFMODEM_DIMEPM_ROOT}/nlic/inc',
+    ])
+
+env.PublishProtectedApi( 'RF_RFCA_INC', [
+    '${RFA_ROOT}/rf/rfca/inc',
+    ])
+
+env.PublishProtectedApi( 'RF_CDMA_SRC', [
+#    '${RFA_ROOT}/rf/cdma/1x/ftm/src',
+#    '${RFA_ROOT}/rf/cdma/1x/rf/src',
+#    '${RFA_ROOT}/rf/cdma/common/ftm/src',
+#    '${RFA_ROOT}/rf/cdma/common/rf/src',
+#    '${RFA_ROOT}/rf/cdma/hdr/ftm/src',
+#    '${RFA_ROOT}/rf/cdma/hdr/rf/src',
+    ])
+
+env.PublishProtectedApi( 'RF_COMMON_SRC', [
+#    '${RFA_ROOT}/rf/common/ftm/src',
+    '${RFA_ROOT}/rf/common/rf/core/src',
+#    '${RFA_ROOT}/rf/common/rf/mc/src',
+#    '${RFA_ROOT}/rf/common/rf/nv/src',
+#    '${RFA_ROOT}/rf/common/rf/rfc/src',
+    ])
+
+env.PublishProtectedApi( 'RF_GNSS_SRC', [
+#    '${RFA_ROOT}/rf/gnss/gen8/ftm/src',
+    '${RFA_ROOT}/rf/gnss/gen8/rf/core/src',
+#    '${RFA_ROOT}/rf/gnss/gen8/rf/mc/src',
+#    '${RFA_ROOT}/rf/gnss/gen8/rf/rfc/src',
+    ])
+
+env.PublishProtectedApi( 'RF_GSM_SRC', [
+#    '${RFA_ROOT}/rf/gsm/ftm/src',
+    '${RFA_ROOT}/rf/gsm/rf/core/src',
+#    '${RFA_ROOT}/rf/gsm/rf/mc/src',
+#    '${RFA_ROOT}/rf/gsm/rf/nv/src',
+#    '${RFA_ROOT}/rf/gsm/rf/rfc/src',
+    ])
+
+env.PublishProtectedApi( 'RF_HAL_SRC', [
+#    '${RFA_ROOT}/rf/hal/nikel/wcdma/src',
+    ])
+
+env.PublishProtectedApi( 'RF_LTE_SRC', [
+#    '${RFA_ROOT}/rf/lte/rf/rfc/src',
+    ])
+
+env.PublishProtectedApi( 'RF_MEAS_SRC', [
+#    '${RFA_ROOT}/rf/meas/ftm/src',
+#    '${RFA_ROOT}/rf/meas/rf/core/src',
+#    '${RFA_ROOT}/rf/meas/rf/mc/src',
+#    '${RFA_ROOT}/rf/meas/rf/rfc/src',
+    ])
+
+
+env.PublishProtectedApi( 'RF_SV_SRC', [
+      '${RFA_ROOT}/rf/sv/common/src',
+      '${RFA_ROOT}/rf/sv/ftm/src',
+      ])
+    
+
+env.PublishProtectedApi( 'RF_TASK_SRC', [
+#    '${RFA_ROOT}/rf/task/common/src',
+#    '${RFA_ROOT}/rf/task/rex_msgr/src',
+    ])
+
+env.PublishProtectedApi( 'RF_WCDMA_SRC', [
+#    '${RFA_ROOT}/rf/wcdma/ftm/src',
+    '${RFA_ROOT}/rf/wcdma/rf/core/src',
+#    '${RFA_ROOT}/rf/wcdma/rf/mc/src',
+#    '${RFA_ROOT}/rf/wcdma/rf/meas/src',
+#    '${RFA_ROOT}/rf/wcdma/rf/nv/src',
+#    '${RFA_ROOT}/rf/wcdma/rf/rfc/src',
+    ])
+
+env.PublishProtectedApi( 'RFC_COMMON_SRC', [
+#    '${RFA_ROOT}/rfc/common/src',
+    ])
+
+env.PublishProtectedApi( 'RFC_RF_CARD_SRC', [
+#    '${RFA_ROOT}/rfc/dime/rf_card/rfc_na713_sv/cdma/src',
+#    '${RFA_ROOT}/rfc/dime/rf_card/rfc_na713_sv/common/src',
+#    '${RFA_ROOT}/rfc/dime/rf_card/rfc_na713_sv/gnss/src',
+#    '${RFA_ROOT}/rfc/dime/rf_card/rfc_na713_sv/gsm/src',
+#    '${RFA_ROOT}/rfc/dime/rf_card/rfc_na713_sv/lte/src',
+#    '${RFA_ROOT}/rfc/dime/rf_card/rfc_na713_sv/wcdma/src',
+    ])
+
+env.PublishProtectedApi( 'RFC_TARGET_SRC', [
+#    '${RFA_ROOT}/rfc/dime/target/msm8960/src',
+    ])
+
+env.PublishProtectedApi( 'LM_COMMON_SRC', [
+#    '${RFA_ROOT}/lm/common/src',
+    ])
+
+env.PublishProtectedApi( 'RFA_PMIC_INC', [
+     '${RFA_ROOT}/pmic/application/ftm/common/inc',
+  ])
+
+env.PublishProtectedApi( 'RF_CDMA_PROTECTED', [
+#    '${RFA_ROOT}/rf/cdma/1x/rf/protected',
+#    '${RFA_ROOT}/rf/cdma/common/hwtc/protected',
+#    '${RFA_ROOT}/rf/cdma/hdr/rf/protected',
+    ])
+
+env.PublishProtectedApi( 'RF_COMMON_PROTECTED', [
+    '${RFA_ROOT}/rf/common/ftm/protected',
+    '${RFA_ROOT}/rf/common/hwtc/protected',
+    ])
+
+env.PublishProtectedApi( 'RF_GNSS_PROTECTED', [
+    '${RFA_ROOT}/rf/gnss/gen8/hwtc/protected',
+    ])
+
+env.PublishProtectedApi( 'RF_GSM_PROTECTED', [
+    '${RFA_ROOT}/rf/gsm/ftm/protected',
+#    '${RFA_ROOT}/rf/gsm/hwtc/protected',
+    ])
+
+env.PublishProtectedApi( 'RF_GNF_PROTECTED', [
+    '${RFA_ROOT}/gnf/common/algo/protected',
+    '${RFA_ROOT}/gnf/msm8960/rtr8600/algo/protected',
+    '${RFA_ROOT}/gnf/msm8960/wtr1605/algo/protected',
+    '${RFA_ROOT}/gnf/msm8974/wtr1605/algo/protected',
+    ])
+
+env.PublishProtectedApi( 'RF_HAL_PROTECTED', [
+#    '${RFA_ROOT}/rf/hal/common/protected',
+#    '${RFA_ROOT}/rf/hal/gnss/gen8a/notch_filter_common/algo/protected',
+#    '${RFA_ROOT}/rf/hal/gnss/gen8a/protected',
+#    '${RFMODEM_DIMEPM_ROOT}/hal/cdma/protected',
+#    '${RFMODEM_DIMEPM_ROOT}/hal/common/protected',
+#    '${RFMODEM_DIMEPM_ROOT}/hal/gsm/protected',
+#    '${RFMODEM_DIMEPM_ROOT}/hal/lte/protected',
+#    '${RFMODEM_DIMEPM_ROOT}/hal/meas/protected',
+#    '${RFMODEM_DIMEPM_ROOT}/hal/wcdma/protected',
+    ])
+
+env.PublishProtectedApi( 'RF_LTE_PROTECTED', [
+#    '${RFA_ROOT}/rf/lte/ftm/protected',
+#    '${RFA_ROOT}/rf/lte/hwtc/protected',
+#    '${RFA_ROOT}/rf/lte/rf/core/protected',
+#    '${RFA_ROOT}/rf/lte/rf/mc/protected',
+#    '${RFA_ROOT}/rf/lte/rf/meas/protected',
+#    '${RFA_ROOT}/rf/lte/rf/nv/protected',
+    ])
+
+env.PublishProtectedApi( 'RF_MDSP_PROTECTED', [
+#    '${RFA_ROOT}/rf/mdsp/qdsp6_cdma/protected',
+#    '${RFA_ROOT}/rf/mdsp/qdsp6_common/protected',
+#    '${RFA_ROOT}/rf/mdsp/qdsp6_gsm/protected',
+#    '${RFA_ROOT}/rf/mdsp/qdsp6_lte/protected',
+#    '${RFA_ROOT}/rf/mdsp/qdsp6_meas/protected',
+#    '${RFA_ROOT}/rf/mdsp/qdsp6_wcdma/protected',
+     '${RFA_ROOT}/rf/mdsp/qdsp6_tdscdma/protected',
+    ])
+
+env.PublishProtectedApi( 'RF_MEAS_PROTECTED', [
+#    '${RFA_ROOT}/rf/meas/hwtc/protected',
+#    '${RFA_ROOT}/rf/meas/rf/mc/protected',
+    ])
+
+env.PublishProtectedApi( 'RF_RFD_PROTECTED', [
+    '${RFA_ROOT}/rf/rfd/common/protected',
+#    '${RFA_ROOT}/rf/rfd/dime/protected',
+    ])
+
+env.PublishProtectedApi( 'RF_WCDMA_PROTECTED', [
+    '${RFA_ROOT}/rf/wcdma/ftm/protected',
+#    '${RFA_ROOT}/rf/wcdma/hwtc/protected',
+#    '${RFA_ROOT}/rf/wcdma/rf/meas/protected',
+    ])
+
+env.PublishProtectedApi( 'LM_DIMEPM_PROTECTED', [
+#    '${RFMODEM_DIMEPM_ROOT}/lm/protected',
+    ])
+
+env.PublishProtectedApi( 'LM_TRITON_PROTECTED', [
+#    '${RFA_ROOT}/lm/triton/protected',
+    ])
+
+env.PublishPrivateApi( 'RFA_RF_VIOLATIONS', [
+       '${INC_ROOT}/api/rfrpe/api',
+       '${INC_ROOT}/core/systemdrivers/clk/inc',
+       '${INC_ROOT}/modem/tdscdma/l1/src',#for tdscdma nonsig ber
+       '${INC_ROOT}/modem/geran/cust/inc',
+       '${INC_ROOT}/modem/geran/variation/inc',
+       '${INC_ROOT}/modem/geran/cust/inc',
+       '${INC_ROOT}/modem/hdr/variation/inc',
+       '${INC_ROOT}/modem/hdr/cust/inc',
+       '${INC_ROOT}/modem/mcs/variation/inc',
+       '${INC_ROOT}/modem/mcs/cust/inc',
+       '${INC_ROOT}/modem/mmcp/variation/inc',
+       '${INC_ROOT}/modem/mmcp/cust/inc',
+       '${INC_ROOT}/modem/tdscdma/variation/inc',
+       '${INC_ROOT}/modem/tdscdma/cust/inc',
+       '${INC_ROOT}/modem/wcdma/variation/inc',
+       '${INC_ROOT}/modem/wcdma/cust/inc',
+       '${INC_ROOT}/modem/mmcp/api',
+  ])
+if 'USES_STANDALONE_FW' in env:
+	env.RequirePublicApi(['RFLM'])
+	env.RequireRestrictedApi(['FW'])
+else:
+	env.RequirePublicApi([
+		'RFLM'],
+		area='RFLM')
+
+
+env.RequirePublicApi(['RFA'], area='RFA')
+env.RequirePublicApi([
+        'LM',
+        'HAL',
+        'DTR',
+        'FW',
+	'RFMODEM_DIMEPM',
+	'CCS',
+        'CDMA',
+        ],
+        area=rf_globals['RFMODEM_AREA'])
+
+env.RequireRestrictedApi(['RFA', 'RFMODEM_DIMEPM'])
+
+env.LoadSoftwareUnits( ) 
+
+

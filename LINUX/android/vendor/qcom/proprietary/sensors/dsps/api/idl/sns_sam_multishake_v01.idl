@@ -1,0 +1,272 @@
+/*****************************************************************************
+  @FILE     sns_sam_multishake_v01.idl
+
+  @BRIEF    Service definition for multishake algorithm service.
+
+  As prerequisite, the sensor algorithm must use the common Interface
+  defined in the Sensor algorithm framework.
+
+  The messages defined herein will be passed to the Sensor framework using
+  the sensor1_write() API.
+
+  @COPYRIGHT
+  Copyright (c) 2015 - 2016 Qualcomm Technologies, Inc.
+  All Rights Reserved.
+  Confidential and Proprietary - Qualcomm Technologies, Inc.
+*****************************************************************************/
+
+include "sns_sam_common_v01.idl";
+
+revision 1;
+
+const SNS_SAM_MULTISHAKE_SUID = 0x12060d936478bf8c;
+
+//! @ENUM   SNS_SAM_MULTISHAKE_EVENT_ENUM
+enum {
+  SNS_SAM_MULTISHAKE_AXIS_TOP = 1,
+  /**< Phone is shaken toward the top. */
+
+  SNS_SAM_MULTISHAKE_AXIS_BOTTOM = 2,
+  /**< Phone is shaken toward the bottom. */
+
+  SNS_SAM_MULTISHAKE_AXIS_LEFT = 3,
+  /**< Phone is shaken toward the left. */
+
+  SNS_SAM_MULTISHAKE_AXIS_RIGHT = 4,
+  /**< Phone is shaken toward the right. */
+
+  SNS_SAM_MULTISHAKE_AXIS_UNKNOWN = 5
+  /**< Phone is shaken, but phone shake direction cannot be clearly determined. */
+} sns_sam_multishake_event_e;
+
+//! @ENUM SNS_SAM_MULTISHAKE_EVENT_BITMASK_ENUM
+enum
+{
+  SNS_SAM_MULTISHAKE_BITMASK_TOP = 0x1,
+  /**< Phone is shaken toward the top. */
+
+  SNS_SAM_MULTISHAKE_BITMASK_BOTTOM = 0x2,
+  /**< Phone is shaken toward the bottom. */
+
+  SNS_SAM_MULTISHAKE_BITMASK_LEFT = 0x4,
+  /**< Phone is shaken toward the left. */
+
+  SNS_SAM_MULTISHAKE_BITMASK_RIGHT = 0x8
+  /**< Phone is shaken toward the right. */
+} sns_sam_multishake_bitmask_e;
+
+/* Following are message definitions shared by all multishake related services */
+
+
+//============================================================================
+
+/** @COMMAND SNS_SAM_MULTISHAKE_ENABLE
+    @BRIEF This command enables the multishake algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_MULTISHAKE_ENABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+message {
+  mandatory uint32 shake_count;
+  /**< Specifies the number of shakes that should be detected in order to trigger a
+        multishake event
+
+       This value should be an integer in the range of 2 to 5.
+  */
+
+  //! @VERSION 1.0 (Deprecated)
+  optional sns_sam_multishake_event_e event;
+  /**< Specifes the axis along which the shake is to be detected. If no value is
+       provided, then a shake in any axis is detected.
+
+       This field is deprecated as of version 1.1. Use the optional
+       event_bitmask field instead*/
+
+  optional sns_suspend_notification_s notify_suspend;
+  /**< Identifies whether indications for this request are to be sent
+       when the processor is in the Suspend state.
+
+       If this field is not specified, the default value is set to:
+       notify_suspend->proc_type                  = SNS_PROC_APPS
+       notify_suspend->send_indications_during_suspend  = FALSE
+
+       This field does not have any bearing on error indication
+       messages, which are sent even during Suspend.
+  */
+
+  //! @VERSION 1.1
+  optional uint32 event_bitmask;
+  /**< Select the shake axis along which shake events are detected by
+       the algorithm instance. Multiple axis can be selected using the OR
+       operation.
+
+       Example:
+       To detect shakes starting from a left shake or a right shake, use
+       event_bitmask_v01 = SNS_SAM_MULTISHAKE_BITMASK_LEFT_V01 | SNS_SAM_MULTISHAKE_BITMASK_RIGHT_V01
+
+       If an event_bitmask is not provided, then a multishake event along any
+       axis will be reported.
+  */
+
+} sns_sam_multishake_enable_req_msg;
+
+
+//! @MSG     SNS_SAM_MULTISHAKE_ENABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+message {
+  mandatory sns_common_resp_s resp = 2;
+  /**< Common response message. */
+  optional uint8 instance_id;
+  /**< Algorithm instance ID, which is maintained/assigned by the SAM.
+       The client must use this instance ID for future messages associated with
+       the current algorithm instance.
+    */
+} sns_sam_multishake_enable_resp_msg;
+
+
+//============================================================================
+
+/** @COMMAND SNS_SAM_MULTISHAKE_DISABLE
+    @BRIEF This command disables the multishake algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_MULTISHAKE_DISABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+message {
+  mandatory uint8 instance_id;
+  /**< Identifies the algorithm instance to be disabled.  */
+} sns_sam_multishake_disable_req_msg;
+
+
+//! @MSG     SNS_SAM_MULTISHAKE_DISABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+message {
+  mandatory sns_common_resp_s resp = 2;
+  /**< Common response message. */
+  optional uint8 instance_id;
+  /**< Identifies the algorithm instance.  */
+} sns_sam_multishake_disable_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_MULTISHAKE_REPORT
+    @BRIEF Output report from the multishake algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_MULTISHAKE_REPORT_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+message {
+  mandatory uint8 instance_id;
+  /**< Identifies the algorithm instance.  */
+
+  mandatory uint32 timestamp;
+  /**< Timestamp of the input with which the first shake was detected in SSC ticks */
+
+  mandatory uint32 shake_count;
+  /**< Specifies the number of shakes detected */
+
+  mandatory sns_sam_multishake_event_e event;
+  /**< Specifies the axis along which the shakes were detected  If shakes in
+       multiple axes were detected, the direction of the first shake is reported
+       in this field.
+  */
+} sns_sam_multishake_report_ind_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_MULTISHAKE_ERROR
+    @BRIEF Asynchronous error report from the multishake algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_MULTISHAKE_ERROR_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//============================================================================
+message {
+  mandatory uint8 error;
+  /**< Sensors error code. */
+
+  mandatory uint8 instance_id;
+  /**< Identifies the algorithm instance.  */
+
+  mandatory uint32 timestamp;
+  /**< Timestamp of when the error was detected, in SSC ticks. */
+} sns_sam_multishake_error_ind_msg;
+
+
+//============================================================================
+// Service definition
+//============================================================================
+service SNS_SAM_MULTISHAKE_SVC {
+  //! @ID SNS_COMMON_CANCEL
+  sns_common_cancel_req_msg        SNS_SAM_MULTISHAKE_CANCEL_REQ,
+  sns_common_cancel_resp_msg       SNS_SAM_MULTISHAKE_CANCEL_RESP
+    = 0x00;
+
+  //! @ID SNS_COMMON_VERSION
+  sns_common_version_req_msg       SNS_SAM_MULTISHAKE_VERSION_REQ,
+  sns_common_version_resp_msg      SNS_SAM_MULTISHAKE_VERSION_RESP
+    = 0x01;
+
+  //! @ID SNS_SAM_MULTISHAKE_ENABLE
+  sns_sam_multishake_enable_req_msg       SNS_SAM_MULTISHAKE_ENABLE_REQ,
+  sns_sam_multishake_enable_resp_msg      SNS_SAM_MULTISHAKE_ENABLE_RESP
+    = 0x02;
+
+  //! @ID SNS_SAM_MULTISHAKE_DISABLE
+  sns_sam_multishake_disable_req_msg      SNS_SAM_MULTISHAKE_DISABLE_REQ,
+  sns_sam_multishake_disable_resp_msg     SNS_SAM_MULTISHAKE_DISABLE_RESP
+    = 0x03;
+
+  //! @ID SNS_SAM_MULTISHAKE_REPORT
+  sns_sam_multishake_report_ind_msg       SNS_SAM_MULTISHAKE_REPORT_IND
+    = 0x05;
+
+  //! @ID SNS_SAM_MULTISHAKE_ERROR
+  sns_sam_multishake_error_ind_msg        SNS_SAM_MULTISHAKE_ERROR_IND
+    = 0x06;
+
+  //! @ID SNS_SAM_GET_ALGO_ATTRIBUTES
+  sns_sam_get_algo_attrib_req_msg  SNS_SAM_MULTISHAKE_GET_ATTRIBUTES_REQ,
+  sns_sam_get_algo_attrib_resp_msg SNS_SAM_MULTISHAKE_GET_ATTRIBUTES_RESP
+    = 0x24;
+
+} = SNS_QMI_SVC_ID_57;
+
+
+//============================================================================
+// File footer
+//============================================================================
+/**
+@FOOTER
+*/
+
+//============================================================================
+// End of Module
+//============================================================================

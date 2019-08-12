@@ -1,0 +1,78 @@
+#===============================================================================
+#
+# HWIO LIBRARY
+#
+# Processor: Boot
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/systemdrivers/hwio/build/hwio.scons#2 $
+#  $DateTime: 2015/09/13 23:33:33 $
+#  $Author: pwbldsvc $
+#  $Change: 9017835 $
+#
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Define paths
+#-------------------------------------------------------------------------------
+
+SRCPATH = "../"
+SRCPATHSCRIPTS = env['BUILD_ROOT'] + '/core/systemdrivers/hwio/scripts/' + 'msm8909'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+
+# Remove address files
+ARM_ADDRESS_FILES = env.FindFiles(
+  ['ARM_ADDRESS_FILE.FLAT'],
+  '${BUILD_ROOT}/core/api/systemdrivers/hwio/')
+env.CleanPack(['SBL1_BOOT'], ARM_ADDRESS_FILES)
+
+# Remove target API files
+ALL_API_FILES = env.FindFiles(
+  ['*'],
+  '${BUILD_ROOT}/core/api/systemdrivers/hwio/')
+MY_API_FILES = env.FindFiles(
+  ['*'],
+  '${BUILD_ROOT}/core/api/systemdrivers/hwio/msm8909')
+PACK_API_FILES = list(set(ALL_API_FILES) - set(MY_API_FILES))
+env.CleanPack(['SBL1_BOOT'], PACK_API_FILES)
+
+# Remove target build files
+ALL_BUILD_FILES = env.FindFiles(
+  ['*.py'],
+  '../build/')
+MY_BUILD_FILES = env.FindFiles(
+  ['hwio_' + 'msm8909' + '.py'],
+  '../build/')
+PACK_BUILD_FILES = list(set(ALL_BUILD_FILES) - set(MY_BUILD_FILES))
+env.CleanPack(['SBL1_BOOT'], PACK_BUILD_FILES)
+
+# Remove target scripts files
+ALL_SCRIPTS_FILES = env.FindFiles(
+  ['*'],
+  '../scripts/')
+SHARED_SCRIPTS_FILES = env.FindFiles(
+  ['setuphwio.cmm'],
+  '../scripts/')
+MY_SCRIPTS_FILES = env.FindFiles(
+  ['*'],
+  '../scripts/msm8909')
+PACK_SCRIPTS_FILES = list(set(ALL_SCRIPTS_FILES) - set(SHARED_SCRIPTS_FILES) - set(MY_SCRIPTS_FILES))
+env.CleanPack(['SBL1_BOOT'], PACK_SCRIPTS_FILES)
+

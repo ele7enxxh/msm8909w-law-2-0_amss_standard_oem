@@ -1,0 +1,204 @@
+# -------------------------------------------------------------------------------- #
+#                          G N S S _ S M _ T M . S C O N S
+#
+# DESCRIPTION
+#   SCons file for the GNSS SM TM subsystem.
+#
+#
+# INITIALIZATION AND SEQUENCING REQUIREMENTS
+#   None.
+#
+#
+#  Copyright (c) 2010 - 2012 Qualcomm Technologies Incorporated.
+#  Qualcomm Confidential and Proprietary. All Rights Reserved.
+#  Copyright (c) 2013 - 2014 Qualcomm Atheros, Inc.
+#  Qualcomm Atheros Confidential and Proprietary. All Rights Reserved. 
+#  Copyright (c) 2015 Qualcomm Technologies, Inc.
+#  Qualcomm Technologies Confidential and Proprietary. All Rights Reserved. 
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------------- #
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/gps/gnss/sm/tm/build/gnss_sm_tm.scons#1 $
+# $DateTime: 2016/12/13 07:59:45 $
+# $Author: mplcsds1 $ 
+# 
+# when         who     what, where, why
+# ---------    ---     ------------------------------------------------------------
+# 10/06/10     ah      Initial Version
+#
+# --------------------------------------------------------------------------------- #
+
+#--------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#--------------------------------------------------------------------------------
+Import('env')
+from glob import glob
+from os.path import join, basename
+
+env.PublishProtectedApi('SM_TM',['${GPS_ROOT}/gnss/sm/tm/prot',
+                                 '${GPS_ROOT}/gnss/sm/tm/1x_up/prot',
+                                 '${GPS_ROOT}/gnss/sm/tm/umts_cp/prot',
+                                 '${GPS_ROOT}/gnss/sm/tm/gfc_qmi/inc',
+                                 ])
+
+env.PublishPrivateApi('SM_TM',['${GPS_ROOT}/gnss/sm/tm/1x_cp/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/1x_up/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/1x_up/jgps/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/1x_up/vx/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/is801/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/pdapi/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/lpp_common/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/lpp_up/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/lpp_cp/inc',                               
+                               '${GPS_ROOT}/gnss/sm/tm/umts_common/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/umts_cp/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/umts_cp/gsm/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/umts_cp/ss/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/umts_cp/wcdma/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/umts_up/inc',
+                               '${GPS_ROOT}/gnss/sm/tm/umts_up/supl/inc',
+                               ])
+
+#--------------------------------------------------------------------------------
+# Publish the appropriate OSYS files.  
+# This should APPEND to the APIs published above
+#--------------------------------------------------------------------------------
+if 'USES_FEATURE_GNSS_OSYS_V665' in env:
+   env.PublishProtectedApi('SM_TM',['${GPS_ROOT}/gnss/sm/tm/prot/osys/v6_6_5/inc'])
+   env.PublishPrivateApi('SM_TM',['${GPS_ROOT}/gnss/sm/tm/prot/osys/v6_6_5/inc'])
+elif 'USES_FEATURE_GNSS_OSYS_V668' in env:
+   env.PublishProtectedApi('SM_TM',['${GPS_ROOT}/gnss/sm/tm/prot/osys/v6_6_8/inc'])
+   env.PublishPrivateApi('SM_TM',['${GPS_ROOT}/gnss/sm/tm/prot/osys/v6_6_8/inc'])
+else:
+   env.PrintInfo("No version of OSYS specified")
+
+env.RequireProtectedApi('SM_TM')
+env.RequirePrivateApi('SM_TM')
+   
+#--------------------------------------------------------------------------------
+# Check USES flags and return if library isn't needed
+#--------------------------------------------------------------------------------
+if 'USES_CGPS' not in env:
+    Return()
+
+#--------------------------------------------------------------------------------
+# Setup source PATH
+#--------------------------------------------------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#--------------------------------------------------------------------------------
+# Name of the subsystem to which this unit belongs
+#--------------------------------------------------------------------------------
+LIB_TARGET = '${BUILDPATH}/' + 'gnss_sm_tm'
+
+#--------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros by removing previous version and adding new
+# Definition
+#--------------------------------------------------------------------------------
+env.Replace(CPPDEFINES = [x for x in env['CPPDEFINES'] if not x.startswith("MSG_BT_SSID_DFLT=")] +
+                                         ["MSG_BT_SSID_DFLT=MSG_SSID_GPSSM"]) 
+
+#--------------------------------------------------------------------------------
+# Images that this VU is added
+#--------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM']
+
+#--------------------------------------------------------------------------------
+# Generate the library and add to an image
+#--------------------------------------------------------------------------------
+# Most source files in gnss\sm\* are ok-to-ship
+# Put all source files into ok-to-ship list
+LIB_SOURCES        = ['${BUILDPATH}/' + basename(fname)
+                      for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Make the list of no-ship source files (per wiki page)
+if 'USES_CUSTOMER_GENERATE_LIBS' in env:
+  BINARY_LIB_SOURCES = [
+    '${BUILDPATH}/tm_decode_xtra3_data.c',
+    '${BUILDPATH}/tm_decode_xtra2_data.c',
+    '${BUILDPATH}/tm_extract_record.c',
+    '${BUILDPATH}/tm_qwip_core.c',
+    '${BUILDPATH}/tm_security.o',
+    '${BUILDPATH}/tm_xtra_data_handler.c',
+    '${BUILDPATH}/tm_xtra_decode.c',
+    '${BUILDPATH}/tm_xtra_t.c',
+]
+else:
+   BINARY_LIB_SOURCES = [
+    '${BUILDPATH}/tm_decode_xtra3_data.c',
+    '${BUILDPATH}/tm_decode_xtra2_data.c',
+    '${BUILDPATH}/tm_extract_record.c',
+    '${BUILDPATH}/tm_qwip_core.c',
+    '${BUILDPATH}/tm_security.c',
+    '${BUILDPATH}/tm_xtra_data_handler.c',
+    '${BUILDPATH}/tm_xtra_decode.c',
+    '${BUILDPATH}/tm_xtra_t.c',
+]
+
+# Now update list of ok-to-ship files
+LIB_SOURCES = [l for l in LIB_SOURCES if l not in BINARY_LIB_SOURCES]
+        
+BINARY_LIB_CPP_SOURCES=[
+    '${BUILDPATH}/lowi_wrapper.cpp',
+    ]
+
+#--------------------------------------------------------------------------------
+# Add our library to the Modem image
+#--------------------------------------------------------------------------------
+env.AddLibrary(IMAGES, LIB_TARGET, LIB_SOURCES)
+
+#--------------------------------------------------------------------------------
+# Ship our code as binary library and add it to the Modem image
+#--------------------------------------------------------------------------------
+env.AddBinaryLibrary(IMAGES, (LIB_TARGET + '_pvt'), [BINARY_LIB_SOURCES, BINARY_LIB_CPP_SOURCES], pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+
+#--------------------------------------------------------------------------------
+# Build products for RCINIT
+#--------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
+# APQ targets has different RC init parameters than MPSS targets.   
+#--------------------------------------------------------------------------------
+if 'USES_GPSAPQ' in env:
+    RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', 'CORE_GSS']
+    env.AddRCInitTask(           # NV
+    RCINIT_IMG,                 # define TMC_RCINIT_REXTASK_NV 
+    {
+      'sequence_group'             : 'RCINIT_GROUP_3',                  # required
+      'thread_name'                : 'sm_tm',                              # required
+      'stack_size_bytes'           : '32768',
+      'priority_amss_order'        : 'SHARED_BACKGROUND_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+else:
+    RCINIT_TASK_FN = {
+        'thread_name'         : 'sm_tm',
+        'thread_entry'        : 'sm_tm_task',
+        'stack_size_bytes'    : env.subst('$SM_TM_STKSZ'),
+        'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+        'priority_amss_order' : 'SM_TM_PRI_ORDER',
+        'cpu_affinity'        : 'REX_ANY_CPU_AFFINITY_MASK',
+        'policy_optin'        : ['default', 'ftm', ],
+    }
+    env.AddRCInitTask (IMAGES, RCINIT_TASK_FN)
+
+
+env.LoadSoftwareUnits()

@@ -1,0 +1,39 @@
+#===============================================================================
+#
+# Storage Tools
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/tools/build/SConscript#1 $
+#  $DateTime: 2015/09/01 00:30:35 $
+#  $Author: pwbldsvc $
+#  $Change: 8935858 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/12/09   mh      Branched 
+#===============================================================================
+
+import os
+import glob
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+#env.LoadSoftwareUnits(level=1)
+unit_scripts = glob.glob('../*/build/SConscript')
+if unit_scripts != None:
+   env.SConscript(unit_scripts, exports='env')
+

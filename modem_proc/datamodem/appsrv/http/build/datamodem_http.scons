@@ -1,0 +1,128 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/datamodem/appsrv/http/build/datamodem_http.scons#1 $
+#  $DateTime: 2016/12/13 08:00:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/05/14   ml      Initial Version
+#===============================================================================
+Import('env')
+
+#import pdb
+
+from glob import glob
+from os.path import join, basename
+
+#turn off debug if requested
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+  env.Replace(ARM_DBG = "")
+  env.Replace(HEXAGON_DBG = "")
+  env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+  env.Replace(ARM_DBG = "-g --dwarf2")
+  env.Replace(HEXAGON_DBG = "-g")
+  env.Replace(GCC_DBG = "-g")
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+  'DEBUGTOOLS',
+  'SERVICES',   # MD5
+  'SECUREMSM',  # Base64
+  # 'SYSTEMDRIVERS',
+  # 'WIREDCONNECTIVITY',
+  # 'STORAGE',
+  # 'BUSES',
+  # 'DAL',
+  # 'POWER',
+
+  # needs to be last also contains wrong comdef.h
+  'KERNEL',
+]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+#    'MMODE',
+    'DATAMODEM',
+    'DATACOMMON',
+    'DATA',
+    'UIM',
+#    'MCS',
+#    'ONEX',
+#    'DATA',
+#    'HDR',
+#    'WMS',
+#    'PBM',
+#    'GERAN',
+#    'NAS',
+#    'UTILS',
+#    'WCDMA',
+#    'QCHAT',
+#    'RFA',
+#    'GPS',
+#    'CNE',
+#    'ECALL',
+#    'HTTP'
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+MODEM_DATA_HTTP_SOURCES = [
+   '${BUILDPATH}/src/ds_http_api.cpp',
+   '${BUILDPATH}/src/ds_http_auth.cpp',
+   '${BUILDPATH}/src/ds_http_auth_generator.cpp',
+   '${BUILDPATH}/src/ds_http_auth_validator.cpp',
+   '${BUILDPATH}/src/ds_http_config_info.cpp',
+   '${BUILDPATH}/src/ds_http_cookie_info.cpp',
+   '${BUILDPATH}/src/ds_http_data_mgr.cpp',
+   '${BUILDPATH}/src/ds_http_dsnet.cpp',
+   '${BUILDPATH}/src/ds_http_dsnet_iface_info.cpp',
+   '${BUILDPATH}/src/ds_http_dns.cpp',
+   '${BUILDPATH}/src/ds_http_event_handler.cpp',
+   '${BUILDPATH}/src/ds_http_msg.cpp',
+   '${BUILDPATH}/src/ds_http_request.cpp',
+   '${BUILDPATH}/src/ds_http_request_derived.cpp',
+   '${BUILDPATH}/src/ds_http_request_factory.cpp',
+   '${BUILDPATH}/src/ds_http_response.cpp',
+   '${BUILDPATH}/src/ds_http_session_info.cpp',
+   '${BUILDPATH}/src/ds_http_socket.cpp',
+   '${BUILDPATH}/src/ds_http_uri.cpp',
+   '${BUILDPATH}/src/ds_http_utility.cpp',
+   '${BUILDPATH}/src/ds_ssl_socket.cpp'
+]
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/http',[MODEM_DATA_HTTP_SOURCES, ])

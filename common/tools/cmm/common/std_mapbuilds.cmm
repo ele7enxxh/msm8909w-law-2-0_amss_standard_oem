@@ -1,0 +1,79 @@
+//============================================================================
+//  Name:                                                                     
+//    std_mapbuilds.cmm 
+//
+//  Description:                                                              
+//    Used to map changed build locations to only the relevant debug sessions
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 08/19/2015 c_gunnan      Added UEFI_BUILDROOT support for WP
+// 07/19/2012 AJCheriyan    Created for B-family 
+// ARG0 - Session whose builds have to be sync'd
+// ARG1 - New build location
+ENTRY &ARG0 &ARG1
+
+LOCAL &BUILD
+MAIN:
+	IF ("&ARG0"=="RPM")
+	(
+		&RPM_BUILDROOT="&ARG1"
+	)
+	IF ("&ARG0"=="APPS")
+	(
+		&APPS_BUILDROOT="&ARG1"
+	)
+	IF ("&ARG0"=="MPSS")
+	(
+		&MPSS_BUILDROOT="&ARG1"
+	)
+	IF ("&ARG0"=="ADSP")
+	(
+		&ADSP_BUILDROOT="&ARG1"
+	)
+	IF ("&ARG0"=="WCNSS")
+	(
+		&WCNSS_BUILDROOT="&ARG1"
+	)
+	IF ("&ARG0"=="BOOT")
+	(
+		&BOOT_BUILDROOT="&ARG1"
+	)
+	IF ("&ARG0"=="TZ")
+	(
+		&TZ_BUILDROOT="&ARG1"
+	)
+	IF ("&ARG0"=="WINSECAPP")
+	(
+		&WINSECAPP_BUILDROOT="&ARG1"
+	)
+	IF ("&ARG0"=="UEFI")
+	(
+		&UEFI_BUILDROOT="&ARG1"
+	)
+	//IF ("&ARG0"=="SDI")
+	//(
+	//	&SDI_BUILDROOT="&ARG1"
+	//	)
+
+
+	GOTO EXIT
+
+FATALEXIT:
+	END
+EXIT:
+	ENDDO
+
+
+
+
+

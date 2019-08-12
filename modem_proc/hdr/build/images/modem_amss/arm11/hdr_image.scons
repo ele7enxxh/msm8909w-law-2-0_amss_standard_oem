@@ -1,0 +1,155 @@
+#===============================================================================
+#
+# SCons Image Unit Specification
+#
+# GENERAL DESCRIPTION
+#    MODEM AMSS ARM11 build script
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/hdr/build/images/modem_amss/arm11/hdr_image.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who       what, where, why
+# --------   ---       -------------------------------------------------------
+# 10/10/10   cnx       Made it work for HDR; 
+#                      Changed image name from 'modem_amss' to 'modem_modem'.
+# 07/10/10   enj       Initial revision
+#
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Import needed modules
+#-------------------------------------------------------------------------------
+import os
+import glob
+import imp
+import string
+
+#-------------------------------------------------------------------------------
+# Environment Setup
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+
+
+#------------------------------------------------------------------------------
+# Define image name (first name listed) and aliases 
+# (here modem_amss -> MODEM_AMSS referred by software unit specification files)
+#------------------------------------------------------------------------------
+# ***NOTE*** first alias is IMAGE_NAME  
+aliases = [
+   'modem_modem',
+   'hdr_amss_arm11',    'amss',
+   'hdr',               'amss_arm11',           'amss_hdr',
+   'amsslibs',          'amsslibs_arm11',       'amsslibs_hdr',
+   'arm11',             'all'
+]
+
+
+
+#------------------------------------------------------------------------------
+# Init environment variables
+#------------------------------------------------------------------------------
+env.InitImageVars(aliases, 'arm11', config='modem')
+
+
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+if not env.CheckAlias("${IMAGE_NAME} Libs", aliases):
+   Return()
+
+
+
+#------------------------------------------------------------------------------
+# Assign processor (arm9, arm11, etc) to the build tag (eg MODEM_AMSS)
+#------------------------------------------------------------------------------
+env.Replace(MODEM_MODEM = env.subst('${PROC}'))
+
+
+
+#------------------------------------------------------------------------------
+# Configure and load in CBSP uses and path variables
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+
+
+#---------------------------------------------------------------------------
+# Select compiler tool name
+#---------------------------------------------------------------------------
+env.LoadToolScript('rvct',        toolpath      = ["${BUILD_ROOT}/core/bsp/build/scripts"])  #arm tools
+#env.LoadToolScript('hexagon',    toolpath      = ["${BUILD_ROOT}/core/bsp/build/scripts"])  #qdsp6 tools
+#env.LoadToolScript('gcc_x86',    toolpath      = ["${BUILD_ROOT}/core/bsp/build/scripts"])  #gcc tools
+
+
+
+#---------------------------------------------------------------------------
+# Select processor type
+#---------------------------------------------------------------------------
+#env.LoadToolScript('single_defs', toolpath     = ["${BUILD_ROOT}/core/bsp/build/scripts"])   #single processor
+env.LoadToolScript('modem_defs',   toolpath     = ["${BUILD_ROOT}/core/bsp/build/scripts"])   #dual processor, modem processor
+#env.LoadToolScript('apps_defs',   toolpath     = ["${BUILD_ROOT}/core/bsp/build/scripts"])   #dual processor, apps  processor
+#env.LoadToolScript('qdsp6_defs',  toolpath     = ["${BUILD_ROOT}/core/bsp/build/scripts"])   #qdsp6
+
+
+
+#------------------------------------------------------------------------------
+# Initialize build_units
+#------------------------------------------------------------------------------
+build_units = []
+
+
+
+#===============================================================================
+# Shows how to get value of current filter option
+#===============================================================================
+filter_opt = env.get('FILTER_OPT')
+
+
+
+#----------------------------------------------------------------------------
+# load subsystems scripts    Any objects or libraries created are added to AU_LIBS & AU_OBJS
+#                            and returned with this function call
+#----------------------------------------------------------------------------
+modem_amss_libs, modem_amss_objs = env.LoadAUSoftwareUnits('modem', ['hdr'])
+
+
+
+#----------------------------------------------------------------------------
+# copy and install libs for AMSS consumption
+#----------------------------------------------------------------------------
+if len(modem_amss_libs) > 0 or len(modem_amss_objs) > 0:
+
+   modem_amss_linker_file = env.ListFileBuilder(
+      env.subst("hdr.lf"), 
+      modem_amss_libs + modem_amss_objs,
+      add_header=True,
+      relative_path="${BUILD_MS_ROOT}")
+      
+   install_modem_amss_linker_file = env.Install("${BUILD_MS_ROOT}/${BUILD_ID}_modem_amss", modem_amss_linker_file)
+
+   env.AlwaysBuild(install_modem_amss_linker_file)
+
+   build_units += [
+      install_modem_amss_linker_file,
+   ]
+   
+
+
+#----------------------------------------------------------------------------
+# add aliases
+#----------------------------------------------------------------------------
+for alias in aliases:
+   env.Alias(alias, build_units)

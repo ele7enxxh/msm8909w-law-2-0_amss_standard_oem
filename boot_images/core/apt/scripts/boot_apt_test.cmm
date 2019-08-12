@@ -1,0 +1,317 @@
+;****************************************************************************
+;**                  boot_apt_test.cmm
+;**
+;**         This script invokes APT test framework
+;**
+;** Copyright 2013 by Qualcomm Technologies, Incorporated.  All Rights Reserved.
+;**
+;****************************************************************************
+;**
+;**                        EDIT HISTORY FOR MODULE
+;**
+;** when       who     what, where, why
+;** --------   ---     ------------------------------------------------------
+;** 05/13/13   jihok   First release
+
+
+;****************************************************************************
+;  CMM script variables
+;****************************************************************************
+
+  local &apt_test_start           ; Start of APT Test Framework
+  local &apt_test_run_always      ; Flag to loop forever in apt test framework
+  local &apt_test_dep_stack       ; DEP stack test case
+  local &apt_test_dep_global      ; DEP global test case
+  local &apt_test_dep_code        ; DEP heap test case
+  local &apt_test_stack_search    ; Stack protection canary search test case
+  local &apt_test_stack_dynamic   ; Stack protection dynamic canary verification test case
+  local &apt_test_stack_overwrite ; Stack protection canary overwrite test case
+
+  local &Choice
+  local &buf_start
+  local &buf_size
+
+;****************************************************************************
+; Set up defaults for some variables
+;****************************************************************************
+
+;Important stop points
+&apt_test_start="apt_single_test"
+
+; Initialize script variables to src code variables
+&apt_test_run_always="apt_test_run_always"
+&apt_test_dep_stack="test_dep_stack"
+&apt_test_dep_global="test_dep_global"
+&apt_test_dep_code="test_dep_code"
+&apt_test_stack_protection_search="test_stack_protection_search"
+&apt_test_stack_protection_verify_dynamic="test_stack_protection_verify_dynamic"
+&apt_test_stack_protection_overwrite="test_stack_protection_overwrite"
+
+;****************************************************************************
+; APT test framework main menu
+;****************************************************************************
+; At this point sbl3 elf is assumed to be loaded and system paths set.
+boot_apt_main:
+  gosub setup_main_window
+  gosub boot_apt_init
+  print
+  print
+  print "------------------------------------------------"
+  print "|                                              |"
+  print "|               Boot APT Test                  |"
+  print "|     Copyright (c) 2013 by QUALCOMM, Inc.     |"
+  print "|                                              |"
+  print "------------------------------------------------"
+  print
+  print "  0: Exit"
+  print "  1: Display Test Information"
+  print "  2: Start DEP Test: Stack Data Region Execution"
+  print "  3: Start DEP Test: Global Data Region Execution"
+  print "  4: Start DEP Test: Code Overwrite"
+  print "  5: Start Stack Protection Test: Search for Canary"
+  print "  6: Start Stack Protection Test: Check for Dynamic Canary"
+  print "  7: Start Stack Protection Test: Overwrite Canary"
+  print
+  print "  Please make a choice: "
+  enter &Choice
+  print
+  print
+  if "&Choice"=="0"
+  (
+    goto end_of_script
+  )
+  else if "&Choice"=="1"
+  (
+    print
+    print "  ------------------"
+    print "  |Test Information|"
+    print "  ------------------"
+    print
+    print "  DEP Test: Stack Data Region Execution"
+    print "    - Device crashes on success"
+    print "    - Failure message shown if no crash is observed"
+    print "    - Requires device restart on success"
+    print
+    print "  DEP Test: Global Data Region Execution"
+    print "    - Device crashes on success"
+    print "    - Failure message shown if no crash is observed"
+    print "    - Requires device restart on success"
+    print
+    print "  DEP Test: Code Overwrite"
+    print "    - Device crashes on success"
+    print "    - Failure message shown if no crash is observed"
+    print "    - Requires device restart on success"
+    print
+    print "  Stack Protection Test: Search for Canary"
+    print "    - Observe boot log for success/failure"
+    print "    - Default log location is C:\sbl_bootlog.txt"
+    print
+    print "  Stack Protection Test: Check for Dynamic Canary"
+    print "    - To observe success/failure, compare boot logs from reboots for different canary value"
+    print
+    print "  Stack Protection Test: Overwrite Canary"
+    print "    - Device becomes unresponsive on success (stuck in stack protection infinite loop)"
+    print "    - Failure message shown if responsiveness is observed"
+    print "    - Requires device restart on success"
+    print
+  )
+  else if "&Choice"=="2"
+  (
+    v.set &apt_test_dep_stack=0x1;
+
+    ;Go to end of boot_apt_test()
+    g.r
+    WAIT !run() 10.s
+
+    ;Display read values
+    print
+    print "---------------------------------------"
+    print "     Device must crash for success     "
+    print "---------------------------------------"
+    print
+
+    v.set &apt_test_dep_stack=0x0;
+
+    print
+    print "---------------------------------------"
+    print "    TEST FAILURE, no crash observed    "
+    print "---------------------------------------"
+    print
+  )
+  else if "&Choice"=="3"
+  (
+    v.set &apt_test_dep_global=0x1;
+
+    ;Go to end of boot_apt_test()
+    g.r
+    WAIT !run() 10.s
+
+    ;Display read values
+    print
+    print "---------------------------------------"
+    print "     Device must crash for success     "
+    print "---------------------------------------"
+    print
+
+    v.set &apt_test_dep_global=0x0;
+
+    print
+    print "---------------------------------------"
+    print "    TEST FAILURE, no crash observed    "
+    print "---------------------------------------"
+    print
+  )
+  else if "&Choice"=="4"
+  (
+    v.set &apt_test_dep_code=0x1;
+
+    ;Go to end of boot_apt_test()
+    g.r
+    WAIT !run() 10.s
+
+    ;Display read values
+    print
+    print "---------------------------------------"
+    print "     Device must crash for success     "
+    print "---------------------------------------"
+    print
+
+    v.set &apt_test_dep_code=0x0;
+
+    print
+    print "---------------------------------------"
+    print "    TEST FAILURE, no crash observed    "
+    print "---------------------------------------"
+    print
+  )
+  else if "&Choice"=="5"
+  (
+    v.set &apt_test_stack_protection_search=0x1;
+
+    ;Go to end of boot_apt_test()
+    g.r
+    WAIT !run() 10.s
+
+    ;Display read values
+    print
+    print "---------------------------------------"
+    print "  Observe Bootlog for Success/Failure  "
+    print "---------------------------------------"
+    print
+
+    &buf_start=v.value("boot_log_data.log_buffer_start")
+    &buf_size=v.value("boot_log_data.log_buffer_size")
+    d.save.b c:\sbl_bootlog.txt a:&buf_start++(&buf_size-1)
+    v.set &apt_test_stack_protection_search=0x0;
+  )
+  else if "&Choice"=="6"
+  (
+    v.set &apt_test_stack_protection_verify_dynamic=0x1;
+
+    ;Go to end of boot_apt_test()
+    g.r
+    WAIT !run() 10.s
+
+    ;Display read values
+    print
+    print "---------------------------------------"
+    print "  Observe Bootlog for Success/Failure  "
+    print "---------------------------------------"
+    print
+
+    &buf_start=v.value("boot_log_data.log_buffer_start")
+    &buf_size=v.value("boot_log_data.log_buffer_size")
+    d.save.b c:\sbl_bootlog.txt a:&buf_start++(&buf_size-1)
+    v.set &apt_test_stack_protection_verify_dynamic=0x0;
+  )
+  else if "&Choice"=="7"
+  (
+    v.set &apt_test_stack_protection_overwrite=0x1;
+
+    ;Go to end of boot_apt_test()
+    g.r
+    WAIT !run() 10.s
+
+    ;Display read values
+    print
+    print "---------------------------------------"
+    print "Device must be unresponsive for success"
+    print "---------------------------------------"
+    print
+
+    v.set &apt_test_stack_protection_overwrite=0x0;
+
+    print
+    print "---------------------------------------"
+    print " TEST FAILURE, responsiveness observed "
+    print "---------------------------------------"
+    print
+  )
+  else
+  (
+    ; invalid choice
+    goto skip_status
+  )
+
+skip_status:
+  print
+  print
+  print " EXIT test framework? (y/n) "
+  enter &Choice
+  if "&Choice"=="y"||"&Choice"=="Y"
+  (
+    ; dont return to fuse blowing main menu
+    v.set &apt_test_run_always=0x0
+    goto end_of_script
+  )
+
+  v.set &apt_test_run_always=0x1
+  g
+  WAIT !run() 10.s
+  goto boot_apt_main
+
+;****************************************************************************
+; This Subroutine loads the required APT Test symbols and then executes
+; till the beginning of APT test framework
+;****************************************************************************
+boot_apt_init:
+  local &array_index
+  map.bo
+  b.d
+  b.s &apt_test_start
+  g
+  WAIT !run() 10.s
+
+  if Register(pc)!=Address.offset(&apt_test_start)
+  (
+    print " FAIL: APT Test API not reached"
+    goto end_of_script
+  )
+
+  ;Disable all options by default
+  v.set &apt_test_dep_stack=0x0
+  v.set &apt_test_dep_global=0x0
+  v.set &apt_test_dep_code=0x0
+  v.set &apt_test_stack_protection_search=0x0
+  v.set &apt_test_stack_protection_verify_dynamic=0x0
+  v.set &apt_test_stack_protection_overwrite=0x0
+
+  return ;boot_apt_init
+
+;****************************************************************************
+; Below subroutine creates and selects main window
+;
+;****************************************************************************
+setup_main_window:
+  ;winclear
+  WINPOS 0% 50% 68% 50% 0. 0. W001
+  Area.create MAIN
+  Area.view MAIN
+  Area.select MAIN
+  return ;setup_main_window
+
+
+end_of_script:
+  enddo
+
+

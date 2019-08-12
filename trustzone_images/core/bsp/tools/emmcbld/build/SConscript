@@ -1,0 +1,388 @@
+#===============================================================================
+#
+# eMMCbld build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011-08-22   ah      Fix emmcbld compilation issue (no longer dependent on sbl1)
+# 2011-06-16   ah      Harmonized for 8660 and 8960
+# 2011-06-15   ah      Updated for 8960
+# 2011-05-26   ah      Updated for 4.1 compiler
+# 2011-05-19   ah      DATA_START_ADDR="+0" changed to account for change in emmcbld_in.scl
+# 2011-04-14   ah      Removed singleimage generation, now done in it's own script
+# 2011-02-16   ab      Always regenerating the EMMCBLD_GEN_LIB
+# 2011-01-11   ab      Setting EMMCBLD_ATTACH_FUNCTION1 to 'yes' for 8660
+# 2010-12-15   ab      Added builder to generate _msimage.mbn
+# 2010-10-29   rh      Adding support for loading external lib file
+# 2010-07-16   rh      Bringup on 8660
+#
+#===============================================================================
+import os
+Import('env')
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles aliases
+aliases = [
+   'emmcbld', 
+]
+
+image_name = str(aliases[0]).upper()
+
+if env['MSMID'] in ['8660']:
+    env.Replace(PROC = 'scorpion')
+if env['MSMID'] in ['8960']:
+    env.Replace(PROC = 'arm7')
+
+if not env.CheckAlias(image_name, aliases):
+   Return()
+
+#------------------------------------------------------------------------------
+# Init defualt values this PROC/Image
+#------------------------------------------------------------------------------
+
+# Init root env soo all scosntructs will add their libs
+env.Replace(ROOT_ENV = env)
+env.Replace(LIBS = [])
+
+# set other variables used by the build system...
+env.Replace(PLAT = 'l4')
+env.Replace(LIBPATH = env.subst('${LIBPATH}/${PROC}'))
+env.Replace(BUILDPATH = 'tool/' + image_name.lower())
+BUILD_ID = env['BUILD_ID']
+env.Replace(BUILD_ID = env.subst('${BUILD_ID}A'))
+env.Replace(CUST_H = env.subst('CUST${BUILD_ID}.H').lower())
+
+# set image type
+env.Replace(APPS_PROC = env.subst('${PROC}'))
+env.Replace(EMMCBLD_IMAGE = env.subst('${PROC}'))
+
+# add environment variables
+env.Replace(BUILD_TOOL_CHAIN = 'yes')
+
+#===============================================================================
+# EMMCBLD build rules
+#===============================================================================
+
+
+#------------------------------------------------------------------------------
+# Print banner
+#------------------------------------------------------------------------------
+env.PrintImageBanner(image_name)
+
+#------------------------------------------------------------------------------
+# configure and load in uses and path variables,
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.Tool('rvct', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])
+env.Tool('modem_defs', toolpath = ['${BUILD_ROOT}/core/bsp/build/scripts'])   
+env.Tool('hostdl_gen_hex', toolpath = ['${BUILD_ROOT}/core/bsp/tools/flash/build'])
+
+#------------------------------------------------------------------------------
+# Set extension flags for EMMCBLD
+#------------------------------------------------------------------------------
+if env['BUILD_VER'] == "":
+   env.Replace(BUILD_VER = '0')
+
+if env['MSMID'] in ['8660','8960']:
+   env.Append(EMMCBLD_ATTACH_FUNCTION1='yes')
+
+if env['MSMID'] in ['8660','8960']:
+   RPM_CODE_START_ADDR  = "0x2A000050"
+   EMMCBLD_START_ADDR   = "0x2A001000"
+   CODE_START_ADDR      = "0x2A000050"
+   CODE_ADDR_HDR        = "0x2A000050"
+   DATA_START_ADDR      = "+0"
+   IMEM_STACK_BASE = "0x2A040000"
+   CODE_HDR_ADDR        = "0x2A000000"
+
+#SDC1 -> 0
+#SDC2 -> 1
+#SDC3 -> 2
+#SDC4 -> 3
+EMMCBLD_DRIVENO="0"
+
+
+env.Append(CPPDEFINES = [
+   "BUILD_TOOL_CHAIN",
+   "BUILD_HOSTDL",
+   "BUILD_EHOSTDL",
+   "FEATURE_EMMCBLD_USE_RPM_STARTUP",
+   "FEATURE_HS_USB_BASIC",
+   "RPM_CODE_START_ADDR=" + RPM_CODE_START_ADDR,
+   "EMMCBLD_START_ADDR=" + EMMCBLD_START_ADDR,
+   "CODE_START_ADDR=" + CODE_START_ADDR,
+   "DATA_START_ADDR=" + DATA_START_ADDR,
+   "EMMCBLD_IMEM_STACK_BASE=" + IMEM_STACK_BASE,
+   "BOOT_MODULE_BUILD_VERSION=" + env['BUILD_VER'],
+   "BOOT_HEAP_SIZE=0x10000",
+   "FEATURE_STANDALONE_MODEM",
+   "HOSTDL_PROCESS_USB_BUFFERS",
+   "EMMCBLD_USE_DRIVENO=" + EMMCBLD_DRIVENO,
+   "FEATURE_EMMCBLD_DISABLE_UART",
+   "SDCC_USES_SCORPION_WAIT",
+])
+
+# Attach the first subsystem function
+if env.has_key('EMMCBLD_ATTACH_FUNCTION1'):
+	env.Append(CPPDEFINES = [
+		"EMMCBLD_INIT_FN_REG_ENTRY1=emmcbld_init_fn1",
+	])
+
+
+# load Core BSP Lib build rule scripts
+env.LoadCoreBSPLibScripts()
+
+# load External Lib build rule scripts
+#env.LoadExternalLibScripts()
+
+#print env.Dump()
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+prebuild_libs = [
+# from pre-build units
+   # CS libraries
+      File(env['PLAT_ROOT'] + '/libstd/lib/RVCT22arm11_Release/a1std.lib'),
+]
+
+if env.get('ARMTOOLSVERSION', 0) >= 4:
+        arm_libs = [
+                # ARM Libs (this need to be last, otherwise linker will use ARMlibs functions
+                # which we want to override)
+                File(env.SubstRealPath('${ARMLIB}/armlib/c_5.l')),
+                File(env.SubstRealPath('${ARMLIB}/armlib/g_5s.l')),
+                File(env.SubstRealPath('${ARMLIB}/armlib/m_5s.l'))
+        ]
+else:
+        arm_libs = [
+                # ARM Libs (this need to be last, otherwise linker will use ARMlibs functions
+                # which we want to override)
+                File(env.SubstRealPath('${ARMLIB}/armlib/c_t__un.l')),
+                File(env.SubstRealPath('${ARMLIB}/armlib/g_t_p.l')),
+                File(env.SubstRealPath('${ARMLIB}/armlib/m_t_pu.l'))
+        ]
+
+subsystem = ARGUMENTS.get('subsystem', None)
+if not subsystem:
+   env.AddLibsToImage('EMMCBLD_IMAGE', prebuild_libs)
+   env.AddLibsToImage('EMMCBLD_IMAGE', arm_libs)
+
+root_env = env['ROOT_ENV']
+libs = root_env['LIBS']
+libs_path = env['LIBPATH']
+
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+EMMCBLD_SRC 			= "${BUILD_ROOT}/core/storage/tools/emmcbld/src/"
+EMMCBLD_ROOT 			= "${BUILD_ROOT}/core/storage/tools/emmcbld/"
+###EMMCBLD_RPM_PMIC_PATH1	= env['BUILD_ROOT'] + "/modem/rfa/pmic/target/rpm/sbl1/system/build/sbl1/arm7/"+BUILD_ID+"/"
+###EMMCBLD_RPM_PMIC_PATH2	= env['BUILD_ROOT'] + "/modem/rfa/pmic/target/rpm/sbl1/gen/build/sbl1/arm7/"+BUILD_ID+"/"
+
+env.VariantDir('.', EMMCBLD_SRC, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'CS',
+   'DSM',
+   'MODEM_1X',
+   'MODEM_ADIE',
+   'MODEM_DATA',
+   'MODEM_FTM',
+   'MODEM_GERAN',
+   'MODEM_GPS',
+   'MODEM_HDR',
+   'MODEM_MDSP',
+   'MODEM_NAS',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+   'MODEM_UIM',
+   'MODEM_WCDMA',
+   'MULTIMEDIA_AUDIO',
+   'MULTIMEDIA_DISPLAY',
+   'MULTIMEDIA_GRAPHICS',
+   'MULTIMEDIA',
+   'WIRELESSCONNECTIVITY',
+   'MODEM_PMIC_EXTERNAL'
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'HWIO',
+   'BUSES',
+   'DEBUGTOOLS',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'POWER',
+   'SECUREMSM',
+   'SENSORS',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h   
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+EMMCBLD_TARGET_SOURCES = [
+   'emmcbld_main.c',
+   'emmcbld_rpm_start.s',
+]
+
+emmcbld_obj = env.Object([
+   EMMCBLD_TARGET_SOURCES,
+])
+
+if env['MSMID'] in ['8660']:
+	EMMCBLD_LIB_INIT_SOURCES = [
+            'emmcbld_hw_init_8660.s',
+            'bsp/emmcbld_bsp_scorpion.c',
+	]
+
+if env['MSMID'] in ['8960']:
+	EMMCBLD_LIB_INIT_SOURCES = [
+            'emmcbld_hw_init_8960.s',
+            'bsp/emmcbld_bsp_krait.c',
+	]
+
+EMMCBLD_LIB_TARGET_SOURCES = [
+   'emmcbld_imem_init.c',
+   EMMCBLD_LIB_INIT_SOURCES,
+   'emmcbld_start.s',
+   'emmcbld_main.c',
+   'emmcbld_memctl.c',
+   'emmcbld_packet.c',
+]
+
+#if os.environ.get('EMMCBLD_GEN_LIB') == "yes":
+emmcbld_lib_obj = env.Object([EMMCBLD_LIB_TARGET_SOURCES])
+emmcbld_lib = env.Library('emmcbld', emmcbld_lib_obj)
+#else:
+#emmcbld_lib = 'emmcbld'
+#emmcbld_lib = File(env.subst(EMMCBLD_ROOT + "lib/emmcbld${LIBSUFFIX}"))
+
+###pmic_lib1 = File(env.subst(EMMCBLD_RPM_PMIC_PATH1+"pmic_rpm_boot_protected.lib"))
+###pmic_lib2 = File(env.subst(EMMCBLD_RPM_PMIC_PATH2+"pmic_rpm_boot_protected.lib"))
+# Include pmic_rpm_boot_protected.lib
+modem_libs, modem_objs = env.LoadAUSoftwareUnits('modem', 'rfa/pmic')
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+# user overide default units
+if subsystem:
+   emmcbld_units = env['LIBS']
+else:
+   #============================================================================
+   # No OS Environment
+   #============================================================================
+
+   #----------------------------------------------------------------------------
+   # Beging building EMMCBLD
+   #----------------------------------------------------------------------------
+   env.Replace(TARGET_NAME = 'emmcbld')
+   env.Replace(TARGET_BLD_KCFG = 'A')
+   env.Replace(TARGET_IMAGE = 'APPS_PROC')
+
+   #----------------------------------------------------------------------------
+   # Generate scatter load file
+   #----------------------------------------------------------------------------
+   target_scl = env.SclBuilder('${TARGET_NAME}', 
+      '${BUILD_ROOT}/core/storage/tools/emmcbld/src/emmcbld_in.scl')
+
+   #----------------------------------------------------------------------------
+   # Generate emmcbld elf
+   #----------------------------------------------------------------------------
+   if env['MSMID'] in ['8660']:
+       ##target_elf = env.Program('${TARGET_NAME}', emmcbld_obj, LIBS=[emmcbld_lib, libs], LIBPATH=libs_path)
+       target_elf = env.Program('${TARGET_NAME}', source=[emmcbld_obj, modem_objs], LIBS=[emmcbld_lib, libs, modem_libs], LIBPATH=libs_path)
+   if env['MSMID'] in ['8960']:
+       ##target_elf = env.Program('${TARGET_NAME}', emmcbld_obj, LIBS=[emmcbld_lib, libs, pmic_lib1, pmic_lib2], LIBPATH=libs_path)
+       target_elf = env.Program('${TARGET_NAME}', source=[emmcbld_obj, modem_objs], LIBS=[emmcbld_lib, libs, modem_libs], LIBPATH=libs_path)
+
+   env.Depends(target_elf, target_scl)
+   Clean(target_elf, env.subst('${TARGET_NAME}.map'))
+   Clean(target_elf, env.subst('${TARGET_NAME}.sym'))
+
+   #----------------------------------------------------------------------------
+   # Generate emmcbld bin
+   #----------------------------------------------------------------------------
+   target_bin = env.BinBuilder('${TARGET_NAME}', target_elf)
+
+   #----------------------------------------------------------------------------
+   # Generate emmcbld mbn
+   #----------------------------------------------------------------------------
+   target_mbn = env.MbnBuilder('${TARGET_NAME}', target_bin, 
+         IMAGE_TYPE="emmcbld", FLASH_TYPE="sdcc")
+
+   #----------------------------------------------------------------------------
+   # Generate emmcbld.hex
+   #----------------------------------------------------------------------------
+   mprg_hex = env.NPRGHexBuilder('MPRG${MSM_ID}', target_mbn, HOSTDL_ADDR=CODE_HDR_ADDR)
+   
+   EXEC_PATH = os.path.join(env.subst('${BUILD_ROOT}'), 'core', 'bsp', 'tools', 'emmcbld', 'build')
+
+   print "mprg_hex=====>",str(mprg_hex[0])
+   print "EXEC_PATH=====>",EXEC_PATH
+   print "os.path.join(EXEC_PATH,mprg_hex[0])====>",os.path.join(EXEC_PATH,str(mprg_hex[0]))
+
+   install_emmcbld_hex = env.InstallAs('${MBN_ROOT}/MPRG${MSM_ID}.hex', os.path.join(EXEC_PATH,str(mprg_hex[0])))
+   #install_emmcbld_hex = env.InstallAs('${MBN_ROOT}/MPRG${MSM_ID}.hex', mprg_hex)
+
+
+   #============================================================================
+   # Define units that will be build
+   #============================================================================
+   emmcbld_units = env.Alias ('arm11_emmcbld_units', [
+      target_elf,
+      target_bin,
+      target_mbn,
+   ])
+
+   #For NonSecure build always generate hex
+   emmcbld_units += [mprg_hex, install_emmcbld_hex]
+
+#print env.Dump()
+
+# add aliases
+for alias in aliases:
+   env.Alias(alias, emmcbld_units)

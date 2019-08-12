@@ -1,0 +1,484 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- WARNING: This file only contains LimitsMgr definitions-->
+<NvDefinition>
+  <!-- Generic data types -->
+    <DataType name="uint8">
+        <Member type="uint8" sizeOf="1"/>
+    </DataType>
+    <DataType name="uint16">
+        <Member type="uint16" sizeOf="1"/>
+    </DataType>
+    <DataType name="uint32">
+        <Member type="uint32" sizeOf="1"/>
+    </DataType>
+    <DataType name="uint64">
+        <Member type="uint64" sizeOf="1"/>
+    </DataType>
+    <DataType name="int8">
+        <Member type="int8" sizeOf="1"/>
+    </DataType>
+    <DataType name="int16">
+        <Member type="int16" sizeOf="1"/>
+    </DataType>
+    <DataType name="int32">
+        <Member type="int32" sizeOf="1"/>
+    </DataType>
+    <DataType name="int64">
+        <Member type="int64" sizeOf="1"/>
+    </DataType>
+  
+  <!-- User-defined data types -->
+    <DataType name="sar_gplusx_hprio_limit_type">
+        <Member type="int16" sizeOf="1" name="hprio_limit_GMSK_UL"/>
+        <Member type="int16" sizeOf="1" name="hprio_limit_8PSK_UL"/>
+    </DataType>
+    <DataType name="sar_pwr_lut_type">
+        <Member type="int16" sizeOf="1" name="hprio_txpower"/>
+        <Member type="int16" sizeOf="1" name="lprio_limit"/>
+    </DataType>
+    <DataType name="sar_pwr_lut_g_lprio_type">
+        <Member type="int16" sizeOf="1" name="hprio_txpower"/>
+        <Member type="int16" sizeOf="1" name="g_lprio_gmsk_limit"/>
+        <Member type="int16" sizeOf="1" name="g_lprio_8psk_limit"/>
+    </DataType>
+    <DataType name="dsi_bias_lut_type">
+        <Member type="int16" sizeOf="1" name="bias_input"/>
+        <Member type="int16" sizeOf="1" name="bias_output"/>
+    </DataType>
+    <DataType name="non_im_desense_lut_type">
+        <Member type="int16" sizeOf="1" name="victim_rxpower"/>
+        <Member type="int16" sizeOf="1" name="aggressor_txlimit"/>
+    </DataType>
+    <DataType name="im_desense_lut_type">
+        <Member type="int16" sizeOf="1" name="hptech_txpower"/>
+        <Member type="int16" sizeOf="1" name="lptech_txlimit"/>
+    </DataType>
+    <DataType name="sar_pwr_xplusx_rec_type">
+        <Member type="uint32" sizeOf="1" name="hprio_band"/>
+        <Member type="uint32" sizeOf="1" name="lprio_band"/>
+        <Member type="uint8" sizeOf="1" name="hprio_backoff_flag"/>
+        <Member type="int16" sizeOf="1" name="hprio_limit"/>
+        <Member type="uint8" sizeOf="1" name="num_valid_lut_recs"/> 
+        <Member type="sar_pwr_lut_type" sizeOf="5" name="lprio_limit_lut"/>
+    </DataType>
+    <DataType name="sar_pwr_gplusx_rec_type">
+        <Member type="uint32" sizeOf="1" name="hprio_band"/>
+        <Member type="uint32" sizeOf="1" name="lprio_band"/>
+        <Member type="uint8" sizeOf="1" name="hprio_backoff_flag"/>
+        <Member type="sar_gplusx_hprio_limit_type" sizeOf="1" name="hprio_limits"/>
+        <Member type="uint8" sizeOf="1" name="num_valid_lut_recs"/>
+	<Member type="sar_pwr_lut_type" sizeOf="5" name="lprio_limit_lut"/>
+    </DataType>
+    <DataType name="sar_pwr_gplusg_rec_type">
+        <Member type="uint32" sizeOf="1" name="hprio_band"/>
+        <Member type="uint32" sizeOf="1" name="lprio_band"/>
+        <Member type="uint8" sizeOf="1" name="hprio_backoff_flag"/>
+        <Member type="sar_gplusx_hprio_limit_type" sizeOf="1" name="hprio_limits"/>
+        <Member type="uint8" sizeOf="1" name="num_valid_lut_recs"/>
+	<Member type="sar_pwr_lut_g_lprio_type" sizeOf="5" name="lprio_limit_lut"/>
+    </DataType>
+    <DataType name="sar_pwr_xplusg_rec_type">
+        <Member type="uint32" sizeOf="1" name="hprio_band"/>
+        <Member type="uint32" sizeOf="1" name="lprio_band"/>
+        <Member type="uint8" sizeOf="1" name="hprio_backoff_flag"/>
+        <Member type="int16" sizeOf="1" name="hprio_limit"/>
+        <Member type="uint8" sizeOf="1" name="num_valid_lut_recs"/>
+	<Member type="sar_pwr_lut_g_lprio_type" sizeOf="5" name="lprio_limit_lut"/>
+    </DataType>
+    <DataType name="dsi_bias_rec_type">
+        <Member type="uint32" sizeOf="1" name="hprio_band"/>
+        <Member type="uint32" sizeOf="1" name="lprio_band"/>
+        <Member type="dsi_bias_lut_type" sizeOf="1" name="dsi1"/>
+        <Member type="dsi_bias_lut_type" sizeOf="1" name="dsi2"/>
+        <Member type="dsi_bias_lut_type" sizeOf="1" name="dsi3"/>
+        <Member type="dsi_bias_lut_type" sizeOf="1" name="dsi4"/>
+        <Member type="dsi_bias_lut_type" sizeOf="1" name="dsi5"/>
+        <Member type="dsi_bias_lut_type" sizeOf="1" name="dsi6"/>
+        <Member type="dsi_bias_lut_type" sizeOf="1" name="dsi7"/>
+        <Member type="dsi_bias_lut_type" sizeOf="1" name="dsi8"/>
+    </DataType>
+    <DataType name="coex_non_im_desense_rec_type">
+        <Member type="uint8" sizeOf="1" name="victim_priority"/>
+        <Member type="uint32" sizeOf="1" name="victim_band"/>
+        <Member type="uint8" sizeOf="1" name="aggressor_priority"/>
+        <Member type="uint32" sizeOf="1" name="aggressor_band"/>        
+	<Member type="uint8" sizeOf="1" name="num_valid_recs"/>
+        <Member type="non_im_desense_lut_type" sizeOf="5" name="aggressor_limit_lut"/>
+    </DataType>
+    <DataType name="coex_im_desense_rec_type">
+        <Member type="uint8" sizeOf="1" name="victim_priority"/>
+        <Member type="uint32" sizeOf="1" name="victim_band"/>
+        <Member type="uint8" sizeOf="1" name="aggressor_priority"/>
+        <Member type="uint32" sizeOf="1" name="aggressor_band"/>        
+	<Member type="uint8" sizeOf="1" name="num_valid_recs"/>
+        <Member type="im_desense_lut_type" sizeOf="5" name="aggressor_limit_lut"/>
+    </DataType>
+    <DataType name="battery_limiting_rec_type">
+        <Member type="uint32" sizeOf="1" name="hprio_band"/>
+        <Member type="uint32" sizeOf="1" name="lprio_band"/>
+        <Member type="int16" sizeOf="1" name="hprio_pwr_limit"/>
+    </DataType>
+
+    <DataType name="gpio_sar_inputs">
+        <Member type="uint32" sizeOf="1" name="gpio_num"/>
+        <Member type="uint32" sizeOf="1" name="polling_time_ms"/>
+        <Member type="uint8" sizeOf="1" name="is_gpio_dsi_active"/>
+    </DataType>
+
+	<!-- DSDA WWAN Coexistence -->
+    <DataType name="nonim_lut_type">
+        <Member type="int16" sizeOf="1" name="aggr_txpwr_thresh"/>
+        <Member type="int16" sizeOf="1" name="victim_rxpwr_rxbn_thresh"/>
+        <Member type="int16" sizeOf="1" name="victim_rxpwr_harmonics_thresh"/>
+        <Member type="int16" sizeOf="1" name="victim_rxpwr_blocking_thresh"/>
+    </DataType>
+    <DataType name="im_lut_type">
+        <Member type="int16" sizeOf="1" name="aggr_txpwr_thresh"/>
+        <Member type="int16" sizeOf="1" name="victim_txpwr_thresh"/>
+        <Member type="int16" sizeOf="1" name="victim_rxpwr_imtype1_thresh"/>
+        <Member type="int16" sizeOf="1" name="victim_rxpwr_imtype2_thresh"/>
+    </DataType>
+    <DataType name="sem_lut_type">
+        <Member type="int16" sizeOf="1" name="tech1_txpwr_thresh"/>
+        <Member type="int16" sizeOf="1" name="tech2_txpwr_thresh"/>
+    </DataType>
+    <DataType name="coex_fdd_victim_rec_type">
+        <Member type="uint32" sizeOf="1" name="victim_band"/>
+        <Member type="uint32" sizeOf="1" name="aggressor_band"/>
+        <Member type="uint8" sizeOf="1" name="num_valid_nonimlut_entries" />
+        <Member type="nonim_lut_type" sizeOf="5" name="nonim_lut"/>
+        <Member type="uint8" sizeOf="1" name="num_valid_imlut_entries" />
+        <Member type="im_lut_type" sizeOf="5" name="im_lut"/> 
+    </DataType>
+    <DataType name="coex_tdd_victim_rec_type">
+        <Member type="uint32" sizeOf="1" name="victim_band"/>
+        <Member type="uint32" sizeOf="1" name="aggressor_band"/>
+        <Member type="uint8" sizeOf="1" name="num_valid_nonim_lut_entries" />
+        <Member type="nonim_lut_type" sizeOf="5" name="nonim_lut"/>
+    </DataType>
+    <DataType name="coex_sem_tech1_tech2_rec_type">
+        <Member type="uint32" sizeOf="1" name="tech1_band"/>
+        <Member type="uint32" sizeOf="1" name="tech2_band"/>
+        <Member type="uint8" sizeOf="1" name="num_valid_entries" />
+        <Member type="sem_lut_type" sizeOf="5" name="sem_lut"/>
+    </DataType>
+    <DataType name="mitigation_mask_rec_type">
+        <Member type="uint32" sizeOf="1" name="version"/>
+        <Member type="uint32" sizeOf="1" name="disable_mask"/>
+        <Member type="uint32" sizeOf="4" name="reserved" />
+    </DataType>
+    <DataType name="ddr_default_freq_plan_of_tech_type">
+        <Member type="uint32" sizeOf="1" name="lte_ddr_freq"/>
+        <Member type="uint32" sizeOf="1" name="tdscdma_ddr_freq"/>
+        <Member type="uint32" sizeOf="1" name="gsm1_ddr_freq"/>
+        <Member type="uint32" sizeOf="1" name="1x_ddr_freq"/>
+        <Member type="uint32" sizeOf="1" name="hdr_ddr_freq"/>
+        <Member type="uint32" sizeOf="1" name="wcdma_ddr_freq"/>
+        <Member type="uint32" sizeOf="1" name="gsm2_ddr_freq"/>
+        <Member type="uint32" sizeOf="1" name="gsm3_ddr_freq"/>
+    </DataType>
+    <DataType name="ddr_band_specific_freq_plan_input_type">
+        <Member type="uint32" sizeOf="1" name="band"/>
+        <Member type="uint32" sizeOf="1" name="channel_min"/>
+        <Member type="uint32" sizeOf="1" name="channel_max"/>
+        <Member type="int16" sizeOf="1" name="primary_rxpower_threshold"/>
+        <Member type="uint32" sizeOf="1" name="primary_upper_threshold"/>
+        <Member type="uint32" sizeOf="1" name="primary_lower_threshold"/>
+        <Member type="uint32" sizeOf="1" name="primary_ddr_freq"/> 
+        <Member type="int16" sizeOf="1" name="div_rxpower_threshold"/>
+        <Member type="uint32" sizeOf="1" name="div_upper_threshold"/>
+        <Member type="uint32" sizeOf="1" name="div_lower_threshold"/>
+        <Member type="uint32" sizeOf="1" name="div_ddr_freq"/> 
+    </DataType>
+
+    <!-- EFS item definitions begin here -->
+    <!-- SAR PWR EFS items -->
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_1x_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_1x_high_gsm1_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusg_rec_type" sizeOf="80" name="sar_pwr_xplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_1x_high_lte_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_1x_high_lte_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusx_rec_type" sizeOf="80" name="sar_pwr_xplusx_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_1x_high_hdr_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_1x_high_hdr_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusx_rec_type" sizeOf="400" name="sar_pwr_xplusx_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_1x_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_1x_high_gsm2_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusg_rec_type" sizeOf="80" name="sar_pwr_xplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_1x_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_1x_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusx_rec_type" sizeOf="80" name="sar_pwr_gplusx_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_wcdma_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_wcdma_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusx_rec_type" sizeOf="36" name="sar_pwr_gplusx_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_lte_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_lte_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusx_rec_type" sizeOf="176" name="sar_pwr_gplusx_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_tdscdma_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_tdscdma_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusx_rec_type" sizeOf="12" name="sar_pwr_gplusx_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_hdr_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_hdr_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusx_rec_type" sizeOf="80" name="sar_pwr_gplusx_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm1_high_gsm2_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusg_rec_type" sizeOf="16" name="sar_pwr_gplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_wcdma_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_wcdma_high_gsm1_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusg_rec_type" sizeOf="36" name="sar_pwr_xplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_wcdma_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_wcdma_high_gsm2_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusg_rec_type" sizeOf="36" name="sar_pwr_xplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_lte_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_lte_high_gsm1_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusg_rec_type" sizeOf="176" name="sar_pwr_xplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_lte_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_lte_high_gsm2_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusg_rec_type" sizeOf="176" name="sar_pwr_xplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_tdscdma_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_tdscdma_high_gsm1_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusg_rec_type" sizeOf="12" name="sar_pwr_xplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_tdscdma_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_tdscdma_high_gsm2_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusg_rec_type" sizeOf="12" name="sar_pwr_xplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_hdr_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_hdr_high_gsm1_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusg_rec_type" sizeOf="80" name="sar_pwr_xplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_hdr_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_hdr_high_gsm2_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_xplusg_rec_type" sizeOf="80" name="sar_pwr_xplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_1x_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_1x_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusx_rec_type" sizeOf="80" name="sar_pwr_gplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_gsm1_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusg_rec_type" sizeOf="16" name="sar_pwr_gplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_wcdma_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_wcdma_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusx_rec_type" sizeOf="36" name="sar_pwr_gplusg_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_lte_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_lte_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusx_rec_type" sizeOf="176" name="sar_pwr_gplusx_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_tdscdma_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_tdscdma_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusx_rec_type" sizeOf="12" name="sar_pwr_gplusx_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_hdr_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_pwr_gsm2_high_hdr_low" permission="read_write" variableSize="true" >
+        <Member type="sar_pwr_gplusx_rec_type" sizeOf="80" name="sar_pwr_gplusx_rec" /> 
+    </NvEfsItem>
+
+    <!-- DSI BIAS EFS items -->
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_1x_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_1x_high_gsm1_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="80" name="dsi_bias_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_1x_high_lte_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_1x_high_lte_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="880" name="dsi_bias_rec" />  
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_1x_high_hdr_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_1x_high_hdr_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="400" name="dsi_bias_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_1x_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_1x_high_gsm2_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="80" name="dsi_bias_rec" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_1x_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_1x_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="80" name="dsi_bias_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_wcdma_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_wcdma_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="36" name="dsi_bias_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_lte_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_lte_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="176" name="dsi_bias_rec" />  
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_tdscdma_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_tdscdma_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="12" name="dsi_bias_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_hdr_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_hdr_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="80" name="dsi_bias_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm1_high_gsm2_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="16" name="dsi_bias_rec" />  
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_wcdma_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_wcdma_high_gsm1_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="36" name="dsi_bias_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_wcdma_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_wcdma_high_gsm2_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="36" name="dsi_bias_rec" />  
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_lte_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_lte_high_gsm1_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="176" name="dsi_bias_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_lte_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_lte_high_gsm2_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="176" name="dsi_bias_rec" />  
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_tdscdma_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_tdscdma_high_gsm1_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="12" name="dsi_bias_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_tdscdma_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_tdscdma_high_gsm2_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="12" name="dsi_bias_rec" />  
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_hdr_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_hdr_high_gsm1_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="80" name="dsi_bias_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_hdr_high_gsm2_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_hdr_high_gsm2_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="80" name="dsi_bias_rec" />  
+    </NvEfsItem>
+
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_1x_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_1x_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="80" name="dsi_bias_rec" />  
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_gsm1_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_gsm1_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="16" name="dsi_bias_rec" />  
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_wcdma_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_wcdma_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="36" name="dsi_bias_rec" />  
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_lte_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_lte_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="176" name="dsi_bias_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_tdscdma_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_tdscdma_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="12" name="dsi_bias_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_hdr_low" name="/nv/item_files/mcs/lmtsmgr/sar/sar_dsi_bias_gsm2_high_hdr_low" permission="read_write" variableSize="true" >
+	<Member type="dsi_bias_rec_type" sizeOf="80" name="dsi_bias_rec" />  
+    </NvEfsItem>
+
+<!-- IM DESENSE EFS items -->
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/backoff/im_desense_1x_victim_hdr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/backoff/im_desense_1x_victim_hdr_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_im_desense_rec_type" sizeOf="10" name="coex_im_desense_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/backoff/im_desense_1x_victim_lte_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/backoff/desense_1x_victim_lte_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_im_desense_rec_type" sizeOf="10" name="coex_im_desense_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/backoff/im_desense_hdr_victim_1x_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/backoff/im_desense_hdr_victim_1x_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_im_desense_rec_type" sizeOf="10" name="coex_im_desense_rec" /> 
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/backoff/im_desense_lte_victim_1x_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/backoff/im_desense_lte_victim_1x_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_im_desense_rec_type" sizeOf="10" name="coex_im_desense_rec" />
+    </NvEfsItem>
+	
+<!-- NON IM DESENSE EFS items -->
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/backoff/non_im_desense_gsm_victim_lte_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/backoff/non_im_desense_gsm_victim_lte_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_non_im_desense_rec_type" sizeOf="40" name="coex_non_im_desense_rec" />
+    </NvEfsItem>	
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/backoff/non_im_desense_gsm_victim_tdscdma_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/backoff/non_im_desense_gsm_victim_tdscdma_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_non_im_desense_rec_type" sizeOf="24" name="coex_non_im_desense_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/backoff/non_im_desense_1x_victim_lte_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/backoff/non_im_desense_1x_victim_lte_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_non_im_desense_rec_type" sizeOf="10" name="coex_non_im_desense_rec" />
+    </NvEfsItem> 
+
+    <!-- DSDA WWAN Coexistence EFS items -->
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/blank/disable_sw_mitigation" name="/nv/item_files/mcs/lmtsmgr/coex/blank/disable_sw_mitigation" permission="read_write" >
+	<Member type="mitigation_mask_rec_type" sizeOf="1" name="disable_sw_mitigation_mask" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/blank/wcdma_victim_gsm_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/blank/wcdma_victim_gsm_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_fdd_victim_rec_type" sizeOf="32" name="coex_desense_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/blank/1x_victim_gsm_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/blank/1x_victim_gsm_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_fdd_victim_rec_type" sizeOf="16" name="coex_desense_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/blank/hdr_victim_gsm_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/blank/hdr_victim_gsm_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_fdd_victim_rec_type" sizeOf="16" name="coex_desense_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm_victim_wcdma_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm_victim_wcdma_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_tdd_victim_rec_type" sizeOf="32" name="coex_desense_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm_victim_1x_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm_victim_1x_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_tdd_victim_rec_type" sizeOf="16" name="coex_desense_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm_victim_hdr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm_victim_hdr_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_tdd_victim_rec_type" sizeOf="16" name="coex_desense_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm1_victim_gsm2_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm1_victim_gsm2_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_tdd_victim_rec_type" sizeOf="16" name="coex_desense_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm2_victim_gsm1_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm2_victim_gsm1_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_tdd_victim_rec_type" sizeOf="16" name="coex_desense_rec" />
+    </NvEfsItem>
+	<NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm_victim_tdscdma_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/blank/gsm_victim_tdscdma_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_tdd_victim_rec_type" sizeOf="12" name="coex_desense_rec" />
+    </NvEfsItem>
+	<NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/blank/tdscdma_victim_gsm_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/blank/tdscdma_victim_gsm_aggr" permission="read_write" variableSize="true" >
+	<Member type="coex_tdd_victim_rec_type" sizeOf="12" name="coex_desense_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sem/sem_thresh_gsm_wcdma" name="/nv/item_files/mcs/lmtsmgr/sem/sem_thresh_gsm_wcdma" permission="read_write" variableSize="true" >
+	<Member type="coex_sem_tech1_tech2_rec_type" sizeOf="5" name="sem_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sem/sem_thresh_gsm_1x" name="/nv/item_files/mcs/lmtsmgr/sem/sem_thresh_gsm_1x" permission="read_write" variableSize="true" >
+	<Member type="coex_sem_tech1_tech2_rec_type" sizeOf="5" name="sem_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sem/sem_thresh_gsm_hdr" name="/nv/item_files/mcs/lmtsmgr/sem/sem_thresh_gsm_hdr" permission="read_write" variableSize="true" >
+	<Member type="coex_sem_tech1_tech2_rec_type" sizeOf="5" name="sem_rec" />
+    </NvEfsItem>
+
+
+    <!-- Battery Current Limiting EFS items -->
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/battery/bcl_gsm2_high_lte_low" name="/nv/item_files/mcs/lmtsmgr/battery/bcl_gsm2_high_lte_low" permission="read_write" >
+	<Member type="battery_limiting_rec_type" sizeOf="164" name="battery_limit_rec" />
+    </NvEfsItem>
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/battery/bcl_gsm2_high_tdscdma_low" name="/nv/item_files/mcs/lmtsmgr/battery/bcl_gsm2_high_tdscdma_low" permission="read_write" >
+	<Member type="battery_limiting_rec_type" sizeOf="12" name="battery_limit_rec" />
+    </NvEfsItem> 
+
+
+    <!-- GPIO SAR EFS items -->
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/sar/sar_gpio_settings" name="/nv/item_files/mcs/lmtsmgr/sar/sar_gpio_settings" permission="read_write" >
+	<Member type="gpio_sar_inputs" sizeOf="1" name="gpio_inputs" />
+    </NvEfsItem>
+
+	
+    <!-- DDR Coex PWR EFS items -->
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/ddr/default_tech_ddr_freq_plan" name="/nv/item_files/mcs/lmtsmgr/coex/ddr/default_tech_ddr_freq_plan" permission="read_write" variableSize="true" >
+        <Member type="ddr_default_freq_plan_of_tech_type" sizeOf="1" name="default_ddr_freq_plan" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/ddr/lte_victim_ddr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/ddr/lte_victim_ddr_aggr" permission="read_write" variableSize="true" >
+        <Member type="ddr_band_specific_freq_plan_input_type" sizeOf="48" name="ddr_coex_rec" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/ddr/lte_sec_ca_victim_ddr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/ddr/lte_sec_victim_ddr_aggr" permission="read_write" variableSize="true" >
+        <Member type="ddr_band_specific_freq_plan_input_type" sizeOf="48" name="ddr_coex_rec" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/ddr/tdscdma_victim_ddr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/ddr/tdscdma_victim_ddr_aggr" permission="read_write" variableSize="true" >
+        <Member type="ddr_band_specific_freq_plan_input_type" sizeOf="4" name="ddr_coex_rec" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/ddr/gsm1_victim_ddr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/ddr/gsm1_victim_ddr_aggr" permission="read_write" variableSize="true" >
+        <Member type="ddr_band_specific_freq_plan_input_type" sizeOf="4" name="ddr_coex_rec" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/ddr/1x_victim_ddr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/ddr/1x_victim_ddr_aggr" permission="read_write" variableSize="true" >
+        <Member type="ddr_band_specific_freq_plan_input_type" sizeOf="20" name="ddr_coex_rec" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/ddr/hdr_victim_ddr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/ddr/hdr_victim_ddr_aggr" permission="read_write" variableSize="true" >
+        <Member type="ddr_band_specific_freq_plan_input_type" sizeOf="20" name="ddr_coex_rec" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/ddr/wcdma_victim_ddr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/ddr/wcdma_victim_ddr_aggr" permission="read_write" variableSize="true" >
+        <Member type="ddr_band_specific_freq_plan_input_type" sizeOf="9" name="ddr_coex_rec" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/ddr/gsm2_victim_ddr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/ddr/gsm2_victim_ddr_aggr" permission="read_write" variableSize="true" >
+        <Member type="ddr_band_specific_freq_plan_input_type" sizeOf="4" name="ddr_coex_rec" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/ddr/gsm3_victim_ddr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/ddr/gsm3_victim_ddr_aggr" permission="read_write" variableSize="true" >
+        <Member type="ddr_band_specific_freq_plan_input_type" sizeOf="4" name="ddr_coex_rec" /> 
+    </NvEfsItem>
+
+    <NvEfsItem fullpathname="/nv/item_files/mcs/lmtsmgr/coex/ddr/gps_victim_ddr_aggr" name="/nv/item_files/mcs/lmtsmgr/coex/ddr/gps_victim_ddr_aggr" permission="read_write" variableSize="true" >
+        <Member type="uint32" sizeOf="1" name="ddr_coex_rec" /> 
+    </NvEfsItem>
+
+	
+	
+</NvDefinition>
+

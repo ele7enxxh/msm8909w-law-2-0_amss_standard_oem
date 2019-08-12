@@ -1,0 +1,221 @@
+;
+;  Script to Validate PMIC registers post SBL.
+;
+;  Execution:
+;    do pmic_sbl_validate.cmm [ Target: 8994)]
+;
+;  ====================================================================
+;
+;  Copyright (c) 2013 - 2014 Qualcomm Technologies Incorporated.  All Rights Reserved.
+;  QUALCOMM Proprietary and Confidential.
+;
+;  ====================================================================
+;
+;  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/systemdrivers/pmic/scripts/pmic_sbl_validate.cmm#1 $
+;  $DateTime: 2015/09/01 00:30:35 $
+;  $Author: pwbldsvc $
+;
+; ============================================================================
+
+
+AREA.Create PMICSBL 120. 1000.
+AREA.Select PMICSBL
+AREA.View PMICSBL
+winresize 120. 40.
+
+ENTRY &target
+
+LOCAL &offset &data &err_cnt
+LOCAL &headerline1 &headerline2 &headerline3 &headerline4 &headerline5 &headerline6 &headerline7 &headerline8 
+LOCAL &headerline9 &headerline10 &pbs_ram_ver_txt &pbs_ram_ver_num &num_of_pmic &pmic_count &pmic_sid
+Local &valid_data_file &valid_data_file1 &valid_data_file2  &valid_data_file3 &valid_data_file4
+Local &pbs_ram_ver_add1 &pbs_ram_ver_add2
+GLOBAL 
+
+;default number of PMICs is 1; some targets may have 2 or more
+&num_of_pmic=1
+&pmic_count=1
+&pmic_sid=0
+
+if ("&target"=="9x45") 
+(
+  OPEN #1 ..\config\mdm9x45\valid_data.txt /Read
+)
+else if ("&target"=="8909") 
+(
+  OPEN #1 ..\config\msm8909\valid_data.txt /Read
+)
+else
+(
+   PRINT %String %ERROR "Target Not Supported"
+   GOTO MAIN_RETURN
+)
+
+OPEN #2 ~~~\"&target"_SBL_Validate_Read_Errors.txt /Create
+WRITE #2 "PMIC Number # " &pmic_count
+GOTO PMIC_VALID_DATA_VERIFICATION
+
+
+;----------------------------------------
+PMIC_VALID_DATA_VERIFICATION:
+
+IF (&pmic_count==1)
+(
+  &pbs_ram_ver_add1=0xFC
+  &pbs_ram_ver_add2=0x07
+  ;PMI8909 PBS RAM Version is on 0x05FC since RAM size is just 127 word
+  if ("&target"=="8909") 
+  (
+    &pbs_ram_ver_add1=0xFC
+    &pbs_ram_ver_add2=0x05
+  ) 
+)
+
+;OPEN #1 &valid_data_file /Read
+READ #1 %line &headerline1
+READ #1 %line &headerline2
+READ #1 %line &headerline3
+READ #1 %line &headerline4
+READ #1 %line &headerline5
+READ #1 %line &headerline6
+READ #1 %line &headerline7
+READ #1 &pbs_ram_ver_txt &pbs_ram_ver
+READ #1 %line &headerline8
+READ #1 %line &headerline9
+READ #1 %line &headerline10
+
+WRITE #2 "Date " CLOCK.DATE() ", " CLOCK.TIME()
+WRITE #2 " SBL PMIC SETTINGS"
+
+OPEN #3 ~~~\"&target"_SBL_Verify_Errors.cmm /Create
+WRITE #3 "T32 Read commands to verify errors: "
+
+PRINT "&headerline1"
+PRINT "&headerline2"
+PRINT "&headerline3"
+PRINT "&headerline4"
+PRINT "&headerline7"
+PRINT "&headerline9"
+PRINT "&headerline10"
+
+
+;---------------------------------
+;Check if PBS RAM Version matches
+PRINT "Checking PBS RAM Version Information for first PMIC"
+
+;ENABLE PBS RAM Access
+do pmic_io.cmm Write &pmic_sid 0x7040 0x80
+do pmic_io.cmm Write &pmic_sid 0x7041 0x80
+
+;do pmic_io.cmm Write &pmic_sid 0x7042 0xFC
+;do pmic_io.cmm Write &pmic_sid 0x7043 0x07
+
+do pmic_io.cmm Write &pmic_sid 0x7042 &pbs_ram_ver_add1
+do pmic_io.cmm Write &pmic_sid 0x7043 &pbs_ram_ver_add2
+
+do pmic_io.cmm Read &pmic_sid 0x704C
+ENTRY &IO_STATUS &programmed_pbs_ram_minor_ver
+print %String %ERROR "PBS RAM VARIANT or BRANCH ID (Minor Version): &programmed_pbs_ram_minor_ver"
+
+do pmic_io.cmm Read &pmic_sid 0x704D
+ENTRY &IO_STATUS &programmed_pbs_ram_major_ver
+PRINT %String %ERROR "PBS RAM REVISION ID (Major Version): &programmed_pbs_ram_major_ver"
+
+;DISABLE PBS RAM Access
+do pmic_io.cmm Write &pmic_sid 0x7040 0x0
+
+;Compaire pbs_ram_ver  and programmed_pbs_ram_major_ver
+;IF (&pbs_ram_ver!=&programmed_pbs_ram_major_ver)
+;(
+;     ;ERROR: Incorrect PBS RAM is programmed
+;    WRITE #2 "ERROR: Incorrect PBS RAM is PROGRAMMED: Found  " &programmed_pbs_ram_major_ver   "Expected PBS RAM Version: " &pbs_ram_ver_num
+;    PRINT %String %ERROR "ERROR: Incorrect PBS RAM is PROGRAMMED:  Found: &programmed_pbs_ram_major_ver   "; Expected PBS RAM Version Number: " &pbs_ram_ver_num"
+;    GOTO MAIN_RETURN
+;)
+;ELSE
+;(
+;  PRINT %String %ERROR "PMIC Number # &pmic_count PBS RAM Version is GOOD"
+;)
+;----------------------------------
+
+
+&err_cnt=0 
+&loop_cnt=0 
+RePeaT 
+(
+  LOCAL &REG_OFFSET &IO_STATUS &READ_VAL
+
+   READ #1 &Sid &Reg &Val
+   &loop_cnt=&loop_cnt+1
+
+   IF EOF()
+     GOTO END_LOOP
+
+   &REG_OFFSET=(&Reg&0xFF)
+   IF ((&Reg!=0x0104)&&(&Reg!=0x0858)&&(&Reg!=0x7041)&&(&Reg!=0x7042)&&(&Reg!=0x7043))
+   (
+   IF ((&REG_OFFSET!=0xD0)&&(&REG_OFFSET!=0x15))
+   (
+     &Sid=&Sid+&pmic_sid
+     do pmic_io Read &Sid &Reg
+     ENTRY &IO_STATUS &READ_VAL
+     IF (&IO_STATUS!=1)
+     (
+       &err_cnt=&err_cnt+1 
+       PRINT %String %ERROR "Read Error Sid=&Sid  "; Reg="+format.hex(4,&Reg) "; Exp_Val="+format.hex(2,&Val) "; Read_val="+format.hex(2,&READ_VAL) " ";Error count =" &err_cnt       
+       WRITE #2 "SPMI Read ERROR At Address " &Sid " 0x"+format.hex(4,&Reg)  " Expected Data is 0x"+format.hex(2,&Val) " Found Data 0x"+format.hex(2,&READ_VAL)
+     )
+     ELSE IF (&READ_VAL!=&Val)
+     (
+       &err_cnt=&err_cnt+1 
+       WRITE #2 "At Address " &Sid " 0x"+format.hex(4,&Reg)  " Expected Data is 0x"+format.hex(2,&Val) " Found Data 0x"+format.hex(2,&READ_VAL)
+       PRINT %String %ERROR "At Address " &Sid " 0x"+format.hex(4,&Reg)  " Expected Data is 0x"+format.hex(2,&Val) " Found Data 0x"+format.hex(2,&READ_VAL)
+       WRITE #3 "do pmic_io.cmm Read 0 " &Sid " 0x"+format.hex(4,&Reg)
+       IF (&loop_cnt<=4)
+       (
+          ;Using incorrect target.  The target under test and the target for which valid data file is generated do not match
+          PRINT %String "ERROR: Using Incorrect Target.  The target under test and the target for which valid data file is generated do NOT match"
+          GOTO MAIN_RETURN
+       )
+     )
+   )
+   )
+  ;print "&Sid &Reg &Val &READ_VAL"
+)
+;----------------------------------------
+
+
+
+
+;----------------------------------------
+END_LOOP:  
+IF (&err_cnt==0x0)
+(
+  PRINT "No Errors"
+  WRITE #2 "No Errors"
+  WRITE #3 "No Errors"
+)
+
+&pmic_count=&pmic_count+1
+
+IF (&pmic_count<=&num_of_pmic)
+(
+  WRITE #2 "PMIC Number # " &pmic_count
+  PRINT %String %ERROR "PMIC Number # &pmic_count"
+  CLOSE #1
+  &pmic_sid=&pmic_sid+2
+  GOTO PMIC_VALID_DATA_VERIFICATION
+)
+else
+(
+  GOTO MAIN_RETURN
+)
+
+
+;---------------------------------
+MAIN_RETURN:
+CLOSE #1
+CLOSE #2
+CLOSE #3
+
+ 

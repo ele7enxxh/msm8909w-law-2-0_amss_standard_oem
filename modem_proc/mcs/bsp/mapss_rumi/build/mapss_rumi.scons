@@ -1,0 +1,74 @@
+#===============================================================================
+# DESCRIPTION: Build script to add generation of some output specific to RUMI
+#===============================================================================
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mcs/bsp/mapss_rumi/build/mapss_rumi.scons#1 $
+#===============================================================================
+#
+# Copyright (c) 2014 Qualcomm Technologies Incorporated.
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#===============================================================================
+Import('env')
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = ['mapss_rumi', 'mapss_b', 'mapss_linkonly', 'mapss_b_linkonly', 'mpss']
+
+# init environment variables
+env.InitImageVars(
+    alias_list=aliases,           # aliases
+    proc='qdsp6',              # proc
+    config='qdsp6_sw',                # config type, proc_name
+    plat='qurt',
+    target='MODEM_PROC_IMG_${BUILD_ID}',# target (elf, image file name)
+    build_tags = [],
+    tools = ['${BUILD_ROOT}/mcs/presil/tools/rumi_builder.py']
+    )
+
+if not env.CheckAlias():
+    Return()
+
+#---------------------------------------------------------------------------
+# Initialize the build system
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Now that we're initialized, we can check USES flags
+#---------------------------------------------------------------------------
+if not 'USES_EMULATION_PLATFORM' in env:
+    Return()
+
+#---------------------------------------------------------------------------
+# Gotta load hexagon to get OBJCOPY
+#---------------------------------------------------------------------------
+env.LoadToolScript('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+
+#---------------------------------------------------------------------------
+# Create the necessary pre-silicon (RUMI) generated files
+#---------------------------------------------------------------------------
+elffname    = "${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}.elf"
+prunedfname = "${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_pruned.elf"
+cmmfname    = "${BUILD_ROOT}/mcs/presil/${MSM_ID}/t32/crashdump_autogen_${BUILD_ID}${BUILD_VER}.cmm"
+
+pruned_elf = env.PreSilPruneElf(prunedfname, elffname)
+dump_script = env.PreSilCreateDumpScript(cmmfname, elffname)
+
+#---------------------------------------------------------------------------
+# Bind the outputs to the alias to get them to build
+#---------------------------------------------------------------------------
+env.BindAliasesToTargets([pruned_elf, dump_script])

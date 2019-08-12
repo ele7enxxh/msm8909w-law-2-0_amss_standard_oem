@@ -1,0 +1,139 @@
+#===============================================================================
+#
+# LTE ML1 ULM Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/21/10   cguo    Initial version.
+#===============================================================================
+Import('env')
+env = env.Clone()
+env.Replace(HEXAGONCC_OPT = "${HEXAGON_OPT_2}")
+
+from glob import glob
+from os.path import join, basename
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_LTE_ML1",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Public and Restricted API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+    'HWENGINES',
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'DAL',
+    'POWER',
+    'BUSES',
+	'MPROC',
+	'KERNEL',                             # needs to be last 
+    ], area='core')
+
+# Need to get access to Modem Public headers
+env.RequirePublicApi([
+    'ONEX',
+    'GPS',      
+    'HDR',      
+    'MCS',
+    'MMODE',    
+    'RFA',      
+    'UIM',      
+    'UTILS',
+    ])
+
+# Need get access to Modem Restricted headers
+env.RequireRestrictedApi([
+    'MMODE',    
+    'NAS',      
+    'RFA',      
+    'MDSP',     
+    'MDSPSVC',  
+    'GERAN',    
+    'GPS',      
+    'ONEX',     
+    'HDR',      
+    'MCS',
+    'LTE',
+    'FW',
+    'UTILS',
+    ])
+
+# Need to get access to LTE protected headers
+env.RequireProtectedApi([
+    'LTE',
+    ])
+
+
+
+# See AEEstd.h
+env.RequireExternalApi(['BREW'])
+
+
+# Allow us to see headers in src dir.
+env.PublishPrivateApi('ULM', '${INC_ROOT}/modem/lte/ML1/ulm/src')
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+LTE_ML1_ULM_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                   for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+import re
+for stmname in glob(join(env.subst(SRCPATH), '*.stm')):
+    match = re.search('([^\\\/]*)\.stm', stmname)
+    match.group(1)
+    env.STM2('${BUILDPATH}/__' + match.group(1) + '_int.c',
+             '${BUILDPATH}/' + match.group(1) + '.stm')
+    LTE_ML1_ULM_SOURCES.append('${BUILDPATH}/__' + match.group(1) + '_int.c')
+env.Append(CPPPATH = '${BUILDPATH}')
+env.Append(CPPPATH = '${LTE_ROOT}/ML1/ulm/build/${BUILDPATH}')
+
+if 'USES_ALLOW_REGENERATE_LIBS' in env:
+    # Compile the LTE ML1 ULM source and create a library (ship source)
+    env.AddLibrary(['MODEM_MODEM', 'MOB_LTE'], '${BUILDPATH}/lte_ml1_ulm', LTE_ML1_ULM_SOURCES)
+else:
+    # Compile the LTE ML1 ULM source and convert to a binary library
+    env.AddBinaryLibrary(['MODEM_MODEM', 'MOB_LTE'], '${BUILDPATH}/lte_ml1_ulm', LTE_ML1_ULM_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+	
+#-------------------------------------------------------------------------------
+# avoid run-time errors when trying to send MSGR messages 
+#-------------------------------------------------------------------------------
+
+if 'USES_MSGR' in env:
+	env.AddUMID('${BUILDPATH}/lte_ml1_ulm.umid', ['../inc/lte_ml1_ulm_msg.h'])
+
+#-------------------------------------------------------------------------------
+# Look for test build files
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

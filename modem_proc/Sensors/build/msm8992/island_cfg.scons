@@ -1,0 +1,43 @@
+#===============================================================================
+#
+# Island Config
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2015 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:
+#  $DateTime: 2016/12/13 08:00:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985213 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/01/2015  DK     Initial version
+#===============================================================================
+Import('env')
+
+#Algo list to be included in island mode
+#Comment algos out to exclude from Island mode
+
+if 'USES_ISLAND' in env:
+   env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_QMD"])
+   env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_PED"])
+   #env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_SMD"])
+
+   #Options for manually including algorithm in island mode
+   #Build with '-f SNS_ISLAND_INCLUDE_ALGO_XXX' to include XXX algo in uImage
+   if "SNS_ISLAND_INCLUDE_ALGO_QMD" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_QMD"])
+   if "SNS_ISLAND_INCLUDE_ALGO_PED" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_PED"])
+   if "SNS_ISLAND_INCLUDE_ALGO_SMD" in env:
+      env.Append(CPPDEFINES = ["SNS_ISLAND_INCLUDE_ALGO_SMD"])

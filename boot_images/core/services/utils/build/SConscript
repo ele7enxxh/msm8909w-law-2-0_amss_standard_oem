@@ -1,0 +1,149 @@
+#===============================================================================
+#
+# Utils Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$
+#  $DateTime$
+#  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09\15\09   sri     Added new ince path AEESTD for Utils
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/services/utils/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'DSM',
+   'CS',
+   'MODEM_PMIC',
+   'MULTIMEDIA_DISPLAY',
+   'MODEM_DATA',
+   'MODEM_HDR',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'DAL',
+   'SECUREMSM',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi('SERVICES_UTILS', "${INC_ROOT}/core/services/utils/src")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+TOOLS_SOURCES = [
+  '${BUILDPATH}/crc.c',
+]
+
+UTILS_SOURCES = [
+   '${BUILDPATH}/bit.c',
+   '${BUILDPATH}/cmd.c',
+   '${BUILDPATH}/crc.c',
+   '${BUILDPATH}/intconv.c',
+   '${BUILDPATH}/list.c',
+   '${BUILDPATH}/md5c.c',
+   '${BUILDPATH}/memheap.c',
+   '${BUILDPATH}/misc.c',
+   '${BUILDPATH}/queue.c',
+   '${BUILDPATH}/qw.c',
+   '${BUILDPATH}/ran.c'   
+]
+
+UTILS_HEAP_SOURCES = [
+   '${BUILDPATH}/amssheap.c'
+]
+
+UTILS_UMTS_SOURCES = [
+   '${BUILDPATH}/sys_eplmn_list.c'
+]
+
+UTILS_APPS_THINUI_SOURCES = [
+   '${BUILDPATH}/stubs_thin_ui.c'
+]
+
+UTILS_CPP_SOURCES = [
+   '${BUILDPATH}/memutils.cpp'
+]
+
+UTILS_A_SOURCES = [
+   '${BUILDPATH}/miscasm.s'
+]
+
+# NOTE: for utils we need to return objs and not a lib, since ARM libs may overide
+# some functionality. by returning obj we overide the libs functions even if
+# they are included first in the link line
+utils = env.Object([UTILS_SOURCES, UTILS_CPP_SOURCES, UTILS_A_SOURCES])
+utils_heap = env.Object(UTILS_HEAP_SOURCES)
+
+
+utils_umts = env.Library('${BUILDPATH}/utils_umts', UTILS_UMTS_SOURCES)
+
+utils_objs = env.Object(TOOLS_SOURCES)
+utils_tools = env.Library('${BUILDPATH}/utils_tools', utils_objs) 
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+if "USES_CS_EARLY_INIT" not in env:
+  env.AddLibsToImage(['MODEM_IMAGE'],[utils,utils_heap])
+else:
+  env.AddLibsToImage(['MODEM_IMAGE'],utils)
+
+#unconditionally add amssheap to CBSP Modem image
+env.AddLibsToImage(['CBSP_MODEM_IMAGE'],[utils,utils_heap])
+
+if "USES_CS_EARLY_INIT" not in env:
+  env.AddLibsToImage(['APPS_IMAGE'],[utils,utils_heap])  
+else:
+  env.AddLibsToImage(['APPS_IMAGE'],utils)
+  
+#unconditionally add amssheap.o to CBSP Apps image
+env.AddLibsToImage(['CBSP_APPS_IMAGE'],[utils,utils_heap])  
+
+env.AddLibsToImage(['NAND_TOOLS_IMAGE', 'HOSTDL_IMAGE', 'EHOSTDL_IMAGE', 'EMMCBLD_IMAGE',
+   'NAND_TOOLS_EXE', 'DBL_BOOT_IMAGE', 'OSBL_BOOT_IMAGE', 'APPSBL_BOOT_IMAGE', 
+   'SPBL_BOOT_IMAGE', 'APPS_BOOT_2','UTILS_BOOT_DRIVER', 'DEVICEPROGRAMMER_NAND_IMAGE'], 
+   utils_tools)

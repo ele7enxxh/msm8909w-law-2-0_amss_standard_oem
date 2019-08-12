@@ -1,0 +1,307 @@
+# -------------------------------------------------------------------------------- #
+#                  Q C H A T _ M U L T I _ P R O C . S C O N S                                      
+#
+# DESCRIPTION                                                                      
+#       Scons file for creating qchat_multi_proc.lib. This library contains the 
+#       RPC autogen server/xdr + rpc2pic source (c to cpp translation layer)
+#                                                                                  
+#                                                                                  
+# INITIALIZATION AND SEQUENCING REQUIREMENTS                                       
+#       None.                                                                      
+#                                                                                  
+#
+# Copyright (c) 2010-2011 Qualcomm Technologies, Inc. All Rights Reserved.
+#
+# This software is the confidential and proprietary information of
+# Qualcomm Technologies, Inc. ("Proprietary Information").  You shall
+# not disclose such Proprietary Information, and shall use it only in
+# accordance with the terms of the license agreement(s) you entered
+# into with Qualcomm Technologies, Inc. or its affiliates and any
+# applicable third party license terms accompanying the software.
+# 
+# --------------------------------------------------------------------------------- #
+
+# ==================================================================================#
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/qchat/hps/multiproc/build/qchat_multi_proc.scons#1 $
+# $DateTime: 2016/12/13 07:57:51 $
+# 
+#  when        who      what, where, why
+# ---------   -----     ------------------------------------------------------------
+# 01/06/11    Suren	    Initial version created.
+#
+#===================================================================================#
+
+#-------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+if 'USES_QCHAT' not in env:
+    Return()
+    
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+env.Replace(QCHAT_PIC_ROOT = '${QCHAT_ROOT}/hps')
+SRCPATH = "${QCHAT_PIC_ROOT}"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CDEFINES = [
+    "AMSS_PIC",
+    "QCHAT_RVCT_COMPILE",
+    "FEATURE_QRPC",
+    "TARGET_CLIENT",
+    "USES_QCHAT_5P1",
+    "OEM_RVCT_COMPILER",  ## Suren: TODO
+    "FEATURE_QCHAT_USES_MODEM_HEAP",
+  #  "OSAL_MEM_DBG",
+    "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+    ])
+
+env.Append(CPPDEFINES = [
+    "AMSS_PIC",
+    "QCHAT_RVCT_COMPILE",
+    "FEATURE_QRPC",
+    "TARGET_CLIENT",
+    "USES_QCHAT_5P1",
+    "OEM_RVCT_COMPILER",  ## Suren: TODO
+    "FEATURE_QCHAT_USES_MODEM_HEAP",
+  #  "OSAL_MEM_DBG",
+    "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+    ])
+   
+if 'USES_QCHAT_MSG2P0' in env:
+    env.Append(CDEFINES = [
+        "FEATURE_QCHAT_MSG2P0",
+        "MSG_BT_SSID_DFLT=MSG_SSID_QCHAT_MULTI_PROC",
+        "FEATURE_QCHAT_USES_MODEM_HEAP",
+    ])
+   
+    env.Append(CPPDEFINES = [
+        "FEATURE_QCHAT_MSG2P0",
+        "MSG_BT_SSID_DFLT=MSG_SSID_QCHAT_MULTI_PROC",
+        "FEATURE_QCHAT_USES_MODEM_HEAP",
+    ])
+	
+if 'USES_QCHAT_OVERLOAD_NEW' in env:
+   env.Append(CDEFINES = [
+      "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+   ])
+   
+   env.Append(CPPDEFINES = [
+      "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+   ])
+
+env.Append(CCFLAGS = " -fexceptions ")
+env.Append(CXXFLAGS = " -fexceptions ")
+
+env.RequirePublicApi([
+        'CVD',
+        'MMUTILS',
+        'MVS',
+        ],
+        area='AVS')
+    
+env.RequirePublicApi([
+        'MEMORY',
+        
+        # needs to be last also contains wrong comdef.h
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        'DATAMODEM',
+        'PROTOCOLS',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'HDR',
+        'PUBLIC',
+        'COMMON',
+        'CP',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'QCHAT',
+        ],
+        area='QMIMSGS')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        'UIM',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='WCDMA')
+		
+#-------------------------------------------------------------------------------
+# We need QCHAT PIC's API
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('QCHAT_PIC_AND_OEM_CUST_APIS', [
+   "${INC_ROOT}/qchat/hps/inc",
+   "${QCHAT_PIC_ROOT}/osal/common/inc",
+   "${QCHAT_PIC_ROOT}/osal/amss/inc", 
+   "${QCHAT_PIC_ROOT}/multiproc/oemcust/inc", 
+    ])
+   
+
+#-------------------------------------------------------------------------------
+# We need QCHAT MULTI_PROC APIs
+#-------------------------------------------------------------------------------    
+env.PublishPrivateApi('QCHAT_MULTI_PROC_APIS', [
+   "${QCHAT_PIC_ROOT}/multiproc/qmi/autogen/inc",
+   "${QCHAT_PIC_ROOT}/multiproc/qmi/serialization/inc",   
+    ])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'DAL',
+    'DEBUGTOOLS',
+    'SYSTEMDRIVERS',
+    'SERVICES',
+    'MPROC',
+    'IODEVICES',
+   
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+   
+MODEM_PUBLIC_APIS = [
+    'ONEX',
+    'DATA',
+    'DATACOMMON',
+    'HDR',
+    'WCDMA',
+    'MCS',
+    'MMODE',
+    'UIM',    
+    ]
+   
+MODEM_RESTRICTED_APIS = [
+   'BC',
+   'DATA',
+   'DATACOMMON',
+   'DATAMODEM',
+   'HDR',
+   'LTE',
+   'MCS',
+   'MMODE',
+   'NAS',
+   'RFA',
+   ]
+   
+# MULTIMEDIA APIs
+MULTIMEDIA_PUBLIC_APIS = [
+    'AUDIO',
+    ]
+
+#-------------------------------------------------------------------------------
+# VIOLATIONS
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+# VIOLATIONS
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('VIOLATIONS',[
+   "${INC_ROOT}/datamodem/interface/sysapi/inc",
+   "${INC_ROOT}/datamodem/3gpp/api",
+   "${INC_ROOT}/datamodem/3gpp2/api",
+   "${INC_ROOT}/datamodem/variation/inc",
+   "${INC_ROOT}/datamodem/cust/inc",
+   "${INC_ROOT}/datamodem/interface/dsprofile/inc",
+   ])
+
+#-------------------------------------------------------------------------------
+# We need the Core API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+#-------------------------------------------------------------------------------
+# We need the MODEM PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# We need different restricted API's within MODEM
+#-------------------------------------------------------------------------------
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# We need the MULTIMEDIA PUBLIC API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(MULTIMEDIA_PUBLIC_APIS, area="MULTIMEDIA")
+
+#----------------------------------------------------------------------------------------
+# QCHAT OEM CUSTOMIZATION INTERFACE FILES
+#----------------------------------------------------------------------------------------
+QCHAT_OEM_CUST_QMI_CPP_SOURCES = [
+    '${BUILDPATH}/multiproc/oemcust/src/oemcustmgr.cpp',
+    '${BUILDPATH}/multiproc/oemcust/src/appsapiclnt_qmi.cpp',
+    '${BUILDPATH}/multiproc/oemcust/src/oem_toneintf.cpp',
+    '${BUILDPATH}/multiproc/oemcust/src/qrpc_oemtone.cpp',
+    '${BUILDPATH}/multiproc/oemcust/src/oem_medintf.cpp',
+    '${BUILDPATH}/multiproc/oemcust/src/qrpc_mediaconcmgr.cpp',
+    ]
+
+#----------------------------------------------------------------------------------------
+# QCHAT QMI GLUE Files for QChat 5.0 Architecture
+#----------------------------------------------------------------------------------------
+QCHAT_QMI_CPP_SOURCES = []
+
+if 'USES_QCHAT_5P0' in env:
+    QCHAT_QMI_CPP_SOURCES.append([
+    '${BUILDPATH}/multiproc/qmi/serialization/src/qglueutils.cpp',
+    '${BUILDPATH}/multiproc/qmi/serialization/src/hpsp_glue_util.cpp',
+    '${BUILDPATH}/multiproc/qmi/serialization/src/msp_glue_util.cpp',
+    '${BUILDPATH}/multiproc/qmi/serialization/src/tsp_glue_util.cpp',
+    '${BUILDPATH}/multiproc/qmi/serialization/src/qchatqmiutilityglue.cpp',
+    '${BUILDPATH}/multiproc/qmi/serialization/src/qchatqmimgr.cpp',
+    '${BUILDPATH}/multiproc/qmi/serialization/src/qmi_qchat_svc.cpp',
+    '${BUILDPATH}/multiproc/qmi/serialization/src/hashmap.cpp',
+    '${BUILDPATH}/multiproc/qmi/serialization/src/protobuffer.cpp',
+    '${BUILDPATH}/multiproc/qmi/serialization/src/parcel.cpp',
+    '${BUILDPATH}/multiproc/qmi/autogen/src/hps_srvc_deserialmsg.cpp',
+    '${BUILDPATH}/multiproc/qmi/autogen/src/hps_srvc_serialmsg.cpp',
+    '${BUILDPATH}/multiproc/qmi/autogen/src/ms_prvdr_deserialmsg.cpp',
+    '${BUILDPATH}/multiproc/qmi/autogen/src/ms_prvdr_serialmsg.cpp',
+    '${BUILDPATH}/multiproc/qmi/autogen/src/tsp_serialmsg.cpp',
+    '${BUILDPATH}/multiproc/qmi/autogen/src/tsp_deserialmsg.cpp',
+    ])
+
+#----------------------------------------------------------------------------------------
+# QCHAT QMI OEM CUSTOMIZATION STUBS FOR QChat 5.0 Architecture
+#----------------------------------------------------------------------------------------
+OEM_CUST_SOURCES = []
+if 'USES_QCHAT_5P0' in env:
+    OEM_CUST_SOURCES.append([
+        #'${BUILDPATH}/multiproc/oemcust/src/oem_medintf_stub.cpp',
+        #'${BUILDPATH}/multiproc/oemcust/src/oem_toneintf_stub.cpp',
+        '${BUILDPATH}/multiproc/oemcust/src/oem_vocpluginintf_stub.cpp',
+    ])
+
+if 'USES_QCHAT_5P0' in env:
+    env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/qchat_multi_proc', 
+                                          QCHAT_QMI_CPP_SOURCES +
+                                          OEM_CUST_SOURCES +
+                                          QCHAT_OEM_CUST_QMI_CPP_SOURCES)

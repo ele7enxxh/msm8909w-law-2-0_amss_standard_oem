@@ -1,0 +1,280 @@
+#===============================================================================
+#
+#       G E R A N    G D R I V E R S   S C O N S   C O N F I G U R A T I O N
+#
+# GENERAL DESCRIPTION
+#    SCons build script for the GDRIVERS VU
+#
+# Copyright (c) 2010-2015 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/geran/gdrivers/build/gdrivers.scons#1 $
+#  $DateTime: 2016/12/13 08:00:21 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 16/12/14   jk      CR753423:LIF for Idle,voice and data
+# 08/06/12   pa      Added support for GPLT.
+# 20100906   tjw     New file
+#
+#===============================================================================
+import sys
+
+def main(env):
+  # If USES_WPLT is set this library is required
+  if 'USES_WPLT' not in env:
+    # Otherwise verify that USES_GSM or USES_UMTS is set, if not bail out now
+    if 'USES_GSM' not in env and 'USES_UMTS' not in env:
+      # Tell cleanpack to delete all files (not just private ones) before shipping
+      env.CleanPack('CLEANPACK_TARGET', env.FindFiles('*', '..'))
+      return()
+
+  #-------------------------------------------------------------------------------
+  # QDSS Tracer definitions
+  #-------------------------------------------------------------------------------
+  if 'USES_QDSS_SWE' in env:
+    QDSS_IMG = ['QDSS_EN_IMG']
+    events = [['GERAN_CUSTOM_EVT_1_1','GERAN_CUSTOM_EVT_1_1'],
+          ['GERAN_CUSTOM_EVT_2_1','GERAN_CUSTOM_EVT_2_1'],
+          ['GERAN_CUSTOM_EVT_3_1','GERAN_CUSTOM_EVT_3_1'],
+          ['GERAN_SLEEP_GOING_TO_SLEEP_1','GERAN_SLEEP_GOING_TO_SLEEP_1'],
+          ['GERAN_SLEEP_RF_RX_OFF_START_1','GERAN_SLEEP_RF_RX_OFF_START_1'],
+          ['GERAN_SLEEP_RF_RX_OFF_END_1','GERAN_SLEEP_RF_RX_OFF_END_1'],
+          ['GERAN_SLEEP_RF_VREG_OFF_START_1','GERAN_SLEEP_RF_VREG_OFF_START_1'],
+          ['GERAN_SLEEP_RF_VREG_OFF_END_1','GERAN_SLEEP_RF_VREG_OFF_END_1'],
+          ['GERAN_SLEEP_CONFIG_DONE_1','GERAN_SLEEP_CONFIG_DONE_1'],
+          ['GERAN_SLEEP_MCPM_START_1','GERAN_SLEEP_MCPM_START_1'],
+          ['GERAN_SLEEP_MCPM_END_1','GERAN_SLEEP_MCPM_END_1'],
+          ['GERAN_SLEEP_RECOV_WAKEUP_START_1','GERAN_SLEEP_RECOV_WAKEUP_START_1'],
+          ['GERAN_SLEEP_RECOV_WAKEUP_END_1','GERAN_SLEEP_RECOV_WAKEUP_END_1'],
+          ['GERAN_SLEEP_WAKEUP_START_1','GERAN_SLEEP_WAKEUP_START_1'],
+          ['GERAN_SLEEP_MCPM_WAKE_UP_REQ_1','GERAN_SLEEP_MCPM_WAKE_UP_REQ_1'],
+          ['GERAN_SLEEP_MCPM_WAKE_UP_REQ_END_1','GERAN_SLEEP_MCPM_WAKE_UP_REQ_END_1'],
+          ['GERAN_SLEEP_WAKEUP_RF_VREG_ON_START_1','GERAN_SLEEP_WAKEUP_RF_VREG_ON_START_1'],
+          ['GERAN_SLEEP_WAKEUP_RF_VREG_ON_END_1','GERAN_SLEEP_WAKEUP_RF_VREG_ON_END_1'],
+          ['GERAN_SLEEP_WAKEUP_RF_RX_ON_START_1','GERAN_SLEEP_WAKEUP_RF_RX_ON_START_1'],
+          ['GERAN_SLEEP_WAKEUP_RF_RX_ON_END_1','GERAN_SLEEP_WAKEUP_RF_RX_ON_END_1'],
+          ['GERAN_SLEEP_WAKEUP_GSTMR_ON_START_1','GERAN_SLEEP_WAKEUP_GSTMR_ON_START_1'],
+          ['GERAN_SLEEP_WAKEUP_GSTMR_ON_END_1','GERAN_SLEEP_WAKEUP_GSTMR_ON_END_1'],
+          ['GERAN_SLEEP_WAKEUP_END_1','GERAN_SLEEP_WAKEUP_END_1'],
+          ['GERAN_SLEEP_OLS_START_1','GERAN_SLEEP_OLS_START_1'],
+          ['GERAN_SLEEP_WAKEUP_OLS_END_1','GERAN_SLEEP_WAKEUP_OLS_END_1'],
+          ['GERAN_DRX_GSTMR2_START_1','GERAN_DRX_GSTMR2_START_1'],
+          ['GERAN_DRX_GSTMR1_START_1','GERAN_DRX_GSTMR1_START_1'],
+          ['GERAN_CUSTOM_EVT_1_2','GERAN_CUSTOM_EVT_1_2'],
+          ['GERAN_CUSTOM_EVT_2_2','GERAN_CUSTOM_EVT_2_2'],
+          ['GERAN_CUSTOM_EVT_3_2','GERAN_CUSTOM_EVT_3_2'],
+          ['GERAN_SLEEP_GOING_TO_SLEEP_2','GERAN_SLEEP_GOING_TO_SLEEP_2'],
+          ['GERAN_SLEEP_RF_RX_OFF_START_2','GERAN_SLEEP_RF_RX_OFF_START_2'],
+          ['GERAN_SLEEP_RF_RX_OFF_END_2','GERAN_SLEEP_RF_RX_OFF_END_2'],
+          ['GERAN_SLEEP_RF_VREG_OFF_START_2','GERAN_SLEEP_RF_VREG_OFF_START_2'],
+          ['GERAN_SLEEP_RF_VREG_OFF_END_2','GERAN_SLEEP_RF_VREG_OFF_END_2'],
+          ['GERAN_SLEEP_CONFIG_DONE_2','GERAN_SLEEP_CONFIG_DONE_2'],
+          ['GERAN_SLEEP_MCPM_START_2','GERAN_SLEEP_MCPM_START_2'],
+          ['GERAN_SLEEP_MCPM_END_2','GERAN_SLEEP_MCPM_END_2'],
+          ['GERAN_SLEEP_RECOV_WAKEUP_START_2','GERAN_SLEEP_RECOV_WAKEUP_START_2'],
+          ['GERAN_SLEEP_RECOV_WAKEUP_END_2','GERAN_SLEEP_RECOV_WAKEUP_END_2'],
+          ['GERAN_SLEEP_WAKEUP_START_2','GERAN_SLEEP_WAKEUP_START_2'],
+          ['GERAN_SLEEP_MCPM_WAKE_UP_REQ_2','GERAN_SLEEP_MCPM_WAKE_UP_REQ_2'],
+          ['GERAN_SLEEP_MCPM_WAKE_UP_REQ_END_2','GERAN_SLEEP_MCPM_WAKE_UP_REQ_END_2'],
+          ['GERAN_SLEEP_WAKEUP_RF_VREG_ON_START_2','GERAN_SLEEP_WAKEUP_RF_VREG_ON_START_2'],
+          ['GERAN_SLEEP_WAKEUP_RF_VREG_ON_END_2','GERAN_SLEEP_WAKEUP_RF_VREG_ON_END_2'],
+          ['GERAN_SLEEP_WAKEUP_RF_RX_ON_START_2','GERAN_SLEEP_WAKEUP_RF_RX_ON_START_2'],
+          ['GERAN_SLEEP_WAKEUP_RF_RX_ON_END_2','GERAN_SLEEP_WAKEUP_RF_RX_ON_END_2'],
+          ['GERAN_SLEEP_WAKEUP_GSTMR_ON_START_2','GERAN_SLEEP_WAKEUP_GSTMR_ON_START_2'],
+          ['GERAN_SLEEP_WAKEUP_GSTMR_ON_END_2','GERAN_SLEEP_WAKEUP_GSTMR_ON_END_2'],
+          ['GERAN_SLEEP_WAKEUP_END_2','GERAN_SLEEP_WAKEUP_END_2'],
+          ['GERAN_SLEEP_OLS_START_2','GERAN_SLEEP_OLS_START_2'],
+          ['GERAN_SLEEP_WAKEUP_OLS_END_2','GERAN_SLEEP_WAKEUP_OLS_END_2'],
+          ['GERAN_DRX_GSTMR2_START_2','GERAN_DRX_GSTMR2_START_2'],
+          ['GERAN_DRX_GSTMR1_START_2','GERAN_DRX_GSTMR1_START_2'],
+          ['GERAN_CUSTOM_EVT_1_3','GERAN_CUSTOM_EVT_1_3'],
+          ['GERAN_CUSTOM_EVT_2_3','GERAN_CUSTOM_EVT_2_3'],
+          ['GERAN_CUSTOM_EVT_3_3','GERAN_CUSTOM_EVT_3_3'],
+          ['GERAN_SLEEP_GOING_TO_SLEEP_3','GERAN_SLEEP_GOING_TO_SLEEP_3'],
+          ['GERAN_SLEEP_RF_RX_OFF_START_3','GERAN_SLEEP_RF_RX_OFF_START_3'],
+          ['GERAN_SLEEP_RF_RX_OFF_END_3','GERAN_SLEEP_RF_RX_OFF_END_3'],
+          ['GERAN_SLEEP_RF_VREG_OFF_START_3','GERAN_SLEEP_RF_VREG_OFF_START_3'],
+          ['GERAN_SLEEP_RF_VREG_OFF_END_3','GERAN_SLEEP_RF_VREG_OFF_END_3'],
+          ['GERAN_SLEEP_CONFIG_DONE_3','GERAN_SLEEP_CONFIG_DONE_3'],
+          ['GERAN_SLEEP_MCPM_START_3','GERAN_SLEEP_MCPM_START_3'],
+          ['GERAN_SLEEP_MCPM_END_3','GERAN_SLEEP_MCPM_END_3'],
+          ['GERAN_SLEEP_RECOV_WAKEUP_START_3','GERAN_SLEEP_RECOV_WAKEUP_START_3'],
+          ['GERAN_SLEEP_RECOV_WAKEUP_END_3','GERAN_SLEEP_RECOV_WAKEUP_END_3'],
+          ['GERAN_SLEEP_WAKEUP_START_3','GERAN_SLEEP_WAKEUP_START_3'],
+          ['GERAN_SLEEP_MCPM_WAKE_UP_REQ_3','GERAN_SLEEP_MCPM_WAKE_UP_REQ_3'],
+          ['GERAN_SLEEP_MCPM_WAKE_UP_REQ_END_3','GERAN_SLEEP_MCPM_WAKE_UP_REQ_END_3'],
+          ['GERAN_SLEEP_WAKEUP_RF_VREG_ON_START_3','GERAN_SLEEP_WAKEUP_RF_VREG_ON_START_3'],
+          ['GERAN_SLEEP_WAKEUP_RF_VREG_ON_END_3','GERAN_SLEEP_WAKEUP_RF_VREG_ON_END_3'],
+          ['GERAN_SLEEP_WAKEUP_RF_RX_ON_START_3','GERAN_SLEEP_WAKEUP_RF_RX_ON_START_3'],
+          ['GERAN_SLEEP_WAKEUP_RF_RX_ON_END_3','GERAN_SLEEP_WAKEUP_RF_RX_ON_END_3'],
+          ['GERAN_SLEEP_WAKEUP_GSTMR_ON_START_3','GERAN_SLEEP_WAKEUP_GSTMR_ON_START_3'],
+          ['GERAN_SLEEP_WAKEUP_GSTMR_ON_END_3','GERAN_SLEEP_WAKEUP_GSTMR_ON_END_3'],
+          ['GERAN_SLEEP_WAKEUP_END_3','GERAN_SLEEP_WAKEUP_END_3'],
+          ['GERAN_SLEEP_OLS_START_3','GERAN_SLEEP_OLS_START_3'],
+          ['GERAN_SLEEP_WAKEUP_OLS_END_3','GERAN_SLEEP_WAKEUP_OLS_END_3'],
+          ['GERAN_DRX_GSTMR2_START_3','GERAN_DRX_GSTMR2_START_3'],
+          ['GERAN_DRX_GSTMR1_START_3','GERAN_DRX_GSTMR1_START_3'],]
+    env.AddSWEInfo(QDSS_IMG,events)
+    # Create our own tracer_event IDs file
+    # The output of SWEBuilder must go into BUILDPATH along with the generated .o and .lib files.
+    env.SWEBuilder(['${BUILDPATH}/gdrivers_tracer_event_ids.h'],None)
+    env.PrintInfo("SWE Builder for gdrivers_tracer_event_ids.h was called")
+  else:
+    env.PrintInfo("!USES_QDSS_SWE therefore SWE Builder for gdrivers_tracer_event_ids.h not called")
+
+  ################################################################
+  ################################################################
+  # SIMPLE CONFIGURABLE ITEMS:
+  #-------------------------------------------------------------------------------
+  # Name of the subsystem to which this unit belongs
+  #-------------------------------------------------------------------------------
+  SU_NAME = 'GERAN'
+
+  #-------------------------------------------------------------------------------
+  # Name of this unit
+  #-------------------------------------------------------------------------------
+  UNIT_NAME = 'GDRIVERS'
+
+  #-------------------------------------------------------------------------------
+  # Source path
+  #-------------------------------------------------------------------------------
+  # The path to the source files
+  SRCPATH = '../src'
+
+  #-------------------------------------------------------------------------------
+  # Source files
+  #-------------------------------------------------------------------------------
+  # The source files. Either '*.c' or list the files individually.
+  # If listing the files individually, include any private files, they will be stripped later
+  # e.g. SRC_FILES = ['foo.c', 'bar.c']
+
+  if env.has_key('USES_WPLT'):
+    SRC_FILES = [
+    'gl1_hw_trm.c',
+    'gl1_msg.c',
+    'gl1_msg_acq.c',
+    'gl1_msg_algs.c',
+    'gl1_msg_async_ccch.c',
+    'gl1_msg_ber.c',
+    'gl1_msg_ccch.c',
+    'gl1_msg_dl_pacch_pdtch.c',
+    'gl1_msg_dl_ptcch.c',
+    'gl1_msg_dl_tch.c',
+    'gl1_msg_dl_tch_amr.c',
+    'gl1_msg_int_gprs.c',
+    'gl1_msg_ncell_bcch.c',
+    'gl1_msg_ncell_fcch.c',
+    'gl1_msg_ncell_sch.c',
+    'gl1_msg_pbcch.c',
+    'gl1_msg_pccch.c',
+    'gl1_msg_pdch.c',
+    'gl1_msg_prach.c',
+    'gl1_msg_pwr_meas.c',
+    'gl1_msg_rach.c',
+    'gl1_msg_sacch.c',
+    'gl1_msg_sdcch.c',
+    'gl1_msg_tch.c',
+    'gl1_msg_tch_amr.c',
+    'gl1_msg_ul_pacch_pdtch.c',
+    'gl1_msg_ul_ptcch.c',
+    'gl1_msg_ul_tch.c',
+    'gl1_msg_ul_tch_amr.c',
+    'gl1_msg_wcdma_meas.c',
+    'gl1_hw_gsac.c',
+    'gl1_hw_rxdiversity.c',
+    'gl1_hw_lif.c'
+    ]
+  else:
+    SRC_FILES = '*.c'
+
+  PRIVATE_SRC_FILES = ['gl1_hw_gsac.c']
+
+  # List of the files not to be cleaned by cleanpack
+  PUBLISHED_HDR_FILES = [
+    'gl1_defs_g.h',
+    'gl1_hwi.h',
+    'gl1_hw_clk_ctl.h',
+    'gl1_hw_clk_ctl_g.h',
+    'gl1_hw_debug.h',
+    'gl1_hw_g.h',
+    'gl1_hw_vs_g.h',
+    'gl1_msg_arbitration.h',
+    'gl1_msg_g.h',
+    'gtmrs_g.h',
+    'gl1_hw_lif.h'
+  ]
+
+  #-------------------------------------------------------------------------------
+  # Required internal APIs
+  #-------------------------------------------------------------------------------
+  REQUIRED_SU_APIS = [
+      'GCOMMON',
+      'GDIAG',
+      'GDRIVERS',
+      'GL1',
+      'GL2',
+      'GLLC',
+      'GMAC',
+      'GMDSP',
+      'GRLC',
+      'GRR',
+      'GSNDCP',
+      'GPLT'
+      ]
+  #-------------------------------------------------------------------------------
+  # Images the SU will be loaded into (MODEM_APPS and/or MODEM_MODEM)
+  #-------------------------------------------------------------------------------
+  IMAGES = ['MODEM_MODEM', 'MOB_GERAN']
+
+  ################################################################
+  ################################################################
+
+
+
+  ################################################################
+  # UNIT-SPECIFIC SCONS MAGIC
+  ################################################################
+  # (for build specialists to play their tricks)
+
+  ################################################################
+  # DATA ASSEMBLED, PUT IT INTO ACTION USING THE SHARED
+  # FUNCTIONS IN build/geran_build_tools.py
+  ################################################################
+  sys.path.append('${GERAN_BUILD_TOOLS}')
+  import geran_build_tools
+
+  geran_build_tools.set_up_component_build_config(
+    env,
+    SU_NAME=                  SU_NAME,
+    UNIT_NAME=                UNIT_NAME,
+    SRCPATH=                  SRCPATH,
+    SRC_FILES=                SRC_FILES,
+    PRIVATE_SRC_FILES=        PRIVATE_SRC_FILES,
+    REQUIRED_SU_APIS=         REQUIRED_SU_APIS,
+    IMAGES=                   IMAGES,
+    PUBLISHED_HDR_FILES=      PUBLISHED_HDR_FILES,
+    MSG_BT_SSID_DFLT=         'MSG_SSID_GSM_L1',      # Doesn't use the standard naming convention
+    DELIVER_SOURCE =          False                   # GL1 is delivered as a binary to some customers
+  )
+
+  env.LoadSoftwareUnits()
+
+try:
+  Import('env') # Fails if used from SCons test harness
+  _usingTestHarness = False
+except:
+  _usingTestHarness = True
+
+if not _usingTestHarness:
+  main(env)
+#else: test harness calls main() directly with its own env
+

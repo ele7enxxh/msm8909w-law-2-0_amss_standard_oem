@@ -1,0 +1,50 @@
+#===============================================================================
+#
+#  CBSP Build system
+#
+#  General Description
+#     Documents Build script file.
+#
+# Copyright (c) 2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //components/rel/core.mpss/3.5.c12.3/bsp/docs/build/SConscript#1 $
+#
+#===============================================================================
+from SCons.Script import *
+
+Import('env')
+env = env.Clone()
+
+env.Tool('pdf')
+env.Tool('pdflatex')
+env.Tool('tex')
+env.Tool('pdftex')
+
+if env.has_key('PRINT_BUILD_BANNER'):
+   print "\n"
+   print "------------------------------------------------------------------------------"
+   print "   Loading Documents build system"
+   print "------------------------------------------------------------------------------"
+
+#------------------------------------------------------------------------------
+# Add new optuns/arguments to build system
+# needs to be done before check aliases other wise help won't be updated
+#------------------------------------------------------------------------------
+vars = Variables(None)
+
+vars.AddVariables(
+   ('PUBLIC_API_DOC_DCN', 'DCN for the Public API PDFs', "80-VXXXX-XX Rev A")
+    )
+# update environment and read command line variables
+vars.Update(env)
+
+env.Help(vars.GenerateHelpText(env))
+
+#------------------------------------------------------------------------------
+# Load TARGET scripts
+#------------------------------------------------------------------------------
+env.LoadImageUnits()

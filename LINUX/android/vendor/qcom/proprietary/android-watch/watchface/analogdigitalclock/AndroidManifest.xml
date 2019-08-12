@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+ Copyright (c) 2015 Qualcomm Technologies, Inc.
+ All Rights Reserved.
+ Confidential and Proprietary - Qualcomm Technologies, Inc.
+-->
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.qualcomm.qti.watchfaceanalogdigitalclock">
+
+    <uses-feature android:name="android.hardware.type.watch" />
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <uses-feature
+        android:name="android.software.live_wallpaper"
+        android:required="true" />
+
+    <application
+        android:allowBackup="true"
+        android:clearTaskOnLaunch="true"
+        android:label="@string/wallpaper_title"
+        android:launchMode="singleTask"
+        android:screenOrientation="nosensor"
+        android:stateNotNeeded="true"
+        android:defaultToDeviceProtectedStorage="true"
+        android:directBootAware="true"
+        android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen">
+
+        <service
+            android:name="com.qualcomm.qti.watchfaceanalogdigitalclock.WatchFaceAnalogDigitalClockService"
+            android:enabled="true"
+            android:label="AnalogDigitalClock"
+            android:permission="android.permission.BIND_WALLPAPER">
+
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService"></action>
+            </intent-filter>
+
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/wallpaperanalogdigitalclock">
+            </meta-data>
+        </service>
+
+    </application>
+
+</manifest>

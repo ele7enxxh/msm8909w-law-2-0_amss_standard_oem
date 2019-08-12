@@ -1,0 +1,88 @@
+#===============================================================================
+#
+#                             Edit History
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsee/services/img_auth/build/SConscript#1 $
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011/07/12   spa     Create initial version
+#
+#===============================================================================
+#                    Copyright (c) 2011 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+# QSEE Lib
+#-------------------------------------------------------------------------------
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/services/img_auth/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+   'SERVICES',                    #< comdef.h
+   'SYSTEMDRIVERS',               #< HALhwio.h
+   'DAL',                         #< HALcomdef.h
+   'BOOT',                        #< qfprom.h
+])
+
+env.RequireRestrictedApi([
+   'BOOT',                   #< miprogressive.h
+   'STORAGE',                #< sd_mgr_rpmb.h
+   'KERNEL',                 #< HALxpu2.h
+   'TZSSD', 
+   'TZKS',
+   'TZIMGAUTH',
+   'TZCHIPSET',              #< tzbsp_xpu_config.h
+   'TZCRYPTO',               #< tzbsp_cipher.h
+   'TZLIBARMV7',             #< tzbsp_sys.h
+   'SECUREMSM',              #< secboot.h
+])
+
+env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+env.Append(ASFLAGS = " --diag_suppress=1786,2523 ")
+
+INC_PATH = [
+      "${INC_ROOT}/core/api/kernel/libstd/stringl",
+      "${INC_ROOT}/core/securemsm/trustzone/qsee/services/fuseprov/inc",
+      "${INC_ROOT}/core/securemsm/trustzone/qsee/services/keyprov/macchiato/shared/inc",
+]
+env.Append(CPPPATH = INC_PATH)
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = "--gnu")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+
+SOURCES = [
+    '${BUILDPATH}/tzbsp_pil_auth.c',
+    '${BUILDPATH}/tzbsp_pil_auth_sec.c',
+    '${BUILDPATH}/tzbsp_pil_xpu.c',
+    '${BUILDPATH}/tzbsp_pil_syscall_def.c',
+
+ ]
+
+ 
+SOURCES2 = [ '${BUILDPATH}/tzbsp_rollback_version.c', ]
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddObject('TZOS_IMAGE', SOURCES)
+env.AddLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_img_auth', SOURCES2)
+
+

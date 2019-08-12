@@ -1,0 +1,96 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    Build script for HAL QDSS-TMC Library.
+#
+# Copyright (c) 2011-2012 Qualcomm Technologies Incorporated.
+# All rights reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/debugtrace/hwevent/dal/build/hweventdal.scons#1 $
+#
+
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.RequirePublicApi([
+   'HAL',
+   'DAL',
+   'DEBUGTRACE',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'POWER'
+   ])
+env.RequireRestrictedApi(['DEBUGTRACE'])
+env.RequireProtectedApi(['DEBUGTRACE'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+HWEVENT_DAL_SRC = [
+   '${BUILDPATH}/DalHWEvent.c',
+   '${BUILDPATH}/hwevent_cntrl.c'
+   ]
+
+if env.IsTargetEnable(['WCN_IMAGE']):
+   env.Append(CCFLAGS = " -DEVENT_SUBSYSTEM=PRONTO")
+elif env.IsTargetEnable(['CORE_MODEM','MODEM_IMAGE','CBSP_MODEM_IMAGE','MCFG_SW']):
+   env.Append(CCFLAGS = " -DEVENT_SUBSYSTEM=MODEM")
+elif env.IsTargetEnable(['CORE_QDSP6_AUDIO_SW']):
+   env.Append(CCFLAGS = " -DEVENT_SUBSYSTEM=AUDIO")
+elif env.IsTargetEnable(['ADSP_PROC']):
+   env.Append(CCFLAGS = " -DEVENT_SUBSYSTEM=ADSP")
+
+
+#Add HWEvent image
+env.AddLibrary(['APPS_PROC','MCFG_SW','CBSP_QDSP6_SW_IMAGE','MODEM_IMAGE',
+   'CORE_QDSP6_SW','CORE_QDSP6_AUDIO_SW',],
+   '${BUILDPATH}/hwevent_dal',HWEVENT_DAL_SRC)
+
+env.AddLibrary(['CORE_QDSP6_SENSOR_SW'],
+   '${BUILDPATH}/hwevent_dal','${BUILDPATH}/hwevent_cntrl_stub.c')
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG,
+   {
+      '8974_xml' : ['${BUILD_ROOT}/core/debugtrace/hwevent/config/8974/dalhwevent.xml',
+                   '${BUILD_ROOT}/core/debugtrace/hwevent/config/8974/hwevent_config.c'],
+      '9625_xml' : ['${BUILD_ROOT}/core/debugtrace/hwevent/config/9x25/dalhwevent.xml',
+                   '${BUILD_ROOT}/core/debugtrace/hwevent/config/9x25/hwevent_config.c'],
+      '8x26_xml' : ['${BUILD_ROOT}/core/debugtrace/hwevent/config/8x26/dalhwevent.xml',
+                   '${BUILD_ROOT}/core/debugtrace/hwevent/config/8x26/hwevent_config.c'],
+      '8x10_xml' : ['${BUILD_ROOT}/core/debugtrace/hwevent/config/8x10/dalhwevent.xml',
+                   '${BUILD_ROOT}/core/debugtrace/hwevent/config/8x10/hwevent_config.c'],
+      '8962_xml' : ['${BUILD_ROOT}/core/debugtrace/hwevent/config/8962/dalhwevent.xml',
+                   '${BUILD_ROOT}/core/debugtrace/hwevent/config/8962/hwevent_config.c'],
+      '8916_xml' : ['${BUILD_ROOT}/core/debugtrace/hwevent/config/8916/dalhwevent.xml',
+                   '${BUILD_ROOT}/core/debugtrace/hwevent/config/8916/hwevent_config.c'],
+      '8936_xml' : ['${BUILD_ROOT}/core/debugtrace/hwevent/config/8936/dalhwevent.xml',
+                   '${BUILD_ROOT}/core/debugtrace/hwevent/config/8936/hwevent_config.c'],
+	  '8909_xml' : ['${BUILD_ROOT}/core/debugtrace/hwevent/config/8909/dalhwevent.xml',
+                   '${BUILD_ROOT}/core/debugtrace/hwevent/config/8909/hwevent_config.c'],
+	  '8952_xml' : ['${BUILD_ROOT}/core/debugtrace/hwevent/config/8952/dalhwevent.xml',
+                  '${BUILD_ROOT}/core/debugtrace/hwevent/config/8952/hwevent_config.c'],
+   })
+
+
+if 'USES_RCINIT' in env:
+   RCINIT_IMG = ['CORE_MODEM','CORE_QDSP6_SW','MCFG_SW','CBSP_QDSP6_SW_IMAGE','CORE_QDSP6_AUDIO_SW']
+   env.AddRCInitFunc(           # Code Fragment in TMC: NO
+   RCINIT_IMG,
+   {
+      'sequence_group'             : 'RCINIT_GROUP_2',            # required
+      'init_name'                  : 'hwevent_init',              # required
+      'init_function'              : 'hwevent_diag_init',         # required
+      'dependencies'               : ['dalsys','diag']
+   })

@@ -1,0 +1,105 @@
+#===============================================================================
+#
+# TZBSP chipset lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 QUALCOMM Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/19/15   wt      Removed AOSTLM_IMAGE
+# 07/24/14   wt      Added AOSTLM_IMAGE
+# 04/25/14   tp      Changed DRM sconscripts to use the prxy_services 
+#                    library instead of linking to qsee_services.
+# 04/17/14   rk      Removed include paths pointing to tzdrm
+# 03/10/14   rk      Added new include path
+# 02/04/14   rk      Moved time.c from tzdrm
+# 10/28/13   ib		 removed the SECUREMM image
+# 05/26/13   sn		 Add SECUREUI		
+# 01/15/13   cz      removed the drmprov image
+# 12/18/10   cap     initial version
+# 04/05/12   jl      Added QSEE libs to the Security Test App
+# 07/25/12   cx      Added qsee_services_lib to tzapps
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/libs/services/"
+if env.has_key('CTZL_IMAGE'):
+  env.Append(CCFLAGS = " --restrict  -O3 -OTime ")
+else:
+  env.Append(CCFLAGS = " --restrict  -O3 -OTime -DTZ_APP_LEGACY")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/applib/common/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/services/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/common/app_common_svc/shared/inc"
+])
+
+INC_PATH_QSEE = [
+      "${INC_ROOT}/core/securemsm/trustzone/qsee/include",
+      "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/applib/qsee/src",
+      "${INC_ROOT}/core/api/kernel/libstd/stringl",
+]
+env.Append(CPPPATH = INC_PATH_QSEE)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+SOURCES = [
+   '${BUILDPATH}/src/qsee_log.c',
+   '${BUILDPATH}/src/fs.c',
+   '${BUILDPATH}/src/time.c',
+   '${BUILDPATH}/src/sfs.c',
+   '${BUILDPATH}/src/sfs_api.c',
+   '${BUILDPATH}/src/sfs_idx.c',
+   '${BUILDPATH}/src/qsee_kdf.c',
+   '${BUILDPATH}/src/sfs_sec.c',
+   '${BUILDPATH}/src/sfs_ll_funcs.c'
+]
+
+hdrlist = env.FindFiles("*", SRCPATH + "/src/")
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddBinaryLibrary(['DRMPROV_IMAGE', 'ASSURANCETEST_IMAGE', 'SECURITYTEST_IMAGE', 'APTSFSTESTAPP_IMAGE', 'APTSFSTESTAPP2_IMAGE', 'APTCRYPTOTESTAPP_IMAGE', 'CTZL_IMAGE', 'DXHDCP2_IMAGE', 'DXHDCP2DBG_IMAGE' , 'SECUREUISAMPLE_IMAGE', 'MACCHIATO_SAMPLE_IMAGE'], '${BUILDPATH}/qsee_services', SOURCES)
+env.CleanPack(['SECURITYTEST_IMAGE', 'APTSFSTESTAPP_IMAGE', 'APTSFSTESTAPP2_IMAGE', 'APTCRYPTOTESTAPP_IMAGE', 'CTZL_IMAGE', 'DXHDCP2_IMAGE', 'DXHDCP2DBG_IMAGE' , 'SECUREUISAMPLE_IMAGE', 'MACCHIATO_SAMPLE_IMAGE'], hdrlist)

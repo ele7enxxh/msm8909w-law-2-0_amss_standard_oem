@@ -1,0 +1,50 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+// -n=selftest.sli -args=sensor,datatype,testtype,save,apply
+
+sub main( @argv) {
+
+    my ( $sensor_id, $datatype, $testtype, $save, $apply) = @argv;
+
+    if ( !defined( $save)) {
+        $save = 0;
+    }
+    if ( !defined( $apply)) {
+        $apply = 0;
+    }
+
+    my $client  = slopen();
+    my $timeout = 5;
+    sloption( "script_handles_indications");
+
+    my $selftest_req = slnew_req( "smgr", "selftest",
+                                  { sensor_id => $sensor_id, datatype => $datatype,
+                                    testtype => $testtype, save => $save, apply => $apply} );
+    my $selftest_resp = slsend_recv( $client, $selftest_req, $timeout);
+    if ( defined( $selftest_resp)) {
+        my ( $err, $testresult);
+        ( $sensor_id, $datatype, $testtype, $testresult, $err )
+                    = slget( $selftest_resp, { sensor_id, datatype, testtype, testresult, err});
+        print( "selftest_resp sensor_id $sensor_id, datatype $datatype, ");
+        print( "testtype $testtype, testresult $testresult, err $err\n");
+
+        my $selftest_ind = slrecv( $timeout);
+        if ( defined( $selftest_ind)) {
+            ( $sensor_id, $datatype, $testtype, $testresult, $err)
+              = slget( $selftest_ind, {sensor_id, datatype, testtype, testresult, errorcode});
+            print( "selftest_ind sensor_id $sensor_id, datatype $datatype, testtype $testtype, ");
+            print( "testresult $testresult, errorcode $err\n");
+        }
+        else {
+            print( "timeout waiting for selftest_ind\n");
+        }
+    }
+    else {
+        print( "selftest_resp not defined\n");
+    }
+    my $rc = slclose( $client);
+    print( "slclose rc $rc\n");
+}

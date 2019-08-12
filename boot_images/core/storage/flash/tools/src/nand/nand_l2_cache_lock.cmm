@@ -1,0 +1,127 @@
+;============================================================================
+;  Name:
+;    nand_l2_cache_lock.cmm
+;
+;  Description:
+;    Lauterbach JTAG/ICD TRACE32 script to lock L2 Cache
+;
+;  Execution:
+;
+;  Copyright (c) 2014 Qualcomm Technologies, Incorporated.  
+;  All Rights Reserved.
+;  Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 09/30/14   sb      Watchdog changes for 9x45
+; 07/14/14   sb      Initial version
+;============================================================================
+
+local &temp
+local &temp1
+
+sys.up
+
+;--------------------------------------------------
+;Enable L2 TCM
+;--------------------------------------------------
+if "&NandTargetFamily"=="FLASH_9K_CORTEXA7_CFG"
+(
+ D.S ZSD:0x0B010034 %LE %LONG 0x08000001
+)
+
+if "&NandTargetFamily"=="FLASH_8K_CORTEXA7_CFG"
+(
+ D.S ZSD:0x0B010010 %LE %LONG 0x08000001
+)
+
+;--------------------------------------------------
+; Set all domain to have Manager type (unlimited)
+;--------------------------------------------------
+per.s c15:0x3 %LONG 0xFFFFFFFF
+
+;--------------------------------------------------
+; Set page tables
+;--------------------------------------------------
+D.S ZSD:0x00200000--0x00223FFF %LE %LONG 0x0
+
+;&temp=0x00000C16
+;&temp1=0x00200000
+;while &temp1!=0x00204000
+&temp=0x07800C16
+&temp1=0x002001E0
+while &temp1!=0x00200200
+(
+ D.S ZSD:&temp1 %LE %LONG &temp
+ &temp=&temp+0x100000
+ &temp1= &temp1+0x4
+)
+D.S ZSD:0x00200200 %LE %LONG 0x00204409
+D.S ZSD:0x00200008 %LE %LONG 0x00204801
+D.S ZSD:0x00200010 %LE %Long 0x00400C16
+
+&temp=0x08000172
+&temp1=0x00204400
+while &temp1!=0x00204500
+(
+ D.S ZSD:&temp1 %LE %LONG &temp
+ &temp=&temp+0x1000
+ &temp1= &temp1+0x4
+)
+
+&temp=0x00200073
+&temp1=0x00204800
+while &temp1!=0x00205000
+(
+ D.S ZSD:&temp1 %LE %LONG &temp
+ &temp=&temp+0x1000
+ &temp1= &temp1+0x4
+)
+ 
+;​--------------------------------------------------
+;cache_mmu_init
+;--------------------------------------------------
+per.s c15:0xD %LONG 0x00204801
+
+;;mmu_set_page_table_base  l1_mmu_pagetable  
+per.s c15:0x2 %LONG 0x00200000
+
+if "&VirtioPlatform"=="no"
+(
+ ;;mmu_invalidate_data_cache
+ &temp=0x0
+ while &temp!=0x2000
+ (
+  &temp1=&temp+0x0
+  per.s c15:0x267 %LONG &temp1
+  &temp1=&temp+0x40000000
+  per.s c15:0x267 %LONG &temp1
+  &temp1=&temp+0x80000000
+  per.s c15:0x267 %LONG &temp1
+  &temp1=&temp+0xC0000000
+  per.s c15:0x267 %LONG &temp1
+  &temp= &temp+0x20
+ )
+
+ ;;mmu_invalidate_instruction_cache
+ per.s c15:0x57 %LONG 0x0
+
+ ;;mmu_invalidate_tlb
+ per.s c15:0x78 %LONG 0x0
+
+ ;;mmu_set_ttb_0  0, l1_mmu_pagetable
+ per.s c15:0x202 %LONG 0x0
+ per.s c15:0x2 %LONG 0x00200000
+
+ ;;mmu_enable
+ ;mrc     p15, 0, r0, c1, c0, 0  ; Read Control Register
+ ;wait 1.s
+ per.s c15:0x1 %LONG 0x00C51879
+
+ ;;mmu_enable_i_and_d_cache
+ ;mrc     p15, 0, r0, c1, c0, 0  ;  Read Control Reg 
+ per.s c15:0x1 %LONG 0x00C51879
+
+ ;wait !run()
+)

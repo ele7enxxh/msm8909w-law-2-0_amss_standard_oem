@@ -1,0 +1,260 @@
+#====include path optimized=====================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2012 - 2013 Qualcomm Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //source/qcom/qct/modem/rfa2/device/rfdev_intf/prerel/nikel/build/rfa_device_rfdev_intf.scons#4 $
+# $DateTime: 2011/07/21 20:21:26 $ 
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/26/14   kg      Change to USES_CUSTOMER_GENERATE_LIBS
+# 03/11/13   sar     Updated file for APQ, GNSS only target.
+# 02/04/13   dyc     Updated qualifiers for pack.
+# 08/15/12   shb     Added RFDEVICE_INTERFACE
+# 07/18/12   shb     Added 'RF_GSM_INC'
+# 01/17/12    kg      Init scons file
+#===============================================================================
+
+Import('env')
+
+LIB_NAME        = 'rf_device_qfe_intf'
+IMAGE_SOURCES   = ['MODEM_MODEM','MOB_RFA']
+
+LIB_SRC         = 'src'
+LIB_PROTECTED   = 'protected'
+
+
+from glob import glob
+
+env = env.Clone()
+
+# Method to abort processing of this file, if not required for current air interface mode, etc
+if 'USES_GNSS_ONLY_NO_WWAN' in env:
+   Return( )
+if 'USES_FEATURE_QFE1320' not in env:
+   Return( )
+
+#-------------------------------------------------------------------------------
+# Source PATH:  
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+#BUILDPATH =  image_name / processor_name, eg modem_libs / arm11 = directory where built objects stored
+env.VariantDir('${BUILDPATH}', SRCPATH , duplicate=0)
+
+env.Append(CPPDEFINES = ['MSG_BT_SSID_DFLT=MSG_SSID_RF',]) 
+env.RequirePublicApi([
+#    'APTTESTS',
+#    'BOOT',
+    'BUSES', 
+    'DAL',
+    'DEBUGTOOLS',
+#    'HAL',
+#    'HWENGINES',
+#    'IODEVICES',
+    'KERNEL',
+#    'MPROC', 
+    'POWER', 
+#    'SECUREMSM', 
+    'SERVICES',
+#    'STORAGE', 
+    'SYSTEMDRIVERS', 
+#    'HWIO'
+#    'WIREDCONNECTIVITY',
+    ],
+    area='CORE')
+
+env.RequirePublicApi([
+    'ONEX',       
+#    'DATA',       
+#    'DATACOMMON', 
+#    'DATAMODEM',  
+#    'GERAN',      
+#    'GPS',        
+#    'HDR', 
+#    'LTE',       
+#    'MCS',        
+    'MMODE',      
+#    'NAS',        
+#    'PBM',        
+    'RFA',        
+#    'UIM',        
+#    'UTILS',      
+#    'WCDMA',      
+#    'WMS',
+    ],
+    area='MODEM')
+
+env.RequirePublicApi([
+#    'APR',
+#    'AUDIO',
+#    'CVD',
+#    'MVS',
+#    'MMUTILS',
+    ],
+    area='MULTIMEDIA')
+    
+env.RequireRestrictedApi([ 
+    'RFDEVICE_INTERFACE',
+#    'ONEX',
+#    'DATA', 
+#    'MODEM_DATA', 
+#    'MODEM_DATACOMMON', 
+#    'DATACOMMON',
+    'FW', 
+    'GERAN',
+#    'GPS', 
+#    'HDR', 
+#    'LTE', 
+#    'MCS', 
+#    'XSD', 
+    'MMODE',
+    'NAS', 
+#    'PBM', 
+    'RFA',
+#    'UIM', 
+#    'UTILS', 
+#    'WCDMA', 
+#    'WMS', 
+    ])
+
+
+env.RequireProtectedApi([
+#    'LM_COMMON_INC',
+#    'LM_NIKEL_INC',
+    'RFC_COMMON_INC',
+#    'RFC_RF_CARD_INC',
+    'RFC_TARGET_INC',
+    'RF_CDMA_INC',
+    'RF_COMMON_INC',
+    'RF_DEVICE_INC',
+#    'RF_GNSS_INC',
+    'RF_GSM_INC',
+    'RF_HAL_INC',
+#    'RF_LTE_INC',
+#    'RF_MDSP_INC',
+#    'RF_MEAS_INC',
+    'RF_RFD_INC',
+    'RF_RFNV_INC',
+#    'RF_TASK_INC',
+#    'RF_WCDMA_INC',
+    ])
+
+env.RequireProtectedApi([
+#    'LM_COMMON_SRC',
+#    'RFC_COMMON_SRC',
+#    'RFC_RF_CARD_SRC',
+#    'RFC_TARGET_SRC',
+#    'RF_CDMA_SRC',
+#    'RF_COMMON_SRC',
+#    'RF_GNSS_SRC',
+    'RF_GSM_SRC',
+#    'RF_HAL_SRC',
+#    'RF_LTE_SRC',
+#    'RF_MEAS_SRC',
+#    'RF_RFD_SRC',
+#    'RF_TASK_SRC',
+#    'RF_WCDMA_SRC',
+    ])
+
+env.RequireProtectedApi([
+#    'LM_NIKEL_PROTECTED',
+#    'RF_CDMA_PROTECTED',
+#    'RF_COMMON_PROTECTED',
+#    'RF_DEVICE_PROTECTED',
+#    'RF_GNSS_PROTECTED',
+#    'RF_GSM_PROTECTED',
+#    'RF_HAL_PROTECTED',
+#    'RF_LTE_PROTECTED',
+#    'RF_MDSP_PROTECTED',
+#    'RF_MEAS_PROTECTED',
+#    'RF_RFD_PROTECTED',
+#    'RF_WCDMA_PROTECTED',
+    ])
+
+
+
+
+
+#uncomment this section if src directory is added
+
+#LIB_SOURCES = [ ]  #empy list
+
+#SOURCE_FILES = [ ] 
+
+#find all .c
+#SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.c'))
+
+#find all .cpp files 
+#SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.cpp'))
+
+#find all .s files
+#SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.s'))
+
+
+#for filename in SOURCE_FILES:
+#        LIB_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+
+#if LIB_SOURCES:
+
+#        env.AddLibrary(IMAGE_SOURCES, '${BUILDPATH}/'+LIB_NAME,[
+#        LIB_SOURCES,
+#        ])
+
+
+
+
+
+env.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+#this statement must appear outside of 'USES_NO_STRIP_NO_ODM' test so that AddBinaryLibrary can be launched
+LIB_SOURCES = []  #empy list
+
+if 'USES_NO_STRIP_NO_ODM' in env:
+
+        SOURCE_FILES = [ ] 
+
+        #find all .c
+        SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.c'))
+
+        #find all .cpp files 
+        SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.cpp'))
+
+        #find all .s files
+        SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.s'))
+
+
+        for filename in SOURCE_FILES:
+                LIB_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+
+#this statement must appear outside of 'USES_NO_STRIP_NO_ODM' test so that the pre-built library will be added to the list file
+env.AddBinaryLibrary(IMAGE_SOURCES, '${BUILDPATH}/'+LIB_NAME+'_protected',[
+    LIB_SOURCES,
+    ], pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+

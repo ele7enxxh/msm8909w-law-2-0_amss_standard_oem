@@ -1,0 +1,65 @@
+import os
+import fnmatch
+import itertools
+
+Import('env')
+env = env.Clone()
+
+SRCPATH = ".."
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+CBSP_API = [
+   'POWER',
+   'MPROC',
+   'DEBUGTOOLS',
+   'DAL',
+   'SERVICES',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi('RPM', [
+   '${BUILD_ROOT}/core/power/rpm/common',   
+])
+
+env.Append(CPPDEFINES=['RPM_EDGE_TYPE=SMD_MODEM_RPM'])
+env.Append(CPPDEFINES=['ULOG_RPM_LOCK_TYPE=ULOG_LOCK_OS'])
+env.Append(CPPDEFINES=['DALSYS_RPM_SYNC_TYPE=DALSYS_SYNC_ATTR_RESOURCE'])
+
+source_patterns = ['*.c', '*.cpp']
+sources = []
+for root, dirnames, filenames in os.walk(SRCPATH):
+    matches = itertools.chain(*[fnmatch.filter(filenames, pattern) for pattern in source_patterns])
+    matches = ['${BUILDPATH}' + os.path.join(root, filename)[2:] for filename in matches]
+    sources.extend(matches)
+
+env.AddLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], '${BUILDPATH}/rpm.lib', sources)
+
+
+# Handling system init.
+RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+env.AddRCInitFunc(
+     RCINIT_IMG,
+    {
+         'sequence_group'             : 'RCINIT_GROUP_0',
+         'init_name'                  : 'rpm',
+         'init_function'              : 'rpmclient_init',
+         'dependencies'               : ['smd','npa']
+    }
+)
+
+# Task for testing things.
+#env.AddRCInitTask(
+#    RCINIT_IMG,
+#    {
+#        'sequence_group'             : 'RCINIT_GROUP_0',    # required
+#        'thread_name'                : 'rpmtest',           # required
+#        'thread_entry'               : 'rpm_test_task',
+#        'stack_size_bytes'           : '8192',
+#        'priority_amss_order'        : 'SLEEP_PRI_ORDER',
+#        'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+#        'dependencies'               : ['rpm']
+#        }
+#    )
+

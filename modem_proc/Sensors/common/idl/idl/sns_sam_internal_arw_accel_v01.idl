@@ -1,0 +1,438 @@
+/*****************************************************************************
+  @FILE     sns_sam_internal_arw_accel_v01.idl
+
+  @BRIEF    Message definition for the Core Activity Recognition for Wearables 
+  algorithm service
+
+  @DESCRIPTION
+  This file defines messages used by Core Activity Recognition for Wearables 
+  algorithm service.
+
+  As prerequisite, the sensor algorithm must use the common Interface
+  defined in the Sensor algorithm framework.
+
+  The messages defined herein will be passed to the Sensor framework using
+  the sensor1_write() API.
+
+  @COPYRIGHT
+  Copyright (c) 2016 Qualcomm Technologies, Inc.  All Rights Reserved
+  Qualcomm Technologies Proprietary and Confidential.
+
+*****************************************************************************/
+include "sns_sam_common_v01.idl";
+
+revision 0;
+
+const SNS_SAM_INTERNAL_ARW_ACCEL_SUID = 0xb1c4ef4b2b1e7b5b;
+
+const SNS_SAM_INTERNAL_ARW_ACCEL_MAX_ITEMS_IN_BATCH = 100;
+/**< Max number of reports in a batch indication
+*/
+
+const SNS_SAM_INTERNAL_ARW_ACCEL_MS_NUM = 20;
+/**< Max number of supported motion states
+*/
+
+//! @ENUM SNS_SAM_INTERNAL_ARW_ACCEL_MS_ENUM
+enum
+{
+    SNS_SAM_INTERNAL_ARW_ACCEL_MS_UNKNOWN = 0,
+    SNS_SAM_INTERNAL_ARW_ACCEL_MS_STATIONARY = 1,
+    SNS_SAM_INTERNAL_ARW_ACCEL_MS_VEHICLE = 2,
+    SNS_SAM_INTERNAL_ARW_ACCEL_MS_WALK = 3,
+    SNS_SAM_INTERNAL_ARW_ACCEL_MS_RUN = 4,
+    SNS_SAM_INTERNAL_ARW_ACCEL_MS_BIKE = 5
+} sns_sam_internal_arw_accel_ms_e;
+/**< Currently supported motion states
+*/
+
+//! @ENUM SNS_SAM_INTERNAL_ARW_ACCEL_MS_EVENT_ENUM
+enum
+{
+    SNS_SAM_INTERNAL_ARW_ACCEL_MS_EVENT_NONE = 0,
+    SNS_SAM_INTERNAL_ARW_ACCEL_MS_EVENT_EXIT = 1,
+    SNS_SAM_INTERNAL_ARW_ACCEL_MS_EVENT_ENTER = 2
+} sns_sam_internal_arw_accel_ms_event_e;
+
+//! @ENUM SNS_SAM_INTERNAL_ARW_ACCEL_MS_STATUS_ENUM
+enum
+{
+    SNS_SAM_INTERNAL_ARW_ACCEL_MS_STATUS_OUT = 0,
+    SNS_SAM_INTERNAL_ARW_ACCEL_MS_STATUS_IN = 1
+} sns_sam_internal_arw_accel_ms_status_e;
+
+
+struct {
+  float motion_state_probability;
+  /**<
+    Likelihood of the reported motion state in the range from 0 to 1.
+  */
+  
+  sns_sam_internal_arw_accel_ms_event_e ms_event;
+  /**<
+    Indicates whether this motion state was entered/exited, or unchanged
+    in this report period. Entry/Exit values only apply to async reporting.
+    Is a transitory property; will not retain its value between consecutive
+    reports.
+  */
+
+  sns_sam_internal_arw_accel_ms_status_e ms_status;
+  /**< 
+    Current status of the motion event (either "in" or "out"). Will
+    be coherent with ms_event. (ie, if ms_event=ENTER, ms_status=IN), but
+    is a property that is maintained until an event causes it to change.
+  */
+
+  uint32 ms_status_change_timestamp;
+  /**<
+    Timestamp of the last ms_status change. For async reporting,
+    will be the timestamp of ms_event as well.
+  */
+} sns_sam_internal_arw_accel_report_data_s;
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_ARW_ACCEL_ENABLE
+    @BRIEF This command enables the internal_arw_accel algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_ARW_ACCEL_ENABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  //! @VERSION 1.1
+  optional sns_suspend_notification_s notify_suspend;
+  /**< Identifies if indications for this request should be sent
+       when the processor is in suspend state.
+
+       If this field is not specified, default value will be set to
+       notify_suspend->proc_type                  = SNS_PROC_MODEM
+       notify_suspend->send_indications_during_suspend  = TRUE
+
+       This field does not have any bearing on error indication
+       messages, which will be sent even during suspend.
+    */
+
+} sns_sam_internal_arw_accel_enable_req_msg;
+
+//! @MSG     SNS_SAM_INTERNAL_ARW_ACCEL_ENABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp = 2;
+
+  optional uint8 instance_id;
+  /**<
+    Algorithm instance ID maintained/assigned by SAM.
+    The client shall use this instance ID for future messages associated with
+    current algorithm instance.
+    */
+} sns_sam_internal_arw_accel_enable_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_ARW_ACCEL_DISABLE
+    @BRIEF This command disables the internal_arw_accel algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_ARW_ACCEL_DISABLE_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8 instance_id;
+  /**< To identify the algorithm instance to be disabled.  */
+} sns_sam_internal_arw_accel_disable_req_msg;
+
+//! @MSG     SNS_SAM_INTERNAL_ARW_ACCEL_DISABLE_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp = 2;
+
+  optional uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_sam_internal_arw_accel_disable_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_ARW_ACCEL_GET_REPORT
+    @BRIEF This command fetches latest report output of internal_arw_accel algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_ARW_ACCEL_GET_REPORT_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+} sns_sam_internal_arw_accel_get_report_req_msg;
+
+//! @MSG     SNS_SAM_INTERNAL_ARW_ACCEL_GET_REPORT_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp = 2;
+
+  optional uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  optional sns_sam_internal_arw_accel_report_data_s report_data<SNS_SAM_INTERNAL_ARW_ACCEL_MS_NUM>;
+  /**< Listing of all supported motion states, including status (in or out) and 
+       timestamp of when the status occurred. Indexed by sns_sam_internal_arw_accel_ms_e */
+
+} sns_sam_internal_arw_accel_get_report_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_ARW_ACCEL_REPORT
+    @BRIEF Output report from the internal_arw_accel algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_ARW_ACCEL_REPORT_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  mandatory uint32 timestamp;
+  /**< Timestamp of last sensor input sample with which motion state was computed.
+  Unit is in SSC clock ticks*/
+
+  mandatory sns_sam_internal_arw_accel_report_data_s report_data<SNS_SAM_INTERNAL_ARW_ACCEL_MS_NUM>;
+  /**< Listing of all supported motion states, including status (in or out) and 
+       timestamp of when the status occurred. Indexed by sns_sam_internal_arw_accel_ms_e */
+
+} sns_sam_internal_arw_accel_report_ind_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_ARW_ACCEL_ERROR
+    @BRIEF Asynchronous error report from the internal_arw_accel algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_ARW_ACCEL_ERROR_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//============================================================================
+
+message {
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  mandatory uint32 timestamp;
+  /**< Timestamp of when the error was detected; in SSC clock ticks */
+
+  mandatory uint8 error;
+  /**< sensors error code */
+} sns_sam_internal_arw_accel_error_ind_msg;
+
+
+//! @VERSION 1.0
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_ARW_ACCEL_BATCH
+    @BRIEF This command handles batch mode for the internal_arw_accel algorithm.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @DESCRIPTION Set the batch period for an active algorithm stream.
+                 A subsequent request may update or disable the batch period;
+                 all batched output will be sent prior to the response message.
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_ARW_ACCEL_BATCH_REQ
+//! @TYPE    Request
+//! @SENDER  Client
+//----------------------------------------------------------------------------
+
+message {
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance.  */
+
+  mandatory int32 batch_period;
+  /**< Specifies the interval over which reports are to be batched, in seconds;
+       Q16 format. If AP is in suspend and notify_suspend is FALSE, undelivered
+       reports will be batched in circular FIFO and delivered upon wakeup.
+       P = 0 to disable batching.
+       P > 0 to enable batching.
+       P < 0 See sns_sam_batch_config_e.
+    */
+
+} sns_sam_internal_arw_accel_batch_req_msg;
+
+//! @MSG     SNS_SAM_INTERNAL_ARW_ACCEL_BATCH_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message {
+  mandatory sns_common_resp_s resp = 2;
+
+  optional uint8 instance_id;
+  /**< Algorithm instance ID maintained/assigned by SAM */
+
+  optional uint32 max_batch_size;
+  /**< Max supported batch size */
+
+  optional uint32 timestamp;
+  /**< Timestamp when the batch request was processed in SSC ticks */
+} sns_sam_internal_arw_accel_batch_resp_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_ARW_ACCEL_BATCH_REPORT
+    @BRIEF Report containing a batch of algorithm outputs
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//! @MSG     SNS_SAM_INTERNAL_ARW_ACCEL_BATCH_IND
+//! @TYPE    Indication
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+struct {
+  uint32 timestamp;
+  /**< Timestamp of motion state change that precipitated this indication; in SSC ticks */
+
+  sns_sam_internal_arw_accel_report_data_s report_data<SNS_SAM_INTERNAL_ARW_ACCEL_MS_NUM>;
+  /**< internal_arw_accel algorithm output report. Indexed by sns_sam_internal_arw_accel_ms_e */
+
+} sns_sam_internal_arw_accel_batch_item_s;
+
+message {
+  mandatory uint8 instance_id;
+  /**< Instance id identifies the algorithm instance */
+
+  mandatory sns_sam_internal_arw_accel_batch_item_s items<SNS_SAM_INTERNAL_ARW_ACCEL_MAX_ITEMS_IN_BATCH>;
+  /**< internal_arw_accel algorithm output reports */
+
+  optional uint8 ind_type;
+  /**< Optional batch indication type
+       SNS_BATCH_ONLY_IND - Standalone batch indication. Not part of a back to back indication stream
+       SNS_BATCH_FIRST_IND - First indication in stream of back to back indications
+       SNS_BATCH_INTERMEDIATE_IND - Intermediate indication in stream of back to back indications
+       SNS_BATCH_LAST_IND - Last indication in stream of back to back indications
+    */
+
+} sns_sam_internal_arw_accel_batch_ind_msg;
+
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_ARW_ACCEL_CANCEL
+    @BRIEF Cancels all requests to the algorithm service from this client.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//============================================================================
+/** @COMMAND SNS_SAM_INTERNAL_ARW_ACCEL_VERSION
+    @BRIEF This command requests algorithm service version.
+    @USAGE Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+*/
+//============================================================================
+
+//============================================================================
+// Service definition
+//============================================================================
+service SNS_SAM_INTERNAL_ARW_ACCEL_SVC {
+  //! @ID SNS_SAM_INTERNAL_ARW_ACCEL_CANCEL
+  sns_common_cancel_req_msg        SNS_SAM_INTERNAL_ARW_ACCEL_CANCEL_REQ,
+  sns_common_cancel_resp_msg       SNS_SAM_INTERNAL_ARW_ACCEL_CANCEL_RESP
+    = 0x00;
+
+  //! @ID SNS_SAM_INTERNAL_ARW_ACCEL_VERSION
+  sns_common_version_req_msg       SNS_SAM_INTERNAL_ARW_ACCEL_VERSION_REQ,
+  sns_common_version_resp_msg      SNS_SAM_INTERNAL_ARW_ACCEL_VERSION_RESP
+    = 0x01;
+
+  //! @ID SNS_SAM_INTERNAL_ARW_ACCEL_ENABLE
+  sns_sam_internal_arw_accel_enable_req_msg       SNS_SAM_INTERNAL_ARW_ACCEL_ENABLE_REQ,
+  sns_sam_internal_arw_accel_enable_resp_msg      SNS_SAM_INTERNAL_ARW_ACCEL_ENABLE_RESP
+    = 0x02;
+
+  //! @ID SNS_SAM_INTERNAL_ARW_ACCEL_DISABLE
+  sns_sam_internal_arw_accel_disable_req_msg      SNS_SAM_INTERNAL_ARW_ACCEL_DISABLE_REQ,
+  sns_sam_internal_arw_accel_disable_resp_msg     SNS_SAM_INTERNAL_ARW_ACCEL_DISABLE_RESP
+    = 0x03;
+
+  //! @ID SNS_SAM_INTERNAL_ARW_ACCEL_GET_REPORT
+  sns_sam_internal_arw_accel_get_report_req_msg   SNS_SAM_INTERNAL_ARW_ACCEL_GET_REPORT_REQ,
+  sns_sam_internal_arw_accel_get_report_resp_msg  SNS_SAM_INTERNAL_ARW_ACCEL_GET_REPORT_RESP
+    = 0x04;
+
+  //! @ID SNS_SAM_INTERNAL_ARW_ACCEL_REPORT
+  sns_sam_internal_arw_accel_report_ind_msg       SNS_SAM_INTERNAL_ARW_ACCEL_REPORT_IND
+    = 0x05;
+
+  //! @ID SNS_SAM_INTERNAL_ARW_ACCEL_ERROR
+  sns_sam_internal_arw_accel_error_ind_msg        SNS_SAM_INTERNAL_ARW_ACCEL_ERROR_IND
+    = 0x06;
+
+    //! @ID SNS_SAM_INTERNAL_ARW_ACCEL_BATCH
+  sns_sam_internal_arw_accel_batch_req_msg       SNS_SAM_INTERNAL_ARW_ACCEL_BATCH_REQ,
+  sns_sam_internal_arw_accel_batch_resp_msg      SNS_SAM_INTERNAL_ARW_ACCEL_BATCH_RESP
+    = 0x21;
+
+  //! @ID SNS_SAM_INTERNAL_ARW_ACCEL_BATCH_REPORT
+  sns_sam_internal_arw_accel_batch_ind_msg       SNS_SAM_INTERNAL_ARW_ACCEL_BATCH_IND
+    = 0x22;
+
+  //! @ID SNS_SAM_GET_ALGO_ATTRIBUTES
+  sns_sam_get_algo_attrib_req_msg  SNS_SAM_INTERNAL_ARW_ACCEL_GET_ATTRIBUTES_REQ,
+  sns_sam_get_algo_attrib_resp_msg SNS_SAM_INTERNAL_ARW_ACCEL_GET_ATTRIBUTES_RESP
+    = 0x24;
+
+} = SNS_QMI_SVC_ID_61;
+
+//============================================================================
+// File footer
+//============================================================================
+/**
+@FOOTER
+*/
+
+//============================================================================
+// End of Module
+//============================================================================

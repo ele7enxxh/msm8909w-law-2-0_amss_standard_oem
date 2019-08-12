@@ -1,0 +1,88 @@
+#===============================================================================
+#
+#                             Edit History
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsee/services/ks/build/SConscript#1 $
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011/07/12   spa     Create initial version
+#
+#===============================================================================
+#                    Copyright (c) 2011 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+# QSEE Lib
+#-------------------------------------------------------------------------------
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/services/ks/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+   'SERVICES',                    #< comdef.h
+   'SYSTEMDRIVERS',               #< HALhwio.h
+   'DAL',                         #< HALcomdef.h
+   'KERNEL',                      #< stringl.h
+   'QSEE_INCLUDE_ARMV8',
+   'QSEE',
+   'SEC_APP_ARMV8',
+   'TZSSD',
+])
+
+env.RequireRestrictedApi([
+   'TZKS',                   #< tz_ks.h
+   'TZCRYPTO',               #< tzbsp_cipher/hash/etc
+   'TZLIBARMV7',             #< tzbsp_sys.h
+   'TZSSD',                  #< ssd_errno.h
+   'TZCHIPSET',              #< tzbsp_memory_map.h
+   'TZSECAPP',               #< smc.h
+   'SECUREMSM',              #< secboot.h (rollback protection)
+   'TZIMGAUTH',              #< tzbsp_rollback_version.h (rollback protection)
+   'SECAPP',
+   'MINK',
+   'QSEE_INCLUDE_ARMV8',
+   'QSEE',
+   'SEC_APP_ARMV8',   
+   'TZSSD',
+])
+
+env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+env.Append(ASFLAGS = " --diag_suppress=1786,2523 ")
+
+
+env.Append(CPPPATH = "${BUILD_ROOT}/core/securemsm/unifiedcrypto/shared/aes/inc")
+env.Append(CPPPATH = "${BUILD_ROOT}/core/securemsm/unifiedcrypto/core/aes/inc")
+env.Append(CPPPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/sec_app/inc")
+env.Append(CPPPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/services/ks/inc")
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = "--gnu")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+
+SOURCES = [
+    '${BUILDPATH}/ks.c',
+    '${BUILDPATH}/ks_ns.c',    
+    '${BUILDPATH}/tz_ks_pp.c',
+    '${BUILDPATH}/tz_ks_dy.c',
+    '${BUILDPATH}/tz_ks_common.c',    
+    '${BUILDPATH}/tz_ks_ns.c',
+ ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_ks', SOURCES)

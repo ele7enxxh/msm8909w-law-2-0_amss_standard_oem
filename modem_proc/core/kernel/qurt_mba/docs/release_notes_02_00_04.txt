@@ -1,0 +1,60 @@
+
+
+
+[*======================= COPYRIGHT NOTICE ======================*]
+[* Copyright 2011 QUALCOMM Incorporated.                         *]  
+[* All rights reserved.                                          *] 
+[*                                                               *]   
+[* All data and information contained in or disclosed by this    *]
+[* document is confidential and proprietary information of       *]
+[* QUALCOMM Incorporated and all rights therein are expressly    *]
+[* reserved. By accepting this material the recipient agrees     *]
+[* that this material and the information contained therein is   *]
+[* held in confidence and in trust and will not be used, copied, *]
+[* reproduced in whole or in part, nor its contents revealed in  *]
+[* any manner to others without the express written permission   *]
+[* of QUALCOMM.                                                  *]
+[*===============================================================*]
+
+
+
+HEXAGON QuRT RTOS VERSION 02.00.04 - RELEASE NOTES 
+
+* Overview
+
+    - Bug Fixes 
+    - Kernel
+    - QuRT User library
+	- Multi PD QuRT
+    
+
+* Bug Fixes
+
+    - Alignment of mage starting address changed from 64KB to 4KB. Allow boot
+      code to be loaded to TCM without big aligment loss.
+    - QuRT error analyzing cmmd script was updated for V5.
+    - Cannot use CONST32() directive in timer as GP segment is not used in modem FW.
+      http://aus-bugzilla/show_bug.cgi?id=6834
+    - Avoid re-entrant trap1 call in qurt timer function in case caller is within QuRT OS
+
+* Kernel
+    - Replace jumpr/callr with constant extender form for code optimization. 
+      http://aus-bigzilla/show_bug.cgi?id=6667
+    - Support L2 cache retention during power collapse. It significantly reduced
+      power collapse latency
+    - Replace PCYCLEHI/LO separate reads and checking loops with one 64bit read
+      from s31:30. Significantly optimize QuRTK_tlb_count_free and kernel trace
+      macros.
+      http://aus-bigzilla/show_bug.cgi?id=6699
+    - Make kernel prio_set function as indepenent function unit with 
+      QURTK_prio_set_internal(). this change is in preparation for PI futex.
+	
+* QuRT user library
+    Created the qurt_signal object. It supported both conjunctive and disjunctive 
+    waits fro signal bits. The semantic for qurt_signal for disjunctive wait is 
+    similiar to qurt_anysignal; The conjunctive wait is similair to qurt_allsignal
+
+	
+* Multi PD QuRT
+	Create a new target - ADSPv5MP to support multi PD build in ADSP2.0 Package Warehouse
+

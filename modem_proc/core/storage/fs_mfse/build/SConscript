@@ -1,0 +1,238 @@
+#===============================================================================
+
+#
+
+# FS_MFSE Libs
+
+#
+
+# GENERAL DESCRIPTION
+
+#    build script
+
+#
+
+# Copyright (c) 2013 by QUALCOMM, Incorporated.
+
+# All Rights Reserved.
+
+# QUALCOMM Proprietary/GTDR
+
+#
+
+#-------------------------------------------------------------------------------
+
+#
+
+#  $Header: //components/rel/core.mpss/3.5.c12.3/storage/fs_mfse/build/SConscript#1 $  $DateTime: 2016/12/13 07:59:23 $  $Author: mplcsds1 $
+
+#  $Change: 11985146 $
+
+#                      EDIT HISTORY FOR FILE
+
+#
+
+#  This section contains comments describing changes made to the module.
+
+#  Notice that changes are listed in reverse chronological order.
+
+#
+
+# when        who  what, where, why
+
+# ----------  ---  -------------------------------------------------------------
+
+# 2013-04-03  dks  Create
+
+#
+
+#===============================================================================
+
+Import('env')
+
+env = env.Clone()
+
+env.Append(CPPDEFINES=['MSG_BT_SSID_DFLT=MSG_SSID_FS'])
+
+
+
+#-------------------------------------------------------------------------------
+
+# Source PATH
+
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/storage/fs_mfse/src"
+
+
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+
+#-------------------------------------------------------------------------------
+
+# External depends within CoreBSP
+
+#-------------------------------------------------------------------------------
+
+# add support for qmimsgs so api folder can rename to qmimsgs
+
+qmimsgs_path = env.RealPath('${BUILD_ROOT}/qmimsgs')
+
+if env.PathExists(qmimsgs_path):
+
+   env.RequirePublicApi(['COMMON', 'MFSE'], area='QMIMSGS')
+
+
+
+api_path = env.RealPath('${BUILD_ROOT}/api')
+
+if env.PathExists(api_path):
+
+   env.RequirePublicApi(['COMMON', 'MFSE'], area='api')
+
+
+
+#-------------------------------------------------------------------------------
+
+# Internal depends within CoreBSP
+
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+
+   'DAL',
+
+   'DEBUGTOOLS',
+
+   'MPROC',
+
+   'SERVICES',
+
+   'STORAGE',
+
+   'SYSTEMDRIVERS',
+
+   # needs to be last as it may contain wrong comdef.h
+
+   'KERNEL',
+
+]
+
+
+
+env.RequirePublicApi(CBSP_API)
+
+env.RequireRestrictedApi(CBSP_API)
+
+
+
+#-------------------------------------------------------------------------------
+
+# Sources, libraries
+
+#-------------------------------------------------------------------------------
+
+
+
+FS_MFSE_SOURCES = [
+
+    '${BUILDPATH}/fs_mfse.c',
+
+    '${BUILDPATH}/fs_mfse_task.c',
+
+    '${BUILDPATH}/fs_mfse_util.c',
+
+    '${BUILDPATH}/modem_filesystem_external_impl_v01.c',
+
+]
+
+
+
+#-------------------------------------------------------------------------------
+
+# FS_MFSE config
+
+#-------------------------------------------------------------------------------
+
+
+
+if 'USES_EFS_MFSE' in env:
+
+  env.Append(CPPDEFINES = ["FEATURE_EFS_MFSE"])
+
+
+
+if 'USES_APPS_CONTROLS_EFS_SYNC' in env:
+
+  env.Append(CPPDEFINES = ["FEATURE_EFS_APPS_CONTROLS_EFS_SYNC"])
+
+  env.Append(CPPDEFINES = ["FEATURE_EFS_MFSE"])
+
+
+
+#-------------------------------------------------------------------------------
+
+# Add Libraries to image
+
+#-------------------------------------------------------------------------------
+
+
+
+FS_MFSE_IMAGES = [
+
+	'MODEM_IMAGE',
+
+	'CBSP_MODEM_IMAGE',
+
+	'SINGLE_IMAGE',
+
+	'CBSP_SINGLE_IMAGE',
+
+	'QDSP6_SW_IMAGE',
+
+	'CBSP_QDSP6_SW_IMAGE',
+
+]
+
+
+
+if ('USES_APPS_CONTROLS_EFS_SYNC' in env) or ('USES_EFS_MFSE' in env):
+
+  env.AddLibrary(FS_MFSE_IMAGES,'${BUILDPATH}/fs_mfse', FS_MFSE_SOURCES)
+
+
+
+#-------------------------------------------------------------------------------
+
+# RCINIT Initialization of service task
+
+#-------------------------------------------------------------------------------
+
+
+
+if ('USES_APPS_CONTROLS_EFS_SYNC' in env) or ('USES_EFS_MFSE' in env):
+
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+
+  env.AddRCInitTask(           # FS_MFSE
+
+   RCINIT_IMG,                 # define TMC_RCINIT_REXTASK_FS_MFSE
+
+   {
+
+     'sequence_group'             : 'RCINIT_GROUP_1',    # depends on fs_task
+
+     'thread_name'                : 'fs_mfse',
+
+     'thread_entry'               : 'fs_mfse_task',
+
+     'stack_size_bytes'           : '4096',              #processing task calls efs APIs
+
+     'priority_amss_order'        : 'FS_PRI_ORDER',
+
+     'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+
+   })
+

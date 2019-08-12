@@ -1,0 +1,104 @@
+# -------------------------------------------------------------------------------- #
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/gps/gnss/wwanme/common/build/gnss_wwanme_common.scons#1 $
+# $Date: 2016/12/13 $
+# -------------------------------------------------------------------------------- #
+#                         G N S S _ W W A N M E _ C O M M O N . S C O N S
+#
+# DESCRIPTION
+#   SCons file for the GNSS WWAN ME Common subsystem.
+#
+#
+# INITIALIZATION AND SEQUENCING REQUIREMENTS
+#   None.
+#
+#
+#  Copyright (c) 2011 - 2012 Qualcomm Technologies Incorporated.
+#  Qualcomm Confidential and Proprietary. All Rights Reserved.
+#  Copyright (c) 2013 - 2015 Qualcomm Atheros, Inc.
+#  Qualcomm Atheros Confidential and Proprietary. All Rights Reserved. 
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------------- #
+
+#--------------------------------------------------------------------------------
+# Import the SCons environment
+#--------------------------------------------------------------------------------
+Import('env')
+from glob import glob
+from os.path import join, basename
+
+#--------------------------------------------------------------------------------
+# Check USES flags and return if library isn't needed
+#--------------------------------------------------------------------------------
+if 'USES_CGPS' not in env:
+    Return()
+
+#--------------------------------------------------------------------------------
+# Setup source PATH
+#--------------------------------------------------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#--------------------------------------------------------------------------------
+# Name of the subsystem to which this unit belongs
+#--------------------------------------------------------------------------------
+LIB_TARGET = '${BUILDPATH}/' + 'gnss_wwanme_common'
+
+#--------------------------------------------------------------------------------
+# Images that this VU is added
+#--------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM']
+
+#--------------------------------------------------------------------------------
+# Generate the library and add to an image
+#--------------------------------------------------------------------------------
+BINARY_LIB_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                      for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+#--------------------------------------------------------------------------------
+# Ship our code as binary library and add it to the Modem image
+#--------------------------------------------------------------------------------
+env.AddBinaryLibrary(IMAGES, (LIB_TARGET + '_pvt'), BINARY_LIB_SOURCES)
+
+#--------------------------------------------------------------------------------
+# RCINIT task related
+#--------------------------------------------------------------------------------
+# RCINIT Startup Paramaters
+# task descriptor : compile time "provisioning" information
+# 'control' task will have higher priority over SM_TM and lower priority over LTE_ML1
+# 'meas_proc' task can have lower priority over SM_TM
+# if LTE is not supported or GNSS is using Low Memory Configuration, then OTDOA tasks should not be created
+if ('USES_LTE' in env and
+    'USES_GNSS_LOWMEM' not in env):
+    RCINIT_TASK_WWANME_CONTROL = {
+        'thread_name'         : 'wwanmectrl',
+        'sequence_group'         : env.subst('$MODEM_UPPERLAYER'),      # required
+        'stack_size_bytes'       : '16384',                           # required
+        'priority_amss_order'    : 'SHARED_DRIVER_SERVICE_PRI_ORDER', # required, legacy value pri_order, not exported, run at same pri as TMC
+        'thread_entry'        : 'wwanme_control_task',
+        'cpu_affinity'        : 'REX_ANY_CPU_AFFINITY_MASK',
+        'policy_optin'        : ['default', 'ftm', ],
+    }
+    env.AddRCInitTask (IMAGES, RCINIT_TASK_WWANME_CONTROL)
+
+    RCINIT_TASK_WWANME_MEASPROC = {
+        'thread_name'            : 'wwanmemp',
+        'sequence_group'         : env.subst('$MODEM_UPPERLAYER'),      # required
+        'stack_size_bytes'       : '16384',                           # required
+        'priority_amss_order'    : 'SHARED_BACKGROUND_PRI_ORDER',     # required, legacy value pri_order, not exported, run at same pri as TMC
+        'thread_entry'           : 'wwanme_measproc_task',
+        'cpu_affinity'           : 'REX_ANY_CPU_AFFINITY_MASK',
+        'policy_optin'        : ['default', 'ftm', ],
+    }
+    env.AddRCInitTask (IMAGES, RCINIT_TASK_WWANME_MEASPROC)

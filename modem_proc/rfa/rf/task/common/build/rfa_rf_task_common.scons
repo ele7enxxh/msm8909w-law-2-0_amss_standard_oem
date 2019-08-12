@@ -1,0 +1,453 @@
+#====include path optimized=====================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011-2013 Qualcomm Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rfa/rf/task/common/build/rfa_rf_task_common.scons#1 $
+# $DateTime: 2016/12/13 07:59:52 $ 
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/10/14   kg      Added FTM optin for RCINIT_INIT_RF group and RF_2
+# 04/21/14   kab     Increase priority of "rf_fed_lte" above non_critical tasks
+# 03/24/14   sc      Set tasks RF_1 and RF_2 to desired priority
+# 03/18/14   sc      Mainline RF Task 2
+# 02/26/14   kab     Add RF_FED_LTE Task
+# 09/11/13   dyc     Support policy for opt FTM boot
+# 08/22/13   jr      Added rf_task_init_function in rf_task
+# 07/29/13   tws     Add RF_TASK_1
+# 06/28/13   jr      Reduced stack sizes in rf_fwrsp and rf_apps tasks for Triton targets
+# 06/25/13   par     Fix RF_TASK_2 to be compiled for TSTS PL
+# 01/16/13   aro     Enabled off-target test case compilation
+# 11/29/12   av      Using proper featurization and removing featurization that is not needed
+# 10/05/12   av      Added new rf task for dsda
+# 08/15/12   shb     Added RFDEVICE_INTERFACE
+# 05/25/12   kb/sar  Added UMID for rf_task_ind_umid.
+# 05/14/12   hdz     Changed priority of rf_apps_task from RF_PRI_ORDER to
+#                    MMOC_PRI_ORDER
+# 05/04/12   sar     Added UMID for rf_task_ind_umid.
+# 04/18/12   hdz     Added code to spawn RF_APPS_TASK
+# 03/20/12   aro     Added code to spawn RF_FWRSP_TASK
+# 03/06/12   sar     Updated stack_size_bytes, sequence_group and cpu_affinity parameters.
+# 06/28/11   sar     update needed to move 3 files from rfa/api to protected dirs.
+# 04/23/11   prp     Created
+#===============================================================================
+
+Import('env')
+
+LIB_NAME        = 'rf_task_common'
+IMAGE_SOURCES   = ['MODEM_MODEM','MOB_RFA']
+
+LIB_SRC         = 'src'
+LIB_PROTECTED   = 'protected'
+
+
+from glob import glob
+
+env = env.Clone()
+
+# Method to abort processing of this file, if not required for current air interface mode, etc
+#if ( (USES_TEST_FLAG1 in env and USES_TEST_FLAG2 not in env) or USES_TEST_FLAG3 not in env)):
+#   Return( )
+
+#-------------------------------------------------------------------------------
+# Source PATH:  
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+#BUILDPATH =  image_name / processor_name, eg modem_libs / arm11 = directory where built objects stored
+env.VariantDir('${BUILDPATH}', SRCPATH , duplicate=0)
+
+env.Append(CPPDEFINES = ['MSG_BT_SSID_DFLT=MSG_SSID_RF',]) 
+env.RequirePublicApi([
+#    'APTTESTS',
+#    'BOOT',
+#    'BUSES', 
+    'DAL',
+    'DEBUGTOOLS',
+#    'HAL',
+#    'HWENGINES',
+#    'IODEVICES',
+    'KERNEL',
+    'MPROC', 
+#    'POWER', 
+#    'SECUREMSM', 
+    'SERVICES',
+#    'STORAGE', 
+    'SYSTEMDRIVERS', 
+#    'HWIO'
+#    'WIREDCONNECTIVITY',
+    ],
+    area='CORE')
+
+env.RequirePublicApi([
+#    'ONEX',       
+#    'DATA',       
+#    'DATACOMMON', 
+#    'DATAMODEM',  
+#    'GERAN',      
+#    'GPS',        
+#    'HDR', 
+#    'LTE',       
+    'MCS',        
+    'MMODE',      
+#    'NAS',        
+#    'PBM',        
+#    'RFA',        
+#    'UIM',        
+#    'UTILS',      
+#    'WCDMA',      
+#    'WMS',
+    ],
+    area='MODEM')
+
+env.RequirePublicApi([
+#    'APR',
+#    'AUDIO',
+#    'CVD',
+#    'MVS',
+#    'MMUTILS',
+    ],
+    area='MULTIMEDIA')
+    
+env.RequireRestrictedApi([
+    'RFDEVICE_INTERFACE',
+#    'ONEX',
+#    'DATA', 
+#    'MODEM_DATA', 
+#    'MODEM_DATACOMMON', 
+#    'DATACOMMON',
+#    'FW', 
+#    'GERAN',
+#    'GPS', 
+#    'HDR', 
+    'LTE', 
+    'MCS', 
+#    'XSD', 
+    'MMODE',
+    'NAS', 
+#    'PBM', 
+    'RFA',
+#    'UIM', 
+#    'UTILS', 
+#    'WCDMA', 
+#    'WMS', 
+    ])
+
+
+env.RequireProtectedApi([
+#    'LM_COMMON_INC',
+#    'LM_NIKEL_INC',
+#    'RFC_COMMON_INC',
+#    'RFC_RF_CARD_INC',
+#    'RFC_TARGET_INC',
+#    'RF_CDMA_INC',
+    'RF_COMMON_INC',
+#    'RF_DEVICE_INC',
+#    'RF_GNSS_INC',
+#    'RF_GSM_INC',
+#    'RF_HAL_INC',
+#    'RF_LTE_INC',
+#    'RF_MDSP_INC',
+#    'RF_MEAS_INC',
+#    'RF_RFD_INC',
+#    'RF_RFNV_INC',
+    'RF_TASK_INC',
+#    'RF_WCDMA_INC',
+    ])
+
+env.RequireProtectedApi([
+#    'LM_COMMON_SRC',
+#    'RFC_COMMON_SRC',
+#    'RFC_RF_CARD_SRC',
+#    'RFC_TARGET_SRC',
+#    'RF_CDMA_SRC',
+#    'RF_COMMON_SRC',
+#    'RF_GNSS_SRC',
+#    'RF_GSM_SRC',
+#    'RF_HAL_SRC',
+#    'RF_LTE_SRC',
+#    'RF_MEAS_SRC',
+#    'RF_RFD_SRC',
+#    'RF_TASK_SRC',
+#    'RF_WCDMA_SRC',
+    ])
+
+env.RequireProtectedApi([
+#    'LM_NIKEL_PROTECTED',
+#    'RF_CDMA_PROTECTED',
+#    'RF_COMMON_PROTECTED',
+#    'RF_DEVICE_PROTECTED',
+#    'RF_GNSS_PROTECTED',
+#    'RF_GSM_PROTECTED',
+#    'RF_HAL_PROTECTED',
+#    'RF_LTE_PROTECTED',
+#    'RF_MDSP_PROTECTED',
+#    'RF_MEAS_PROTECTED',
+#    'RF_RFD_PROTECTED',
+#    'RF_WCDMA_PROTECTED',
+    ])
+
+
+
+
+LIB_SOURCES = [ ]  #empy list
+
+SOURCE_FILES = [ ] 
+
+#find all .c
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.c'))
+
+#find all .cpp files 
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.cpp'))
+
+#find all .s files
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.s'))
+
+
+for filename in SOURCE_FILES:
+        LIB_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+
+env.AddLibrary(IMAGE_SOURCES, '${BUILDPATH}/'+LIB_NAME, [LIB_SOURCES])
+
+
+
+
+
+#uncomment this section if protected directory is added
+
+#env.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+#this statement must appear outside of 'USES_NO_STRIP_NO_ODM' test so that AddBinaryLibrary can be launched
+#LIB_SOURCES = []  #empy list
+
+#if 'USES_NO_STRIP_NO_ODM' in env:
+
+#        SOURCE_FILES = [ ] 
+
+        #find all .c
+#        SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.c'))
+
+        #find all .cpp files 
+#        SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.cpp'))
+
+        #find all .s files
+#        SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.s'))
+
+
+#        for filename in SOURCE_FILES:
+#                LIB_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+
+#this statement must appear outside of 'USES_NO_STRIP_NO_ODM' test so that the pre-built library will be added to the list file
+#env.AddBinaryLibrary(IMAGE_SOURCES, '${BUILDPATH}/'+LIB_NAME+'_protected',[
+#    LIB_SOURCES,
+#    ])
+
+# RC Init Function Dictionary
+RCINIT_INIT_RF = {
+ 'sequence_group'      : env.subst('$MODEM_DRIVER'),
+ 'init_name'           : 'rf_task_init_function',
+ 'init_function'       : 'rf_task_init_function',
+ 'policy_optin'        : ['default', 'ftm', ],
+}
+
+RCINIT_RF_TASK = {
+ 'thread_name'                : 'rf',
+ 'sequence_group'             : env.subst('$MODEM_DRIVER'),
+ 'stack_size_bytes'           : env.subst('$RF_STKSZ'),                      # required
+ 'priority_amss_order'        : 'RF_PRI_ORDER',       # required
+ 'stack_name'                 : 'rf_stack',
+ 'thread_entry'               : 'rf_task',
+ 'tcb_name'                   : 'rf_tcb',
+ 'cpu_affinity'	              : env.subst('$MODEM_CPU_AFFINITY'),
+ 'policy_optin'               : ['default', 'ftm', ],
+} 
+
+if 'USES_MODEM_RCINIT' in env:
+   env.AddRCInitFunc(IMAGE_SOURCES, RCINIT_INIT_RF)
+   env.AddRCInitTask(IMAGE_SOURCES, RCINIT_RF_TASK)
+
+
+RCINIT_RF_TASK_1= {
+ 'thread_name'                : 'rf_1',
+ 'sequence_group'             : env.subst('$MODEM_DRIVER'),
+ 'stack_size_bytes'           : env.subst('$RF_STKSZ'), # required
+ 'priority_amss_order'        : '169', # required RF GSM priority from 160
+ 'stack_name'                 : 'rf_stack_1',
+ 'thread_entry'               : 'rf_task_1',
+ 'tcb_name'                   : 'rf_tcb_1',
+ 'cpu_affinity'	              : env.subst('$MODEM_CPU_AFFINITY'),
+ 'policy_optin'               : ['default', 'ftm', ],
+} 
+
+if 'USES_MODEM_RCINIT' in env:
+   env.AddRCInitTask(IMAGE_SOURCES, RCINIT_RF_TASK_1)
+
+RCINIT_RF_TASK_2 = {
+ 'thread_name'                : 'rf_2',
+ 'sequence_group'             : env.subst('$MODEM_DRIVER'),
+ 'stack_size_bytes'           : env.subst('$RF_STKSZ'), # required
+ 'priority_amss_order'        : '169', # required RF GSM priority from 160
+ 'stack_name'                 : 'rf_stack_2',
+ 'thread_entry'               : 'rf_task_2',
+ 'tcb_name'                   : 'rf_tcb_2',
+ 'cpu_affinity'	              : env.subst('$MODEM_CPU_AFFINITY'),
+ 'policy_optin'               : ['default', 'ftm', ],
+} 
+
+if ('USES_MODEM_RCINIT' in env):
+   env.AddRCInitTask(IMAGE_SOURCES, RCINIT_RF_TASK_2)
+
+RCINIT_RF_TASK_3 = {
+ 'thread_name'                : 'rf_3',
+ 'sequence_group'             : env.subst('$MODEM_DRIVER'),
+ 'stack_size_bytes'           : env.subst('$RF_STKSZ'),                      # required
+ 'priority_amss_order'        : 'RF_PRI_ORDER',       # required
+ 'stack_name'                 : 'rf_stack_3',
+ 'thread_entry'               : 'rf_task_3',
+ 'tcb_name'                   : 'rf_tcb_3',
+ 'cpu_affinity'	              : env.subst('$MODEM_CPU_AFFINITY')
+} 
+
+if 'USES_MODEM_RCINIT' in env and 'USES_TSTS' in env:
+   env.AddRCInitTask(IMAGE_SOURCES, RCINIT_RF_TASK_3)
+
+if ('USES_MODEM_RCINIT' in env) and (env.get('CHIPSET') in ('msm8x10', 'msm8x26')):
+    RCINIT_TASK_RF_FWRSP = {
+      'sequence_group'             : env.subst('$MODEM_DRIVER'),
+      'thread_name'                : 'rf_fwrsp',
+      'stack_size_bytes'           : '2048',
+      'priority_amss_order'        : 'RF_PRI_ORDER',
+      'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY'),
+    }
+
+if ('USES_MODEM_RCINIT' in env) and (env.get('CHIPSET') not in ('msm8x10', 'msm8x26')):
+    RCINIT_TASK_RF_FWRSP = {
+      'sequence_group'             : env.subst('$MODEM_DRIVER'),
+      'thread_name'                : 'rf_fwrsp',
+      'stack_size_bytes'           : '16384',
+      'priority_amss_order'        : 'RF_PRI_ORDER',
+      'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY'),
+      'policy_optin'               : ['default', 'ftm', ],
+    }
+
+if ('USES_MODEM_RCINIT' not in env) and (env.get('CHIPSET') in ('msm8x10', 'msm8x26')):
+    RCINIT_TASK_RF_FWRSP = {
+      'sequence_group'             : 'RCINIT_GROUP_5',
+      'thread_name'                : 'rf_fwrsp',
+      'stack_size_bytes'           : '2048',
+      'priority_amss_order'        : 'RF_PRI_ORDER',
+      'cpu_affinity'               : 'REX_SINGLE_CPU_AFFINITY_MASK',
+    }
+
+if ('USES_MODEM_RCINIT' not in env) and (env.get('CHIPSET') not in ('msm8x10', 'msm8x26')):
+    RCINIT_TASK_RF_FWRSP = {
+      'sequence_group'             : 'RCINIT_GROUP_5',
+      'thread_name'                : 'rf_fwrsp',
+      'stack_size_bytes'           : '16384',
+      'priority_amss_order'        : 'RF_PRI_ORDER',
+      'cpu_affinity'               : 'REX_SINGLE_CPU_AFFINITY_MASK',
+      'policy_optin'               : ['default', 'ftm', ],
+    }
+
+if 'USES_RCINIT' in env: # RCINIT Startup Paramaters 
+  # task descriptor : add to specific build products
+  env.AddRCInitTask(IMAGE_SOURCES, RCINIT_TASK_RF_FWRSP)
+
+if ('USES_MODEM_RCINIT' in env) and (env.get('CHIPSET') in ('msm8x10', 'msm8x26')):
+    RCINIT_TASK_RF_APPS = {
+      'sequence_group'             : env.subst('$MODEM_DRIVER'),
+      'thread_name'                : 'rf_apps',
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'MMOC_PRI_ORDER',
+      'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY'),
+    }
+
+if ('USES_MODEM_RCINIT' in env) and (env.get('CHIPSET') not in ('msm8x10', 'msm8x26')):
+    RCINIT_TASK_RF_APPS = {
+      'sequence_group'             : env.subst('$MODEM_DRIVER'),
+      'thread_name'                : 'rf_apps',
+      'stack_size_bytes'           : '16384',
+      'priority_amss_order'        : 'MMOC_PRI_ORDER',
+      'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY'),
+      'policy_optin'               : ['default', 'ftm', ],
+    }
+
+if ('USES_MODEM_RCINIT' not in env) and (env.get('CHIPSET') in ('msm8x10', 'msm8x26')):
+    RCINIT_TASK_RF_APPS = {
+      'sequence_group'             : 'RCINIT_GROUP_5',
+      'thread_name'                : 'rf_apps',
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'MMOC_PRI_ORDER',
+      'cpu_affinity'               : 'REX_SINGLE_CPU_AFFINITY_MASK',
+    }
+
+if ('USES_MODEM_RCINIT' not in env) and (env.get('CHIPSET') not in ('msm8x10', 'msm8x26')):
+    RCINIT_TASK_RF_APPS = {
+      'sequence_group'             : 'RCINIT_GROUP_5',
+      'thread_name'                : 'rf_apps',
+      'stack_size_bytes'           : '16384',
+      'priority_amss_order'        : 'MMOC_PRI_ORDER',
+      'cpu_affinity'               : 'REX_SINGLE_CPU_AFFINITY_MASK',
+      'policy_optin'               : ['default', 'ftm', ],
+    }
+
+if 'USES_RCINIT' in env: # RCINIT Startup Paramaters 
+  # task descriptor : add to specific build products
+  env.AddRCInitTask(IMAGE_SOURCES, RCINIT_TASK_RF_APPS)
+
+RCINIT_TASK_RF_FED_LTE = {
+  'sequence_group'             : env.subst('$MODEM_DRIVER'),
+  'thread_name'                : 'rf_fed_lte',
+  'stack_size_bytes'           : '16384',
+  'priority_amss_order'        : '170',
+  'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY'),
+  'policy_optin'               : ['default', 'ftm', ],
+}
+
+if 'USES_RCINIT' in env: # RCINIT Startup Paramaters 
+  # task descriptor : add to specific build products
+  env.AddRCInitTask(IMAGE_SOURCES, RCINIT_TASK_RF_FED_LTE)
+
+RCINIT_TASK_RFLTE_CORE = {
+  'sequence_group'             : env.subst('$MODEM_DRIVER'),
+  'thread_name'                : 'rflte_core',
+  'stack_size_bytes'           : '16384',
+  'priority_amss_order'        : 'RF_PRI_ORDER',
+  'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY'),
+  'policy_optin'               : ['default', 'ftm', ],
+}
+
+if 'USES_RCINIT' in env: # RCINIT Startup Paramaters 
+  # task descriptor : add to specific build products
+  env.AddRCInitTask(IMAGE_SOURCES, RCINIT_TASK_RFLTE_CORE)
+
+if 'USES_MSGR' in env:
+   env.AddUMID('${BUILDPATH}/rf_task_ind_umid.umid', ['../../../../api/common/rf_task_ind_umid.h'])
+
+env.LoadSoftwareUnits( ) 

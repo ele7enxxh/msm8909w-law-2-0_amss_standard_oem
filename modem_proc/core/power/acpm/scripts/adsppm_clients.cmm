@@ -1,0 +1,29 @@
+
+AREA.SELECT A000
+AREA.VIEW
+
+LOCAL &clientNode &clientName &clientId &coreId &clientType
+LOCAL &index &numClients &numClientsPrint
+
+PRINT ""
+PRINT "ADSPPM client list"
+PRINT "------------------"
+&clientNode=V.VALUE(gAdsppmCoreCtx.AdsppmHandleQ.link.pNext)
+&numClients=V.VALUE(gAdsppmCoreCtx.AdsppmHandleQ.nCnt)
+&numClientsPrint=FORMAT.DECIMAL(0,&numClients)
+PRINT "Number of clients = &numClientsPrint"
+&index=1
+WHILE &index<=&numClients
+(
+    &clientId=FORMAT.DECIMAL(0,V.VALUE(((AdsppmHandleType *)&clientNode).clientId))
+    PRINT "clientId = &clientId"
+    PRINT "  client handle = (AdsppmHandleType)&clientNode"
+    &clientName=DATA.STRING(D:V.VALUE(((AdsppmHandleType *)&clientNode).clientName))
+    PRINT "  clientName    = &clientName"
+    &coreId=FORMAT.DECIMAL(0,V.VALUE(((AdsppmHandleType *)&clientNode).coreId))
+    PRINT "  coreId        = &coreId"
+    &clientType=FORMAT.DECIMAL(0,V.VALUE(((AdsppmHandleType *)&clientNode).clientType))
+    PRINT "  clientType    = &clientType"
+    &clientNode=V.VALUE(((coreUtils_Q_LinkType *)&clientNode).pNext)
+    &index=&index+1
+)

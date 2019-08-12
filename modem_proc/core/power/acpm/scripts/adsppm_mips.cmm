@@ -1,0 +1,49 @@
+
+AREA.SELECT A000
+AREA.VIEW
+
+LOCAL &reqNode &clientId &reqData &validFlag &validFlagE
+LOCAL &numClients &numClientsPrint &index &indexPrint
+LOCAL &mipsTotal &mipsPerThread &codeLocation &codeLocationName &reqOperation
+
+PRINT ""
+PRINT "ADSPPM MIPS request list"
+PRINT "------------------------"
+&reqNode=V.VALUE(gAdsppmCoreCtx.AdsppmReqQArray[3].link.pNext)
+&numClients=V.VALUE(gAdsppmCoreCtx.AdsppmReqQArray[3].nCnt)
+&numClientsPrint=FORMAT.DECIMAL(0,&numClients)
+PRINT "Number of clients = &numClientsPrint"
+&index=1
+&indexPrint=FORMAT.DECIMAL(0,&index)
+WHILE &index<=&numClients
+(
+    &reqData=V.VALUE(((RMCtxType *)&reqNode).pRequestData)
+    &clientId=FORMAT.DECIMAL(0,V.VALUE(((RMCtxType *)&reqNode).clientId))
+    &validFlag=FORMAT.DECIMAL(0,V.VALUE(((RMCtxType *)&reqNode).validFlag))
+    &validFlagE=FORMAT.DECIMAL(0,V.VALUE(((RMCtxType *)&reqNode).validFlag_Ext))
+    IF &validFlag==1
+    (
+        PRINT "Client &indexPrint"
+        PRINT "  reqNode       = (RMCtxType *)&reqNode"
+        PRINT "  clientId      = &clientId"
+        PRINT "  validFlag     = &validFlag"
+        PRINT "  validFlag_Ext = &validFlagE"
+        PRINT "  reqData       = (AdsppmMipsRequestType)&reqData"
+        &mipsTotal=FORMAT.DECIMAL(0,V.VALUE(((AdsppmMipsRequestType *)&reqData).mipsTotal))
+        &mipsPerThread=FORMAT.DECIMAL(0,V.VALUE(((AdsppmMipsRequestType *)&reqData).mipsPerThread))
+        &codeLocation=FORMAT.DECIMAL(0,V.VALUE(((AdsppmMipsRequestType *)&reqData).codeLocation))
+        ;&codeLocationName=DATA.STRING(D:V.VALUE(AdsppmBusPortName[&codeLocation]))
+        &reqOperation=FORMAT.DECIMAL(0,V.VALUE(((AdsppmMipsRequestType *)&reqData).reqOperation))
+        PRINT "    MIPS total        = &mipsTotal"
+        PRINT "    MIPS per thread   = &mipsPerThread"
+        PRINT "    Code location     =  &codeLocation"
+        PRINT "    Request operation = &reqOperation"
+    )
+    ELSE
+    (
+        PRINT "Client &indexPrint [no request]"
+    )
+    &reqNode=V.VALUE(((coreUtils_Q_LinkType *)&reqNode).pNext)
+    &index=&index+1
+    &indexPrint=FORMAT.DECIMAL(0,&index)
+)

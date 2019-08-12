@@ -1,0 +1,48 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub main( @argv)
+{
+    my ( $service) = @argv;
+    if ( !defined( $service)) {
+        print( "usage: slang -n=/data.misc/sensors/sam_attrib.sli -args=service_name\n");
+        return;
+    }
+    my $client = slopen();
+    my $timeout = 3;
+    my $attributes_req  = slnew_req( $service, "attributes");
+    if ( !defined( $attributes_req)) {
+        print( "unrecognized service $service\n");
+        return;
+    }
+    my $attributes_resp = slsend_recv( $client, $attributes_req, $timeout);
+    if ( defined( $attributes_resp)) {
+        my ( $revision, $proc_type, $modes, $min_report_rate, $max_report_rate,
+             $min_sample_rate, $max_sample_rate, $max_batch_size, $power, $suid)
+             = slget( $attributes_resp, { revision, proc_type, modes, min_report_rate, max_report_rate,
+                                          min_sample_rate, max_sample_rate, max_batch_size, power, suid});
+
+        $min_report_rate /= 65536;      // convert from Q16
+        $max_report_rate /= 65536;
+        $min_sample_rate /= 65536;
+        $max_sample_rate /= 65536;
+        $max_batch_size;
+
+        print( "\t$service attributes:\n");
+        print( "\trevision        $revision\n");
+        print( "\tproc_type       $proc_type\n");
+        print( "\tmodes           $modes\n");
+        print( "\tmin_report_rate $min_report_rate\n");
+        print( "\tmax_report_rate $max_report_rate\n");
+        print( "\tmin_sample_rate $min_sample_rate\n");
+        print( "\tmax_sample_rate $max_sample_rate\n");
+        print( "\tmax_batch_size  $max_batch_size\n");
+        print( "\tpower           $power\n");
+        print( "\tsuid            $suid\n");
+        print( "\n");
+    }
+    slclose( $client);
+}
+

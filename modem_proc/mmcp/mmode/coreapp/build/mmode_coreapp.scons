@@ -1,0 +1,134 @@
+#===============================================================================
+#
+# Multimode CoreApp SCons
+#
+# GENERAL DESCRIPTION
+#    SCons build script
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: 
+#  $DateTime: 
+#  $Author: 
+#  $Change: 
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/15/12   chl     Initial file
+# 03/08/12   gm      RCInit integration changes
+#
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+  
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+CORE_APIS = [
+   'BOOT',
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'POWER',
+   'PWRDB',
+   'SECUREMSM',
+   'SENSORS',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+MODEM_APIS = [
+   'ONEX',
+   'MMODE',
+   'RFA',
+   'PBM',
+   'UIM',
+]
+
+# Needed to access internal RFM API for rfm.h include
+REQUIRED_RESTRICTED_APIS = [
+    'DATA',
+    'FW',
+    'GERAN',
+    'GPS',
+    'HDR',
+    'LTE',
+    'MCS',
+    'MDSP',
+    'MMODE',
+    'NAS',
+    'ONEX',
+    'RFA',
+    'TDSCDMA',
+    'UIM',
+    'UTILS',
+    'WCDMA',
+    'WMS',
+    ]
+
+MULTIMEDIA_APIS = [
+   'AUDIO',
+]
+
+env.RequirePublicApi(CORE_APIS, area='CORE')
+env.RequirePublicApi(MODEM_APIS, area='MODEM')
+env.RequirePublicApi(MULTIMEDIA_APIS, area='MULTIMEDIA')
+env.RequireRestrictedApi(REQUIRED_RESTRICTED_APIS)
+
+COREAPP_C_SOURCES=[
+   '${BUILDPATH}/ui_base.c',
+]
+
+COREAPP_CSG_APP_SOURCES = [
+   '${BUILDPATH}/csg_app_cm_if.c',
+   '${BUILDPATH}/ui_base_msgr_if.c',
+   '${BUILDPATH}/ui_base_timer.c'
+]
+
+if 'USES_CDMA' in env:
+     COREAPP_C_SOURCES += COREAPP_CSG_APP_SOURCES
+
+env.AddLibrary(['MODEM_MODEM'], '${BUILDPATH}/mmode_coreapp', [COREAPP_C_SOURCES,])
+
+env.LoadSoftwareUnits()
+
+# Build image for which this task belongs
+RCINIT_UI = ['MODEM_MODEM']
+
+# RC Init Task Dictionary
+# These parameters are defined in CSV file in the build
+RCINIT_TASK_UI = {
+	    'thread_name'         : 'UI',
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'stack_size_bytes'    : env.subst('$UI_STKSZ'),
+	    'priority_amss_order' : 'SHARED_FOREGROUND_SERVICE_PRI_ORDER',
+	    'stack_name'          : 'ui_stack',
+	    'thread_entry'        : 'ui_task',
+	    'tcb_name'            : 'ui_tcb',
+      'cpu_affinity'	  : env.subst('$MODEM_CPU_AFFINITY')
+    }
+    
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+	    env.AddRCInitTask(RCINIT_UI, RCINIT_TASK_UI)
+
+if 'USES_MSGR' in env:
+        env.AddUMID('${BUILDPATH}/ui_base_msgr.umid', ['../../../api/ui_base_msgr_msg.h'])

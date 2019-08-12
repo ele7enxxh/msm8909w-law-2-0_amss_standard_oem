@@ -1,0 +1,208 @@
+#===============================================================================
+#
+# NAS CNM SCons 
+#
+# GENERAL DESCRIPTION
+#    SCons build script
+#
+# Copyright (c) 2010 - 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/nas/cnm/build/nas_cnm.scons#1 $
+#  $DateTime: 2016/12/13 08:00:05 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/21/11   pm      Update NAS SCons due to enabling WCDMA feature flags on Nikel
+# 04/12/11   pm      Set MSG_BT_SSID_DFLT to map legacy messages to your SSID name
+# 09/15/10   pm      Initial file
+#
+#===============================================================================
+#from glob import glob
+#from os.path import join, basename
+
+Import('env')
+env = env.Clone()
+
+if 'USES_GSM' not in env and ('USES_UMTS' not in env or 'USES_WPLT' in env):
+   Return()
+
+# --------------------------------------------------------------------------- #
+# Turn off/on debug if requested 			      
+# --------------------------------------------------------------------------- # 
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+    'MSG_BT_SSID_DFLT=MSG_SSID_NAS_CNM',
+])
+
+#-------------------------------------------------------------------------------
+# Publish our Private API
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('NAS', ["${INC_ROOT}/mmcp/nas/cnm/inc"])
+
+#-------------------------------------------------------------------------------
+# Necessary Public API's
+#-------------------------------------------------------------------------------
+REQUIRED_PUBLIC_APIS = [
+    'GERAN',
+    'MCS',
+    'MMODE',
+    'NAS',
+    'UIM',
+    'WCDMA',
+    'LTE',
+    ]
+
+REQUIRED_RESTRICTED_APIS = [
+    'GERAN',
+    'MCS',
+    'MDSP',
+    'MMODE',
+    'NAS',
+    'UIM',
+    'UTILS',
+    'WCDMA',
+    'LTE',
+    ]
+
+CORE_APIS = [
+    'DAL',
+    'DEBUGTOOLS',
+    'MPROC',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+MULTIMEDIA_APIS = [
+    'AUDIO',
+    'MVS',
+    ]
+
+env.RequirePublicApi(CORE_APIS, area='core')
+
+env.RequirePublicApi(MULTIMEDIA_APIS, area='MULTIMEDIA') 
+
+env.RequirePublicApi(REQUIRED_PUBLIC_APIS) 
+env.RequireRestrictedApi(REQUIRED_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+    'BREW',
+    'MULTIMEDIA_AUDIO',
+])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+#CNM_C_SOURCES = ['${BUILDPATH}/' + basename(fname)
+#                 for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+CNM_C_SOURCES = [
+	'${BUILDPATH}/cnm_cc_dtmf.c',
+	'${BUILDPATH}/cnm_cc_get_data.c',
+	'${BUILDPATH}/cnm_cc_incall_mod.c',
+	'${BUILDPATH}/cnm_cc_mn_primitives.c',
+	'${BUILDPATH}/cnm_cc_process_msgs.c',
+	'${BUILDPATH}/cnm_cc_process_specific_msgs1.c',
+	'${BUILDPATH}/cnm_cc_process_specific_msgs2.c',
+	'${BUILDPATH}/cnm_cc_receive_msg_utils.c',
+	'${BUILDPATH}/cnm_cc_state_machine.c',
+	'${BUILDPATH}/cnm_cmd_buffer_utils.c',
+	'${BUILDPATH}/cnm_common_mm_primitives.c',
+	'${BUILDPATH}/cnm_data_queue.c',
+	'${BUILDPATH}/cnm_init_data.c',
+	'${BUILDPATH}/cnm_mntask_debug.c',
+	'${BUILDPATH}/cnm_mntask_lib.c',
+	'${BUILDPATH}/cnm_mntask_main.c',
+	'${BUILDPATH}/cnm_msg_defines_and_utils.c',
+	'${BUILDPATH}/cnm_process_mm_primitives.c',
+	'${BUILDPATH}/cnm_route_cnm_msgs.c',
+	'${BUILDPATH}/cnm_send_mn_msgs.c',
+	'${BUILDPATH}/cnm_send_msg.c',
+	'${BUILDPATH}/cnm_send_release_complete.c',
+	'${BUILDPATH}/cnm_send_status_msg_to_mm.c',
+	'${BUILDPATH}/cnm_serv_req_queue.c',
+	'${BUILDPATH}/cnm_sms_check_pending_sms.c',
+	'${BUILDPATH}/cnm_sms_mn_primitives.c',
+	'${BUILDPATH}/cnm_sms_process_msgs.c',
+	'${BUILDPATH}/cnm_sms_req_queue.c',
+	'${BUILDPATH}/cnm_sms_send_msgs.c',
+	'${BUILDPATH}/cnm_sms_state_machine.c',
+	'${BUILDPATH}/cnm_ss_mn_primitives.c',
+	'${BUILDPATH}/cnm_ss_process_msgs.c',
+	'${BUILDPATH}/cnm_ss_state_machine.c',
+	'${BUILDPATH}/cnm_ss_transaction_msgs.c',
+	'${BUILDPATH}/cnm_timers.c',
+	'${BUILDPATH}/cnmglobal.c',
+	'${BUILDPATH}/cnmlog.c',
+]
+
+# Add our library to the ModemApps image
+env.AddLibrary( ['MODEM_MODEM'], '${BUILDPATH}/nas_cnm', [CNM_C_SOURCES] )
+
+
+
+# Build image for which this task belongs
+RCINIT_MN_CNM = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_MN_CNM = {
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'init_name'           : 'mn_cnm_init',
+            'init_function'       : 'mn_cnm_init_before_task_start',
+            'policy_optin'        : ['default', 'ftm', ],
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_MN_CNM = {
+            'thread_name'         : 'mn_cnm',
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'stack_size_bytes'    : env.subst('$MN_CNM_STKSZ'),
+            'priority_amss_order' : 'MN_CNM_PRI_ORDER',
+            'stack_name'          : 'mn_cnm_stack',
+            'thread_entry'        : 'mn_cnm_main',
+            'tcb_name'            : 'mn_cnm_tcb',
+            'cpu_affinity'        : env.subst('$MODEM_NAS_CPU_AFFINITY'),
+            'policy_optin'        : ['default', 'ftm', ],
+    }
+    
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+            env.AddRCInitFunc(RCINIT_MN_CNM, RCINIT_INIT_MN_CNM)
+            env.AddRCInitTask(RCINIT_MN_CNM, RCINIT_TASK_MN_CNM)
+
+

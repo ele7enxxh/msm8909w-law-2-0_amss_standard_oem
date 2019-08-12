@@ -1,0 +1,48 @@
+; ============================================================================
+;
+;  PMICWdogctrl.cmm
+;
+; Script to control PMIC watchdog
+;
+;  Execution:
+;    PMICWdogctrl.cmm [ enable ]
+;
+;  This script will enable/disable PMIC watchdog using PMICPeek script
+;  To enable PMIC watchdog pass [1], to disable [0]; default [0]
+;  If no parameter is passed then it will disable.
+;  
+;  Usage: 
+;     PMICWdogctrl 1 -> to enable 
+;     PMICWdogctrl 0 -> to disable
+;
+;  ====================================================================
+;
+;  Copyright (c) 2013 QUALCOMM Technologies Incorporated. All Rights Reserved.
+;  QUALCOMM Proprietary and Confidential.
+;
+;  ====================================================================
+;
+;  $Header: //components/rel/rpm.bf/2.1.1/core/systemdrivers/pmic/scripts/PMICWdogctrl.cmm#1 $
+;  $DateTime: 2015/02/25 02:53:43 $
+;  $Author: pwbldsvc $
+;
+; ============================================================================
+;
+ENTRY &arg
+
+; If no argument is passed disable the WDOG
+
+LOCAL &type
+IF "&arg"==""
+  &type=0
+ELSE 
+  &type=&arg
+
+; If 0 or none is passed disable the WDOG; else Enable thw WDOG
+  
+IF &type==0
+ do PMICPeek 0x857 0x0 0x0     
+ELSE
+ do PMICPeek 0x857 0x0 0x80
+
+ 

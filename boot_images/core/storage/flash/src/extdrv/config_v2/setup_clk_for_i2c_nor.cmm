@@ -1,0 +1,98 @@
+;============================================================================
+;  Name:
+;    SETUP_CLK_FOR_I2C_NOR.CMM
+;
+;  Clock initialization script used by
+;   any I2C nor related tool cmm scripts
+;
+;
+;    Copyright (c) 2010 Qualcomm Technologies Incorporated.
+;    All Rights Reserved.
+;    Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/src/extdrv/config_v2/setup_clk_for_i2c_nor.cmm#1 $ 
+; $DateTime: 2015/09/01 00:30:35 $ 
+; $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 10/22/10   bn      Created initial version
+;
+;============================================================================;
+
+gosub Init_GSBI8_Clk
+
+gosub Init_CPU_Clk
+
+enddo
+
+  ;============================================================================
+  ; Program PLL8 @ 384 MHz
+  ;============================================================================
+Init_GSBI8_Clk:
+  ; If PLL8 is already enabled, skip the config.
+  if ((data.long(d:HWIO_PLL8_MODE_ADDR))!=0x7)
+  (  
+    data.set HWIO_PLL8_MODE_ADDR %LONG 0x0
+    data.set HWIO_PLL8_CONFIG_ADDR %LONG 0x0085248B
+    data.set HWIO_PLL8_L_VAL_ADDR %LONG 0x14
+    data.set HWIO_PLL8_M_VAL_ADDR %LONG 0x0
+    data.set HWIO_PLL8_N_VAL_ADDR %LONG 0x1
+
+    data.set HWIO_PLL8_MODE_ADDR %LONG 0x2
+    wait 1.ms
+    data.set HWIO_PLL8_MODE_ADDR %LONG 0x6
+    wait 1.ms
+    data.set HWIO_PLL8_MODE_ADDR %LONG 0x7
+  )
+
+  return
+
+;============================================================================
+; Program CPU clock @ 384 MHz
+;============================================================================
+Init_CPU_Clk:
+
+  local &temp
+  if (((data.long(d:HWIO_SCSS_CLK_SEL_ADDR))&0x1)==0x0)
+  (
+    ; C equivalent code:
+    ; HWIO_OUTF(SCSS_CLK_CTL, SRC1_SEL,0x3). SRC1_SEL=Bits[4:6]
+    ; HWIO_OUTF(SCSS_CLK_CTL, SRC1_DIV,0x0). SRC1_DIV=Bits[0:3]     
+    ; Clear Bits[4:6], set bits[4:5]. Clear Bits[0:3]
+    &temp=data.long(RD:HWIO_SCSS_CLK_CTL_ADDR)
+    &temp=&temp&(~(7<<4.))
+    &temp=&temp|(1<<4.)|(1<<5.)
+    &temp=&temp&(~0xF)
+    data.set HWIO_SCSS_CLK_CTL_ADDR %long &temp
+  
+    ; C equivalent code:
+    ; HWIO_OUTF(SCSS_CLK_SEL, SRC1N0, 0x1). SRC1N0=Bit1
+    &temp=data.long(RD:HWIO_SCSS_CLK_SEL_ADDR)
+    &temp=&temp|0x01
+    data.set HWIO_SCSS_CLK_SEL_ADDR %long &temp
+  )
+  else
+  (
+    ; C equivalent code:
+    ; HWIO_OUTF(SCSS_CLK_CTL, SRC0_SEL,0x3); SRC0_SEL=Bits[12:14]
+    ; HWIO_OUTF(SCSS_CLK_CTL, SRC0_DIV,0x0); SRC0_DIV=Bits[9:12]  
+    ; Clear Bits[12:14], set bits[12:13]. Clear Bits[9:12]
+    &temp=data.long(RD:HWIO_SCSS_CLK_CTL_ADDR)
+    &temp=&temp&(~(7<<12.))
+    &temp=&temp|(1<<12.)|(1<<13.)
+    &temp=&temp&(~(0xF<<8.))
+    data.set HWIO_SCSS_CLK_CTL_ADDR %long &temp
+	 
+    ; C equivalent code:
+    ; HWIO_OUTF(SCSS_CLK_SEL, SRC1N0, 0x0). SRC1N0=Bit1
+    &temp=data.long(RD:HWIO_SCSS_CLK_SEL_ADDR)
+    &temp=&temp&(~0x01)
+    data.set HWIO_SCSS_CLK_SEL_ADDR %long &temp
+  )
+
+  return

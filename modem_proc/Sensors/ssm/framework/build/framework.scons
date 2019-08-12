@@ -1,0 +1,135 @@
+#===============================================================================
+#
+# SSM Framework
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014-2015 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/Sensors/ssm/framework/build/framework.scons#1 $
+#  $DateTime: 2016/12/13 08:00:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985213 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/21/2015  HW     Port sync proxy related feature to SLPI
+# 09/02/2015 jtl     Adding FEATURE_SYNC_PROXY to gate sync proxy feature
+# 22/10/2014 jtl     Added sync proxy
+# 12/10/2014  MW     Added HDD22 support
+# 27/01/2014  dk     Initial version. 
+#
+#===============================================================================
+
+Import('env')
+##import os
+##from glob import glob
+##from os.path import join, basename
+##env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'KERNEL',
+   'MPROC',
+   'SERVICES',
+   'SNS_INT_SRVC',
+   'SYSTEMDRIVERS',
+]
+
+
+env.RequirePublicApi(CBSP_API, area='core')
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_QUEUE',
+   'SNS_MEMMGR',
+   'SNS_EVMGR',
+   'SNS_COMMON',
+   'SNS_DEBUG_DSPS',
+]
+
+env.RequireRestrictedApi(SENSORS_API)
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/ssm/framework/src"
+
+#if not env.SubstPathExists(SRCPATH):
+#   # Legay Path
+#   SRCPATH = "${BUILD_ROOT}/sensors/dsps"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/core/api/mproc",
+   "${BUILD_ROOT}/core/mproc/qmi",
+   "${BUILD_ROOT}/core/mproc/qmi/qcsi",
+   "${BUILD_ROOT}/core/mproc/qmi/qcci",   
+   "${BUILD_ROOT}/core/mproc/qmi/common",
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/idl/inc",
+   "${BUILD_ROOT}/core/api/systemdrivers/pmic",
+   "${BUILD_ROOT}/Sensors/pm/inc",
+   "${BUILD_ROOT}/Sensors/smgr/inc",
+   "${BUILD_ROOT}/Sensors/ssm/framework/inc",
+])
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+FRAMEWORK_SOURCES = [
+      '${BUILDPATH}/sns_ssm_init.c',
+      '${BUILDPATH}/sns_ssm_time.c',
+      '${BUILDPATH}/sns_ssm_sync_proxy.c'
+]
+
+   
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+  # Sources that should not be shared
+  SSM_CLEAN_SOURCES  = env.FindFiles(['*.*'], '${BUILD_ROOT}/Sensors/ssm/framework/src')
+  SSM_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/ssm/framework/inc')
+
+  # Add binary library
+  sns_ssm_lib = env.AddBinaryLibrary(
+     ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+     '${BUILDPATH}/ssm_fw_dsps', FRAMEWORK_SOURCES)
+
+  # Clean sources
+  env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], SSM_CLEAN_SOURCES)
+else:
+  sns_ssm_lib = env.AddLibrary(
+     ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+     '${BUILDPATH}/ssm_fw_dsps', FRAMEWORK_SOURCES)
+
+#env.AddLibsToImage(
+#   ['CBSP_QDSP6_SW_IMAGE'],
+#  sns_smgr_no_opt_lib)
+
+if 'USES_ISLAND' in env:
+   ssmfw_sections = ['.text.uSSM', '.data.uSSM']
+   env.AddIslandLibrary('CORE_QDSP6_SENSOR_SW', sns_ssm_lib, ssmfw_sections)

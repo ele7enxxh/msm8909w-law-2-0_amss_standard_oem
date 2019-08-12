@@ -1,0 +1,184 @@
+//============================================================================
+//  Name:                                                                     
+//    std_savelogs.cmm 
+//
+//  Description:                                                              
+//    Top level savelogs script
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/10/2012 AJCheriyan    Created for B-family 
+
+// We support only one argument for this which is the chipset. Should not be used
+// ARG0 - Chipset
+ENTRY &ARGO
+
+LOCAL &LOGTYPE &LOGPATH &SUBSYSCRIPT &SUBSYSTEM
+LOCAL &LOGPATHVERIFIED 
+MAIN:
+	
+    // Basic sanity check. Check if the "subsys" variable is populated. 
+	// It will be populated when the shortcut is opened from the meta build
+	IF ("&SUBSYS"=="")
+	(
+		PRINT "Unable to detect the sub-system."
+	)
+
+	// Create the dialog for the script
+	GOSUB CREATEDIALOG
+
+	// Wait for the person to do something
+	STOP
+
+SAVELOGS:
+	LOCAL &OPTION
+
+	// Read the checked options one by one and call the corresponding script
+	IF ("&LOGPATH"=="")
+	(
+		PRINT %ERROR "Invalid arguments. LogLocation: &LOGPATH"
+		GOTO FATALEXIT
+	)
+	ELSE
+	(
+		// The subsystem has been choosen now. Make sure the paths for this sub-system's scripts are
+	    // added to the path
+		IF (DIALOG.BOOLEAN(SUBSYS.RPM))
+		(
+		   &SUBSCRIPT="&RPM_METASCRIPTSDIR" 
+    	   PATH + &SUBSCRIPT
+		   RUN std_savelogs_rpm &LOGPATH
+		)
+
+		IF (DIALOG.BOOLEAN(SUBSYS.APPS))
+		(
+		   &SUBSCRIPT="&APPS_METASCRIPTSDIR" 
+    	   PATH + &SUBSCRIPT
+		   RUN std_savelogs_apps &LOGPATH
+		)
+		IF (DIALOG.BOOLEAN(SUBSYS.MPSS))
+		(
+		   &SUBSCRIPT="&MPSS_METASCRIPTSDIR" 
+    	   PATH + &SUBSCRIPT
+		   RUN std_savelogs_mpss &LOGPATH
+		)
+	;	IF (DIALOG.BOOLEAN(SUBSYS.ADSP))
+	;	(
+	;	   &SUBSCRIPT="&METASCRIPTSDIR/adsp" 
+    ;	   PATH + &SUBSCRIPT
+	;	   RUN std_savelogs_adsp &LOGPATH
+	;	)
+		IF (DIALOG.BOOLEAN(SUBSYS.WCNSS))
+		(
+		   &SUBSCRIPT="&WCNSS_METASCRIPTSDIR" 
+    	   PATH + &SUBSCRIPT
+		   RUN std_savelogs_wcnss &LOGPATH
+		)
+
+		// We will not return to this script after this point
+	    DIALOG.END
+
+	)	
+
+
+// Sub-routine to create the dialog
+CREATEDIALOG:
+	
+	// Check if the window existing
+	WINTOP LOADSIM
+	IF FOUND()
+       RETURN 
+	WINPOS ,,,,,, LOADSIM
+
+	DIALOG
+	(
+	    HEADER "Save Target Logs"
+
+		POS 0. 0. 50. 8.
+		BOX "Sub-system Information"
+		POS 1. 1. 49. 1.
+
+		SUBSYS.RPM: CHECKBOX "RPM - Power Manager" ""
+		SUBSYS.APPS: CHECKBOX "APPS - Applications" ""
+		SUBSYS.MPSS: CHECKBOX "MPSS - Modem (FW / SW )" ""
+		;SUBSYS.ADSP: CHECKBOX "ADSP - Applications DSP (Audio / Sensors)" ""
+		SUBSYS.WCNSS: CHECKBOX "WCNSS - Wireless Connectivity" ""
+		SUBSYS.SYSTEM: CHECKBOX "SYSTEM - Common Resources (IMEM etc.)" ""
+
+   		POS 51. 1. 5. 1.
+		DEFBUTTON "Help"
+	    (
+		   DIALOG.OK "Choose the subsystems for which you want to save the logs. Saving logs might fail if this T32 session's subystem does not match the system for which you are trying to save logs."
+		)
+	
+		POS 0. 9. 60. 8.
+		BOX "Save Options"
+		POS 1. 10. 58. 1.
+		LOGTEXT: TEXT "Log Location"
+		LOGEDIT: DEFEDIT "Log Location" "GOSUB VERIFYLOG"
+
+		POS 25. 15. 10. 1.
+		SAVEBUTTON: DEFBUTTON "Save Logs" "GOSUB SAVELOGS"
+
+	)
+	DIALOG.DISABLE SAVEBUTTON
+
+	RETURN
+
+
+
+
+
+
+
+
+
+
+
+// Verify log location. A simple verification process 
+// that guards against dummy / null entries
+VERIFYLOG:
+	LOCAL &LOCATION
+	&LOCATION=DIALOG.STRING(LOGEDIT)
+	
+	IF ("&LOCATION"!="")
+	(
+	   IF (OS.DIR(&LOCATION))
+	   (
+		   &LOGPATH=DIALOG.STRING(LOGEDIT)
+		   &LOGPATHVERIFIED="TRUE"
+	   )
+	   ELSE
+	   (
+	   		DIALOG.SET LOGEDIT "Invalid Log Location"
+	   )
+	)
+	ELSE
+	(
+	   DIALOG.SET LOGEDIT "Invalid Log Location"
+	)
+
+	IF ("&LOGPATHVERIFIED"=="TRUE")
+	(
+	    DIALOG.ENABLE SAVEBUTTON
+	)
+	RETURN 
+
+
+
+
+
+FATALEXIT:
+    END
+
+EXIT:
+    ENDDO

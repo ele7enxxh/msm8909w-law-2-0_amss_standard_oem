@@ -1,0 +1,523 @@
+# -------------------------------------------------------------------------------- #
+#                              G P S . S C O N S
+#
+# DESCRIPTION                                                                      
+#   SCons file for the whole GNSS subsystem. Defines the existence of GNSS subsystem.
+#                                                                                  
+#                                                                                  
+# INITIALIZATION AND SEQUENCING REQUIREMENTS                                       
+#   None.                                                                      
+#                                                                                  
+#
+# Copyright (c) 2010 - 2012 Qualcomm Technologies Incorporated.
+# Qualcomm Confidential and Proprietary. All Rights Reserved.
+# Copyright (c) 2013 - 2015 Qualcomm Atheros, Inc.
+# Qualcomm Atheros Confidential and Proprietary. All Rights Reserved. 
+# Copyright (c) 2015 Qualcomm Technologies, Inc. 
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary                       
+# Export of this technology or software is regulated by the U.S. Government.       
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# QUALCOMM ATHEROS, INCORPORATED and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of QUALCOMM ATHEROS, INCORPORATED.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/gps/build/gps.scons#1 $
+# $DateTime: 2016/12/13 07:59:45 $
+# --------------------------------------------------------------------------------- #
+
+import os
+import string
+
+#--------------------------------------------------------------------------------
+# Import the SCons environment
+#--------------------------------------------------------------------------------
+Import('env')
+
+if env.PathExists('${BUILD_ROOT}/gps'):
+    env.Replace(GPS_ROOT = '${INC_ROOT}/gps')
+else:    
+    env.Replace(GPS_ROOT = '${INC_ROOT}/modem/gps')
+
+
+#-------------------------------------------------------------------------------
+# Necessary Public and Restricted API's
+#-------------------------------------------------------------------------------
+gps_public_api_list = [
+  #Format: (<api_area>, <api_name>),
+  ('API',         'COMMON'),
+  ('API',         'LOC'),
+  ('API',         'PDS'),
+  ('API',         'PDS_EXT'),
+  ('API',         'SNS_COMMON'),
+  ('API',         'SNS_SAM_QMD'),
+  ('API',         'SNS_SAM_AMD'),
+  ('API',         'SNS_SAM_RMD'),
+  ('API',         'SNS_SAM_DB'),
+  ('API',         'SNS_SAM_PED'),
+  ('API',         'SNS_SAM_SMD'),
+  ('API',         'SNS_SMGR_API'),
+  ('API',         'SNS_TIME_API'),
+  ('API',         'SNS_SAM_IOD'),
+  ('API',         'SNS_SAM_IOD_AUTOCAL'),
+  ('AVS',         'MVS'),
+  ('CORE',        'BUSES'),
+  ('CORE',        'DAL'),
+  ('CORE',        'DEBUGTOOLS'),
+  ('CORE',        'DEBUGTRACE'),
+  ('CORE',        'HWENGINES'),
+  ('CORE',        'KERNEL'),
+  ('CORE',        'MEMORY'),
+  ('CORE',        'MPROC'),
+  ('CORE',        'POWER'),
+  ('CORE',        'SECUREMSM'),
+  ('CORE',        'SERVICES'),
+  ('CORE',        'STORAGE'),
+  ('CORE',        'SYSTEMDRIVERS'),
+  ('CORE',        'TDSCDMA'),
+  ('CORE',        'WCDMA'),
+  ('CORE',        'WIREDCONNECTIVITY'),
+  ('DATAMODEM',   'PUBLIC'),
+  ('DATAMODEM',   'DATAMODEM'),
+  ('FW',          'C2K'),
+  ('FW',          'GERAN'),
+  ('FW',          'LTE'),
+  ('FW',          'RF'),
+  ('FW',          'WCDMA'),
+  ('FW_C2K',      'FW_C2K'),
+  ('FW_CCS',      'FW_CCS'),
+  ('FW_COMMON',   'FW_COMMON'),
+  ('FW_GERAN',    'FW_GERAN'),
+  ('FW_WCDMA',    'FW_WCDMA'),
+  ('GERAN',       'GERAN'),
+  ('GPS',         'GPS'),
+  ('GPS',         'GTS'),
+  ('HDR',         'HDR'),
+  ('HDR',         'PUBLIC'),
+  ('LTE',         'LTE'),
+  ('MCFG',        'MCFG'),
+  ('MCS',         'MCS'),
+  ('MMCP',        'MMCP'),
+  ('MMCP',        'PUBLIC'),
+  ('MPOWER',      'MPOWER'),
+  ('MULTIMEDIA',  'AUDIO'),
+  ('MULTIMEDIA',  'MVS'),
+  ('ONEX',        'PUBLIC'),
+  ('ONEX',        'ONEX'),
+  ('QMIMSGS',     'BIT'),
+  ('QMIMSGS',     'COMMON'),
+  ('QMIMSGS',     'LOC'),
+  ('QMIMSGS',     'PDS'),
+  ('QMIMSGS',     'PDS_EXT'),
+  ('QMIMSGS',     'SLIM'),
+  ('QMIMSGS',     'SNS_COMMON'),
+  ('QMIMSGS',     'SNS_SAM_QMD'),
+  ('QMIMSGS',     'SNS_SAM_AMD'),
+  ('QMIMSGS',     'SNS_SAM_RMD'),
+  ('QMIMSGS',     'SNS_SAM_DB'),
+  ('QMIMSGS',     'SNS_SAM_PED'),
+  ('QMIMSGS',     'SNS_SAM_SMD'),
+  ('QMIMSGS',     'SNS_SMGR_API'),
+  ('QMIMSGS',     'SNS_TIME_API'),
+  ('QMIMSGS',     'SNS_SAM_IOD'),
+  ('QMIMSGS',     'SNS_SAM_IOD_AUTOCAL'),
+  ('RFA',         'CDMA'),
+  ('RFA',         'COMMON'),
+  ('RFA',         'GNSS'),
+  ('RFA',         'GSM'),
+  ('RFA',         'LM'),
+  ('RFA',         'LTE'),
+  ('RFA',         'MEAS'),
+  ('RFA',         'WCDMA'),
+  ('RFLM',        'RFLM'),
+  ('SEC',         'SSL'),
+  ('TDSCDMA',     'TDSCDMA'),
+  ('UTILS',       'A2'),
+  ('UTILS',       'UTILS'),
+  ('UTILS',       'OSYS'),
+  ('UTILS',       'PUBLIC'),
+  ('UTILS',       'QSH'),
+  ('UTILS',       'RTPERSRC'),
+  ('UTILS',       'RTSRC'),
+  ('UTILS',       'RTXSRC'),
+  ('UIM',         'PUBLIC'),
+  ('UIM',         'UIM'),
+  ('WCDMA',       'PUBLIC'),
+  ('WCDMA',       'WCDMA'),
+]
+for api_area,api_name in gps_public_api_list:
+  env.RequirePublicApi([api_name], area=api_area)
+        
+# Determine the NavHW Generation
+if env['PRODUCT_LINE'].startswith('MPSS.AT'):
+    #env.AddUsesFlags('USES_FEATURE_GNSS_NAVHW_GEN9')
+    env.AddUsesFlags('USES_FEATURE_GNSS_NAVHW_GEN8C')  # Gen8C temporarily for RUMI
+    env.PrintInfo("Nav HW Gen9 Target")
+elif env['PRODUCT_LINE'].startswith('MPSS.TH') or \
+     env['PRODUCT_LINE'].startswith('MPSS.TA') or \
+     env['PRODUCT_LINE'].startswith('MPSS.JO') or \
+     env['PRODUCT_LINE'].startswith('MPSS.BO'):
+    env.AddUsesFlags('USES_FEATURE_GNSS_NAVHW_GEN8C')
+    env.PrintInfo("Nav HW Gen8C Target")
+elif env['PRODUCT_LINE'].startswith('MPSS.DI') or \
+     env['PRODUCT_LINE'].startswith('MPSS.DPM') or \
+     env['PRODUCT_LINE'].startswith('MPSS.TR'):
+    env.AddUsesFlags('USES_FEATURE_GNSS_NAVHW_GEN8B')
+    env.PrintInfo("Nav HW Gen8B Target")
+elif env['PRODUCT_LINE'].startswith('MPSS.NI'): 
+    env.AddUsesFlags('USES_FEATURE_GNSS_NAVHW_GEN8A')
+    env.PrintInfo("Nav HW Gen8A Target")
+else:
+    env.PrintError('GPS Nav HW undetected!')
+        
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+#--------------------------------------------------------------------------------
+# Publish Protected Include Paths for just GPS
+#--------------------------------------------------------------------------------
+env.PublishProtectedApi('GPS_COMMON', ['${GPS_ROOT}/cust/inc',
+                                       '${GPS_ROOT}/variation/inc',
+                                       '${GPS_ROOT}/gnss/common/inc',
+                                       '${GPS_ROOT}/gnss/diag/src',
+                                       '${GPS_ROOT}/gnss/inc',
+                                       '${GPS_ROOT}/gnss/os_api/inc',
+                                       '${GPS_ROOT}/gnss/ppm/inc',
+                                       '${GPS_ROOT}/gnss/ppm/src',
+                                      ])
+        
+if 'USES_ENABLE_CGPS_LBS_TASK' in env:
+    env.PublishProtectedApi('GPS_COMMON', ['${GPS_ROOT}/gnss/lbs/inc'])
+else:  # LocMW
+    env.PublishProtectedApi('GPS_COMMON', ['${GPS_ROOT}/gnss/loc_mw/inc',
+                                           '${GPS_ROOT}/gnss/loc_mw/src',
+                                          ])    
+
+env.PublishProtectedApi('GPS_MGP', ['${GPS_ROOT}/gnss/mgp/inc',
+                                    '${GPS_ROOT}/gnss/mgp/common/inc',
+                                   ])
+
+if 'USES_FEATURE_GNSS_NAVHW_GEN8A' in env or \
+   'USES_FEATURE_GNSS_NAVHW_GEN8B' in env or \
+   'USES_FEATURE_GNSS_NAVHW_GEN8C' in env:
+    env.PublishProtectedApi('GPS_MGPME', ['${GPS_ROOT}/gnss/mgp/me/gen8/common/inc',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/cc/inc',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/cc/src',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/gpsfft/inc',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/gpsfft/src',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/inc',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/mc/inc',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/mc/src',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/navhw/inc',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/navhw/src',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/pgi/inc',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/pgi/src',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/pp/inc',
+                                          '${GPS_ROOT}/gnss/mgp/me/gen8/pp/src',
+                                         ])
+if 'USES_FEATURE_GNSS_NAVHW_GEN8A' in env:
+    env.PrintInfo("Nav HW Gen8A Target")
+elif 'USES_FEATURE_GNSS_NAVHW_GEN8B' in env:
+    env.PrintInfo("Nav HW Gen8B Target")
+    env.PublishProtectedApi('GPS_MGPME', ['${GPS_ROOT}/gnss/mgp/me/gen8/navhw/gen8b/inc'])
+elif 'USES_FEATURE_GNSS_NAVHW_GEN8C' in env:
+    env.PrintInfo("Nav HW Gen8C Target")
+    env.PublishProtectedApi('GPS_MGPME', ['${GPS_ROOT}/gnss/mgp/me/gen8/navhw/gen8c/inc'])
+                                         
+env.PublishProtectedApi('GPS_PDCOMMS', ['${GPS_ROOT}/gnss/pd_comms/pd_comms_tcp/inc',
+                                        '${GPS_ROOT}/gnss/pd_comms/pd_comms_wms/inc',
+                                        '${GPS_ROOT}/gnss/pd_comms/pd_comms_wms/src',
+                                        '${GPS_ROOT}/gnss/pd_comms/pd_comms_tcp/src',
+                                        '${GPS_ROOT}/gnss/pd_comms/inc',
+                                       ])
+
+env.PublishProtectedApi('GPS_SENSORS', ['${GPS_ROOT}/gnss/samlite/inc',
+                                        '${GPS_ROOT}/gnss/sdp/inc',
+                                        '${GPS_ROOT}/gnss/sdp/src',
+                                        '${GPS_ROOT}/gnss/slim/common/client/inc',
+                                        '${GPS_ROOT}/gnss/slim/common/core/inc',
+                                        '${GPS_ROOT}/gnss/slim/mpss/inc',
+                                       ])
+                                       
+env.PublishProtectedApi('GPS_SMCOMMON', ['${GPS_ROOT}/gnss/sm/common/inc',
+                                         '${GPS_ROOT}/gnss/sm/common/src',
+                                         '${GPS_ROOT}/gnss/sm/gm/inc',
+                                         '${GPS_ROOT}/gnss/sm/gm/src',
+                                         '${GPS_ROOT}/gnss/sm/inc',
+                                         '${GPS_ROOT}/gnss/sm/lm/inc',
+                                         '${GPS_ROOT}/gnss/sm/lm/src',
+                                         '${GPS_ROOT}/gnss/sm/prot',
+                                         '${GPS_ROOT}/gnss/sm/oem/inc',
+                                        ])
+                                        
+env.PublishProtectedApi('GPS_SMTM_1X', ['${GPS_ROOT}/gnss/sm/tm/1x_cp/inc',
+                                        '${GPS_ROOT}/gnss/sm/tm/1x_cp/src',
+                                        '${GPS_ROOT}/gnss/sm/tm/1x_up/inc',
+                                        '${GPS_ROOT}/gnss/sm/tm/1x_up/jgps/inc',
+                                        '${GPS_ROOT}/gnss/sm/tm/1x_up/prot',
+                                        '${GPS_ROOT}/gnss/sm/tm/1x_up/src',
+                                        '${GPS_ROOT}/gnss/sm/tm/1x_up/vx/inc',
+                                        '${GPS_ROOT}/gnss/sm/tm/1x_up/vx/src',
+                                       ])
+env.PublishProtectedApi('GPS_SMTM_COMMON', ['${GPS_ROOT}/gnss/sm/tm/gfc_qmi/inc',
+                                            '${GPS_ROOT}/gnss/sm/tm/gfc_qmi/src',
+                                            '${GPS_ROOT}/gnss/sm/tm/inc',
+                                            '${GPS_ROOT}/gnss/sm/tm/is801/inc',
+                                            '${GPS_ROOT}/gnss/sm/tm/pdapi/inc',
+                                            '${GPS_ROOT}/gnss/sm/tm/prot',
+                                            '${GPS_ROOT}/gnss/sm/tm/src',
+                                           ])
+
+env.PublishProtectedApi('GPS_SMTM_LPP', ['${GPS_ROOT}/gnss/sm/tm/lpp_common/inc',
+                                         '${GPS_ROOT}/gnss/sm/tm/lpp_cp/inc',
+                                         '${GPS_ROOT}/gnss/sm/tm/lpp_up/inc',
+                                        ])
+
+env.PublishProtectedApi('GPS_SMTM_UMTS', ['${GPS_ROOT}/gnss/sm/tm/umts_common/inc',
+                                          '${GPS_ROOT}/gnss/sm/tm/umts_cp/inc',
+                                          '${GPS_ROOT}/gnss/sm/tm/umts_cp/gsm/inc',
+                                          '${GPS_ROOT}/gnss/sm/tm/umts_cp/gsm/src',
+                                          '${GPS_ROOT}/gnss/sm/tm/umts_cp/prot',
+                                          '${GPS_ROOT}/gnss/sm/tm/umts_cp/wcdma/inc',
+                                          '${GPS_ROOT}/gnss/sm/tm/umts_cp/wcdma/src',
+                                          '${GPS_ROOT}/gnss/sm/tm/umts_cp/ss/inc',
+                                          '${GPS_ROOT}/gnss/sm/tm/umts_up/supl/inc',
+                                          '${GPS_ROOT}/gnss/sm/tm/umts_up/inc',
+                                         ])
+
+if 'USES_FEATURE_GNSS_TDP_20_ENABLED' in env and \
+   env['CHIPSET'].startswith( 'msm' ) and \
+   not 'USES_GNSS_SA' in env:
+    env.AddUsesFlags('USES_FEATURE_GNSS_TLE_20')      # SCons level
+    env.AddUsesFlags('USES_FEATURE_GNSS_GDT_20_ENABLED')      # SCons level
+    env.PublishProtectedApi('GPS_TLE', ['${GPS_ROOT}/gnss/tle/2_0/inc',
+                                       ])
+else:
+    # Fall Back to Legacy TLE
+    env.AddUsesFlags('USES_FEATURE_GNSS_TLE_LEGACY_ENABLED')      # SCons level
+                                       
+                                       
+if 'USES_FEATURE_GNSS_TLE_LEGACY_ENABLED' in env or \
+   'USES_FEATURE_GNSS_TDP_10_ENABLED' in env or \
+   'USES_FEATURE_GNSS_TDP_15_ENABLED' in env:
+    env.AddUsesFlags('USES_FEATURE_GNSS_TLE_10')      # SCons level
+    env.AddUsesFlags('USES_FEATURE_GNSS_GDT_10_ENABLED')      # SCons level
+    env.PublishProtectedApi('GPS_TLE', ['${GPS_ROOT}/gnss/tle/1_0/tlm/inc',
+                                        '${GPS_ROOT}/gnss/tle/1_0/xtm/inc',
+                                        '${GPS_ROOT}/gnss/tle/1_0/tlm/src',
+                                        '${GPS_ROOT}/gnss/tle/1_0/xtm/src',
+                                        '${GPS_ROOT}/gnss/tle/1_0/inc',
+                                        '${GPS_ROOT}/gnss/tle/1_0/common/inc',
+                                       ])
+else:
+    env.PrintInfo("No TDP Version Defined")
+    env.AddUsesFlags('USES_FEATURE_GNSS_TLE_STUB')      # SCons level
+    env.PublishProtectedApi('GPS_TLE', ['${GPS_ROOT}/gnss/tle/stub/inc',
+                                       ])
+                        
+                        
+if 'USES_FEATURE_GNSS_GDT_10_ENABLED' in env:
+    env.AddUsesFlags('USES_FEATURE_GNSS_GDT_10')      # SCons level
+    env.PublishProtectedApi('GPS_GDT', ['${GPS_ROOT}/gnss/gdt/1_0/inc',
+                                       ])
+elif 'USES_FEATURE_GNSS_GDT_20_ENABLED' in env:
+    env.AddUsesFlags('USES_FEATURE_GNSS_GDT_20')      # SCons level
+    env.PublishProtectedApi('GPS_GDT', ['${GPS_ROOT}/gnss/gdt/2_0/inc',
+                                       ])
+else:
+    env.PrintInfo("No GDT Version Defined, use GDT 1.0")
+    env.AddUsesFlags('USES_FEATURE_GNSS_GDT_10')      # SCons level
+    env.PublishProtectedApi('GPS_GDT', ['${GPS_ROOT}/gnss/gdt/1.0/inc',
+                                       ])
+#--------------------------------------------------------------------------------
+# Require Protected Include Paths for just GPS
+#--------------------------------------------------------------------------------
+env.RequireProtectedApi(['GPS_COMMON',
+                         'GPS_MGP',
+                         'GPS_MGPME',
+                         'GPS_PDCOMMS',
+                         'GPS_SMCOMMON',
+                         'GPS_SENSORS',
+                         'GPS_SMTM_1X',
+                         'GPS_SMTM_COMMON',
+                         'GPS_SMTM_LPP',
+                         'GPS_SMTM_UMTS',
+                         'GPS_TLE',
+                         'GPS_GDT',
+                        ])
+
+#### SCONSCOP PHASE2 CLEANUP ################################################
+#Start public VIOLATIONS
+env.PublishPrivateApi('VIOLATIONS',[
+        '${INC_ROOT}/utils/osys',     
+        ])
+env.RequirePrivateApi(['VIOLATIONS'])
+#############################################################################
+
+#--------------------------------------------------------------------------------
+# for MCS MSG Router
+#--------------------------------------------------------------------------------
+if 'USES_MSGR' in env:
+  env.AddUMID('${BUILDPATH}/gps.umid', ['../api/gnss_api.h'])
+
+#--------------------------------------------------------------------------------
+# Use the CleanPack tool to remove non-shipped files
+#--------------------------------------------------------------------------------
+env.CleanPack('CLEANPACK_TARGET', env.FindFiles('*', '../gnss_tools/internal'))
+env.CleanPack('CLEANPACK_TARGET', env.FindFiles('*', '../pack'))
+
+# Remove all min files from being shipped.  
+env.CleanPack('CLEANPACK_TARGET', env.FindFiles('*.min', '..'))
+
+# Load cleanpack script to remove private files etc. from customer builds:
+if os.path.exists('gps_cleanpack.py'):
+    env.LoadToolScript('gps_cleanpack.py')
+    
+#--------------------------------------------------------------------------------
+# Enable High and Medium Warnings to Error
+#--------------------------------------------------------------------------------
+env.Append(HEXAGON_WARN = ' -Werror-high -Werror-medium ')
+
+# Remove when top level -Wno-error is removed and all GPS warnings are cleared
+if env['PRODUCT_LINE'].startswith("MPSS.AT"): 
+    env.Append(HEXAGON_WARN = ' -Wno-error-high -Wno-error-medium -Wno-error-low ')
+
+#-------------------------------------------------------------------------------
+# Inject TDP flag after determining if TDP is enabled on this target and 
+# verifying that it is an MSM target
+#-------------------------------------------------------------------------------
+if 'USES_FEATURE_GNSS_TDP_10_ENABLED' in env and env['CHIPSET'].startswith( 'msm' ):
+    env.PrintInfo("TDP 1.0 supported")
+    env.AddUsesFlags('USES_FEATURE_GNSS_TDP_10')      # SCons level
+    env.Append(CPPDEFINES = " FEATURE_CGPS_GTP_TDP")  # Generic TDP modem support
+    env.Append(CPPDEFINES = " FEATURE_GNSS_TDP_10")   # TDP 1.0 specific modem code
+elif 'USES_FEATURE_GNSS_TDP_15_ENABLED' in env and env['CHIPSET'].startswith( 'msm' ):
+    env.PrintInfo("TDP 1.5 supported")
+    env.AddUsesFlags('USES_FEATURE_GNSS_TDP_15')    # SCons level
+    env.Append(CPPDEFINES = " FEATURE_CGPS_GTP_TDP")  # Generic TDP modem support
+    env.Append(CPPDEFINES = " FEATURE_GNSS_TDP_15")   # TDP 1.5 specific modem code
+elif 'USES_FEATURE_GNSS_TDP_20_ENABLED' in env and env['CHIPSET'].startswith( 'msm' ):
+    env.PrintInfo("TDP 2.0 supported")
+    env.AddUsesFlags('USES_FEATURE_GNSS_TDP_20')    # SCons level
+    env.Append(CPPDEFINES = " FEATURE_CGPS_GTP_TDP")  # Generic TDP modem support
+    env.Append(CPPDEFINES = " FEATURE_GNSS_TDP_20")   # TDP 2.0 specific modem code
+else:
+    env.PrintInfo("TDP not supported")
+    env.AddUsesFlags('USES_FEATURE_GNSS_TDP_NONE')    # SCons level
+
+#-------------------------------------------------------------------------------
+# Inject WLE flag after determining if WLE is enabled on this target and 
+# verifying that it is an MSM target
+#-------------------------------------------------------------------------------
+if 'USES_FEATURE_CGPS_WLE_ENABLED' in env and env['CHIPSET'].startswith( 'msm' ):
+    env.PrintInfo("WLE supported")
+    env.AddUsesFlags('USES_FEATURE_CGPS_WLE')    # SCons level
+    env.Append(CPPDEFINES = " FEATURE_CGPS_WLE")  # Modem level
+else:
+    env.PrintInfo("WLE not supported")
+
+#-------------------------------------------------------------------------------
+# Inject Legacy CXM flag as the following targets have older interface
+#-------------------------------------------------------------------------------
+if env['PRODUCT_LINE'].startswith('MPSS.JO') or \
+   env['PRODUCT_LINE'].startswith('MPSS.BO'):
+    env.Append(CPPDEFINES = " FEATURE_CGPS_GIT_LEGACY_CXM")  # Modem level
+
+#-------------------------------------------------------------------------------- 
+# Force include for comdef.h type overrides. 
+# MPSS-specific headers with build configurations
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = " -include ${GPS_ROOT}/gnss/inc/loc_types.h ") 
+
+#-------------------------------------------------------------------------------
+# Inject GAL flags for MDM targets only. 
+#-------------------------------------------------------------------------------
+if env['CHIPSET'].startswith( 'mdm' ) or \
+   env['PRODUCT_LINE'].startswith("MPSS.TH.2.0"):  # Force Enable Feature
+    env.PrintInfo("GAL/SBAS supported on this target")
+    env.AddUsesFlags('USES_GNSS_SBAS')
+    env.AddUsesFlags('USES_GNSS_GAL')
+    env.AddUsesFlags('USES_GNSS_GAL_E1C')
+
+#-------------------------------------------------------------------------------
+# Inject Dynamic Memory flags for targets that enable it and
+# only for MSM targets which have APSS to provide the necessary memory and 
+# never for RUMI builds
+#-------------------------------------------------------------------------------
+if 'USES_FEATURE_GNSS_DYNAMIC_HEAP_MEM_ENABLED' in env and \
+   env['CHIPSET'].startswith( 'msm' ) and  \
+   not string.count(env['BUILD_ID'].lower(), 'rumi'):
+    env.PrintInfo("Dynamic Memory Enabled")
+    env.Append(CPPDEFINES = " FEATURE_GNSS_DYNAMIC_SP_MEM_ALLOCATION ")  # Modem level
+    env.Append(CPPDEFINES = " FEATURE_GNSS_HLOS_HEAP_DYN_MEM ")  # Modem level
+else:
+    env.PrintInfo("Dynamic Memory Disabled")
+
+#-------------------------------------------------------------------------------
+# Enable BUP Burst only for 8996 targets
+#-------------------------------------------------------------------------------
+if env['CHIPSET'].startswith(( "msm8996", "mdm9607", "msm8937", "msm8940", "msm8953" )):
+    env.Append(CPPDEFINES = " FEATURE_GNSS_BUP_BURST_16BYTE ")  # Modem level
+    env.PrintInfo("BUP Burst Enabled")
+
+#-------------------------------------------------------------------------------
+# Print information if GTS is enabled on this target
+#-------------------------------------------------------------------------------
+if 'USES_FEATURE_LOC_GTS_SUPPORT' in env :
+    env.PrintInfo("GTS supported")
+else:
+    env.PrintInfo("GTS not supported")
+
+#-------------------------------------------------------------------------------
+# Enable NHz Reporting only for Automotive and Drone targets
+#-------------------------------------------------------------------------------
+if env['CHIPSET'].startswith(( "mdm9607", "mdm9x45", "msm8909", "apq8009", "msm8996au" )) or \
+   env['PRODUCT_LINE'].startswith("MPSS.TH.2.0"):  # Force Enable Feature
+    env.Append(CPPDEFINES = " FEATURE_LOCTECH_NHZ ")  # Modem level
+    env.Append(CPPDEFINES = " FEATURE_LOCTECH_10HZ ") # Modem level
+    env.AddUsesFlags('USES_FEATURE_LOCTECH_NHZ')      # SCons level
+    env.PrintInfo("NHz Reporting Enabled")
+    
+#-------------------------------------------------------------------------------
+# Enable QZSS only for Automtoive Targets
+#-------------------------------------------------------------------------------
+if env['CHIPSET'].startswith( 'mdm9607' ) or \
+   env['PRODUCT_LINE'].startswith("MPSS.TH.2.0"):  # Force Enable Feature 
+    env.AddUsesFlags('USES_GNSS_QZSS')    # SCons level
+    env.PrintInfo("QZSS Enabled") 
+    
+#-------------------------------------------------------------------------------
+# Enable C Language Analyzer
+#-------------------------------------------------------------------------------
+env.AddUsesFlags('USES_FEATURE_GNSS_CLANG_WARNINGS')
+if 'USES_FEATURE_GNSS_CLANG_WARNINGS' in env: 
+    # Enables scanning and puts all of the HTML logs into the /sa directory
+    SA_LOG_DIRECTORY = '${GPS_ROOT}/sa'
+    env.Append( CCFLAGS = ' --compile-and-analyze ' + SA_LOG_DIRECTORY )
+    env.CleanPack( 'CLEANPACK_TARGET', env.FindFiles('*', SA_LOG_DIRECTORY))
+
+    # Disable some checkers until they can be addressed
+    env.Append( CCFLAGS = ' -Xanalyzer -analyzer-disable-checker=core.uninitialized.Branch ')
+    env.Append( CCFLAGS = ' -Xanalyzer -analyzer-disable-checker=core.uninitialized.Assign ')
+    env.Append( CCFLAGS = ' -Xanalyzer -analyzer-disable-checker=core.uninitialized.ArraySubscript ')
+    env.Append( CCFLAGS = ' -Xanalyzer -analyzer-disable-checker=core.NullDereference ')
+    env.Append( CCFLAGS = ' -Xanalyzer -analyzer-disable-checker=core.DivideZero ')
+    env.Append( CCFLAGS = ' -Xanalyzer -analyzer-disable-checker=core.uninitialized.UndefReturn ')
+    
+    # Change the clang_sa_warning to errors
+    env.Append( CCFLAGS = ' --analyzer-Werror ')
+    
+    # Ignore unused command line arguments
+    env.Append( CCFLAGS = ' -Wno-error=unused-command-line-argument ')
+    
+    env.PrintInfo( "Enable CLang output to " + SA_LOG_DIRECTORY)
+
+env.LoadSoftwareUnits()

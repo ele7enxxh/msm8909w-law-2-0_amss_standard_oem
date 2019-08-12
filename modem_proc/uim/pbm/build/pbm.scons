@@ -1,0 +1,226 @@
+#===============================================================================
+#
+# TMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+#                       COPYRIGHT INFORMATION
+#
+# Copyright (c) 2009, 2014-2015 QUALCOMM Technologies, Inc (QTI) and its licensors.
+# All Rights Reserved.  QUALCOMM Technologies Proprietary.
+# Export of this technology or software
+# is regulated by the U.S. Government. Diversion contrary to U.S. law prohibited.
+# 
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/pbm/main/latest/build/pbm.scons#1 $
+#  $DateTime: 2010/08/06 12:28:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/25/15   sp      Updated copyright
+# 08/05/15   nr      Operator specifc NV ECC numbers configuration
+# 11/26/14   av      Changes to make sure task opts for inclusion in FTM mode
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#--------------------------------------------------------------------------------
+# Check USES flags and return if library isn't needed
+#--------------------------------------------------------------------------------
+if 'USES_PBMTASK' not in env:
+   Return()
+
+#--------------------------------------------------------------------------------
+# Setup Debug preferences
+#--------------------------------------------------------------------------------
+
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+        env.Replace(ARM_DBG = "")
+        env.Replace(HEXAGON_DBG = "")
+        env.Replace(GCC_DBG = "")
+
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+        env.Replace(ARM_DBG = "-g --dwarf2")
+        env.Replace(HEXAGON_DBG = "-g")
+        env.Replace(GCC_DBG = "-g")
+
+#--------------------------------------------------------------------------------
+# Required Public, Restricted & Protected APIs
+#--------------------------------------------------------------------------------
+
+env.RequirePublicApi([
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'STORAGE',
+    'WIREDCONNECTIVITY',
+    'DAL',
+    'MPROC',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ], area='core')
+
+env.RequirePublicApi([
+    'PBM',
+    ], area='API')
+
+env.RequirePublicApi([
+    'PBM',
+    'UIM',
+    'MMODE',
+    'WMS',
+    'MCS',
+    'DATA',
+    'GPS',
+    'DATACOMMON',
+    ])
+
+env.RequireRestrictedApi([
+    'MCS',
+    'MMODE',
+    'PBM',
+    'DATA',
+    'GPS',
+    'UIM'
+    ])
+
+env.RequireExternalApi(['BREW'])
+
+#-------------------------------------------------------------------------------
+# An Attempt to make MMCP software Compiler-Warnings free
+# Override CCFLAGS for this Module. Make all Warnings to Errors!
+#-------------------------------------------------------------------------------
+
+# Enable warnings -> errors for all, except LLVM toolchain (6.x.x) during migration
+import os
+if not os.environ.get('HEXAGON_RTOS_RELEASE').startswith('6'):
+    env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror")
+    env = env.Clone(HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_APPS_PBM",
+])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+if 'USES_EXPORT_PBMLIB_FUSION' in env:
+  PBM_C_SOURCES = [
+      '${BUILDPATH}/pbm.c',
+      '${BUILDPATH}/pbm_conversion.c',
+      '${BUILDPATH}/pbmcache.c',
+      '${BUILDPATH}/pbmefs.c',
+      '${BUILDPATH}/pbmgsdi.c',
+      '${BUILDPATH}/pbmlib.c',
+      '${BUILDPATH}/pbmlib_fusion.c',
+      '${BUILDPATH}/pbmlibutils.c',
+      '${BUILDPATH}/pbmtask.c',
+      '${BUILDPATH}/pbmuim.c',
+      '${BUILDPATH}/pbmutils.c',
+      '${BUILDPATH}/qmi_pbm.c',
+      '${BUILDPATH}/qmi_pbm_cmd_list.c',
+      '${BUILDPATH}/qmi_pbm_if.c',
+      '${BUILDPATH}/pbm_nv_refresh.c',
+  ]
+else:
+  PBM_C_SOURCES = [
+      '${BUILDPATH}/pbm.c',
+      '${BUILDPATH}/pbm_conversion.c',
+      '${BUILDPATH}/pbmcache.c',
+      '${BUILDPATH}/pbmefs.c',
+      '${BUILDPATH}/pbmgsdi.c',
+      '${BUILDPATH}/pbmlib.c',
+      '${BUILDPATH}/pbmlibutils.c',
+      '${BUILDPATH}/pbmtask.c',
+      '${BUILDPATH}/pbmuim.c',
+      '${BUILDPATH}/pbmutils.c',
+      '${BUILDPATH}/qmi_pbm.c',
+      '${BUILDPATH}/phonebook_manager_service_impl_v01.c',
+      '${BUILDPATH}/qmi_pbm_cmd_list.c',
+      '${BUILDPATH}/qmi_pbm_if.c',
+      '${BUILDPATH}/qmi_pbm_crit_sect_rex.c',
+      '${BUILDPATH}/qmi_pbm_task.c',
+      '${BUILDPATH}/qmi_pbm_task_svc.c',
+      '${BUILDPATH}/qmi_pbm_taski.c',
+      '${BUILDPATH}/qmi_pbm_svc.c',
+      '${BUILDPATH}/pbm_nv_refresh.c',
+  ]
+
+env.AddLibrary(['MODEM_MODEM','MOB_UIM'], '${BUILDPATH}/pbm',[PBM_C_SOURCES,])
+
+# Build image for which this task belongs
+RCINIT_PBM = ['MODEM_MODEM','MOB_UIM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_PBM = {
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'init_name'           : 'pbm_init',
+            'init_function'       : 'pbm_init_before_task_start',
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_PBM = {
+            'thread_name'    : 'pbm',
+            'sequence_group' : env.subst('$MODEM_UPPERLAYER'),
+            'stack_size_bytes'     : env.subst('$PBM_STKSZ'),
+            'priority_amss_order'  : 'PBM_PRI_ORDER',
+            'stack_name'     : 'pbm_stack',
+            'thread_entry'   : 'pbm_task',
+            'tcb_name'     : 'pbm_tcb',
+            'cpu_affinity' : env.subst('$MODEM_CPU_AFFINITY'),
+            'policy_optin' : ['default', 'ftm', ]
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+            env.AddRCInitFunc(RCINIT_PBM, RCINIT_INIT_PBM)
+            env.AddRCInitTask(RCINIT_PBM, RCINIT_TASK_PBM)
+# Build image for which this task belongs
+RCINIT_QMI_PBM = ['MODEM_MODEM','MOB_UIM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_QMI_PBM = {
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'init_name'           : 'qmi_pbm_init',
+            'init_function'         : 'qmi_pbm_init_before_task_start'
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_QMI_PBM = {
+            'thread_name'    : 'qmi_pbm',
+            'sequence_group' : env.subst('$MODEM_UPPERLAYER'),
+            'stack_size_bytes'     : env.subst('$PBM_STKSZ'),
+            'priority_amss_order'  : 'PBM_PRI_ORDER',
+            'stack_name'     : 'qmi_pbm_stack',
+            'thread_entry'   : 'qmi_pbm_task',
+            'tcb_name'     : 'qmi_pbm_tcb',
+            'cpu_affinity' : env.subst('$MODEM_CPU_AFFINITY')
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+            env.AddRCInitFunc(RCINIT_QMI_PBM, RCINIT_INIT_QMI_PBM)
+            env.AddRCInitTask(RCINIT_QMI_PBM, RCINIT_TASK_QMI_PBM)
+
+# Load test units
+env.LoadSoftwareUnits()

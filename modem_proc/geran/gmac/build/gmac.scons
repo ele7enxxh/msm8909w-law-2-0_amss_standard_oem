@@ -1,0 +1,213 @@
+#===============================================================================
+#
+#       G E R A N    G M A C   S C O N S   C O N F I G U R A T I O N
+#
+# GENERAL DESCRIPTION
+#    SCons build script for the GMAC VU
+#
+# Copyright (c) 2010-2015 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/geran/gmac/build/gmac.scons#1 $
+#  $DateTime: 2016/12/13 08:00:21 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 20100906   tjw     New file
+#
+#===============================================================================
+import sys
+
+def main(env):
+  # If USES_WPLT is set this library is not required, bail out now
+  # Verify that USES_GSM or USES_UMTS is set, otherwise bail out now
+  if 'USES_WPLT' in env or \
+  ('USES_GSM' not in env and 'USES_UMTS' not in env):
+    # Tell cleanpack to delete all files (not just private ones) before shipping
+    env.CleanPack('CLEANPACK_TARGET', env.FindFiles('*', '..'))
+    return()
+
+
+  ################################################################
+  # SIMPLE CONFIGURABLE ITEMS:
+  #-------------------------------------------------------------------------------
+  # Name of the subsystem to which this unit belongs
+  #-------------------------------------------------------------------------------
+  SU_NAME = 'GERAN'
+
+  #-------------------------------------------------------------------------------
+  # Name of this unit
+  #-------------------------------------------------------------------------------
+  UNIT_NAME = 'GMAC'
+
+  #-------------------------------------------------------------------------------
+  # Source path
+  #-------------------------------------------------------------------------------
+  # The path to the source files
+  SRCPATH = '../src'
+
+  #-------------------------------------------------------------------------------
+  # Source files
+  #-------------------------------------------------------------------------------
+  # The source files. Either '*.c' or list the files individually.
+  # If listing the files individually, include any private files, they will be stripped later
+  # e.g. SRC_FILES = ['foo.c', 'bar.c']
+  SRC_FILES = '*.c'
+
+  PRIVATE_SRC_FILES = []
+
+
+  #-------------------------------------------------------------------------------
+  # Required internal APIs
+  #-------------------------------------------------------------------------------
+  REQUIRED_SU_APIS = [
+      'GCOMMON',
+      'GDIAG',
+      'GDRIVERS',
+      'GL1',
+      'GL2',
+      'GLLC',
+      'GMAC',
+      'GMDSP',
+      'GRLC',
+      'GRR',
+      'GSNDCP'
+      ]
+
+  #-------------------------------------------------------------------------------
+  # Images the SU will be loaded into (MODEM_APPS and/or MODEM_MODEM)
+  #-------------------------------------------------------------------------------
+  IMAGES = ['MODEM_MODEM', 'MOB_GERAN']
+
+  ################################################################
+  # Run Control Initialisation (RCInit) data to define the task
+  # that controls this unit. If the unit doesn't have a task the
+  # following two dictionaries should be empty.
+
+  # Use AddRcInitFunc to add init functions to rcinit
+  #  Required fields:
+  #              'sequence_group'
+  #  Optional fields:
+  #              'dependencies'
+
+  INITFUNC_PARAMETER_DICTIONARY_1 = {
+    'sequence_group'             : env.subst('$MODEM_PROTOCOL'), # required
+    'init_name'                  : 'gsm_mac_fn_1',               # required
+    'init_function'              : 'gsm_mac_i_1',                # opt
+    'policy_optin'               : ['default', 'ftm', ],         # GERAN tasks required for FTM
+  }
+
+  INITFUNC_PARAMETER_DICTIONARY_2 = {
+    'sequence_group'             : env.subst('$MODEM_PROTOCOL'), # required
+    'init_name'                  : 'gsm_mac_fn_2',               # required
+    'init_function'              : 'gsm_mac_i_2',                # opt
+    'policy_optin'               : ['default', 'ftm', ],         # GERAN tasks required for FTM
+  }
+
+  INITFUNC_PARAMETER_DICTIONARY_3 = {
+    'sequence_group'             : env.subst('$MODEM_PROTOCOL'), # required
+    'init_name'                  : 'gsm_mac_fn_3',               # required
+    'init_function'              : 'gsm_mac_i_3',                # opt
+    'policy_optin'               : ['default', 'ftm', ],         # GERAN tasks required for FTM
+  }
+
+
+  # Use AddRcInitTask to add a task to rcinit
+  #  Required fields:
+  #              'thread_name'
+  #              'sequence_group'
+  #              'stack_size_bytes'
+  #              'priority_amss_order'
+  #  Optional fields:
+  #              'stack_name'
+  #              'thread_entry'
+  # Note that the optional fields default to 'thread_name'_{stack, entry, task}
+
+  INITTASK_PARAMETER_DICTIONARY_1= {
+    'sequence_group'             : env.subst('$MODEM_PROTOCOL'), # required
+    'thread_name'                : 'gsm_mac1',                   # required
+    'stack_size_bytes'           : env.subst('$GPRS_MAC_STKSZ'), # required
+    'priority_amss_order'        : 'GMAC_PRI_ORDER',             # required
+    'stack_name'                 : 'gsm_mac_stack1',             # opt
+    'thread_entry'               : 'gprs_mac_task',              # opt
+    'policy_optin'               : ['default', 'ftm', ],         # GERAN tasks required for FTM
+    'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY')
+  }
+
+  INITTASK_PARAMETER_DICTIONARY_2= {
+    'sequence_group'             : env.subst('$MODEM_PROTOCOL'), # required
+    'thread_name'                : 'gsm_mac2',                   # required
+    'stack_size_bytes'           : env.subst('$GPRS_MAC_STKSZ'), # required
+    'priority_amss_order'        : 'GMAC_PRI_ORDER',             # required
+    'stack_name'                 : 'gsm_mac_stack2',             # opt
+    'thread_entry'               : 'gprs_mac_task2',             # opt
+    'policy_optin'               : ['default', 'ftm', ],         # GERAN tasks required for FTM
+    'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY')
+  }
+
+  INITTASK_PARAMETER_DICTIONARY_3= {
+    'sequence_group'             : env.subst('$MODEM_PROTOCOL'), # required
+    'thread_name'                : 'gsm_mac3',                   # required
+    'stack_size_bytes'           : env.subst('$GPRS_MAC_STKSZ'), # required
+    'priority_amss_order'        : 'GMAC_PRI_ORDER',             # required
+    'stack_name'                 : 'gsm_mac_stack3',             # opt
+    'thread_entry'               : 'gprs_mac_task3',             # opt
+    'policy_optin'               : ['default', 'ftm', ],         # GERAN tasks required for FTM
+    'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY')
+  }
+
+  ################################################################
+  # UNIT-SPECIFIC SCONS MAGIC
+  ################################################################
+  # (for build specialists to play their tricks)
+
+  ################################################################
+  # DATA ASSEMBLED, PUT IT INTO ACTION USING THE SHARED
+  # FUNCTIONS IN build/geran_build_tools.py
+  ################################################################
+  sys.path.append('${GERAN_BUILD_TOOLS}')
+  import geran_build_tools
+
+  INITFUNC_PARAMETER_DICTIONARIES = []  # Separate RCInit fns not yet implemented
+  INITTASK_PARAMETER_DICTIONARIES = [INITTASK_PARAMETER_DICTIONARY_1, INITTASK_PARAMETER_DICTIONARY_2, INITTASK_PARAMETER_DICTIONARY_3]
+
+  geran_build_tools.set_up_component_build_config(
+    env,
+    SU_NAME=                  SU_NAME,
+    UNIT_NAME=                UNIT_NAME,
+    SRCPATH=                  SRCPATH,
+    SRC_FILES=                SRC_FILES,
+    PRIVATE_SRC_FILES=        PRIVATE_SRC_FILES,
+      REQUIRED_SU_APIS=         REQUIRED_SU_APIS,
+    IMAGES=                   IMAGES
+  )
+
+  geran_build_tools.set_up_component_tasks(
+    env,
+    IMAGES,
+    INITFUNC_PARAMETER_DICTIONARIES = INITFUNC_PARAMETER_DICTIONARIES,
+    INITTASK_PARAMETER_DICTIONARIES = INITTASK_PARAMETER_DICTIONARIES
+    )
+
+
+  # Load test units
+  env.LoadSoftwareUnits()
+
+try:
+  Import('env') # Fails if used from SCons test harness
+  _usingTestHarness = False
+except:
+  _usingTestHarness = True
+
+if not _usingTestHarness:
+  main(env)
+#else: test harness calls main() directly with its own env
+

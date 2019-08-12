@@ -1,0 +1,210 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 
+#===============================================================================
+Import('env')
+
+if 'USES_IMS_XML' not in env:
+	Return()
+
+# Execute the sconsript in which the variables needs to be imported for the Current Script
+# and export the current environment to that script into which the variables will be exported to the it's export list
+
+# Import the required Variables from the export list of the Environment to which the other script file has added
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# ------------------------------------------------------------------------------
+# Sepcify the list of required include Paths
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('IMS_XML_INC', [ 
+"${INC_ROOT}/ims/XML/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within IMS
+#-------------------------------------------------------------------------------
+IMS_API = ['IMS_DPL',
+		   'IMS_FRAMEWORK',
+		   'IMS_IMSCORE',
+		   'IMS_SIP',
+		   'IMS_REGMGR',
+		   'IMS_QIPCALL',
+		   'IMS_PS_MEDIA_SDP',
+		   'IMS_SETTINGS',
+		   'IMS_PRESENCE'
+		   'IMS_SIGCOMP',
+		   'IMS_PS_MEDIA_COMMON_INC',
+		   'IMS_PS_MEDIA_RTP_CORE']
+		   
+env.RequireProtectedApi(IMS_API)
+
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(['BREW',
+						'MODEM_API',
+						'MODEM_DATA',
+						'MODEM_HDR',
+						'MODEM_SERVICES',
+						'MODEM_UIM'])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = ['DEBUGTOOLS',
+			'SERVICES',
+			'STORAGE',
+			'SYSTEMDRIVERS',
+			'MMODE',
+			'MCS',
+			'UIM',
+			'DATA',
+			'DATACOMMON',
+			'DATAMODEM',
+			'HDR',
+			# needs to be last also contains wrong comdef.h
+			'KERNEL']
+
+env.RequirePublicApi(CBSP_API)
+env.RequirePublicApi('DAL', area='CORE')
+env.RequirePublicApi('KERNEL', area='CORE')
+env.RequirePublicApi('SERVICES', area='CORE')
+env.RequirePublicApi('DEBUGTOOLS', area='CORE')
+env.RequirePublicApi('STORAGE', area='CORE')
+env.RequirePublicApi('SYSTEMDRIVERS', area='CORE')
+env.RequirePublicApi('SECUREMSM', area='CORE')
+
+# needs to be last also contains wrong comdef.h
+env.RequirePublicApi('MMUTILS', area='MULTIMEDIA')
+env.RequirePublicApi('AUDIO', area='MULTIMEDIA')
+env.RequirePublicApi('APR', area='MULTIMEDIA')
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+IMS_XML_FLAGS = ['MAF_NO_GLOBALS',
+						'QP_DONOT_OVERLOAD_NEW_DELETE',
+						'QMAF',
+						'QP_ENABLE_MMI_MODULE',
+						'FORCE_STATIC',
+						'AEE_STATIC',
+						'USE_SIMPLE_LOGGING',
+						'IMS_AMSS_STATIC_BUILD',
+						'FEATURE_AMSS_DPL',
+						'QP_ENABLE_SIGNALS',
+						'XDM_INCLUDE_GROUPMEMBER']
+
+IMS_XML_LIB_CPP_SOURCES = [
+	'${BUILDPATH}/CommunicationBarring.cpp',
+	'${BUILDPATH}/CommunicationDiversion.cpp',
+	'${BUILDPATH}/CommunicationWaiting.cpp',
+	'${BUILDPATH}/ConferenceInfo.cpp',		
+	'${BUILDPATH}/Imdn.cpp',
+	'${BUILDPATH}/IsComposing.cpp',
+	'${BUILDPATH}/ResourceLists.cpp',
+	'${BUILDPATH}/WapProvisioningDoc.cpp',
+	'${BUILDPATH}/VolteConfigInfo.cpp',
+	'${BUILDPATH}/XcapError.cpp',
+	'${BUILDPATH}/SchemaNameSpaceRetrieval.cpp',
+	'${BUILDPATH}/XMLCommonPolicy.cpp',		
+    '${BUILDPATH}/XMLCommonDef.cpp',	
+	'${BUILDPATH}/XMLCommunicationBarring.cpp',
+	'${BUILDPATH}/XMLCommunicationDiversion.cpp',
+	'${BUILDPATH}/XMLCommunicationWaiting.cpp',
+	'${BUILDPATH}/XMLConferenceInfo.cpp',
+	'${BUILDPATH}/XMLContext.cpp',		
+	'${BUILDPATH}/XMLFactory.cpp',
+	'${BUILDPATH}/XMLFile.cpp',
+	'${BUILDPATH}/XMLImdn.cpp',
+	'${BUILDPATH}/XMLIsComposing.cpp',
+	'${BUILDPATH}/XMLList.cpp',		
+	'${BUILDPATH}/XMLResourceList.cpp',
+	'${BUILDPATH}/XMLSimservsXcap.cpp',
+	'${BUILDPATH}/XMLStack.cpp',
+	'${BUILDPATH}/XMLWapProvisioningDoc.cpp',
+	'${BUILDPATH}/XMLVolteConfigInfo.cpp',
+	'${BUILDPATH}/XMLCharacteristic.cpp',
+	'${BUILDPATH}/XMLParm.cpp',
+	'${BUILDPATH}/XMLXcapError.cpp',
+	'${BUILDPATH}/MediaControl.cpp',
+	'${BUILDPATH}/XMLMediaControl.cpp',
+	'${BUILDPATH}/USSD.cpp',
+	'${BUILDPATH}/XMLUSSD.cpp',
+	'${BUILDPATH}/Presence.cpp',
+	'${BUILDPATH}/XMLPresence.cpp',
+	'${BUILDPATH}/XMLOmaPres.cpp',
+	'${BUILDPATH}/XMLCaps.cpp',
+	'${BUILDPATH}/Rlmi.cpp',
+	'${BUILDPATH}/XMLRlmi.cpp',
+	'${BUILDPATH}/ATPPolicy.cpp',
+	'${BUILDPATH}/XMLATPPolicy.cpp',
+	'${BUILDPATH}/CallWaitingIndication.cpp',
+	'${BUILDPATH}/XMLCallWaitingIndication.cpp',
+	'${BUILDPATH}/OriginatingIdentityPresentation.cpp',
+	'${BUILDPATH}/XMLOriginatingIdentityPresentation.cpp',
+	'${BUILDPATH}/TerminatingIdentityPresentation.cpp',
+	'${BUILDPATH}/XMLTerminatingIdentityPresentation.cpp',
+	'${BUILDPATH}/Ft.cpp',
+	'${BUILDPATH}/XMLFt.cpp',
+	'${BUILDPATH}/RcsTermsInfo.cpp',
+	'${BUILDPATH}/XMLRcsTermsInfo.cpp',
+	'${BUILDPATH}/Gruu.cpp',
+	'${BUILDPATH}/XMLGruu.cpp',
+	'${BUILDPATH}/ReginfoDecoder.cpp',
+	'${BUILDPATH}/XMLReginfo.cpp',
+	'${BUILDPATH}/CWIndication.cpp',
+	'${BUILDPATH}/XMLCWIndication.cpp',
+	'${BUILDPATH}/RlsServices.cpp',
+	'${BUILDPATH}/XMLRlsServices.cpp',
+	'${BUILDPATH}/XcapDirectory.cpp',
+	'${BUILDPATH}/XMLXcapDirectory.cpp',
+	'${BUILDPATH}/Simservs.cpp',
+	'${BUILDPATH}/XMLSimservs.cpp',
+	'${BUILDPATH}/BootstrappingInfo.cpp',
+	'${BUILDPATH}/XMLBootstrappingInfo.cpp',
+	'${BUILDPATH}/XMLSchemaNameSpaceRetrieval.cpp',
+    '${BUILDPATH}/qpXMLDocGenerator.cpp',
+   	'${BUILDPATH}/XmlCommon.cpp',
+	'${BUILDPATH}/XmlDecoder.cpp',
+	'${BUILDPATH}/XmlDecoderSchema.cpp',
+    '${BUILDPATH}/OIR.cpp',
+    '${BUILDPATH}/XMLOIR.cpp',
+    '${BUILDPATH}/TIR.cpp',
+    '${BUILDPATH}/XMLTIR.cpp',
+	'${BUILDPATH}/XMLGeoPriv.cpp',
+	'${BUILDPATH}/DialogInfo.cpp',
+	'${BUILDPATH}/XMLDialogInfo.cpp'
+]
+
+# Append the list of Macro Definitions as flags to the Compiler so that it will do a conditional compilation
+env.Append( CPPDEFINES = IMS_XML_FLAGS )
+
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/ims_xml', [IMS_XML_LIB_CPP_SOURCES])

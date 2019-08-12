@@ -1,0 +1,68 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2014-2015 QUALCOMM Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header:
+# $DateTime:
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/04/15   mr      Added support for 8956 target (CR-790476)
+#===============================================================================
+
+Import('env')
+
+IMAGE_SOURCES   = ['SBL1_BOOT']
+
+#-----------------------------------------------------------------------------
+# Invoke CHIPSET build file
+#-----------------------------------------------------------------------------
+
+if env['CHIPSET'] in ['mdm9x45']:
+  env.SConscript('../mdm9x45_pmd9x45/build/load_sw_units.scons', exports='env')
+else:
+  list = env.FindFiles("*.*", "../mdm9x45_pmd9x45")
+  env.CleanPack(IMAGE_SOURCES, list)
+
+if env['CHIPSET'] in ['msm8909','msm8909w']:
+  env.SConscript('../msm8909_pm8909/build/load_sw_units.scons', exports='env')
+else:
+  list = env.FindFiles("*.*", "../msm8909_pm8909")
+  env.CleanPack(IMAGE_SOURCES, list)
+
+if env['CHIPSET'] in ['msm8952']:
+  env.SConscript('../msm8952_pm8950_pmi8950/build/load_sw_units.scons', exports='env')
+else:
+  list = env.FindFiles("*.*", "../msm8952_pm8950_pmi8950")
+  env.CleanPack(IMAGE_SOURCES, list)
+
+if env['CHIPSET'] in ['msm8956']:
+  env.SConscript('../msm8956_pm8950_pmi8950_pm8004/build/load_sw_units.scons', exports='env')
+else:
+  list = env.FindFiles("*.*", "../msm8956_pm8950_pmi8950_pm8004")
+  env.CleanPack(IMAGE_SOURCES, list)
+

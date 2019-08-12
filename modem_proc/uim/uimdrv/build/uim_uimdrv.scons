@@ -1,0 +1,277 @@
+#===============================================================================
+# UIM UIMDRV Subsystem build script
+# GENERAL DESCRIPTION
+#    build script for modem/uim/uimdrv
+#
+# Copyright (c) 2010-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/28/16   na      Restricting EFS APDU Logging with Feature
+# 11/05/15   ks      Rel12 polling enhancement
+# 11/26/14   av      Changes to make sure tasks opt for inclusion in FTM mode
+# 09/18/14   sam     Featurisation of uim_3_task
+# 09/18/14   akv     UIMDRV UT enhancements
+# 01/29/14   akv     RX ISR refactoring
+# 01/24/14   yk      Code clean up
+# 01/14/14   ak      Add uim_sigs.c
+# 12/12/13   ks      BTSAP in client mode, intial implementation
+# 10/15/13   sam     Removed virtual_uimdrv.c- file moved to offtarget location
+# 10/07/13   ak      Remove dead code - uimtk.c, uimgnusr.c
+# 09/23/13   vr      qtf-crm MOB migration
+# 07/20/13   ks      Advanced Subscription Manager changes
+# 07/12/13   nmb     Global Reorganization
+# 06/24/13   js      TSTS changes
+# 04/30/13   yt      Remove non-existent paths
+# 04/02/13   av      Move UIMDRV to group4 of RCINIT
+# 01/28/13   js      Removing UIM Subscription Manager Code
+# 12/05/12   js      UIM Parallel Processing changes
+# 10/26/12   akv     HW Enumeration changes
+# 09/18/12   nk      Changes to support modem folder removal
+# 03/07/12   yt      RCInit changes
+# 12/01/12   av      Del refrences to files deleted as part of feature cleanup
+# 11/17/11   js      Added BUSES
+# 11/17/11   js      Added UTILS
+# 10/13/11   yt      Added support for RCInit
+# 04/27/11   yb      Enabled inclusion of wms.h
+# 03/21/10   nk      Require MCS Public API
+# 12/20/10   nk      Fixed compilation error
+# 10/22/10   nk      Moved USES_RUIM check after env.Clone()
+# 10/11/10   nk      Updated with header and UESES Flag Check
+#
+#===============================================================================
+
+
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+# Verify that USES_RUIM is set, otherwise bail out now
+if 'USES_RUIM' not in env:
+    Return()
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-----------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-----------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_RUIM",
+])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'STORAGE',
+    'POWER',
+    'SYSTEMDRIVERS',
+    'BUSES',
+    'DAL',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+# We need the Core BSP API's
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+# We need the UIM API's
+env.RequirePublicApi(['UIM', 'ONEX'])
+
+# We need the MMODE API's
+env.RequirePublicApi(['MMODE'])
+
+# We need our "inc" dir too + other UIM "inc" dirs
+env.RequireRestrictedApi(['UIM', 'RFA', 'NAS', 'MCS', 'UTILS'])
+
+# We need MCS MEM Restricted APIs
+#env.RequireRestrictedApi(['MEM'])
+
+# We need WCDMA RRC Restricted APIs
+#env.RequireRestrictedApi(['RRC'])
+
+# We need the WMS API's
+#env.RequirePublicApi(['ONEX'])
+
+# We need the WMS API's
+env.RequirePublicApi(['MCS'])
+
+# We need the MMODE API's
+env.RequirePublicApi(['RFA'])
+
+# We need the MMODE API's
+#env.RequirePublicApi(['GERAN'])
+
+# We need the WMS API's
+env.RequirePublicApi(['WMS'])
+
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(['BREW'])
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+UIMDRV_C_SOURCES = [
+    '${BUILDPATH}/uim.c',
+    '${BUILDPATH}/uimgen.c',
+    '${BUILDPATH}/uimcdma.c',
+    '${BUILDPATH}/uimgsm.c',
+    '${BUILDPATH}/uimdrv.c',
+    '${BUILDPATH}/uim_sigs.c',
+    '${BUILDPATH}/uimt1.c',
+    '${BUILDPATH}/uimutil.c',
+    '${BUILDPATH}/uimusb.c',
+    '${BUILDPATH}/uimusim.c',
+    '${BUILDPATH}/uimisim.c',
+    '${BUILDPATH}/uimglobals.c',
+    '${BUILDPATH}/uim_polling.c',
+    '${BUILDPATH}/uimsub_manager.c',
+    '${BUILDPATH}/uim_remote.c',
+    '${BUILDPATH}/uim_btsap.c',
+    '${BUILDPATH}/uim_nvcfg.c',
+    '${BUILDPATH}/uim_logging.c',
+    '${BUILDPATH}/uim_hotswap.c',
+    '${BUILDPATH}/uim_rxstates.c',
+    '${BUILDPATH}/uim_rxtx.c',
+    '${BUILDPATH}/hw/clkregime/uimdrv_clk.c',
+    '${BUILDPATH}/hw/uartdm/uimdrv_uartdm.c',
+    '${BUILDPATH}/hw/gpio_tlmm/uimdrv_gpio.c',
+    '${BUILDPATH}/hw/pmic/uimdrv_pmic.c',
+    '${BUILDPATH}/hw/interruptctrl/uimdrv_intctrl.c',
+    '${BUILDPATH}/hw/rumi/uimdrv_rumi.c',
+    '${BUILDPATH}/enumeration/uimdrv_main.c',
+    '${BUILDPATH}/enumeration/uimdrv_enumeration.c',
+]
+if 'USES_FEATURE_UIM_EFS_APDU_LOGGING' in env:
+    UIMDRV_C_SOURCES += [
+    '${BUILDPATH}/uim_efs_logging.c',
+]
+else:
+    UIMDRV_C_SOURCES += [
+    '${BUILDPATH}/uim_efs_logging_stubs.c',
+]
+
+if 'USES_MOB' not in env:
+    UIMDRV_C_SOURCES += [
+    '${BUILDPATH}/hw/rumi/uimdrv_rumi.c',
+]
+
+
+# Add our library to the MODEM_AMSS image
+env.AddLibrary(['MODEM_MODEM','MOB_UIM'], '${BUILDPATH}/uim_uimdrv', UIMDRV_C_SOURCES)
+
+# Build image for which this task belongs
+RCINIT_UIM = ['MODEM_MODEM','MOB_UIM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_UIM = {
+            'sequence_group'      : 'RCINIT_GROUP_4',
+            'init_name'           : 'uim_1_init',
+            'init_function'       : 'uim_1_init',
+            'dependencies'        : [''],
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_UIM= {
+            'thread_name'          : 'uim',
+            'sequence_group'       : 'RCINIT_GROUP_4',
+            'stack_size_bytes'     : env.subst('$UIM_STKSZ'),
+            'priority_amss_order'  : 'UIM_PRI_ORDER',
+            'stack_name'           : 'uim_stack',
+            'thread_entry'         : 'uim_task',
+            'tcb_name'             : 'uim_tcb',
+            'cpu_affinity'         : env.subst('$MODEM_CPU_AFFINITY'),
+            'policy_optin'         : ['default', 'ftm', ]
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+            env.AddRCInitFunc(RCINIT_UIM, RCINIT_INIT_UIM)
+            env.AddRCInitTask(RCINIT_UIM, RCINIT_TASK_UIM)
+
+# Build image for which this task belongs
+RCINIT_UIM_2 = ['MODEM_MODEM','MOB_UIM']
+# RC Init Function Dictionary
+RCINIT_INIT_UIM_2 = {
+            'sequence_group'      : 'RCINIT_GROUP_4',
+            'init_name'           : 'uim_2_init',
+            'init_function'       : 'uim_2_init',
+            'dependencies'        : [''],
+            'policy_optin'        : ['default', 'ftm', ]
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_UIM_2 = {
+            'thread_name'          : 'uim_2',
+            'sequence_group'       : 'RCINIT_GROUP_4',
+            'stack_size_bytes'     : env.subst('$UIM_STKSZ'),
+            'priority_amss_order'  : 'UIM_PRI_ORDER',
+            'stack_name'           : 'uim_2_stack',
+            'thread_entry'         : 'uim_2_task',
+            'tcb_name'             : 'uim_2_tcb',
+            'cpu_affinity'         : env.subst('$MODEM_CPU_AFFINITY'),
+            'policy_optin'         : ['default', 'ftm', ]
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+            env.AddRCInitFunc(RCINIT_UIM_2, RCINIT_INIT_UIM_2)
+            env.AddRCInitTask(RCINIT_UIM_2, RCINIT_TASK_UIM_2)
+
+# Build image for which this task belongs
+if 'USES_FEATURE_TRIPLE_SIM' in env:
+    RCINIT_UIM_3 = ['MODEM_MODEM','MOB_UIM']
+    # RC Init Function Dictionary
+    RCINIT_INIT_UIM_3 = {
+                'sequence_group'      : 'RCINIT_GROUP_4',
+                'init_name'           : 'uim_3_init',
+                'init_function'       : 'uim_3_init',
+                'dependencies'        : [''],
+                'policy_optin'        : ['default', 'ftm', ]
+        }
+
+    # RC Init Task Dictionary
+    RCINIT_TASK_UIM_3 = {
+                'thread_name'          : 'uim_3',
+                'sequence_group'       : 'RCINIT_GROUP_4',
+                'stack_size_bytes'     : env.subst('$UIM_STKSZ'),
+                'priority_amss_order'  : 'UIM_PRI_ORDER',
+                'stack_name'           : 'uim_3_stack',
+                'thread_entry'         : 'uim_3_task',
+                'tcb_name'             : 'uim_3_tcb',
+                'cpu_affinity'         : env.subst('$MODEM_CPU_AFFINITY'),
+                'policy_optin'         : ['default', 'ftm', ]
+        }
+
+    # Add init function to RCInit
+    if 'USES_MODEM_RCINIT' in env:
+                env.AddRCInitFunc(RCINIT_UIM_3, RCINIT_INIT_UIM_3)
+                env.AddRCInitTask(RCINIT_UIM_3, RCINIT_TASK_UIM_3)
+
+# Load test units
+env.LoadSoftwareUnits()

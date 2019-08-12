@@ -1,0 +1,139 @@
+
+#===============================================================================
+#
+# MCPM HW 
+#
+# GENERAL DESCRIPTION
+#    Build scirpt to generate MCPM hw library.
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mpower/mcpm/hw/build/mcpm_hw.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#09/03/13    ls      Define MCPM_CLK_PROC_TURBO_MAX_768 to set clk proc turbo value
+# 2/13/13    vs      Initial version.
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+import re
+from glob import glob
+from os.path import join, basename
+
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+#SRCPATH = "../src"
+SRCPATH = "../"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Necessary Public and Restricted API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+    'HWENGINES',
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'DAL',
+    'POWER',
+    'BUSES',
+    'MPROC',
+    'KERNEL',                             # needs to be last 
+    ], area='core')
+
+# Need to get access to Modem Public headers
+env.RequirePublicApi([
+    'ONEX',
+    'GPS',      
+    'HDR',      
+    'MCS',
+    'MMODE',    
+    'UTILS',
+    'RFA',      
+    'UIM',      
+    'GERAN',
+    'FW',
+    ])
+
+# Need get access to Modem Restricted headers
+env.RequireRestrictedApi([
+    'MMODE',    
+    'NAS',      
+    'RFA',      
+    'MDSP',     
+    'MDSPSVC',  
+    'GERAN',    
+    'GPS',      
+    'ONEX',     
+    'HDR',      
+    'UTILS',
+    'MCS',
+    'FW',
+    ])
+
+# Pick up clk_proc TURBO level value
+env.Append(CPPDEFINES = ['MCPM_CLK_PROC_TURBO_MAX_768'])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+Import('MPOWER_HW_DIR')
+Import('MPOWER_CHIPSET_DIR')
+#final list of all source files to compile for HW
+SOURCE_FILES     = []
+HW_SOURCE_FILES  = [] #list of all *.c files in HW folders
+CHIPSET_SRC_FILES= []
+VAR_SOURCE_FILES = []
+HW_TOP_DIR       ='hw/'
+hw_files_to_filter = []
+for chipset_paths in MPOWER_CHIPSET_DIR:
+	filt_file              = env.FindFiles([ '*.c' ], chipset_paths, posix=True)
+	if filt_file:
+		CHIPSET_SRC_FILES += filt_file
+		#print "chipset" + chipset_paths
+		
+for file in CHIPSET_SRC_FILES:
+  file                = basename(file)
+  hw_files_to_filter += [ file ]
+ 
+for hw_paths in MPOWER_HW_DIR:
+	src_file     = env.FindFiles([ '*.c' ], hw_paths, posix=True)
+	if src_file:
+		HW_SOURCE_FILES += src_file
+		#print "HW" + hw_paths
+		
+for hw_files in HW_SOURCE_FILES:
+  filter_file = False
+  for dup_source_files in hw_files_to_filter:
+    if dup_source_files in hw_files:
+      filter_file = True
+
+  if not filter_file:
+    # Add this file to list of files to compile as it's name is not in filter list
+    SOURCE_FILES += [ hw_files ]
+SOURCE_FILES += CHIPSET_SRC_FILES	  
+#print SOURCE_FILES
+
+for fname in SOURCE_FILES:
+  var_str = re.sub(r".*" + HW_TOP_DIR, '', fname)
+  VAR_SOURCE_FILES += ['${BUILDPATH}/' + var_str ]
+
+
+# Compile sources and convert to a binary library
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/mpower_mcpm_hw', VAR_SOURCE_FILES)
+

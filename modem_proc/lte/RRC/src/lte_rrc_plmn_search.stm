@@ -1,0 +1,427 @@
+/*!
+  @file
+  lte_rrc_plmn_search.stm
+
+  @brief
+  This module contains the state machine description of RRC PLMN_Search.
+*/
+/*===========================================================================
+
+  Copyright (c) 2009 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_plmn_search.stm#9 $
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+11/10/2009 vatsac  Initial version
+===========================================================================*/
+
+/*!===========================================================================
+
+                      STATE MACHINE DESCRIPTION
+
+The state machine implements the RRC Plmn_Search.
+
+This module performs the following functions:
+1. IntraLTE PLMN Search: The state machine performs NAS triggered HPLMN, 
+Limted to Full Automatic, Limited to Full Manual and User triggerred Manual scans.
+2. InterRAT PLMN Search: The state machine can initiate PLMN searches on G and 
+W and gather the results and forward them to upper layers.
+3. LTE PLMN Searches from other RATs: THe state machine can perform searches for 
+LTE PLMNs for searches initiated from G and W.
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_PLMN_SEARCH_SM
+{
+  ENTRY             lte_rrc_plmn_search_sm_entry;
+  EXIT              lte_rrc_plmn_search_sm_exit;
+  INITIAL_STATE     INITIAL;
+  ERROR_HOOK        lte_rrc_stm_error;
+  DEBUG_HOOK        lte_rrc_stm_debug;
+  INPUT_DEF_FILE    lte_rrc_stm.h;
+  INPUT_DEF_FILE    lte_rrc_int_msg.h;
+  INPUT_DEF_FILE    lte_rrc_ext_msg.h;
+  INSTANCES         1;
+
+  /*!
+  Initial state. A new PLMN search request is processed in this state.
+  */
+  STATE INITIAL
+  {
+    ENTRY           NULL;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_RRC_PLMN_SEARCH_REQ        lte_rrc_plmn_search_sm_search_req;
+
+      LTE_RRC_CSP_CELL_SELECT_ABORT_CNFI lte_rrc_plmn_search_sm_csp_cell_select_abort_cnfi;
+
+      LTE_RRC_STOPPED_INDI           lte_rrc_plmn_search_sm_stopped_indi;
+
+      LTE_RRC_SYSTEM_UPDATE_REQ      lte_rrc_plmn_search_sm_system_update_req;
+
+      LTE_RRC_ML1_REVOKE_CNFI        lte_rrc_plmn_search_sm_ml1_revoke_cnfi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_SUSPEND_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_suspend_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_SUSPEND_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_suspend_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_SUSPEND_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_suspend_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_initial_irat_to_lte_get_plmn_prtl_results_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_initial_irat_to_lte_get_plmn_prtl_results_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_initial_irat_to_lte_get_plmn_prtl_results_reqi;
+    }
+  }
+
+  /*!
+  WT_MODE_CHANGE_CNF state. If ML1 needs to be started, then a mode_change_req is
+  sent to the RRC_Controller and we wait for mode_change_cnfi in this state.
+  */
+  STATE WT_MODE_CHANGE_CNF
+  {
+    ENTRY           NULL;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_RRC_MODE_CHANGE_CNFI       lte_rrc_plmn_search_sm_mode_change_cnfi;
+
+      LTE_RRC_PLMN_SEARCH_REQ        lte_rrc_plmn_search_sm_search_req;
+
+      LTE_RRC_SYSTEM_UPDATE_REQ      lte_rrc_plmn_search_sm_system_update_req;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQ  lte_rrc_plmn_search_sm_search_abort_req;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQI lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_CRE_STARTED_INDI       lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_PLMN_SEARCH_GUARD_TMRI lte_rrc_plmn_search_sm_guard_tmri;
+
+      LTE_RRC_PLMN_SEARCH_FIRSTP_TMRI lte_rrc_plmn_search_sm_firstp_tmri;
+
+      LTE_RRC_PLMN_SEARCH_MOREP_TMRI  lte_rrc_plmn_search_sm_morep_tmri;
+
+      LTE_RRC_STOPPED_INDI           lte_rrc_plmn_search_sm_stopped_indi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+    }
+  }
+
+  /*!
+  WT_SIB1S_AND_CELL_SELECT state. Once the LTE PLMN search is started, we wait 
+  for unsolicited_sib1s in this state.
+  */
+  STATE WT_SIB1S_AND_CELL_SELECT
+  {
+    ENTRY           lte_rrc_plmn_search_sm_wt_sib1s_and_cell_select_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_CPHY_BPLMN_CELL_CNF        lte_rrc_plmn_search_sm_bplmn_cell_cnf;
+
+      LTE_RRC_UNSOLICITED_SIB_INDI   lte_rrc_plmn_search_sm_unsolicited_sib_indi;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQ  lte_rrc_plmn_search_sm_search_abort_req;
+
+      LTE_RRC_SYSTEM_UPDATE_REQ      lte_rrc_plmn_search_sm_system_update_req;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQI lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_CRE_STARTED_INDI       lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_CPHY_BPLMN_COMPLETE_IND    lte_rrc_plmn_search_sm_bplmn_complete_ind;
+
+      LTE_RRC_PLMN_SEARCH_REQ        lte_rrc_plmn_search_sm_search_req;
+
+      LTE_RRC_PLMN_SEARCH_GUARD_TMRI lte_rrc_plmn_search_sm_guard_tmri;
+
+      LTE_RRC_PLMN_SEARCH_FIRSTP_TMRI lte_rrc_plmn_search_sm_firstp_tmri;
+
+      LTE_RRC_PLMN_SEARCH_MOREP_TMRI  lte_rrc_plmn_search_sm_morep_tmri;
+
+      LTE_CPHY_ABORT_CNF             lte_rrc_plmn_search_sm_cphy_abort_cnf;
+
+      LTE_RRC_STOPPED_INDI           lte_rrc_plmn_search_sm_stopped_indi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_SUSPEND_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_suspend_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_SUSPEND_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_suspend_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_SUSPEND_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_suspend_reqi;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_W_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_G_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+    }
+  }
+
+  /*!
+  WT_SEARCH_STOP_CNF state. When a stop_req is sent to ML1 to stop the ongoing
+  PLMN search, we wait for stop_cnf in this state.
+  */
+  STATE WT_SEARCH_STOP_CNF
+  {
+    ENTRY           lte_rrc_plmn_search_sm_wt_search_stop_cnf_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_CPHY_BPLMN_STOP_CNF        lte_rrc_plmn_search_sm_bplmn_stop_cnf;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQ  lte_rrc_plmn_search_sm_search_abort_req;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQI lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_CRE_STARTED_INDI       lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_PLMN_SEARCH_REQ        lte_rrc_plmn_search_sm_search_req;
+
+      LTE_RRC_SYSTEM_UPDATE_REQ      lte_rrc_plmn_search_sm_system_update_req;
+
+      LTE_RRC_PLMN_SEARCH_GUARD_TMRI lte_rrc_plmn_search_sm_guard_tmri;
+
+      LTE_RRC_PLMN_SEARCH_FIRSTP_TMRI lte_rrc_plmn_search_sm_firstp_tmri;
+
+      LTE_RRC_PLMN_SEARCH_MOREP_TMRI  lte_rrc_plmn_search_sm_morep_tmri;
+
+      LTE_RRC_STOPPED_INDI           lte_rrc_plmn_search_sm_stopped_indi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_SUSPEND_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_suspend_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_SUSPEND_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_suspend_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_SUSPEND_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_suspend_reqi;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_W_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_G_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+    }
+  }
+
+  /*!
+  WT_SEARCH_SUSPEND_CNF state. When a suspend_req is sent to ML1 to stop the ongoing
+  PLMN search, we wait for suspend_cnf in this state.
+  */
+  STATE WT_SEARCH_SUSPEND_CNF
+  {
+    ENTRY           NULL;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_CPHY_BPLMN_SUSPEND_CNF     lte_rrc_plmn_search_sm_bplmn_suspend_cnf;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQ  lte_rrc_plmn_search_sm_search_abort_req;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQI lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_CRE_STARTED_INDI       lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_PLMN_SEARCH_REQ        lte_rrc_plmn_search_sm_search_req;
+
+      LTE_RRC_SYSTEM_UPDATE_REQ      lte_rrc_plmn_search_sm_system_update_req;
+
+      LTE_RRC_PLMN_SEARCH_GUARD_TMRI lte_rrc_plmn_search_sm_guard_tmri;
+
+      LTE_RRC_STOPPED_INDI           lte_rrc_plmn_search_sm_stopped_indi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_ABORT_PLMN_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_search_abort_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_G_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_W_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+
+      LTE_RRC_IRAT_TO_LTE_FROM_TDS_GET_PLMN_PRTL_SRCH_REQI lte_rrc_plmn_search_sm_irat_to_lte_get_plmn_prtl_results_reqi;
+    }
+  }
+
+  /*!
+  WT_TIME_AVAIL_IND state. 
+  */
+  STATE WT_TIME_AVAIL_IND
+  {
+    ENTRY           lte_rrc_plmn_search_sm_wt_time_avail_ind_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_CPHY_BPLMN_TIME_AVAIL_IND  lte_rrc_plmn_search_sm_bplmn_time_avail_ind;
+
+      LTE_CPHY_ABORT_CNF             lte_rrc_plmn_search_sm_irat_cphy_abort_cnf;
+
+      LTE_RRC_PLMN_SEARCH_REQ        lte_rrc_plmn_search_sm_search_req;
+
+      LTE_RRC_SYSTEM_UPDATE_REQ      lte_rrc_plmn_search_sm_system_update_req;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQ  lte_rrc_plmn_search_sm_search_abort_req;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQI lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_CRE_STARTED_INDI       lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_PLMN_SEARCH_GUARD_TMRI lte_rrc_plmn_search_sm_guard_tmri;
+
+      LTE_RRC_PLMN_SEARCH_FIRSTP_TMRI lte_rrc_plmn_search_sm_firstp_tmri;
+
+      LTE_RRC_PLMN_SEARCH_MOREP_TMRI  lte_rrc_plmn_search_sm_morep_tmri;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_W_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_G_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_STOPPED_INDI           lte_rrc_plmn_search_sm_stopped_indi;
+    }
+  }
+
+  /*!
+  WT_IRAT_SEARCH_CNF state. 
+  */
+  STATE WT_IRAT_SEARCH_CNF
+  {
+    ENTRY           lte_rrc_plmn_search_sm_wt_irat_search_cnf_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      LTE_RRC_IRAT_FROM_LTE_TO_W_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_G_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_IRAT_FROM_LTE_TO_TDS_PLMN_SRCH_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_cnfi;
+
+      LTE_RRC_PLMN_SEARCH_REQ        lte_rrc_plmn_search_sm_search_req;
+
+      LTE_RRC_SYSTEM_UPDATE_REQ      lte_rrc_plmn_search_sm_system_update_req;
+
+      LTE_RRC_ML1_REVOKE_REQI        lte_rrc_plmn_search_sm_ml1_revoke_reqi;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQ  lte_rrc_plmn_search_sm_search_abort_req;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQI lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_CRE_STARTED_INDI       lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_PLMN_SEARCH_GUARD_TMRI lte_rrc_plmn_search_sm_guard_tmri;
+
+      LTE_RRC_PLMN_SEARCH_FIRSTP_TMRI lte_rrc_plmn_search_sm_firstp_tmri;
+
+      LTE_RRC_PLMN_SEARCH_MOREP_TMRI  lte_rrc_plmn_search_sm_morep_tmri;
+
+      LTE_RRC_STOPPED_INDI           lte_rrc_plmn_search_sm_stopped_indi;
+    }
+  }
+
+  /*!
+  WT_IRAT_SEARCH_ABORT_CNF state. 
+  */
+  STATE WT_IRAT_SEARCH_ABORT_CNF
+  {
+    ENTRY           lte_rrc_plmn_search_sm_wt_irat_search_abort_cnf_entry;
+    EXIT            lte_rrc_plmn_search_sm_wt_irat_search_abort_cnf_exit;
+
+    INPUTS
+    {
+      LTE_RRC_IRAT_FROM_LTE_ABORT_CNFI   lte_rrc_plmn_search_sm_irat_from_lte_search_abort_cnfi;
+
+      LTE_RRC_PLMN_SEARCH_REQ        lte_rrc_plmn_search_sm_search_req;
+
+      LTE_RRC_SYSTEM_UPDATE_REQ      lte_rrc_plmn_search_sm_system_update_req;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQ  lte_rrc_plmn_search_sm_search_abort_req;
+
+      LTE_RRC_PLMN_SEARCH_ABORT_REQI lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_CRE_STARTED_INDI       lte_rrc_plmn_search_sm_search_abort_reqi;
+
+      LTE_RRC_PLMN_SEARCH_GUARD_TMRI lte_rrc_plmn_search_sm_guard_tmri;
+
+      LTE_RRC_PLMN_SEARCH_FIRSTP_TMRI lte_rrc_plmn_search_sm_firstp_tmri;
+
+      LTE_RRC_PLMN_SEARCH_MOREP_TMRI  lte_rrc_plmn_search_sm_morep_tmri;
+
+      LTE_RRC_STOPPED_INDI           lte_rrc_plmn_search_sm_stopped_indi;
+    }
+  }
+
+}
+

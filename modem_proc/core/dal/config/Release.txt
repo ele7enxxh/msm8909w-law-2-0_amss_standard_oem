@@ -1,0 +1,389 @@
+
+ RELEASE / INTEGRATION NOTES
+
+
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+ *** Integration steps for L4/AMSS ARM9/ARM11 build setup : Eg: 72XX FFA/SURF 
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+
+=====================================================================================
+1. P4 Clientspec additions: 
+=====================================================================================
+
+//source/qcom/qct/core/kernel/dal/main/latest/... //<client_name>/AMSS/products/<target_dir>/dal/...
++//source/qcom/qct/core/systemcfg/targetcfg/main/latest/<target>/config/... //<client_name>/AMSS/products/<target_dir>/dal/config/...  
+
+=====================================================================================
+2. <target> builds file update: e.g. on 72XX msm7200.build on 8650 qsd8650.builds
+=====================================================================================
+ 
+[SoftComponent: Iguana]
+define FEATURE_L4       # Other L4 specific defines are located in custL4.h
+L4                      make
+iguana                  make
+define FEATURE_DAL
+dal			makeonly
+
+NOTE: For WM7 builds, add FEATURE_DAL_APPS_WM7, like below
+
+[SoftComponent: Iguana]
+define FEATURE_L4       # Other L4 specific defines are located in custL4.h
+L4                      make
+iguana                  make
+define FEATURE_DAL
+define FEATURE_DAL_APPS_WM7
+dal			makeonly
+
+=====================================================================================
+3. incpaths.min update:
+=====================================================================================
+
+Add the following variables
+
+ifeq ($(USES_DAL),yes)
+DALROOT = $(SRCROOT)/dal
+DAL_INC = $(DALROOT)/inc
+endif
+
+and incorporate $(DAL_INC) in ALL_PATHS
+
+=====================================================================================
+4. dmss_objects.min update:
+=====================================================================================
+
+Include the dal.min as follows
+
+# DAL
+ifeq ($(USES_DAL), yes)
+  include $(DALROOT)/dal.min
+endif
+
+Note: For DAL without remoting feature, i.e. on single core, enable DAL_CONFIG_NO_REMOTING
+
+Eg:
+# DAL
+ifeq ($(USES_DAL), yes)
+  DAL_CONFIG_NO_REMOTING=yes
+  include $(DALROOT)/dal.min
+endif
+
+Note: For autogeneration of DAL Configuration enable the DAL_CONFIG_AUTOGEN
+
+Eg:
+# DAL
+ifeq ($(USES_DAL), yes)
+  DAL_CONFIG_AUTOGEN=yes
+  include $(DALROOT)/dal.min
+endif
+
+Note: For building DALInterruptController NOT using TRAMP on 8200/9k builds,
+      but qube/qinterrupt, enable the USES_QINTERRUPT flag
+      Also, for DALInterruptController using TRAMP, VU_CORE_SYSTEMDRIVERS_TRAMP.03.00.33 
+      is the minimum that needs to be present in the build
+Eg:
+# DAL
+ifeq ($(USES_DAL), yes)
+  USES_QINTERRUPT=yes
+  DAL_CONFIG_AUTOGEN=yes
+  include $(DALROOT)/dal.min
+endif
+
+=====================================================================================
+5. dmss_rules.min update:
+=====================================================================================
+
+In Common libraries include ..
+
+ifeq ($(USES_DAL), yes)
+   QCTLIBS := $(QCTLIBS) $(DAL_LIBS)
+endif
+
+=====================================================================================
+6. amss_cp.mak update ( for WM BUILDS ONLY) -- to copy over dal code from AMSS to WM
+=====================================================================================
+add the line just after the HALWM.lst entry
+$(shell cat $(AMSS_SRC_ROOT)/dal/wm_dal.lst >> temp.lst )
+
+
+Add the following rule at the end of the rules
+#special rule for dal config
+.PHONY: $(WM_AMSS_DST_ROOT)/../../Src/Common/dal/config/
+$(WM_AMSS_DST_ROOT)/../../Src/Common/dal/config/:
+	cp -f $(AMSS_SRC_ROOT)/dal/config/* $(WM_AMSS_DST_ROOT)/../../Src/Common/dal/config/
+
+# Special rules to copy dal from AMSS to WM
+$(WM_AMSS_DST_ROOT)/../../Src/Common/dal/%: $(AMSS_SRC_ROOT)/dal/%
+	@echo "Special rule for $@"
+	$(INSTALL)
+
+
+=====================================================================================
+6. Entry points for DAL initialization per core/image
+=====================================================================================
+6.1 process.c (Eg: in 76XX\modem_proc\drivers\boot & 76XX\modem_proc\drivers\boot)
+   
+    Include header 
+
+    #ifdef FEATURE_DAL
+    #include "DALSys.h"
+    #endif
+
+    From within process_do_init() (Before bio_init())
+
+	#ifdef FEATURE_DAL
+    DALSYS_InitMod(NULL);
+    #endif
+
+6.2 tmc.c (& tmc_apps.c for multicore, Eg in 76XX\services\tmc) 
+
+    Include header 
+
+    #ifdef FEATURE_DAL
+    #include "DALSys.h"
+    #endif
+
+	From within tmc_init() (After qids_rpc_app_init() )
+
+	#ifdef FEATURE_DAL
+    {
+       DALSYSConfig SysCfg = {NULL, 2, NULL}; /* Note: 2 for modem side, 3 in most cases for apps side. Read the following for more info*/
+       DALSYS_InitMod(&SysCfg);
+    }
+    #endif
+
+    *Note: In above DALSYSConfig SysCfg = {NULL, 2, NULL};
+    The 2nd member, can have the following values
+	
+	// Mask for global remoting within the environment
+	#define DALREMOTING_NONE                     0 /* No Remoting Initialization */
+	#define DALREMOTING_CLIENTS                  1 /* Remoting Initialization for Core with Clients only */
+	#define DALREMOTING_SERVERS                  2 /* Remoting Initialization for Core with Servers only */
+	#define DALREMOTING_CLIENTS_SERVERS          3 /* Remoting Initialization for Core with both Clients and Servers */
+
+
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+ *** Steps for boot integration :
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+=====================================================================================
+1. oemsbl_libs.min
+=====================================================================================
+Add:
+
+#DAL
+ifeq ($(USES_DAL),yes)
+  OEMSBL_LIBS += $(DAL_LIBS)
+endif
+
+===================================================================================== 
+2. oemsbl_objs.min
+=====================================================================================
+Add:
+
+#DAL
+ifeq ($(USES_DAL),yes)
+DAL_BOOT_IMAGE=DAL_BOOT_IMAGE_OEMSBL
+include $(DALROOT)/dal.min
+vpath %.h $(DAL_INC)
+endif
+
+Note: For autogeneration of DAL Configuration enable the DAL_CONFIG_AUTOGEN
+
+Eg:
+#DAL
+ifeq ($(USES_DAL),yes)
+DAL_BOOT_IMAGE=DAL_BOOT_IMAGE_OEMSBL
+DAL_CONFIG_AUTOGEN=yes
+include $(DALROOT)/dal.min
+vpath %.h $(DAL_INC)
+endif
+
+Note: Here DAL_BOOT_IMAGE=DAL_BOOT_IMAGE_OEMSBL is for oemsbl.
+
+For others, please refer the following:
+	#PBL
+	DAL_BOOT_IMAGE=DAL_BOOT_IMAGE_PBL
+
+	#QCSBL
+	DAL_BOOT_IMAGE=DAL_BOOT_IMAGE_QCSBL
+
+	#DBL
+	DAL_BOOT_IMAGE=DAL_BOOT_IMAGE_DBL
+
+	#FSBL
+	DAL_BOOT_IMAGE=DAL_BOOT_IMAGE_FSBL
+
+	#OSBL
+	DAL_BOOT_IMAGE=DAL_BOOT_IMAGE_OSBL
+
+	#FLASH TOOLS
+	DAL_BOOT_IMAGE=DAL_IMAGE_FLASH_TOOLS
+
+	#APPSBL
+	DAL_BOOT_IMAGE=DAL_BOOT_IMAGE_APPSBL
+
+=====================================================================================
+3. oemsbl_incpaths.min
+=====================================================================================
+Add:
+
+#DAL
+ifeq ($(USES_DAL),yes)
+    DALROOT= $(ROOT)/dal
+    DAL_INC= $(ROOT)/dal/inc
+	MSM_BUILD += $(DAL_INC)
+endif
+
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+ *** Steps for build setup for a q6 L4-qube target: eg: 8650
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+Note: The following steps are not required for 8200 since q6 build is part of the
+AMSS sanbatch build. So the steps followed for AMSS/L4-ARM9 build and the .min files
+will make sure the q6 image is also built
+
+=====================================================================================
+1. P4 Clientspec additions: 
+=====================================================================================
+
+//source/qcom/qct/core/kernel/dal/main/latest/... //<client_name>/dal/...
+
+//source/qcom/qct/core/kernel/dal/main/latest/targetcfg/<target>/... //<client_name>/dal/...
+
+=====================================================================================
+2. Makefile
+=====================================================================================
+
+q6 build system needs to use 
+
+	make dal_qdsp6v2 V=qdsp6v2_ReleaseG
+	make drivers_qdsp6v2 V=qdsp6v2_ReleaseG
+
+	*Note: To autogenerate DAL driver configuration files, use 
+	make drivers_qdsp6v2 V=qdsp6v2_ReleaseG DAL_CONFIG_AUTOGEN=yes
+
+	*Note: To use DALInterruptController over TRAMP, use 
+	make driversv2_qdsp6v2 V=qdsp6v2_ReleaseG DAL_CONFIG_AUTOGEN=yes
+
+To clean DAL build, use 
+	make dal_clean_qdsp6v2 V=qdsp6v2_ReleaseG
+	make drivers_clean_qdsp6v2 V=qdsp6v2_ReleaseG
+
+	*Note: To clean DALInterruptController over TRAMP, use 
+	make driversv2_clean_qdsp6v2 V=qdsp6v2_ReleaseG
+
+*Note: The options of build flavors V are qdsp6v2_Debug, qdsp6v2_Release & qdsp6v2_ReleaseG
+
+
+=====================================================================================
+3. q6 smd task requirements
+=====================================================================================
+
+DALSYS_InitMod() should be called only after smd_start() has been called and smd_task
+has initialized.
+
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+ *** Steps for build setup for a WM 6.1
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+==========================================================================================
+1. Updates to existing build files
+==========================================================================================
+1.1 Modify "dirs" file under <build_root>\WM\Platform\QCMSM\Src\Common\ to include the “dal” folder
+
+1.2 Modify “sources.cmn” file under <build_root>\WM\Platform\QCMSM to add the following lines
+
+_DALROOT=$(_PLATFORMROOT)\QCMSM\Src\Common\dal
+_DALINC=$(_DALROOT)\inc
+_DALFWKINC=$(_DALROOT)\framework\inc
+
+
+1.3 Modify makefile in <build_root>\WM\Platform\QCMSM\CESYSGEN to add the following lines
+
+!IF EXIST($(_TARGETPLATROOT)\Src\Common\dal\config\dal.bib)
+        cefilter $(_TARGETPLATROOT)\Src\Common\dal\config\dal.bib $(_TARGETPLATROOT)\cesysgen\files
+!ENDIF
+!IF EXIST($(_TARGETPLATROOT)\Src\Common\dal\config\dal.reg)
+        cefilter $(_TARGETPLATROOT)\Src\Common\dal\config\dal.reg $(_TARGETPLATROOT)\cesysgen\files
+!ENDIF
+
+1.4 Modify “platform.bib” file in <build_root>\WM\Platform\QCMSM\files\platform.bib to include the dal.bib file
+        #include “$(_FLATRELEASEDIR)\dal.bib”
+ 
+1.5 Modify “platform.reg” file in <build_root>\WM\Platform\QCMSM\files\platform.reg to include the dal.reg file
+        #include "$(_FLATRELEASEDIR)\dal.reg"
+
+ 
+/***********************************************************************************/
+/***********************************************************************************/
+
+ *** Steps for build setup for a WM 7.0
+
+/***********************************************************************************/
+/***********************************************************************************/
+
+=====================================================================================
+1. P4 Clientspec additions: (* Required only for split builds)
+=====================================================================================
+
+//source/qcom/qct/core/kernel/dal/main/latest/... //<build_root>/WM/PLATFORM/Common/Src/SOC/QCOM_V1/dal/...
+-//source/qcom/qct/core/kernel/dal/main/latest/config/... //<build_root>/WM/PLATFORM/Common/Src/SOC/QCOM_V1/dal/config/...
+//source/qcom/qct/core/kernel/dal/main/latest/wmtargetlibs/... <build_root>/WM/Platform/<target>/Src/dal/...
++//source/qcom/qct/core/kernel/dal/main/latest/config/... <build_root>/WM/Platform/<target>/Src/dal/config/...
++//source/qcom/qct/core/systemcfg/targetcfg/main/latest/<target>/config/... <build_root>/WM/Platform/<target>/Src/dal/config/...
+
+==========================================================================================
+2. Updates to existing build files
+==========================================================================================
+2.1 Modify "dirs" file under <build_root>\WM\PLATFORM\Common\Src\SOC\QCOM_V1\dal\ to include the “dal” folder
+
+2.2 Modify “sources_common.inc” file under <build_root>\WM\PLATFORM\Common\Src\SOC\QCOM_V1\ to add the following lines
+
+_DALROOT=$(_PLATFORMROOT)\Common\Src\SOC\QCOM_V1\dal
+_DALINC=$(_DALROOT)\inc
+_DALFWKINC=$(_DALROOT)\framework\inc
+
+
+2.3 Modify makefile in <build_root>\WM\Platform\QSD8x50\CESYSGEN\Makefile to add the following lines
+
+!IF EXIST($(_TARGETPLATROOT)\src\dal\config\dal.bib)
+        cefilter $(_TARGETPLATROOT)\src\dal\config\dal.bib $(SYSPLAT_OUT)
+!ENDIF
+!IF EXIST($(_TARGETPLATROOT)\src\dal\config\dal.reg)
+        cefilter $(_TARGETPLATROOT)\src\dal\config\dal.reg $(SYSPLAT_OUT)
+!ENDIF
+
+2.4 Modify “platform.bib” file in <build_root>\WM\PLATFORM\QSD8x50\Files\platform.bib to include the dal.bib file
+        #include “$(_FLATRELEASEDIR)\postproc\dal.bib”
+ 
+2.5 Modify “platform.reg” file in <build_root>\WM\PLATFORM\QSD8x50\Files\platform.reg to include the dal.reg file
+        #include "$(_FLATRELEASEDIR)\postproc\dal.reg"
+
+ 
+
+
+
+
+
+

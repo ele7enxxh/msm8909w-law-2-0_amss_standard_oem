@@ -1,0 +1,156 @@
+#===============================================================================
+#
+# DSPS Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2015 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime:  $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/10/2015 gju     Removed unused lines
+# 04/18/2014  sc     Removed target-specific folders
+# 04/04/2014  MW     Added SENSORS_DD_DEV_FLAG for HD22
+# 12/02/2012  ag     Add multi PD support
+# 10/02/2012  ag     SMR/QMI cleanup
+# 05/11/2011  jh     Updated path to dal_tests.c
+# 04/14/2011  jh     Updated to handle multiple targets
+# 01/28/2011  ag     Updated to handle init file
+# 12/22/2010  pg     Update for accessing UCOS header files from DALSYS.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/dsps/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+env.Append(CPPDEFINES = ["DAL_NATIVE_PLATFORM"])
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+  ])
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'AVS',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'SYSTEMDRIVERS',
+   'HWIO',
+   'HWIO_API',
+   'SERVICES',
+   'BUSES',
+   'POWER',
+    # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CBSP_API)
+
+env.UsesInc([
+   "${HWIO}",
+   "${HWIO_API}",
+])
+
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/memmgr/inc",
+   "${BUILD_ROOT}/Sensors/dsps/src",
+   "${BUILD_ROOT}/Sensors/pm/inc",
+   "${BUILD_ROOT}/Sensors/profiling/inc",
+   "${BUILD_ROOT}/Sensors/common/smr/inc",
+   "${BUILD_ROOT}/Sensors/common/util/queue/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+DSPS_SOURCES = [
+      '${BUILDPATH}/sns_init_dsps.c',
+   ]
+
+dsps_obj = env.Object(DSPS_SOURCES)
+
+if env.has_key('ACCEL_SDD_TEST'):
+   env.Append(CPPDEFINES = ["ACCEL_SDD_TEST"])
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   DSPS_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/dsps/src')
+
+   # Add binary library
+   dsps_lib = env.AddBinaryLibrary(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   "${BUILDPATH}/DSPS", DSPS_SOURCES)
+
+   # Clean sources
+   env.CleanPack(['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   DSPS_CLEAN_SOURCES)
+
+else:
+   #dsps_entry_obj = env.Object(DSPS_ENTRY_SOURCES)
+   dsps_lib = env.Library('${BUILDPATH}/DSPS', dsps_obj)
+   env.AddLibsToImage(
+   ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+   dsps_lib)
+
+# Add the PD Spawn Call to the Root PD.
+env.Append(CPPDEFINES="SENSOR_IMG_NAME=\\\"M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_SENSOR.pbn\\\"")
+
+SNS_SOURCES = ['${BUILDPATH}/sns_pd.c']
+env.AddLibrary('SSC_SLPI_ROOT', '${BUILDPATH}/sns_pd', SNS_SOURCES)
+
+RCINIT_INIT_SNS_INIT = {
+  'sequence_group'             : 'RCINIT_GROUP_7',           # required
+  'init_name'                  : 'sns',                      # required
+  'init_function'              : 'sns_init',                 # required
+  'dependencies'               : ['uTimetick','i2cbsp_init','adsppm_client']
+}
+
+if 'USES_RCINIT' in env:
+ RCINIT_IMG = ['CBSP_QDSP6_SW_IMAGE']
+# env.AddRCInitFunc(
+#  'SSC_SLPI_ROOT',
+#  {
+#   'sequence_group'             : 'RCINIT_GROUP_7',
+#   'init_name'                  : 'pd_sensors',
+#   'init_function'              : 'pd_mon_sensors',
+#  })
+ env.AddRCInitFunc( RCINIT_IMG, RCINIT_INIT_SNS_INIT )

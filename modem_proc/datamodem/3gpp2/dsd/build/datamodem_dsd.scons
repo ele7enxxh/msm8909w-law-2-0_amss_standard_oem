@@ -1,0 +1,167 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/datamodem/3gpp2/dsd/rel/11.02/build/datamodem_dsd.scons#2 $
+#  $DateTime: 2011/05/05 14:34:57 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 02/26/13   scb     Updated the scons file to pick up MPPPM and WLANSM files
+#                    in lib_datamodem_3gpp2_dsd.lib library
+# 04/28/11   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+	
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_DS",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    'CNE',
+    'ECALL',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    'CNE',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+#code shipped as source
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#DATA_DSD_FILES = glob(SRCPATH + '/src/*.c')
+#DATA_DSD_SOURCES = []
+#for filename in DATA_DSD_FILES:
+#   DATA_DSD_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+DATAMODEM_3GPP2_DSD_SOURCES = [
+    '${BUILDPATH}/src/ds_dsd_1xSm.c',
+    '${BUILDPATH}/src/ds_dsd_apm.c',
+    '${BUILDPATH}/src/ds_dsd_apm_efs_parser.c',
+    '${BUILDPATH}/src/ds_dsd_apm_ext_i.c',
+    '${BUILDPATH}/src/ds_dsd_common.c',
+    '${BUILDPATH}/src/ds_dsd_dsc.c',
+    '${BUILDPATH}/src/ds_dsd_efs_parser.c',
+    '${BUILDPATH}/src/ds_dsd_event_dp.c',
+    '${BUILDPATH}/src/ds_dsd_event_factory.c',
+    '${BUILDPATH}/src/ds_dsd_ext.c',
+    '${BUILDPATH}/src/ds_dsd_fmc_if.c',
+    '${BUILDPATH}/src/ds_dsd_gsmSm.c',
+    '${BUILDPATH}/src/ds_dsd_hdrSm.c',
+    '${BUILDPATH}/src/ds_dsd_lteSm.c',
+    '${BUILDPATH}/src/ds_dsd_pref_sys.c',
+    '${BUILDPATH}/src/ds_dsd_proc.c',
+    '${BUILDPATH}/src/ds_dsd_tdscdmaSm.c',
+    '${BUILDPATH}/src/ds_dsd_timer.c',
+    '${BUILDPATH}/src/ds_dsd_wcdmaSm.c',
+    ]
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM', ], '${BUILDPATH}/modem_datamodem_dsd',[DATAMODEM_3GPP2_DSD_SOURCES, ])
+
+#code shipped as binary library
+
+LIB_DATAMODEM_3GPP2_DSD_SOURCES = [
+   '${BUILDPATH}/src/ds_dsd_wlanSm.c'
+]
+
+env.AddBinaryLibrary(['MODEM_MODEM', 'MOB_DATAMODEM',],
+                      '${BUILDPATH}/lib_modem_datamodem_3gpp2_dsd',
+                      [LIB_DATAMODEM_3GPP2_DSD_SOURCES, ])

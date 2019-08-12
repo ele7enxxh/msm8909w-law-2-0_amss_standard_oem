@@ -1,0 +1,37 @@
+#===============================================================================
+#
+# TZBSP OEM lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when          who        what, where, why
+# --------      ---        ---------------------------------------------------------
+# 2/14/2010   cap        Initial
+#===============================================================================
+Import('env')
+
+# set default script name
+if env['MSM_ID'] not in ['8962','8974','9x25','9x35','8x26','8x10', '8084', '8092', '8916', '8936' , '8909' , '9x09', '9x07','8909w']:
+   print "TZBSP doesn't know how to build HAL_PLATFORM=%s" % (env['HAL_PLATFORM'])
+   Return()
+else:
+  script_fname = "${CHIPSET}.sconscript"
+  env.SConscript(script_fname, exports='env')
+
+  env.LoadSoftwareUnits()
+  

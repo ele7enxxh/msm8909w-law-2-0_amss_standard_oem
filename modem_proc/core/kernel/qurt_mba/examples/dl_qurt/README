@@ -1,0 +1,55 @@
+###################################
+# Instructions to run the example #
+###################################
+
+* The following environment variables are required. The can be passed through
+  make command as well.
+
+  - Q6_RTOS_ROOT  --- QURT install directory
+
+  - Q6_TOOLS_ROOT --- Tools installation location
+
+  - TARGET        --- Target under QURT install. eg. 9x00
+
+* Instructions to build and run the example
+
+  - Set the environment variables
+
+  - make
+
+###############
+# Description #
+###############
+This example builds a QuRT image to be loaded at +0x1e000000 and including dynamic symbol tables at 0x1f00000.
+This image supports static-dynamic-linker, also known as edl, provided in tools 4.0 and above as libdl.a.
+
+NOTE: Hexagon tools 4.0 or above are required to work with this application.
+
+* Instructions to run and step through the example using T32
+  - Add the following to the PATH environment variable
+    - <Tools path>\qc\bin
+    - <Tools path>\iss\bin
+    - <Tools path>\iss\bin\<Q6 version> (Not Required for V4 targets.)
+
+  - cd to <build dir>
+  - t32mqdsp6.exe -c t32sim.cfg (Make sure you have the <X:\T32> added to PATH)
+  - Ignore license warning if any
+  - On the T32 window, "do t32sim.cmm"
+
+* Instrutions on writing code to use dynamic linker
+	- Please refer to main.c
+	- Initialize the dynamic linker. e.g.:
+		dlinit("LPASS");
+	- Load your shared object, and get the handled to loaded shared-object e.g.:
+		handle = dlopen (so_name, load_type);
+	- Get the address of symbol using dlsym. 
+	  If the symbol is a function, then cast it into appropriate function pointer.
+	  e.g.:
+		genfunc = dlsym(handle, func_name);
+	- Invoke the function as appropriate. e.g.:
+		genfunc(param);
+	
+* Image configuration for dynamic linker:
+	- Please refer to following files for addditional image configuration details regarding edl enabled images:
+		+ qdsp6_qurt.xml
+		+ ld.sc

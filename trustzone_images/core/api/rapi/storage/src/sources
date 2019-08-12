@@ -1,0 +1,26 @@
+!if 0
+ Copyright (c) 2007-2010 by QUALCOMM, Incorporated.  All Rights Reserved.
+!endif
+
+
+!include $(_QCCOMMON_SOURCES_INC)
+
+TARGETNAME=qcomv1_CMI_storage
+TARGETTYPE=LIBRARY
+
+CDEFINES = $(CDEFINES)
+
+### Disable Optimization, to allow for better breakpoints and debugging
+#CDEFINES=$(CDEFINES) -Od
+#CDEFINES=$(CDEFINES) -Z7
+
+INCLUDES=$(INCLUDES);\
+          $(_QCCOMMON_CMIAPI)\storage; \
+          ..\inc; \
+          ..\..\; \
+          $(_QCCOMMONBSP)\drivers\DSM;
+
+SOURCES=      \
+      remote_storage_clnt.c \
+      remote_storage_xdr.c \
+ 

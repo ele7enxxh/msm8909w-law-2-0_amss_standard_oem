@@ -1,0 +1,70 @@
+#===============================================================================
+#
+# QC MAP (Qualcomm Mobile Access Point) QMI APIs
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2012-2014 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  $Header: //source/qcom/qct/interfaces/qmi/mfs/main/latest/build/scons/qmi_mfs.scons#1 $
+#  $DateTime: 2011/11/02 16:08:45 $
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/12/12   mpa     Add new build tags and update SRCPATH
+# 02/01/12   mpa     Baseline version
+#===============================================================================
+Import('env')
+env = env.Clone()
+from glob import glob
+from os.path import join, basename
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# ------------------------------------------------------------------------------
+# Include Paths
+#---------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# APIs needed to build the QCMAP APIs
+#-------------------------------------------------------------------------------
+
+# Should be first
+env.RequirePublicApi([
+  'COMMON',
+  'QCMAP',
+  ])
+
+env.RequirePublicApi([
+  'MPROC',
+  ], area='CORE')
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+QCMAP_C_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                 for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Add our library to the following build tags:
+#   QMIMSGS_MPSS and MODEM_MODEM(deprecated for QMI) for MPSS images
+env.AddLibrary (['QMIMSGS_MPSS','MODEM_MODEM'], 
+                '${BUILDPATH}/interfaces_qmi_qcmap', [QCMAP_C_SOURCES])
+
+# Load test units
+env.LoadSoftwareUnits()

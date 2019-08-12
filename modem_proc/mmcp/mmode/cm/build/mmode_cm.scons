@@ -1,0 +1,376 @@
+#===============================================================================
+#
+# Multimode CM SCons 
+#
+# GENERAL DESCRIPTION
+#    SCons build script
+#
+# Copyright (c) 2010 - 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/mmode/cm/build/mmode_cm.scons#1 $
+#  $DateTime: 2016/12/13 08:00:05 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/11/13   fj      Added change for segment loading compilation.
+# 08/08/13   jvo     Added SECUREMSM in Core for Secapi per CR 518274
+# 06/05/12   ns      Added ECALL in Public and Restricted APIs
+# 01/25/12   mj      TD-SCDMA include files
+# 09/29/11   gm      RC init changes
+# 04/28/11   pm      Update for MSGR_DEFINE_UMID() calls
+# 09/15/10   pm      Initial file
+#
+#===============================================================================
+#from glob import glob
+#from os.path import join, basename
+
+Import('env')
+env = env.Clone()
+
+if 'USES_WPLT' in env:
+   Return()
+
+# --------------------------------------------------------------------------- #
+# Turn off/on debug if requested 			      
+# --------------------------------------------------------------------------- # 
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+    'MSG_BT_SSID_DFLT=MSG_SSID_CM',
+])
+
+#-------------------------------------------------------------------------------
+# For MSGR_DEFINE_UMID() calls
+#-------------------------------------------------------------------------------
+if 'USES_MSGR' in env:
+    env.AddUMID('${BUILDPATH}/cm_msgr.umid', ['../../../api/cm_msgr_msg.h'])
+
+#-------------------------------------------------------------------------------
+# Publish our Private API
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('MMODE', ["${INC_ROOT}/mmcp/mmode/cm/inc"])
+
+#-------------------------------------------------------------------------------
+# Necessary Public API's
+#-------------------------------------------------------------------------------
+#-----------------------------------------
+# Public Api List
+#-----------------------------------------
+public_api_list = [
+    ('CORE',                'SYSTEMDRIVERS'),
+    ('CORE',                'HWIO'),
+    ('CORE',                'KERNEL'),
+    ('RFA',                 'COMMON'),
+    ('CORE',                'DAL'),
+    ('RFDEVICE_INTERFACE',  'RFDEVICE_INTERFACE'),
+    ('RFA',                 'CDMA'),
+    ('MMCP',                'PUBLIC'),
+    ('MCS',                 'MCS'),
+    ('LTE',                 'LTE'),
+    ('MMCP',                'MMCP'),
+    ('FW',                  'RF'),
+    ('FW',                  'WCDMA'),
+    ('FW',                  'C2K'),
+    ('RFA',                 'MEAS'),
+    ('CORE',                'DEBUGTOOLS'),
+    ('GERAN',               'GERAN'),
+    ('RFA',                 'GSM'),
+    ('RFA',                 'LM'),
+    ('RFA',                 'LTE'),
+    ('FW',                  'TARGET'),
+    ('FW',                  'GERAN'),
+    ('CORE',                'MPROC'),
+    ('CORE',                'MEMORY'),
+    ('CORE',                'SERVICES'),
+    ('RFA',                 'WCDMA'),
+    ('CORE',                'POWER'),
+    ('ONEX',                'PUBLIC'),
+    ('RFNV',                'RFNV'),
+    ('RFDEVICE_WTR1605',    'RFDEVICE_WTR1605'),
+    ('FW',                  'LTE'),
+    ('WCDMA',               'WCDMA'),
+    ('FW',                  'TDSCDMA'),
+    ('RFA',                 'GNSS'),
+    ('UTILS',               'OSYS'),
+    ('AVS',                 'MVS'),
+    ('HDR',                 'HDR'),
+    ('TDSCDMA',             'TDSCDMA'),
+    ('RFA',                 'TDSCDMA'),
+    ('ONEX',                'ONEX'),
+    ('CORE',                'BUSES'),
+    ('WCDMA',               'PUBLIC'),
+    ('UIM',                 'UIM'),
+    ('CORE',                'STORAGE'),
+    ('RFDEVICE_QFE1320',    'RFDEVICE_QFE1320'),
+    ('UTILS',               'A2'),
+    ('UIM',                 'PUBLIC'),
+    ('GPS',                 'GPS'),
+    ('RFDEVICE_WTR2605',    'RFDEVICE_WTR2605'),
+    ('MCS',                 'PUBLIC'),
+    ('HDR',                 'PUBLIC'),
+    ('MPOWER',              'MPOWER'),
+    ('TDSCDMA',             'PUBLIC'),
+    ('RFDEVICE_WFR2600',    'RFDEVICE_WFR2600'),
+    ('CORE',                'HWENGINES'),
+    ('RFA_RF',              'TUNER'),
+    ('QMIMSGS',             'RFRPE'),
+    ('UTILS',               'COMMON'),
+]
+
+REQUIRED_PUBLIC_APIS = [
+    'DATA',
+    'GERAN',
+    'GPS',
+    'HDR',
+    'MCS',
+    'MMODE',
+    'NAS',
+    'ONEX',
+    'PBM',
+    'RFA',
+    'TDSCDMA',
+    'UIM',
+    'UTILS',
+    'WCDMA',
+    'WMS',
+    'ECALL',
+    'MCFG',
+    ]
+
+cm_public_api_list = [
+   ('CORE', 'BUSES'),
+   ('UTILS', 'OSYS'),
+   ('UTILS', 'A2'),
+   ('AVS', 'MVS'),
+   ('UIM', 'UIM'),
+   ('MPOWER', 'MPOWER'),
+   ('WCDMA', 'WCDMA'),
+   ('FW', 'WCDMA'),
+   ('TDSCDMA', 'TDSCDMA'),
+   ('MCFG', 'MCFG'),
+]
+for api_area,api_name in cm_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+REQUIRED_RESTRICTED_APIS = [
+    'DATA',
+    'FW',
+    'GERAN',
+    'GPS',
+    'HDR',
+    'LTE',
+    'MCS',
+    'MDSP',
+    'MMODE',
+    'NAS',
+    'ONEX',
+    'RFA',
+    'TDSCDMA',
+    'UIM',
+    'UTILS',
+    'WCDMA',
+    'WMS',
+    'ECALL',
+    'MCFG',
+    'DATAMODEM',
+    'QCHAT',
+    'MPOWER',
+    ]
+
+CORE_APIS = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'MPROC',
+    'POWER',
+    'SECUREMSM',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+MULTIMEDIA_APIS = [
+    'MVS',
+    ]
+
+env.RequirePublicApi(CORE_APIS, area='core')
+
+env.RequirePublicApi(['AUDIO'], area='MULTIMEDIA') 
+env.RequirePublicApi(MULTIMEDIA_APIS, area='MULTIMEDIA')
+
+env.RequirePublicApi(REQUIRED_PUBLIC_APIS) 
+env.RequireRestrictedApi(REQUIRED_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+# For AEEstd.h
+env.RequireExternalApi([
+    'BREW',
+    'MULTIMEDIA_AUDIO',
+])
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+#CM_C_SOURCES = ['${BUILDPATH}/' + basename(fname)
+#                 for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+CM_C_SOURCES = [
+        '${BUILDPATH}/cm.c',
+        '${BUILDPATH}/cmals.c',
+        '${BUILDPATH}/cmbcmcs.c',
+        '${BUILDPATH}/cmcall.c',
+        '${BUILDPATH}/cmcc.c',
+        '${BUILDPATH}/cmclient.c',
+        '${BUILDPATH}/cmdbg.c',
+        '${BUILDPATH}/cmdiag.c',
+        '${BUILDPATH}/cmefs.c',
+        '${BUILDPATH}/cminband.c',
+        '${BUILDPATH}/cmll.c',
+        '${BUILDPATH}/cmlog.c',
+        '${BUILDPATH}/cmmbms.c',
+        '${BUILDPATH}/cmmmgsdi.c',
+        '${BUILDPATH}/cmnas.c',
+        '${BUILDPATH}/cmnv.c',
+        '${BUILDPATH}/cmph.c',
+        '${BUILDPATH}/cmpmprx.c',
+        '${BUILDPATH}/cmclnup.c',
+        '${BUILDPATH}/cmregprx.c',
+        '${BUILDPATH}/cmreply.c',
+        '${BUILDPATH}/cmsms.c',
+        '${BUILDPATH}/cmsoa.c',
+        '${BUILDPATH}/cmmsc.c',
+        '${BUILDPATH}/cmmsc_sglte.c',
+        '${BUILDPATH}/cmmsc_auto.c',
+        '${BUILDPATH}/cmsimcoord.c',
+        '${BUILDPATH}/cmss.c',
+        '${BUILDPATH}/cmautoreg.c',
+        '${BUILDPATH}/cmssidm.c',
+        '${BUILDPATH}/cmstats.c',
+        '${BUILDPATH}/cmtask.c',
+        '${BUILDPATH}/cmutil.c',
+        '${BUILDPATH}/cmwaoc.c',
+        '${BUILDPATH}/cmwcall.c',
+        '${BUILDPATH}/cmwll.c',
+        '${BUILDPATH}/cmwsups.c',
+        '${BUILDPATH}/cmxcall.c',
+        '${BUILDPATH}/cmxdbm.c',
+        '${BUILDPATH}/cmxll.c',
+        '${BUILDPATH}/cmxpd.c',
+        '${BUILDPATH}/cmxsms.c',
+        '${BUILDPATH}/cmipapp.c',
+        '${BUILDPATH}/cmipcall.c',
+        '${BUILDPATH}/cmipqvp.c',
+        '${BUILDPATH}/cmipsms.c',
+        '${BUILDPATH}/sys.c',
+        '${BUILDPATH}/sys_gw.c',
+        '${BUILDPATH}/bit_mask_256.c',
+        '${BUILDPATH}/cmgan.c',
+        '${BUILDPATH}/cmsups.c',
+        '${BUILDPATH}/cmipsups.c',
+        '${BUILDPATH}/cmrpm.c',
+        '${BUILDPATH}/cmrpm_tds.c',
+        '${BUILDPATH}/cmrpm_lte.c',
+        '${BUILDPATH}/cmaccessctrl.c',
+        '${BUILDPATH}/cmdbg_qsh.c',
+        '${BUILDPATH}/cmshutdown.c',
+        '${BUILDPATH}/cmpsm.c',
+        '${BUILDPATH}/cmdrvcc.c',
+]
+
+CM_LTE_SOURCES = [
+        '${BUILDPATH}/cmcsfbcall.c',
+        '${BUILDPATH}/cmltecall.c',
+        '${BUILDPATH}/cmsds.c',
+]
+
+CM_FUSION_SOURCES = [
+        '${BUILDPATH}/cmmm.c',
+]
+
+CM_MSM_FUSION_SOURCES = [
+        '${BUILDPATH}/cm_fusion.c',
+]
+
+if 'USES_LTE' in env:
+        CM_C_SOURCES += CM_LTE_SOURCES
+
+if 'USES_MDM_FUSION' in env:
+        CM_C_SOURCES += CM_FUSION_SOURCES
+
+if 'USES_MSM_FUSION' in env:
+        CM_C_SOURCES += CM_FUSION_SOURCES
+
+if 'MSM_ID' in env and env['MSM_ID'] == '9X00':
+        CM_C_SOURCES += CM_MSM_FUSION_SOURCES
+
+
+# Add our library to the ModemApps image
+env.AddLibrary( ['MODEM_MODEM'], '${BUILDPATH}/mmode_cm', [CM_C_SOURCES] )
+
+env.AddBinaryLibrary( ['MODEM_MODEM'], '${BUILDPATH}/mmode_cm_extn', ['${BUILDPATH}/cmemgext.c'], pack_exception=['USES_COMPILE_IMS_EXT_PROTECTED_LIBS'] )
+
+# Build image for which this task belongs
+RCINIT_CM = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_CM = {
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'init_name'           : 'cm_init',
+	    'init_function'       : 'cm_init_before_task_start',
+	    # 'dependencies'      : ['cfm'],
+      'policy_optin'        : ['default', 'ftm', ],
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_CM = {
+	    'thread_name'         : 'cm',
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'stack_size_bytes'    : env.subst('$CM_STKSZ'),
+	    'priority_amss_order' : 'CM_PRI_ORDER',
+	    'stack_name'          : 'cm_stack',
+	    'thread_entry'        : 'cm_task',
+	    'tcb_name'            : 'cm_tcb',
+      'cpu_affinity'	      : env.subst('$MODEM_CPU_AFFINITY'),
+      'policy_optin'        : ['default', 'ftm', ],
+    }
+    
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+	    env.AddRCInitFunc(RCINIT_CM, RCINIT_INIT_CM)
+	    env.AddRCInitTask(RCINIT_CM, RCINIT_TASK_CM)
+
+

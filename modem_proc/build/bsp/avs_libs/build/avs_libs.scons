@@ -1,0 +1,255 @@
+#===============================================================================
+#
+# Basic skeleton image scrip
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/build/bsp/avs_libs/build/avs_libs.scons#1 $
+#  $DateTime: 2016/12/13 07:59:25 $
+#  $Change: 11985153 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+
+Import('env')
+import os
+#------------------------------------------------------------------------------
+# Init image vars 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Init aliases array.
+# first alias (0th elemten in array) is always unique name, there should 
+# never be two images with the same unique name
+aliases = ['avs_libs', 'adsp_proc', 'adsp_images', 'adsp_mpd_images', 'adsp_core_images', 'adsp_mpd_core_images',
+           'msm8974_SPD', 'mdm9x25_SPD', 'msm8x26_SPD', 'msm8x10_SPD',
+           'msm8974_MPD', 'mdm9x25_MPD', 'msm8x26_MPD', 'msm8x10_MPD', 'apq8084_MPD', 'msm8962_MPD',
+		   'msm8974_hcbsp_MPD', 'mdm9x25_hcbsp_MPD', 'msm8x26_hcbsp_MPD', 'msm8x10_hcbsp_MPD',
+		   'msm8974_hcbsp_SPD', 'mdm9x25_hcbsp_SPD', 'msm8x26_hcbsp_SPD', 'msm8x10_hcbsp_SPD', 
+		   'mapss', 'modem_audio_bringup']
+
+if 'USES_CREATE_ONLY_STUBS' in env.get('USES_FLAGS'):
+   build_tags = ['AVS_ADSP_STUBS' ]
+else:
+   build_tags = ['CORE_QDSP6_SW', 'BUILD_TEST_MODEM', 'QDSS_EN_IMG','AVS_ADSP','VIDEO_ADSP', 'QMIMSGS_ADSP', 'HAP_AVS_ADSP','MULTIMEDIA_USER_PD' ]
+   
+print env.subst('${HEXAGON_RTOS_RELEASE}')
+print os.environ.get('HEXAGON_RTOS_RELEASE')
+
+#import pdb; pdb.set_trace()
+#------------------------------------------------------------------------------
+# Init environment variables
+env.InitImageVars(
+   alias_list=aliases,  # aliases list
+   proc='qdsp6',      # proc (depending on tool chain arm, hexago, etc)
+   config='adsp',
+   plat='qurt',           # platform (l4, blast, foo, bar, etc)
+#build_tags = ['BASIC_IMAGE_EXAMPLE'],
+
+   build_tags = build_tags,
+   deprecated_build_tags = ['CBSP_QDSP6_SW_IMAGE'],
+   tools = ['buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/doc_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/sleep_lpr_builder.py',
+			'${BUILD_ROOT}/audio_avs/build/strip_builder.py']
+)
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+if not env.CheckAlias():
+   Return()
+print "-------------"
+print env.get('CHIPSET')
+print env.Dump()
+env.Replace(AUDIO_AVS_LIB_LIST_FILE_PATH = env['BUILD_ROOT']+'/build/bsp/avs_libs/build/*/AVS_LIBS_*.txt')
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(USES_DEVCFG = 'yes')
+
+if 'USES_MPSS_MULTI_PD' in env:
+    env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_AUDIO_PD_IMG')
+else:
+    env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_IMG')
+
+if 'USES_MULTI_PD' in env:
+   env.PrintInfo("This adsp avs libs are being built for Multi PD version")
+   env.AddUsesFlags('USES_MPD')
+   env.AddUsesFlags('USES_QURTOS_IMG') #this is the flag to be used for mpd builds to compile for guest os
+   env.Append(CPPDEFINES="SENSOR_IMG_NAME=\\\"M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_SENSOR.pbn\\\"")
+   env.Append(CPPDEFINES="AUDIO_IMG_NAME=\\\"M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_AUDIO.pbn\\\"")
+   env.Append(CPPDEFINES=["MULTI_PD_BUILD"])
+else:
+   env.PrintInfo("This adsp avs libs are being built for Single PD version")
+
+#if image wants to own "main": # image calls core_main to init cbsp
+env.Append(CPPDEFINES=["COREMAIN_EXCLUDE_MAIN"])
+
+# For diag
+if 'USES_MPSS_MULTI_PD' in env:
+   env.Append(CPPDEFINES=["DIAG_USERPD_TEMP"])
+
+#if ARGUMENTS.get("$SIM") == "1" or ARGUMENTS.get("$SIM") == "TRUE":
+if ARGUMENTS.get('SIM') == "1" or ARGUMENTS.get('SIM') == "TRUE":
+   env.PrintInfo("SIM is in the argument, build SIM AVS")
+   env.AddUsesFlags(['USES_STACK_PROTECTION_ENABLED','USES_AVS_TEST'])
+else:
+   env.PrintInfo("SIM is not in the argument, build target AVS")
+   env.AddUsesFlags(['USES_STACK_PROTECTION_ENABLED','USES_ADSPPM_INTEGRATION_ENABLED'])
+
+env.AddUsesFlags('USES_RCINIT_PLAYBOOK') # MUST OCCUR BEFORE FIRST LoadAreaSoftwareUnits
+
+#---------------------------------------------------------------------------
+# Load in the tools-set init scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('platform_builders', toolpath = ['${BUILD_ROOT}/platform/build'])
+env.Replace(DYNLINKFLAGS = "--force-dynamic --dynamic-linker= --dynamic-list=${BUILD_ROOT}/platform/exports/dynsymbols.lst -T${BUILD_ROOT}/platform/exports/externs.lst")
+#env.Replace(QDSP6_LIBDIR = "${COREBSP_ROOT}/kernel/qurt/install_again/ADSPv5MP/lib")
+env.Replace(QDSP6_LIBDIR = "${COREBSP_ROOT}/kernel/qurt/install/modem${Q6VERSION}/lib")
+
+
+
+#Add LPASS Image specific linker inputs here
+env.LoadToolScript('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+#env.LoadToolScript('qdsp6_defs_adsp', toolpath = ['${BUILD_ROOT}/build/ms'])
+
+env.Replace(QDSP6_RELEASE_LIB_DIR="${QDSP6_RELEASE_DIR}/dinkumware/lib/${Q6VERSION}/G0")
+
+env.Append(CCFLAGS='-G8')
+env.Append(CXXFLAGS='-G8')
+env.Append(ASFLAGS='-G0')
+
+if 'USES_STACK_PROTECTION_ENABLED' in env:
+    env.Append(CFLAGS='-fstack-protector')
+
+if 'USES_MALLOC_WRAPPER_ENABLED' in env:
+    env.Append(CFLAGS='-DMALLOC_WRAPPER ')
+
+if 'USES_ADSPPM_INTEGRATION_ENABLED' in env:
+    if env.get('CHIPSET') == "msm8x26":
+        env.Append(CFLAGS='-DADSPPM_INTEGRATION=1')
+    elif env.get('CHIPSET') == "msm8x10":
+        env.Append(CFLAGS='-DADSPPM_INTEGRATION=1')
+    else:
+        env.Append(CFLAGS='-DADSPPM_INTEGRATION=1')
+else:
+    env.Append(CFLAGS='-DADSPPM_INTEGRATION=0')      
+
+
+#Append sim flag if building for sim 
+if 'USES_AVS_TEST' in env:
+    env.Append(CFLAGS='-DSIM')
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+image_libs = []
+image_objs = []
+
+if env.PathExists("${BUILD_ROOT}/audio_avs"):
+   env.Replace(AVS_AU_NAME ='audio_avs')
+else:
+   env.Replace(AVS_AU_NAME ='avs')
+
+env.Replace(AVS_ROOT = '${INC_ROOT}/${AVS_AU_NAME}')
+
+
+#import pdb; pdb.set_trace()
+
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load au_name libs/objs build rules.
+au_name_items = env.LoadAreaSoftwareUnits(str(env['AVS_AU_NAME']))
+image_libs.extend(au_name_items['LIBS'])
+#image_objs.extend(au_name_items['OBJS'])
+
+#Loading HAP AU from AVS if OEM_ROOT is set from command prompt session. 
+#This will integrate AVS Modules in present HAP Component with Build tag "HAP_AVS_ADSP".
+if ((os.environ.get('OEM_ROOT')!=None or 'CLEANPACK_TARGET' in env) and
+    'hap' in env.GetAreaSoftwareUnitNames()):
+   au_name_items = env.LoadAreaSoftwareUnits('hap')
+   image_libs.extend(au_name_items['LIBS'])
+
+image_units = [image_objs, image_libs]
+
+#--- RCINIT Playbook Extension, Library Specific Details ------------------- BEG
+
+# ONLY WHEN DNT_BUILDER SCONS TOOL LOADED
+if 'USES_RCINIT' in env and 'USES_RCINIT_PLAYBOOK' in env:
+   env.AddRcinitPlaylistParams(build_tags,image_units)
+#--- RCINIT Playbook Extension, Library Specific Details ------------------- END
+
+#------------------------------------------------------------------------------
+# Putting the image toghther
+#------------------------------------------------------------------------------
+
+if 'IMAGE_BUILD_LOCAL_FILES' in env:
+   #-------------------------------------------------------------------------
+   # Local Files
+   #-------------------------------------------------------------------------
+   
+   # this is where local files are created, for example link scripts (lcs)
+   # for qdsp6 like images, or scatter load files (scl) for amr like images.
+   local_itmes= []
+   
+   image_units += local_itmes
+      
+if 'IMAGE_BUILD_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Link image
+   #-------------------------------------------------------------------------
+   if 'USES_FEATURE_DYNAMIC_LOADING' in env:
+      avssym_lst= env.RealPath('${SHORT_BUILDPATH}/AVS_SYMS_${BUILD_ID}.txt')
+      avs_dlysm_list = env.DLExposeGenerateList([avssym_lst], None)
+      local_itmes += avs_dlysm_list
+
+   # this is where the rule to "link" is done.
+   #image_elf = env.AddProgram("${SHORT_BUILDPATH}/${TARGET_NAME}", image_objs, LIBS=image_libs)
+   
+   # this is just to create something for testing
+   if ('USES_AUDIO_HAP' not in env) and (not env.IsBuildInternal()):
+      image_elf = None 
+   else:
+      image_elf = env.ListFileBuilder_avs("${SHORT_BUILDPATH}/${TARGET_NAME}.txt", [image_objs, image_libs], 
+            add_header=False, relative_path="${BUILD_ROOT}/build/ms", posix=True)
+   
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Post process image
+   #-------------------------------------------------------------------------
+   
+   # this is where any aditional rules after linking are done.
+
+   #=========================================================================
+   # Define targets needed 
+   #
+   image_units += [
+      image_elf,
+   ]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)

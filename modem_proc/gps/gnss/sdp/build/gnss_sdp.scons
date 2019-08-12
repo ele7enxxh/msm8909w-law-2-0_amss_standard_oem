@@ -1,0 +1,150 @@
+# -------------------------------------------------------------------------------- #
+#                         G N S S _ L B S . S C O N S
+#
+# DESCRIPTION
+#   SCons file for the GNSS SDP subsystem.
+#
+#
+# INITIALIZATION AND SEQUENCING REQUIREMENTS
+#   None.
+#
+#
+#  Copyright (c) 2012 Qualcomm Technologies Incorporated.
+#  Qualcomm Confidential and Proprietary. All Rights Reserved.
+#  Copyright (c) 2013 - 2015 Qualcomm Atheros, Inc.
+#  Qualcomm Atheros Confidential and Proprietary. All Rights Reserved. 
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/gps/gnss/sdp/build/gnss_sdp.scons#1 $
+# $DateTime: 2016/12/13 07:59:45 $
+# $Author: mplcsds1 $ 
+# --------------------------------------------------------------------------------- #
+
+#--------------------------------------------------------------------------------
+# Import and clone the SCons environment
+#--------------------------------------------------------------------------------
+Import('env')
+from glob import glob
+from os.path import join, basename
+
+#--------------------------------------------------------------------------------
+# Setup source PATH
+#--------------------------------------------------------------------------------
+env.VariantDir('${BUILDPATH}', '../src', duplicate=0)
+
+#--------------------------------------------------------------------------------
+# Name of the subsystem to which this unit belongs
+#--------------------------------------------------------------------------------
+LIB_TARGET = '${BUILDPATH}/' + 'gnss_sdp'
+
+#--------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros by removing previous version and adding new
+# Definition
+#--------------------------------------------------------------------------------
+env.Replace(CPPDEFINES = [x for x in env['CPPDEFINES'] if not x.startswith("MSG_BT_SSID_DFLT=")] +
+                                         ["MSG_BT_SSID_DFLT=MSG_SSID_GPS_SDP"]) 
+
+#--------------------------------------------------------------------------------
+# Images that this VU is added
+#--------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM']
+
+#--------------------------------------------------------------------------------
+# APQ targets has different RC init parameters than MPSS targets.   
+#-------------------------------------------------------------------------------
+if 'USES_GNSS_LOWMEM' in env:
+    env.PrintInfo("SDP Task not started because SDP has been removed from low-memory targets.")
+else:
+    if 'USES_GPSAPQ' in env:
+        RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', 'CORE_GSS']
+        env.AddRCInitTask(           # NV
+        RCINIT_IMG,                 # define TMC_RCINIT_REXTASK_NV 
+        {
+          'sequence_group'             : 'RCINIT_GROUP_3',                  # required
+          'thread_name'                : 'gnss_sdp',                              # required
+          'stack_size_bytes'           : '16384',
+          'priority_amss_order'        : 'SHARED_BACKGROUND_PRI_ORDER',
+          'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+        })
+    else:
+        RCINIT_TASK_FN = {
+            'thread_name'         : 'gnss_sdp',
+            'thread_entry'        : 'gnss_sdp_task',
+            'stack_size_bytes'    : env.subst('$GNSS_SDP_STKSZ'),
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'priority_amss_order' : 'GNSS_SDP_PRI_ORDER',
+            'cpu_affinity'        : 'REX_ANY_CPU_AFFINITY_MASK',
+            'policy_optin'        : ['default', 'ftm', ],
+        }
+        env.AddRCInitTask (IMAGES, RCINIT_TASK_FN)
+
+#--------------------------------------------------------------------------------
+# Find all of the .c and .h files in TLE and Clean them from being packed
+#--------------------------------------------------------------------------------
+GNSS_SDP_SHIP_FILES = ['lbs_sdp.h',
+                       'sdp_for_lbs.h',
+                       'sdp_for_loc.h',
+                       'sdp_loc_eng_api.h',
+                       'sdp_pe_iface.h',
+                      ]
+# Parse the files to find the shipped and non-shipped files
+black_list = env.FindFiles(['*.h', '*.c'], '..')
+white_list = env.FindFiles(GNSS_SDP_SHIP_FILES, '..')
+  
+# This code does "filtered = black_list - white_list"
+filtered = [x for x in black_list if x not in white_list]
+env.CleanPack("CLEANPACK_TARGET", filtered, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+
+#--------------------------------------------------------------------------------
+# Add the necessary interface file
+#--------------------------------------------------------------------------------
+if 'USES_EXPORT_LOC_API' in env:
+    filtered.append(env.FindFiles(['sdp_qmi_loc.c'], '..'))
+elif 'USES_ENABLE_CGPS_LBS_TASK' in env:
+    filtered.append(env.FindFiles(['sdp_qmi_pds.c'], '..'))
+else:
+    env.PrintWarning("Neither USES_EXPORT_LOC_API nor USES_ENABLE_CGPS_LBS_TASK are defined!")
+
+#--------------------------------------------------------------------------------
+# Generate the build files
+#--------------------------------------------------------------------------------
+if 'USES_EXPORT_LOC_API' in env:
+    # Remove 'sdp_qmi_pds.c' from compilation.  
+    BINARY_LIB_SOURCES = ['${BUILDPATH}/' + basename(fname) for fname in glob(join(env.subst('../src'), '*.c')) if basename(fname) not in ['sdp_qmi_pds.c']]
+elif 'USES_ENABLE_CGPS_LBS_TASK' in env:
+    # Remove 'sdp_qmi_loc.c' from compilation
+    BINARY_LIB_SOURCES = ['${BUILDPATH}/' + basename(fname) for fname in glob(join(env.subst('../src'), '*.c')) if basename(fname) not in ['sdp_qmi_loc.c']]
+else:
+    env.PrintWarning("Neither USES_EXPORT_LOC_API nor USES_ENABLE_CGPS_LBS_TASK are defined!")
+
+#--------------------------------------------------------------------------------
+# If Low-memory target then SDP Support is removed and replaced with 
+# sdp_stubs.c file.
+#--------------------------------------------------------------------------------
+sdp_stubs_file = ['${BUILDPATH}/sdp_stubs.c']
+if 'USES_GNSS_LOWMEM' in env:
+    env.PrintInfo("SDP Support has been removed")
+    BINARY_LIB_SOURCES = sdp_stubs_file
+else:
+    # remove sdp_stubs.c from compilation if SDP task is built
+    BINARY_LIB_SOURCES = [b for b in BINARY_LIB_SOURCES if b not in sdp_stubs_file]
+
+#--------------------------------------------------------------------------------
+# Ship our code as binary library and add it to the Modem image
+#--------------------------------------------------------------------------------
+if env.has_key('USES_CUSTOMER_GENERATE_LIBS'):
+    env.AddLibrary(IMAGES, (LIB_TARGET + '_pvt'), BINARY_LIB_SOURCES)
+else:
+    env.AddBinaryLibrary(IMAGES, (LIB_TARGET + '_pvt'), BINARY_LIB_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+

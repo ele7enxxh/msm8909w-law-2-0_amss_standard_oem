@@ -1,0 +1,316 @@
+#====include path optimized=====================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2012 - 2015 Qualcomm Technologies, Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies, Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies, Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rfdevice_wtr4905/build/modem_rfdevice_wtr4905.scons#1 $
+# $DateTime: 2016/12/13 08:00:30 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/03/15   hs      Added support for off target testing.
+# 02/03/15   sd      Enabled FEATURE_RFA_DEVICE_DEBUG for internal builds
+# 10/27/14   chenh   Enabled compiler warings to errors
+# 10/16/14   dej     Clean-up SCons and add support for TABASCO
+# 10/03/14   sd      Support both v100 andd v200 chips in the same component
+# 10/06/13   ra      Support RFLM CCS 
+# 06/03/13   ra      Add initial changes to support MDM9x35 build
+# 06/03/13   bm      Off target compilation changes
+# 04/26/13   tks     Added support for wtr4905 compilation
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+# Compile for all flavors except for GENS flavor (Wearable).
+if env.get('CHIPSET') not in ('msm8909') or 'USES_SENSORS_COMPONENT' in env:
+ Return()
+
+#-------------------------------------------------------------------------------
+# Enable warnings -> errors
+if 'USES_INTERNAL_BUILD' in env:
+   env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror", 
+                   HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")
+
+# Enable debug flag on internal builds. This will be stripped out from customer builds
+if 'USES_INTERNAL_BUILD' in env:
+   env.Append(CPPDEFINES = ['FEATURE_RFA_DEVICE_DEBUG'])
+
+#usage:  ENV_UPDATE_RFA=CHIPSET,=mdm9x15,USES_NO_DEBUG,delete,USES_HI_SPEED,add
+if ARGUMENTS.get('ENV_UPDATE_RFA'):
+   
+   env_update_string    = ARGUMENTS.get('ENV_UPDATE_RFA')
+   env_update_list      = env_update_string.split(',')
+   item_total           = len(env_update_list)
+   list_index           = 0
+   
+   #note if list is not even number of items, last odd item is ignored
+   while list_index < item_total-1:
+                 
+      item            = env_update_list[list_index]  
+      value           = env_update_list[list_index+1]
+      list_index      += 2
+                                              
+      if(value == 'add'):
+         env[str(item)] = 'yes'
+         print "adding",item,"to env"                                          
+                
+      elif(value == 'delete'):
+         del env[str(item)]
+         print "deleting",item,"from env"
+      
+      else:
+         if(value[0] != '='):
+            print "missing leading = in",value
+            print "not updating ",item
+                 
+         else:
+            value2 = value[1:len(value)]
+            env[str(item)] = value2
+            print "now setting",item,value
+
+env.Replace(RFDEVICE_WTR4905_ROOT = '${INC_ROOT}/rfdevice_wtr4905')
+env.Replace(RFDEVICE_WTR4905_AG_ROOT = '${RFDEVICE_WTR4905_ROOT}/ag')
+
+if env.PathExists('${BUILD_ROOT}/rfa'):
+    env.Replace(RFA_ROOT = '${INC_ROOT}/rfa')
+else:    
+    env.Replace(RFA_ROOT = '${INC_ROOT}/modem/rfa')
+
+env.RequirePublicApi([
+        'KERNEL',
+        'SYSTEMDRIVERS',
+        'DAL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'RF',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_CCS',
+        ],
+        area='FW_CCS')
+
+env.RequirePublicApi([
+        'FW_COMMON',
+        ],
+        area='FW_COMMON')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'RFDEVICE_INTERFACE',
+        ],
+        area='RFDEVICE_INTERFACE')
+
+env.RequirePublicApi([
+        'CDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'MCS',
+        ],
+        area='MCS')
+
+env.RequirePublicApi([
+        'GERAN',
+        'WCDMA',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_GERAN',
+        ],
+        area='FW_GERAN')
+
+env.RequirePublicApi([
+        'FW_WCDMA',
+        ],
+        area='FW_WCDMA')
+
+env.RequirePublicApi([
+        'SERVICES',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MEAS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='LTE')
+
+env.RequirePublicApi([
+        'GSM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'DEBUGTOOLS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'LM',
+        'WCDMA',
+        'LTE',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'POWER',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'TARGET',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_TARGET',
+        ],
+        area='FW_TARGET')
+
+env.RequirePublicApi([
+        'RFNV',
+        ],
+        area='RFNV')
+
+env.RequirePublicApi([
+        'MPROC',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'GNSS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'LTE',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'FW_LTE',
+        ],
+        area='FW_LTE')
+
+env.RequirePublicApi([
+        'MEMORY',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'TDSCDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GPS',
+        ],
+        area='GPS')
+
+env.RequirePublicApi([
+        'RFDEVICE_WTR4905',
+        ],
+        area='RFDEVICE_WTR4905')
+
+
+env.RequirePublicApi([
+        'MYPS',
+        ],
+        area='MYPS')
+
+env.RequirePublicApi(['RFLM'],area='RFLM')
+
+env.RequirePublicApi(['RFMODEM'], area=env.get('RF_GLOBALS')['RFMODEM_AREA'])
+
+env.RequirePublicApi('RFTECH_CDMA', area='RFTECH_CDMA')
+
+env.RequirePublicApi('RFTECH_LTE', area='RFTECH_LTE')
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+env.PublishProtectedApi('RFDEVICE_WTR4905', [
+        '${RFDEVICE_WTR4905_ROOT}/cdma/protected',
+        '${RFDEVICE_WTR4905_ROOT}/common/protected',
+        '${RFDEVICE_WTR4905_ROOT}/gnss/protected',
+        '${RFDEVICE_WTR4905_ROOT}/gsm/protected',
+        '${RFDEVICE_WTR4905_ROOT}/lte/protected',
+        '${RFDEVICE_WTR4905_ROOT}/tdscdma/protected',
+        '${RFDEVICE_WTR4905_ROOT}/wcdma/protected',
+        '${RFDEVICE_WTR4905_AG_ROOT}/cdma/protected',
+        '${RFDEVICE_WTR4905_AG_ROOT}/common/protected',
+        '${RFDEVICE_WTR4905_AG_ROOT}/gnss/protected',
+        '${RFDEVICE_WTR4905_AG_ROOT}/gsm/protected',
+        '${RFDEVICE_WTR4905_AG_ROOT}/lte/protected',
+        '${RFDEVICE_WTR4905_AG_ROOT}/tdscdma/protected',
+        '${RFDEVICE_WTR4905_AG_ROOT}/wcdma/protected',
+        '${RFDEVICE_WTR4905_AG_ROOT}/cdma/test',
+        '${RFDEVICE_WTR4905_AG_ROOT}/gsm/test',
+        '${RFDEVICE_WTR4905_AG_ROOT}/lte/test',
+        '${RFDEVICE_WTR4905_AG_ROOT}/tdscdma/test',
+        '${RFDEVICE_WTR4905_AG_ROOT}/wcdma/test',
+    ])
+    
+env.RequireProtectedApi(['RFDEVICE_WTR4905'])
+
+if 'NO_MODEM_FOLDER' in env or 'USES_NO_MODEM_FOLDER' in env:
+        env.RequireRestrictedApi([ 'RFDEVICE_INTERFACE','RFDEVICE_NO_MODEM_FOLDER'])
+
+env.LoadSoftwareUnits( ) 

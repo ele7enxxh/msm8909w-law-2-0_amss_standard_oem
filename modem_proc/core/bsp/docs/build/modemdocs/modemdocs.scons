@@ -1,0 +1,102 @@
+#===============================================================================
+#
+# Modem AU documentation
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated. All Rights Reserved.
+# QUALCOMM Proprietary
+#
+#-------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  $Header: //source/qcom/qct/modem/api/rapi/1x/rel/poseidon.1.0.0.0/build/rapi_1x.scons#5 $
+#  $DateTime: 2010/08/06 12:27:57 $
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/17/10   mk/mpa  Baseline 
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+if env.has_key('PRINT_BUILD_BANNER'):
+   print "\n"
+   print "   ---------------------------------------------------------------------------"
+   print "      Loading Modem Documents build system"
+   print "   ---------------------------------------------------------------------------"
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = [
+   'modemdocs', 'amssdocs',
+   'all'
+]
+
+# init environment variables
+env.InitImageVars(aliases, 'doc', config='none',
+    tools = [ '${BUILD_ROOT}/tools/build/scons/scripts/comcc_addt.py', 
+              '${BUILD_ROOT}/core/bsp/build/scripts/doc_builder.py'
+              ])
+
+# check if we even need to build this iamge
+if not env.CheckAlias(alias_list = aliases):
+   Return()
+
+#------------------------------------------------------------------------------
+# Print banner
+#------------------------------------------------------------------------------
+env.PrintImageBanner()
+
+#------------------------------------------------------------------------------
+# Init defualt values this PROC/Image
+#------------------------------------------------------------------------------
+# set image type
+env.Replace(MODEM_DOCS = env.subst('${PROC}'))
+
+#------------------------------------------------------------------------------
+# Configure and load in CBSP uses and path variables
+#------------------------------------------------------------------------------
+env.InitBuildConfig(target_files=False)
+
+docs_build_units = []
+#------------------------------------------------------------------------------
+# Decide build steps
+#------------------------------------------------------------------------------
+# regular build steps (no filter) is build everything, once a user start 
+# using filters we have to make decisions depending on user input.
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units, 
+# etc. This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quatz, stubs, etc.
+# -- Not applicable for Documentation as there isnt a single piece that ties up
+#    all the documents after individual documents are created
+
+do_local_files = True 
+
+# get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# make decisions
+if filter_opt is not None:
+   if not env.FilterMatch(os.getcwd()):
+      do_local_files = False
+
+#---------------------------------------------------------------------------
+# Load Documents from Area units
+#---------------------------------------------------------------------------
+# Load Modem docs file nodes
+modem_units = env.LoadAreaSoftwareUnits('modem')
+docs_build_units.extend(modem_units.get('DOCS'))
+
+# pair aliases with build units
+for alias in aliases:
+   env.Alias(alias, docs_build_units)
+

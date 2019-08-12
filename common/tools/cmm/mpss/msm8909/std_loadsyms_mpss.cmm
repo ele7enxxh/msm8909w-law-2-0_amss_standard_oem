@@ -1,0 +1,206 @@
+//============================================================================
+//  Name:                                                                     
+//    std_loadsyms_mpss.cmm 
+//
+//  Description:                                                              
+//    Script to load MPSS symbols
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 09/10/2012 AJCheriyan	Added call to setup breakpoints while loading symbols
+// 08/21/2012 AJCheriyan	Refactored things a bit to override meta build options for simulator
+// 07/10/2012 AJCheriyan    Created for B-family 
+//
+
+// ARG0 - Build from which symbols have to loaded
+//
+ENTRY &ARG0
+
+LOCAL &MPSSBUILD &flavour &MPSS_BUILD_ID &mpss_offset
+&MPSSBUILD="&ARG0"
+
+MAIN:
+	// If a build is not provided, we assume the meta build has provided everything and use that
+	// information. 
+	// Load the elf file first. 
+	IF ("&MPSSBUILD"=="")
+	(
+		;D.LOAD.ELF "&MPSS_BUILDROOT/modem_proc/build/ms/*.elf"  EAXI: /nocode /strippart "modem_proc" /sourcepath "&MPSS_BUILDROOT/modem_proc"
+		D.LOAD.ELF "&MPSS_BUILDROOT/modem_proc/build/ms/*.elf"  /nocode /noclear /noreg 
+	)
+	ELSE
+	(
+		;D.LOAD.ELF "&MPSSBUILD/modem_proc/build/ms/*.elf"  EAXI: /nocode /strippart "modem_proc" /sourcepath "&MPSSBUILD/modem_proc"
+		D.LOAD.ELF "&MPSSBUILD/modem_proc/build/ms/*.elf"  /nocode /noclear /noreg 
+	)
+	
+	// Setup MMU
+	GOSUB SETUPMMU
+	
+	// Setup breakpoints
+	GOSUB SETUPBREAKPOINTS 
+	
+	d.s a:0x4080034 %LE %LONG 0x140b
+	
+	IF ("&MPSSBUILD"=="")
+	(
+		// getting MPSS Build flavour from latest_command.txt file by reading flavour upto first space 8952.gen.prod BUILD_VER=0000 
+		OPEN #1 &MPSS_BUILDROOT\modem_proc\build\ms\latest_command.txt /Read
+		READ #1 %LINE &flavour
+		CLOSE #1 
+	
+		&mpss_offset=STRING.SCAN("&flavour"," ",0) // scanning for first space
+		&MPSS_BUILD_ID=STRING.MID("&flavour",0,&mpss_offset) //reading upto space
+		
+		IF OS.FILE(&MPSS_BUILDROOT\modem_proc\core\kernel\qurt\osam\bin\T32\v55\qurt_model.t32)
+		 (
+			TASK.CONFIG  &MPSS_BUILDROOT\modem_proc\core\kernel\qurt\osam\bin\T32\v55\qurt_model.t32
+			MENU.ReProgram &MPSS_BUILDROOT\modem_proc\core\kernel\qurt\osam\bin\T32\v55\qurt_model.men
+		 )
+		
+		
+		 ELSE IF OS.FILE(&MPSS_BUILDROOT\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&flavour\install\modemv56\debugger\T32\qurt_model.t32\)
+		 (
+			TASK.CONFIG  &MPSS_BUILDROOT\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&flavour\install\modemv56\debugger\T32\qurt_model.t32
+			MENU.ReProgram &MPSS_BUILDROOT\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&flavour\install\modemv56\debugger\T32\qurt_model.men
+		 )
+		 ELSE IF OS.FILE(&MPSS_BUILDROOT\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&MPSS_BUILD_ID\install\modemv56\debugger\T32\qurt_model.t32)
+		 (
+			TASK.CONFIG  &MPSS_BUILDROOT\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&MPSS_BUILD_ID\install\modemv56\debugger\T32\qurt_model.t32
+			MENU.ReProgram &MPSS_BUILDROOT\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&MPSS_BUILD_ID\install\modemv56\debugger\T32\qurt_model.men
+		 )
+		ELSE IF OS.FILE(&MPSS_BUILDROOT/modem_proc/core/kernel/qurt/osam/bin/T32/generic/qurt_model.t32)
+		 (
+		 
+			TASK.CONFIG &MPSS_BUILDROOT/modem_proc/core/kernel/qurt/osam/bin/T32/generic/qurt_model.t32
+			MENU.ReProgram &MPSS_BUILDROOT/modem_proc/core/kernel/qurt/osam/bin/T32/generic/qurt_model.men
+		 )
+		ELSE
+		(	
+			dialog.ok "qurt_model.t32 and qurt_model.men are not found"
+			ENDDO  
+		)
+	)
+	ELSE
+	(
+		// getting MPSS Build flavour from latest_command.txt file by reading flavour upto first space 8952.gen.prod BUILD_VER=0000 
+		OPEN #1 &MPSSBUILD\modem_proc\build\ms\latest_command.txt /Read
+		READ #1 %LINE &flavour
+		CLOSE #1 
+	
+		&mpss_offset=STRING.SCAN("&flavour"," ",0)  // scanning for first space
+		&MPSS_BUILD_ID=STRING.MID("&flavour",0,&mpss_offset) //reading upto space
+		
+		 IF OS.FILE(&MPSSBUILD\modem_proc\core\kernel\qurt\osam\bin\T32\v55\qurt_model.t32)
+		 (
+			TASK.CONFIG  &MPSSBUILD\modem_proc\core\kernel\qurt\osam\bin\T32\v55\qurt_model.t32
+			MENU.ReProgram &MPSSBUILD\modem_proc\core\kernel\qurt\osam\bin\T32\v55\qurt_model.men
+		 )
+		ELSE  IF OS.FILE(&MPSSBUILD\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&flavour\install\modemv56\debugger\T32\qurt_model.t32)
+		 (
+			TASK.CONFIG  &MPSSBUILD\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&flavour\install\modemv56\debugger\T32\qurt_model.t32
+			MENU.ReProgram &MPSSBUILD\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&flavour\install\modemv56\debugger\T32\qurt_model.men
+		 )
+		 ELSE IF OS.FILE(&MPSSBUILD\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&MPSS_BUILD_ID\install\modemv56\debugger\T32\qurt_model.t32)
+		 (
+			TASK.CONFIG  &MPSSBUILD\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&MPSS_BUILD_ID\install\modemv56\debugger\T32\qurt_model.t32
+			MENU.ReProgram &MPSSBUILD\modem_proc\core\kernel\qurt\build\mapss_b\qdsp6\&MPSS_BUILD_ID\install\modemv56\debugger\T32\qurt_model.men
+		 )
+		ELSE IF OS.FILE(&MPSSBUILD/modem_proc/core/kernel/qurt/osam/bin/T32/generic/qurt_model.t32)
+		 (
+		 
+			TASK.CONFIG &MPSSBUILD/modem_proc/core/kernel/qurt/osam/bin/T32/generic/qurt_model.t32
+			MENU.ReProgram &MPSSBUILD/modem_proc/core/kernel/qurt/osam/bin/T32/generic/qurt_model.men
+		 )
+		ELSE
+		(	
+			dialog.ok "qurt_model.t32 and qurt_model.men are not found"
+			ENDDO  
+		)
+	)
+
+	// Done
+	GOTO EXIT
+
+
+// Sub-routine to setup the MMU
+SETUPMMU:
+	LOCAL &MEMMAP_PHY &MEMMAP_VIRT &MEMMAP_SIZE
+
+	// We need to get the start address of the ADSP image from
+	// the memory map.
+	do std_memorymap
+
+	IF Y.EXIST(start)
+	(
+		&MEMMAP_VIRT=ADDRESS.OFFSET(start)
+		&MEMMAP_PHY=&MPSS_SW_start
+
+		// Now setup the page tables
+		IF Y.EXIST(QURTK_pagetables)
+		(
+                   
+        TRANSlation.OFF
+        TRANSlation.RESet
+		MMU.FORMAT QURT QURTK_pagetables &MEMMAP_VIRT++&MPSS_SW_size &MEMMAP_PHY
+        TRANSlation.TableWalk.ON
+                    TRANSlation.on
+
+		)
+		ELSE
+		(
+			PRINT %ERROR "Could not locate kernel page tables"
+		)
+	)
+
+	RETURN
+	
+SETUPBREAKPOINTS:
+	IF (Y.EXIST(QURTK_handle_error))
+	(
+		BREAK.SET QURTK_handle_error
+	)
+	IF (Y.EXIST(QURTK_tlb_crash))
+	(
+		BREAK.SET QURTK_tlb_crash
+	)
+	IF (Y.EXIST(QURTK_error))
+	(
+		BREAK.SET QURTK_error
+	)
+	IF (Y.EXIST(QURTK_handle_nmi))
+	(
+		BREAK.SET QURTK_handle_nmi
+	)
+	IF (Y.EXIST(err_fatal_jettison_core))
+	(
+		BREAK.SET err_fatal_jettison_core
+	)	
+	IF (Y.EXIST(err_fatal_lock))
+	(
+		BREAK.SET err_fatal_lock
+	)	
+	IF (Y.EXIST(err_fatal_handler))
+	(
+		BREAK.SET err_fatal_handler
+	)	
+	RETURN
+
+
+FATALEXIT:
+    END
+
+EXIT:
+    ENDDO
+
+
+

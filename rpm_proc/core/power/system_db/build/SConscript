@@ -1,0 +1,75 @@
+#==============================================================================
+# System_DB build script
+#
+# Copyright (c) 2009-2012 QUALCOMM Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+# $Header: //source/qcom/qct/core/power/system_db/dev/2012/system_db/build/rpm/SConscript#1 $
+#==============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# SRC PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTRACE',
+   'MPROC',
+   'DEBUGTOOLS',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+]
+
+#-------------------------------------------------------------------------------
+# set up libraries
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CBSP_API)
+env.RequirePublicApi('BUSES')
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['POWER_UTILS'])
+env.PublishPrivateApi('SYSTEM_DB', [
+    '${BUILD_ROOT}/core/power/system_db/inc',
+    ])
+
+if 'USES_QDSS_SWE' in env:
+   QDSS_IMG = ['QDSS_EN_IMG']
+   events = [['SYSTEM_DB_ADD_WRITE=700','adding sysdb write op: (command id: 0x%x) (addr: 0x%x) (num: %d) (data: 0x%x)'],
+             ['SYSTEM_DB_ADD_READ','adding sysdb read op: (command id: 0x%x) (addr: 0x%x) (num: %d)'],
+             ['SYSTEM_DB_FLUSH_QUEUE','flushing the sysdb op queue.'],
+             ['SYSTEM_DB_STATE_HANDLER','entering the sysdb state handler: (state: 0x%x)'],
+             ['SYSTEM_DB_WRITE','sysdb write: (command id: 0x%x) (addr: 0x%x) (val: 0x%x) (mask: 0x%x)'],
+             ['SYSTEM_DB_READ','sysdb read: (command id: 0x%x) (addr: 0x%x) (val: 0x%x)'],
+             ['SYSTEM_DB_CLK_STATUS','Clock Name: %s.  Actual State = %d (On/OFF).  Reference Count = %d.  Frequency = %dHz'],
+             ['SYSTEM_DB_CLK_PWR_DOMAIN','Clock power domain name: %s.  Enable = %d  Reference Count = %d'],
+             ['SYSTEM_DB_EVENT_LAST=709','SYSTEM_DB last event placeholder'],
+            ]
+   env.AddSWEInfo(QDSS_IMG, events)
+
+# Requirements:
+# For customer build, include SystemDB Lite w/o source files
+# For CRM build (not ADR), include SystemDB Lite with source files
+# For internal build (ADR), include SystemDB Pro with source files
+#
+if 'USES_NO_STRIP_NO_ODM' in env: # CRM build or Internal build
+  SYSTEM_DB_SOURCES = [ '${BUILDPATH}/src/system_db_rpm.cpp', ]
+  if 'USES_INTERNAL_BUILD' in env:
+    env.Append( CPPDEFINES=['SYSTEMDB_PRO'] )
+  env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/system_db', SYSTEM_DB_SOURCES)
+else: # customer build
+  env.Append( CPPDEFINES=['SYSTEMDB_LITE'] )
+  SYSTEM_DB_SOURCES = [ '${BUILDPATH}/src/system_db_rpm.cpp', ]
+  env.PrintWarning('SystemDB Lite will be included in this customer build.')
+  env.AddBinaryLibrary(['RPM_IMAGE'], '${BUILDPATH}/system_db', SYSTEM_DB_SOURCES)
+

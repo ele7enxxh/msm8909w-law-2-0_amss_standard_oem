@@ -1,0 +1,255 @@
+#===============================================================================
+#
+# SSE TS Sample Trustlet
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 Qualcomm Technologies, Inc. 
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/bsp/sse/mc_v2/SecureTouch/tltssample/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2012-12-12           First release
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias - First alias is always the target then the other possibles aliases
+aliases = [ 'tltssample', 'sse' ]
+
+# UUID for the TrustLet
+env.Replace(TRUSTLET_UUID = '04030000000000000000000000000001')
+# Service Type: 1=driver | 2=trustlet | 3=system trustlet
+env.Replace(TRUSTLET_SERVICE_TYPE = '3')
+env.Replace(TRUSTLET_NO_OF_THREADS = '1')
+# Memory type: 0: internal memory prefered | 1: internal memory | 2: external memory
+env.Replace(TRUSTLET_MEMTYPE = '2')
+# Flags:
+# 0: no flag;
+# 1: permanent;
+# 2: service has no WSM control interface;
+# 3: both (permanent and service has not WSM control interface)
+env.Replace(TRUSTLET_FLAGS = '0')
+# min: 1; max: 16
+env.Replace(TRUSTLET_INSTANCES = '16')
+
+env.InitImageVars(
+  alias_list = aliases,       # list of aliases, unique name index [0]
+  proc = 'scorpion',          # proc settings
+  config = 'apps',            # config settings
+  build_tags = ['APPS_PROC', 'TLTSSAMPLE_IMAGE'],
+  tools =[
+    "${COREBSP_ROOT}/bsp/build/scripts/mbn_builder.py",
+    "${COREBSP_ROOT}/bsp/build/scripts/scl_builder.py",
+    "${BUILD_SCRIPTS_ROOT}/buildspec_builder.py",
+  ]
+)
+
+image_name = str(aliases[0]).upper()
+env.Replace(IMAGE_NAME = image_name)
+
+if not env.CheckAlias(image_name, aliases):
+  Return()
+
+#------------------------------------------------------------------------------
+# Init default values for this PROC/Image
+#------------------------------------------------------------------------------
+
+
+
+
+#------------------------------------------------------------------------------
+# Configure and load in USES and path variables
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('arm', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+env.LoadToolScript('apps_defs', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+
+# Force debug and symbols for flash tools, required by T32 swbp interface
+env.Replace(ARM_DBG = "-g --dwarf2")     # Enable DWARF2 format debug tables
+
+#------------------------------------------------------------------------------
+# TL build environment
+#------------------------------------------------------------------------------
+if env['BUILD_VER'] == "":
+  env.Replace(BUILD_VER = '0')
+
+env.Replace(CCFLAGS = " --c99 ")
+env.Append(CCFLAGS = " --thumb ")
+env.Append(CCFLAGS = " --apcs=interwork ")
+env.Append(CCFLAGS = " --reduce_paths ")
+env.Append(CCFLAGS = " --diag_style=gnu ")
+env.Append(CCFLAGS = " --depend_format=unix_escaped ")
+env.Append(CCFLAGS = " --no_depend_system_headers ")
+env.Append(CCFLAGS = " --gnu ")
+env.Append(CCFLAGS = " --bss_threshold=0 ")
+env.Append(CCFLAGS = " --enum_is_int ")
+env.Append(CCFLAGS = " --interface_enums_are_32_bit ")
+env.Append(CCFLAGS = " -O3  -Ospace ")
+env.Append(CCFLAGS = " --debug ")
+env.Append(CCFLAGS = ' --cpu=Cortex-A9.no_neon.no_vfp ')
+env.Append(CCFLAGS = ' --fpu=SoftVFP ')
+
+env.Replace(ASFLAGS = ' --arm ')
+env.Append(ASFLAGS = ' --apcs=interwork ')
+env.Append(ASFLAGS = ' --reduce_paths ')
+env.Append(ASFLAGS = ' --diag_style=gnu ')
+env.Append(ASFLAGS = ' -g ')
+env.Append(ASFLAGS = ' --keep ')
+env.Append(ASFLAGS = ' --predefine="__ARMCC__ SETL {TRUE}" ')
+env.Append(ASFLAGS = ' --predefine="ARCH SETS \\"__arm32__\\"" ')
+env.Append(ASFLAGS = ' --predefine="__arm32__ SETL {TRUE}" ')
+env.Append(ASFLAGS = ' --predefine="__THUMB__ SETL {TRUE}" ')
+env.Append(ASFLAGS = ' --predefine="DEBUG SETL {TRUE}" ')
+env.Append(ASFLAGS = ' --cpu=Cortex-A9.no_neon.no_vfp ')
+env.Append(ASFLAGS = ' --predefine="ARM_ARCH SETS \\"ARMv7\\"" ')
+env.Append(ASFLAGS = ' --predefine="__ARMv7__ SETL {TRUE}" ') 
+
+env.Replace(LINKFLAGS = ' --reduce_paths ')
+env.Append(LINKFLAGS = ' --diag_style=gnu ')
+env.Append(LINKFLAGS = ' --datacompressor=off ')
+env.Append(LINKFLAGS = ' --map ')
+env.Append(LINKFLAGS = ' --callgraph ')
+env.Append(LINKFLAGS = ' --debug ')
+env.Append(LINKFLAGS = ' --symbols ')
+
+env.Replace(CPPDEFINES = [
+  "__ARMCC__",
+  "ARCH=__arm32__",
+  '__arm32__',
+  '__THUMB__',
+  'DEBUG',
+])
+env.Append(CPPDEFINES = [
+  'ARM_ARCH=ARMv7',
+  '__ARMv7__',
+  ])
+
+# enable logging
+env.Append(CPPDEFINES = 'SSE_LOG_GLOBAL')
+env.Append(CPPDEFINES = 'SSE_LOG_FILE')
+env.Append(CPPDEFINES = 'DEBUG')
+env.Append(CPPDEFINES = 'LOG_TAG=tlTsSample')
+# enclude code used only when generating a TL (and not the SDK)
+env.Append(CPPDEFINES = 'TL_BUILD')
+
+#------------------------------------------------------------------------------
+# Decide which build steps to perform
+#------------------------------------------------------------------------------
+# Regular build steps (no filter) is build everything, once a user starts
+# using filters we have to make decisions depending on user input.
+#
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units,
+# etc.  This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quartz, stubs, etc.
+
+do_local_files = True
+do_link = True
+do_post_link = True
+
+# Get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# Limit build processing based on filter option
+if filter_opt is not None:
+  do_link = False
+  do_post_link = False
+
+  if not env.FilterMatch(os.getcwd()):
+    do_local_files = False
+
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+tl_units = [core_objs, core_libs]
+
+if env.get('ARMTOOLSVERSION', 0) >= 4:
+  arm_libs = [
+    # ARM Libs (this needs to be last, otherwise linker will use ARMlibs functions
+    # which we want to override)
+    File(env.SubstRealPath('${ARMLIB}/armlib/c_5.l')),
+    File(env.SubstRealPath('${ARMLIB}/armlib/g_5s.l')),
+    File(env.SubstRealPath('${ARMLIB}/armlib/m_5s.l'))
+  ]
+else:
+  arm_libs = [
+    # ARM Libs (this needs to be last, otherwise linker will use ARMlibs functions
+    # which we want to override)
+    File(env.SubstRealPath('${ARMLIB}/armlib/c_t__un.l')),
+    File(env.SubstRealPath('${ARMLIB}/armlib/g_t_p.l')),
+    File(env.SubstRealPath('${ARMLIB}/armlib/m_t_pu.l'))
+  ]
+
+if do_local_files:
+  #----------------------------------------------------------------------------
+  # Beging building TLWRAPPER
+  #----------------------------------------------------------------------------
+  env.Replace(TARGET_NAME = 'tltssample')
+  env.Replace(SSE_ROOT = '${COREBSP_ROOT}/securemsm/sse/mc_v2')
+  env.Replace(MC_ROOT = '${SSE_ROOT}/mobicore')
+  env.Replace(DEST_ROOT = '${COREBSP_ROOT}/bsp/sse/mc_v2/SecureTouch/${TARGET_NAME}')
+  env.Replace(DEST_LST = '${DEST_ROOT}/build/${TARGET_NAME}.lst')
+  env.Replace(DEST_SCL = '${MC_ROOT}/sdk/src/tl.scl')
+  env.Append(LINKFLAGS = ' --scatter=${DEST_SCL} ')
+  env.Append(LINKFLAGS = ' --list=${DEST_LST} ')
+
+if do_link:
+  #----------------------------------------------------------------------------
+  # Generate elf
+  #----------------------------------------------------------------------------
+  libs_path = env['INSTALL_LIBPATH']
+  TL_elf = env.Program('${TARGET_NAME}', source=[core_objs], LIBS=[core_libs], LIBPATH=libs_path)
+  Clean(TL_elf, env.subst('${TARGET_NAME}.map'))
+  Clean(TL_elf, env.subst('${TARGET_NAME}.sym'))
+
+  TL_tlbin_file = '${TRUSTLET_UUID}.tlbin'
+
+if do_post_link:
+  #----------------------------------------------------------------------------
+  # Generate TLBIN
+  #----------------------------------------------------------------------------
+  env.Replace(MOBICONVERT = 'java -jar ${MC_ROOT}/tools/MobiConvert.jar')
+  env.Replace(TRUSTLET_KEYFILE = '${MC_ROOT}/tools/pairVendorTltSig.pem')
+  TL_tlbin = env.Command(TL_tlbin_file,'${TARGET_NAME}.elf','${MOBICONVERT} --servicetype ${TRUSTLET_SERVICE_TYPE} --numberofthreads ${TRUSTLET_NO_OF_THREADS} --numberofinstances ${TRUSTLET_INSTANCES} --memtype ${TRUSTLET_MEMTYPE} --flags ${TRUSTLET_FLAGS} --bin ${SOURCE} --output ${TARGET} --keyfile ${TRUSTLET_KEYFILE}')
+  env.Depends(TL_tlbin,TL_elf)
+
+  #----------------------------------------------------------------------------
+  # Install files in MBN_ROOT
+  #----------------------------------------------------------------------------
+  install_tlbin_files = env.Install(env.subst("${MBN_ROOT}"), [TL_tlbin_file])
+
+  #============================================================================
+  # Define units that will be build
+  #============================================================================
+  env.Depends(install_tlbin_files,TL_tlbin)
+  tl_units = env.Alias ('arm11_tltssample_units', [
+    TL_tlbin,
+    install_tlbin_files
+  ])
+
+# Add aliases
+for alias in aliases:
+  env.Alias(alias, tl_units)

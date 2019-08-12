@@ -1,0 +1,160 @@
+//============================================================================
+//  Name:                                                                     
+//    std_debug.cmm 
+//
+//  Description:                                                              
+//    Top level debug script
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 07/10/2012 AJCheriyan    Created for B-family. Ideas ported from 8660/8960 version from rvennam/byule.
+
+// Following arguments are supported. 
+// ARG0 - Image to debug. 
+// ARG1 - En/Disable Sleep. lpm_enable / lpm_disable
+// ARG2 - Entry point for this debug session. will default to image entry point
+//        if nothing is specified.
+// ARGn - n > 2 - Any other arguments to be passed to the script 
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+MAIN:
+	// Check the args for expected values
+	do std_utils CHECKARGS FATALEXIT &ARG0 rpmpbl appspbl sbl1 rpm mpss wcnss tz appsboot mba mdm hyp
+	// lpm enable / disable is optional to be used but mandatory to be provided
+	// The debug entry point cannot be verified now
+
+HANDLEIMG:
+	
+	IF (("&ARG0"=="mpss")||("&ARG0"=="mba")||("&ARG0"=="wcnss")||("&ARG0"=="rpm"))
+	(
+		sys.u
+		do spmiCfg.cmm 8909 true
+		do pmicpeek.cmm 0x85b 0x0 0x0
+		wait 1s
+		do pmicpeek.cmm 0x85a 0x0 0x8
+		do pmicpeek.cmm 0x85b 0x0 0x80
+		wait 1s
+		d.set a:0x4ab000 %le %long 0x0
+		wait 500ms
+		sys.m.a
+		b
+	)	
+		
+	// Common stuff here
+	// Reset the chip
+	IF (("&ARG0"!="mpss")&&("&ARG0"!="mba")&&("&ARG0"!="wcnss")&&("&ARG0"!="rpm"))
+	(
+	do std_reset
+	)
+	
+
+	// Load the memorymap
+	do std_memorymap
+    wait 1s			
+	
+	IF (("&ARG0"!="mpss")&&("&ARG0"!="mba")&&("&ARG0"!="wcnss")&&("&ARG0"!="rpm"))
+	(
+		do spmiCfg.cmm 8909 true
+	wait 1s
+		do pmicpeek.cmm 0x14746 0x0 0x80
+	)
+	
+CHECKSESSION:
+    // Check if the necessary sessions are up for this image
+
+	IF ("&ARG0"=="rpm")
+	(
+		// We are running this script from the RPM but checking anyways
+	    do std_intercom_init CHECKSESSION 1 RPM
+		PRINT "Detecting RPM T32 session. Will exit if not found. "
+		do std_utils CHECKARGS FATALEXIT &RPM_ALIVE 1.
+		GOTO RPM_DEBUG
+	)
+	IF (("&ARG0"=="sbl1")||("&ARG0"=="appspbl"))
+	(
+		PRINT "Detecting RAPPS 0 T32 session. Will exit if not found. "
+		do std_intercom_init CHECKSESSION 1 APPS0
+		PRINT "Detecting APPS T32 session. Will exit if not found. "
+		do std_utils CHECKARGS FATALEXIT &APPS0_ALIVE 1.
+		GOTO BOOT_DEBUG
+	)
+	IF (("&ARG0"=="apps")||("&ARG0"=="appsboot"))
+	(
+	   do std_intercom_init CHECKSESSION 1 APPS0
+	   PRINT "Detecting APPS T32 session. Will exit if not found. "
+	   do std_utils CHECKARGS FATALEXIT &APPS0_ALIVE 1.
+	   GOTO APPS_DEBUG
+	)
+	IF ("&ARG0"=="tz")
+	(
+	   do std_intercom_init CHECKSESSION 1 APPS0
+	   PRINT "Detecting APPS T32 session. Will exit if not found. "
+	   do std_utils CHECKARGS FATALEXIT &APPS0_ALIVE 1.
+	   GOTO TZ_DEBUG
+	)
+	IF ("&ARG0"=="hyp")
+	(
+	   do std_intercom_init CHECKSESSION 1 APPS0
+	   PRINT "Detecting APPS T32 session. Will exit if not found. "
+	   do std_utils CHECKARGS FATALEXIT &APPS0_ALIVE 1.
+	   GOTO HYP_DEBUG
+	)
+	IF (("&ARG0"=="mpss")||("&ARG0"=="mba"))
+	(
+	   do std_intercom_init CHECKSESSION 1 MPSS
+	   PRINT "Detecting MPSS T32 session. Will exit if not found. "
+	   do std_utils CHECKARGS FATALEXIT &MPSS_ALIVE 1.
+	   GOTO MPSS_DEBUG
+	)
+	IF ("&ARG0"=="wcnss")
+	(
+	   do std_intercom_init CHECKSESSION 1 WCNSS
+	   PRINT "Detecting WCNSS T32 session. Will exit if not found. "
+	   do std_utils CHECKARGS FATALEXIT &WCNSS_ALIVE 1.
+	   GOTO WCNSS_DEBUG
+	)
+	
+
+	// Now punt the arguments off to the lower level / image specific script
+BOOT_DEBUG:
+	RUN std_debug_boot &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+
+RPM_DEBUG:
+    RUN std_debug_rpm &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+
+APPS_DEBUG:
+    RUN std_debug_apps &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+
+MPSS_DEBUG:
+    RUN std_debug_mpss &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+
+WCNSS_DEBUG:
+    RUN std_debug_wcnss &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+
+TZ_DEBUG:
+	RUN std_debug_tz &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+	
+HYP_DEBUG:
+	RUN std_debug_hyp &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+	GOTO EXIT
+
+EXIT:
+	ENDDO
+
+FATALEXIT:
+	END

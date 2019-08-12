@@ -1,0 +1,251 @@
+/*!
+  @file
+  lte_rrc_ueinfo.stm
+
+  @brief
+  This module contains the state machine description of RRC UE INFO.
+*/
+/*===========================================================================
+
+  Copyright (c) 2009 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_ueinfo.stm#1 $
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+09/24/12   rg      Created initial file
+===========================================================================*/
+
+/*!===========================================================================
+
+                      STATE MACHINE DESCRIPTION
+
+The state machine implements the RRC UE information module.
+
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_UEINFO_SM
+{
+  ENTRY lte_rrc_ueinfo_sm_entry;
+  EXIT lte_rrc_ueinfo_sm_exit;
+  INITIAL_STATE      INACTIVE;
+  ERROR_HOOK        lte_rrc_stm_error;
+  DEBUG_HOOK        lte_rrc_stm_debug;
+  INPUT_DEF_FILE    lte_rrc_stm.h;
+  INPUT_DEF_FILE    lte_rrc_int_msg.h;
+  INPUT_DEF_FILE    lte_rrc_ext_msg.h;
+  INPUT_DEF_FILE    lte_mac_msg.h;
+  INPUT_DEF_FILE    lte_rlc_msg.h;
+  INPUT_DEF_FILE    lte_cphy_msg.h;
+#if 0  
+  INPUT_DEF_FILE    lte_fc.h;  
+#endif
+  INSTANCES         1;
+
+  /*!
+  INACTIVE state: UE INFO does not have any reports and is waiting for a trigger such as RLF, HOF to become active 
+  */
+  STATE INACTIVE
+  {
+    ENTRY          lte_rrc_ueinfo_sm_inactive_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      /*! RL failure detected.  Collect reports for failure */  
+      LTE_CPHY_RL_FAILURE_IND                               lte_rrc_ueinfo_sm_trigger_handler;
+
+      /*! RLC unrecoverable error detected.  Collect reports for failure*/  
+      LTE_RLCUL_MAX_RETX_IND                              lte_rrc_ueinfo_sm_trigger_handler;
+
+      /*! MAC Random Access Problem detected.  Collect reports for failure */
+      LTE_MAC_RANDOM_ACCESS_PROBLEM_IND      lte_rrc_ueinfo_sm_trigger_handler;
+
+      /*! RRC Connection Reconfiguration problem detected.  Collect reports for failure */
+      LTE_RRC_CONN_MODE_FAILURE_INDI               lte_rrc_ueinfo_sm_trigger_handler;
+
+      /*! RRC Connection Reconfiguration problem detected.  Collect reports for failure */
+      LTE_RRC_T300_TMRI  lte_rrc_ueinfo_sm_trigger_handler;
+
+      /*! UE Information Request DLM */
+      LTE_RRC_REL9_UE_INFORMATION_REQUEST_DLM      lte_rrc_ueinfo_sm_request_dlm_handler;
+
+      /*! UE Information Request DLM */
+      LTE_RRC_UE_INFORMATION_RESPONSE_CNFI      lte_rrc_ueinfo_sm_response_cnfi_handler;      
+
+      /*! Conn failure expiry */ 
+      LTE_RRC_UEINFO_CONN_FAILURE_TMRI                  lte_rrc_ueinfo_sm_conn_failure_tmri_handler; 
+
+      /*! HO started indication - this is a trigger to collect  */
+      LTE_RRC_HANDOVER_STARTED_INDI                       lte_rrc_ueinfo_sm_ho_started_indi_handler;
+
+      /*! HO complete indication - Save any temporary reports collected for HO  */
+      LTE_RRC_HANDOVER_COMPLETED_IND                      lte_rrc_ueinfo_sm_ho_proc_complete_ind_handler;
+
+      /*! Conn rel - Save any temporary reports collected for HO  */
+      LTE_RRC_CONN_RELEASED_INDI                      lte_rrc_ueinfo_sm_ho_proc_complete_ind_handler;      
+
+      /*! Rach RPT confirm from MAC */  
+      LTE_MAC_RACH_RPT_CNF               lte_rrc_ueinfo_sm_rpt_cnf_handler;
+      
+
+      /*! RF AVAILABLE IND sent by ML1 */
+      LTE_CPHY_RF_AVAILABLE_IND  lte_rrc_ueinfo_sm_rf_available_ind_handler;
+      
+      /*! RF UNAVAILABLE IND sent by ML1 */  
+      LTE_CPHY_RF_UNAVAILABLE_IND  lte_rrc_ueinfo_sm_rf_unavailable_ind_handler;      
+
+    /*! IRAT PSHO Started INDI */
+      LTE_RRC_IRAT_TO_LTE_PSHO_STARTED_INDI       lte_rrc_ueinfo_sm_psho_started_ind_handler;   
+    }
+  }
+
+    /*!
+  ACTIVE state: UE INFO has an exisiting report . The procedure is waiting for a trigger such 
+  as RLF, HOF to collect the latest report or the validity timer expiry to invalidate the existing report
+  */
+  STATE ACTIVE
+  {
+    ENTRY          lte_rrc_ueinfo_sm_active_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      /*! RL failure detected.  Collect reports for failure */  
+      LTE_CPHY_RL_FAILURE_IND               lte_rrc_ueinfo_sm_trigger_handler;
+
+      /*! RLC unrecoverable error detected.  Collect reports for failure*/  
+      LTE_RLCUL_MAX_RETX_IND              lte_rrc_ueinfo_sm_trigger_handler;
+
+      /*! MAC Random Access Problem detected.  Collect reports for failure */
+      LTE_MAC_RANDOM_ACCESS_PROBLEM_IND       lte_rrc_ueinfo_sm_trigger_handler;
+
+      /*! RRC Connection Reconfiguration problem detected.  Collect reports for failure */
+      LTE_RRC_CONN_MODE_FAILURE_INDI          lte_rrc_ueinfo_sm_trigger_handler;
+
+      /*! RRC Connection Reconfiguration problem detected.  Collect reports for failure */
+      LTE_RRC_T300_TMRI  lte_rrc_ueinfo_sm_trigger_handler;
+
+      /*! UE Information Request DLM */
+      LTE_RRC_REL9_UE_INFORMATION_REQUEST_DLM    lte_rrc_ueinfo_sm_request_dlm_handler; 
+
+      /*! UE Information Request DLM */
+      LTE_RRC_UE_INFORMATION_RESPONSE_CNFI      lte_rrc_ueinfo_sm_response_cnfi_handler;
+
+      /*! RPT Validity expiry  */ 
+      LTE_RRC_UEINFO_RPT_VALID_TMRI           lte_rrc_ueinfo_sm_rpt_valid_tmri_handler;
+
+      /*! Conn failure expiry  */ 
+      LTE_RRC_UEINFO_CONN_FAILURE_TMRI        lte_rrc_ueinfo_sm_conn_failure_tmri_handler;
+
+      /*! HO started indication - this is a trigger to collect  */
+      LTE_RRC_HANDOVER_STARTED_INDI                 lte_rrc_ueinfo_sm_ho_started_indi_handler;      
+
+      /*! HO complete indication - Save any temporary reports collected for HO  */
+      LTE_RRC_HANDOVER_COMPLETED_IND                      lte_rrc_ueinfo_sm_ho_proc_complete_ind_handler;
+
+      /*! Conn rel - Save any temporary reports collected for HO  */
+      LTE_RRC_CONN_RELEASED_INDI                      lte_rrc_ueinfo_sm_ho_proc_complete_ind_handler;        
+
+      /*! LTE deactivate request */ 
+      LTE_RRC_DEACTIVATE_REQ            lte_rrc_ueinfo_sm_deactivate_req_handler;
+
+      /*! Handle LTE_RRC_CONN_ABORT_REQ in ACTIVE state*/
+      LTE_RRC_CONN_ABORT_REQ            lte_rrc_ueinfo_sm_deactivate_req_handler;
+      
+      /*! Rach RPT confirm from MAC */  
+      LTE_MAC_RACH_RPT_CNF               lte_rrc_ueinfo_sm_rpt_cnf_handler;
+      /*! Connection failure rpt validity timer expiry */ 
+      LTE_RRC_CONN_FAILURE_RPT_VALID_TMRI   lte_rrc_ueinfo_sm_con_failure_rpt_valid_tmri;
+
+      /*! RF AVAILABLE IND sent by ML1 */
+      LTE_CPHY_RF_AVAILABLE_IND  lte_rrc_ueinfo_sm_rf_available_ind_handler;
+      
+      /*! RF UNAVAILABLE IND sent by ML1 */  
+      LTE_CPHY_RF_UNAVAILABLE_IND  lte_rrc_ueinfo_sm_rf_unavailable_ind_handler;      
+
+      /*! IRAT PSHO Started INDI */
+      LTE_RRC_IRAT_TO_LTE_PSHO_STARTED_INDI       lte_rrc_ueinfo_sm_psho_started_ind_handler;
+
+      /*! UTRA SERVING CELL INFO RSP */
+     LTE_RRC_UTRA_SERVING_CELL_INFO_RSP              lte_rrc_ueinfo_sm_utra_serving_cell_info_rsp_handler;
+
+     LTE_RRC_UEINFO_LOC_INFO_HOF_TMRI         lte_rrc_ueinfo_sm_loc_info_hof_tmri_handler;
+    }
+  }
+
+  /*!
+  WAIT_FOR_RPT_CNF state:  UE INFO procedure is in this state after having sent a 
+  CPHY_RPT_REQ for collection of measurement report after RLF/HoF scenarios.  
+  */
+  STATE WAIT_FOR_RPT_CNF
+  {
+    ENTRY          lte_rrc_ueinfo_sm_wait_for_rpt_cnf_entry;
+    EXIT           lte_rrc_ueinfo_sm_wait_for_rpt_cnf_exit;
+
+    INPUTS
+    {
+      /*! RPT confirm from ML1 */  
+      LTE_CPHY_UEINFO_RPT_CNF               lte_rrc_ueinfo_sm_rpt_cnf_handler;
+
+      /*! Con Est Fail RPT confirm from ML1 */
+      LTE_CPHY_UEINFO_CONN_FAILURE_RPT_CNF  lte_rrc_ueinfo_sm_rpt_cnf_handler;
+
+      /*! Rach RPT confirm from MAC */  
+      LTE_MAC_RACH_RPT_CNF               lte_rrc_ueinfo_sm_rpt_cnf_handler;
+
+      /*! UE Information Request DLM */
+      LTE_RRC_REL9_UE_INFORMATION_REQUEST_DLM    lte_rrc_ueinfo_sm_request_dlm_handler;
+
+      /*! RPT Validity expiry  */ 
+      LTE_RRC_UEINFO_RPT_VALID_TMRI         lte_rrc_ueinfo_sm_rpt_valid_tmri_handler;      
+
+      /*! Conn failure expiry  */ 
+      LTE_RRC_UEINFO_CONN_FAILURE_TMRI        lte_rrc_ueinfo_sm_conn_failure_tmri_handler;     
+
+      /*! LTE deactivate request */ 
+      LTE_RRC_DEACTIVATE_REQ            lte_rrc_ueinfo_sm_deactivate_req_handler;
+
+      /*! RRC Connection Reconfiguration problem detected.  Collect reports for failure */
+      LTE_RRC_T300_TMRI  lte_rrc_ueinfo_sm_trigger_handler;
+
+    /*! RRC Connection Reconfiguration problem detected.  Collect reports for failure */  
+    LTE_RRC_CONN_ESTABLISHMENT_STARTED_INDI      lte_rrc_ueinfo_sm_connected_indi;
+
+      /*! RF AVAILABLE IND sent by ML1 */
+      LTE_CPHY_RF_AVAILABLE_IND  lte_rrc_ueinfo_sm_rf_available_ind_handler;
+      
+      /*! RF UNAVAILABLE IND sent by ML1 */  
+      LTE_CPHY_RF_UNAVAILABLE_IND  lte_rrc_ueinfo_sm_rf_unavailable_ind_handler;      
+
+      LTE_RRC_UEINFO_LOC_INFO_HOF_TMRI         lte_rrc_ueinfo_sm_loc_info_hof_tmri_handler;     
+    } 
+  }
+
+}
+
+

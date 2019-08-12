@@ -1,0 +1,145 @@
+
+
+
+[*======================= COPYRIGHT NOTICE ======================*]
+[* Copyright 2011 QUALCOMM Incorporated.                         *]  
+[* All rights reserved.                                          *] 
+[*                                                               *]   
+[* All data and information contained in or disclosed by this    *]
+[* document is confidential and proprietary information of       *]
+[* QUALCOMM Incorporated and all rights therein are expressly    *]
+[* reserved. By accepting this material the recipient agrees     *]
+[* that this material and the information contained therein is   *]
+[* held in confidence and in trust and will not be used, copied, *]
+[* reproduced in whole or in part, nor its contents revealed in  *]
+[* any manner to others without the express written permission   *]
+[* of QUALCOMM.                                                  *]
+[*===============================================================*]
+
+
+
+HEXAGON QuRT RTOS VERSION 02.00.00 - RELEASE NOTES
+
+* Overview
+
+    - Dynamic loading 
+    - Multi-Process support 
+    - QTIMER (HW) support
+    
+
+* Dynamic Loading
+  In recent Hexagon tools releases (4.0+), support for generation of 
+  Position Independent Code (PIC) and capabilities to create 
+  Dynamic Shared Objects (DSO) were added. In addition to this, a dynamic linker 
+  was also implemented which loads and link these DSOs at runtime.
+  
+  DSOs are partially linked ELF files that are not part of the main application 
+  but contain bits of application code and data that can be loaded and executed
+  at runtime. DSOs are typically stored on a file system that the main 
+  application can access. The dynamic linker takes the responsibility
+  of loading a DSO from the file system into memory and resolves and binds the 
+  DSO at runtime when the object is first executed. For more information regarding 
+  dynamic linking please consult: 
+    * Tools release documentation
+    * Wiki: go/dl
+    * http://www.akkadia.org/drepper/dsohowto.pdf
+    * Unix Manual pages for <dlfcn.h>: APIs dlopen, dlclose, dlsym, dlerror
+    * QuRT example application 'dl_qurt'
+
+  With this QuRT release, several system APIs required by the dynamic linker were
+  implemented. These were:
+    - Implementation of POSIX compliant memory mapping APIs: mmap, munmap and mprotect.
+        * To implement these APIs, the QuRT memory APIs were augmented to support mapping 
+          memory at a fixed virtual address. A new memory type was added to header:
+            libs/qurt/include/public/qurt_types.h
+        
+        * These APIs are provided to users in QuRT library libqurt.a.
+       
+    - Implementation of file system APIs: open, close, read, ftell, fseek, flen, fstat.
+      * In the Q6 simulator environment, these filesystem APIs were implemented using 
+        Angel system calls. These filesystem APIs over Angel are provided to users via 
+        QuRT library libqurtcfs.a.
+      
+      * Clients that intend to use dynamic linking capabilities on target, will need 
+        to implement their own file system. In that case, users should not link the 
+        library libqurtcfs.a in their application.
+  
+* Alpha release of Multi-Process (MP) support
+
+  To meet OpenDSP requirements on security and sharing multiple technologies
+  on single Hexagon core, QuRT is enhanced with multi-process support. A new
+  target, "mpqurt", is created to enable the MP support in QuRT for V4+ Hexagon 
+  cores.
+
+  A multi-process system runs more than one user processes. Each user process
+  is protected in separate address space by HW. In this release, user processes 
+  share single virtual address range 0--4GB. there are no overlap in virtual 
+  address ranges of user processes except shared memory.
+
+  A multi-process boot image consists of a QuRT (guest OS) image and multiple
+  application images. Please refer to following document in docs folder for 
+  details on build guide.
+
+    <qurt_build_guide_chapter7.docx>
+  
+  Shared drivers and common services are supposed to be running in QuRT with 
+  privileged mode. To facilitate porting device drivers into QuRT and keep
+  calling interface unchanged, QuRT Driver Invocation (QDI) is introduced. 
+  It is designed to be an efficient, extensible, open-ended device driver model 
+  which allows for a direct mapping of the common POSIX APIs (open, read, write, 
+  close) onto QDI with behavior similar to the POSIX semantics.
+
+  A primary goal of QDI was to allow fast round-trip privilege elevation; it 
+  must support device drivers which run at a higher privilege than the user code 
+  which requests driver services.  In order to do this with minimal performance 
+  impact, the QDI model supports the ability to quickly switch a user mode thread 
+  into the guest O/S privilege mode while preserving most of the argument registers 
+  unchanged.
+
+  Another primary goal of QDI is to hide all implementation details associated 
+  with a privileged mode driver so that they do not need to be exposed to user mode 
+  code.  In particular, all device driver object references are handle-based 
+  rather than pointer-based; exposing privileged addresses to user mode is not 
+  desirable for security purposes, and is not required by QDI. Please refer to following
+  document in docs folder for details on QDI framework and example.
+
+    <QDI_introduction.doc>
+
+
+  MP QuRT introduced new sets of APIs related to
+
+  - OS driver development: QDI APIs
+    
+    libs/qurt/include/public/qurt_qdi.h
+    libs/qurt/include/public/qurt_qdi_constants.h
+
+  - Process control: Process management APIs
+    libs/qurt/include/public/qurt_space.h
+
+  - Shared memory: Shared memory APIs
+    libs/qurt/include/public/qurt_shmem.h
+
+  New APIs will be integrated to QuRT User Guide shortly.
+
+  Note: MP is only tested with tools version 3.0.10
+
+  Wiki: go/mpqurt for more information
+
+* QTIMER
+  
+  QTIMER is a soft core that implements the ARM generic timer specification.  
+  It has a reusable, modular and scalable design allowing it to be used by 
+  numerous subsystems throughout the chip. 
+  
+  QTIMER is provided on QDSP6 V5 processor and 8974 V4 Virtual Platform. 
+  
+  This version of QuRT provide QTIMER support in kernel. To use QTIMER, 
+  QuRT kernel needs to be compiled with CONFIG_QTIMER_HW=y. Currently 
+  target=modemSWv5 and target=MMv5 are defined to use QTIMER.
+  
+  For QDSP6 V3 Processors and V4 with RGPT timer, CONFIG_QTIMER_HW=n needs 
+  to be defined when compile QuRT kernel. 
+  
+  To support both RGPT Timer and QTIMER, the tick value in timer API functions 
+  are changed from unsigned int to unsigned long long. Some timer macros are 
+  changed to functions to avoid having comilation flag in header files.

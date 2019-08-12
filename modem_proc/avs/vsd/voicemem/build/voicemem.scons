@@ -1,0 +1,34 @@
+#=================================================================
+# VOICECFG SConscript
+#=================================================================
+Import('env')
+
+env = env.Clone()
+
+env.Append(CPPDEFINES = [
+    "MSG_BT_SSID_DFLT=MSG_SSID_VS",
+])
+
+multimedia_config = env.get('MULTIMEDIA_CONFIG', 'none')
+
+VOICEMEMSRCPATH = "${BUILD_ROOT}/avs/vsd/voicemem"
+env.VariantDir('${BUILDPATH}', VOICEMEMSRCPATH, duplicate=0)
+
+env.RequirePublicApi([   
+   'AUDIO',
+])
+
+env.RequirePublicApi([   
+   'VOICEMEM',
+])
+
+env.RequireExternalApi([  
+   'MODEM_API',
+])
+
+VOICEMEM_SOURCES = [   
+  '${BUILDPATH}/src/voicemem_common.c',
+]
+
+IMAGES = ['MULTIMEDIA_MODEM', 'MULTIMEDIA_QDSP6_SW']
+env.AddLibrary(IMAGES, ('${BUILDPATH}/voice/voicemem'), VOICEMEM_SOURCES)

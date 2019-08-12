@@ -1,0 +1,87 @@
+#===============================================================================
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+import os
+env = env.Clone()
+
+platform_root = '${BUILD_ROOT}/platform'
+env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+
+env.RequirePublicApi([
+ 'STDDEF',
+ 'HAPSDK',
+ 'PLATFORM_LIBS',
+ 'RTLD',
+ 'A1STD',
+])
+
+env.RequireRestrictedApi ([
+ 'SECURITY',
+])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${ADSP_PLATFORM_ROOT}/rtld"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('RTLD_PRIVATE', "${BUILD_ROOT}/platform/rtld/src")
+env.RequirePrivateApi('RTLD_PRIVATE')
+
+RTLD_SOURCES =  [
+ '${BUILDPATH}/src/rtld.c',
+ '${BUILDPATH}/src/map_object.c',
+ '${BUILDPATH}/src/reloc.c',
+ '${BUILDPATH}/src/symbol.c',
+ '${BUILDPATH}/src/debug.c',
+ '${BUILDPATH}/src/load.c',
+ '${BUILDPATH}/src/search.c',
+ '${BUILDPATH}/src/headers.c',
+ '${BUILDPATH}/src/paths.c',
+ '${BUILDPATH}/src/arch/hexagon/mdreloc.c',
+ '${BUILDPATH}/src/arch/hexagon/mdreloc.c',
+ '${BUILDPATH}/src/arch/hexagon/rtld_start.S',
+ ]
+
+RTLD_INIT_SOURCES =  [
+ '${BUILDPATH}/src/rtld_init.c',
+ ]
+
+env.Append(CPPDEFINES = 'ELFSIZE=32')
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'USES_FEATURE_DYNAMIC_LOADING' in env:
+    env.PLRegister("rtld")
+
+    rtld_lib = env.AddBinaryLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE','CBSP_MODEM_IMAGE',
+       'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],'${BUILDPATH}/rtld', RTLD_SOURCES)
+
+    # Always link in rtld init into the guest OS
+    rtld_init_lib = env.AddBinaryLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+      'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/rtld_init', RTLD_INIT_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load Subunits (sys)
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+# Clean / pack rules
+CLEAN_LIST=[
+    '${ADSP_PLATFORM_ROOT}/rtld/src/arch/hexagon/Makefile.inc',
+    '${ADSP_PLATFORM_ROOT}/rtld/src/loader/initspecs',
+    '${ADSP_PLATFORM_ROOT}/rtld/src/loader/makeinit',
+    '${ADSP_PLATFORM_ROOT}/rtld/src/ld.elf_so.1',
+    '${ADSP_PLATFORM_ROOT}/rtld/src/Makefile',
+    '${ADSP_PLATFORM_ROOT}/rtld/src/README',
+    '${ADSP_PLATFORM_ROOT}/rtld/src/TODO',
+]
+
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h', '*.S'], '${ADSP_PLATFORM_ROOT}/rtld/src'))
+
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+     'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)

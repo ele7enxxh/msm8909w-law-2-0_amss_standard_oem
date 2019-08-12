@@ -1,0 +1,43 @@
+#===============================================================================
+#
+# PlayReady TZ Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:$
+#  $DateTime:$
+#  $Author:$
+#  $Change:$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/06/12   cz      Remove PK 1.2 pack rule
+# 09/18/11   cz      Packed out playready source files
+# 02/18/11   chm     Initial Version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# pack out PR 2.0 source
+#-------------------------------------------------------------------------------
+PR20SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/playready/pk2.0"
+PR20NOSHIP_SOURCES = env.FindFiles("*", PR20SRCPATH + "/source")
+PR20NOSHIP_SOURCES += env.FindFiles("*",  PR20SRCPATH + "/intgr")
+env.CleanPack('PLAYREADY_IMAGE', PR20NOSHIP_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

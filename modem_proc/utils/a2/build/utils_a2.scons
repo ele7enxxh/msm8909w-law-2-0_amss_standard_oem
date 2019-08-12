@@ -1,0 +1,40 @@
+#===============================================================================
+#
+# TCXOMGR Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2010 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/utils/a2/build/main/latest/utils_a2.scons#1$
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/21/10    ae     Initial version.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+if env.PathExists('${BUILD_ROOT}/utils'):
+    env.Replace(UTILS_ROOT = '${INC_ROOT}/utils')
+else:    
+    env.Replace(UTILS_ROOT = '${INC_ROOT}/modem/utils')
+
+env.PublishPrivateApi('UTILS_A2_TEST',['${UTILS_ROOT}/a2/driver/test/inc'])
+env.PublishPrivateApi('A2_DRIVER_TEST',['${UTILS_ROOT}/a2/driver/test/hw_sim'])
+#-------------------------------------------------------------------------------
+# Continue loading software units
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+env.LoadAPIUnits()
+

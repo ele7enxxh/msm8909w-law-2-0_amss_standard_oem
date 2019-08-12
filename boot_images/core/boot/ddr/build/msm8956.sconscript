@@ -1,0 +1,125 @@
+#===============================================================================
+#
+# DDR Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2009-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/boot/ddr/build/msm8956.sconscript#1 $
+#  $DateTime: 2015/09/01 00:30:35 $
+#  $Author: pwbldsvc $
+#  $Change: 8935858 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/11/14   bs      Initial Version.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('DDR', [
+  "${INC_ROOT}/core/boot/ddr/hw/msm8956/",
+  "${INC_ROOT}/core/boot/ddr/common/params/v2/",
+  "${INC_ROOT}/core/boot/ddr/hw/hw_sequence/BIMC/v2.2/",
+  "${INC_ROOT}/core/boot/ddr/hw/hw_sequence/PHY/v2.5/",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+  'BOOT',
+  'SERVICES',
+  'SYSTEMDRIVERS',
+  'DAL',
+  'KERNEL',
+  'BUSES',
+  'POWER',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.Append(CPPDEFINES = [
+  "SHARED_IMEM_DDR_PARAM_BASE=0x08600190",
+  "RPM_SHARED_IMEM_DDR_PARAM_BASE=0x00090400", 
+  "SHARED_IMEM_DDR_TRAINING_COOKIE=0x08600020"
+])
+
+env.Append(CPPDEFINES = [
+  "FEATURE_LPDDR3"
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+DDR_DRIVERS_SOURCES =[
+  '${BUILDPATH}/core/boot/ddr/common/ddr_sync.c',
+  '${BUILDPATH}/core/boot/ddr/common/params/v2/ddr_params.c',
+  '${BUILDPATH}/core/boot/ddr/common/ddr_seq_drivers.c',
+  '${BUILDPATH}/core/boot/ddr/hw/msm8956/ddr_target.c',
+  '${BUILDPATH}/core/boot/ddr/hw/msm8956/ddr_rpm_target.c',  
+  '${BUILDPATH}/core/boot/ddr/hw/msm8956/ddr_external_api.c',
+]
+
+DDR_RPM_MESSAGE_SOURCES = [
+]
+
+DDR_TEST_SOURCES = [
+  '${BUILDPATH}/core/boot/ddr/common/ddr_test.c',
+]
+
+DDR_HAL_SOURCES = [
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/BIMC/v2.2/bimc_ddrss_wrapper.c',
+]
+
+DDR_SCALE_SOURCES = [
+#BIMC SCALe
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/BIMC/v2.2/bimc.c',
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/BIMC/v2.2/bimc_mc_shke.c',
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/BIMC/v2.2/bimc_mc_dpe.c',
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/BIMC/v2.2/bimc_mc_scmo.c',
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/BIMC/v2.2/bimc_global.c',
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/BIMC/v2.2/ebi.c',
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/BIMC/v2.2/bimc_config_8956.c',
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/BIMC/v2.2/ddrcc_config_8956.c', 
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/BIMC/v2.2/ddrss_rcw.c',   
+
+#PHY SCALe
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/PHY/v2.5/ddr_phy_ca.c',
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/PHY/v2.5/ddr_phy_dq.c',
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/PHY/v2.5/ddr_phy_ebi.c',
+  '${BUILDPATH}/core/boot/ddr/hw/hw_sequence/PHY/v2.5/ddr_phy_ddrss.c',
+ 
+]
+
+if 'BUILD_BOOT_CHAIN' in env:
+  DDR_HAL_SOURCES += []
+
+ddr_drivers_lib = env.Library('${BUILDPATH}/DDR_DRIVERS', DDR_DRIVERS_SOURCES)
+ddr_test_lib = env.Library('${BUILDPATH}/DDR_TEST', DDR_TEST_SOURCES)
+ddr_hal_lib = env.Library('${BUILDPATH}/DDR_HAL', DDR_HAL_SOURCES)
+ddr_scale_lib = env.Library('${BUILDPATH}/DDR_SCALE', DDR_SCALE_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibsToImage('DDR_BOOT_DRIVER', [ddr_drivers_lib, ddr_test_lib, ddr_hal_lib,ddr_scale_lib])
+env.AddLibsToImage('RPM_IMAGE', [ddr_drivers_lib, ddr_hal_lib])

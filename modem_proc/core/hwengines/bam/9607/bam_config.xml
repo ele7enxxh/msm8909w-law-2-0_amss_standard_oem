@@ -1,0 +1,85 @@
+//===========================================================================
+//
+// FILE:         bam_config.xml
+//
+// DESCRIPTION:  This file contains the DAL XML properties for the BAM
+//               Device Access Library.
+//
+//===========================================================================
+//
+//                             Edit History
+//
+// $Header:
+//
+// when       who     what, where, why
+// --------   ---     -------------------------------------------------------
+// 05/18/15   SA      Created (from 8909).
+//
+//-------------------
+// Previous history
+//-------------------
+// 07/10/14   PR      Branched from config/8916. Updated tgtcfg ptr to devcfg and supported BAMs
+//
+//===========================================================================
+//             Copyright c 2014-15 QUALCOMM Technologies Incorporated.
+//                    All Rights Reserved.
+//                  QUALCOMM Proprietary/GTDR
+//===========================================================================
+<driver name="NULL">
+  <global_def>
+#ifdef BAM_APPS_CONFIG
+    <var_seq name="bam_tgtcfg_inc_file" type=DALPROP_DATA_TYPE_STRUCT_INC_FILE>
+         bamtgtcfgdata_apss.h
+    </var_seq>
+    <var_seq name="bam_props_inc_file" type=DALPROP_DATA_TYPE_STRUCT_INC_FILE>
+         bamconfig_props.c
+    </var_seq>
+#endif
+  </global_def>
+  <device id="/core/hwengines/bam">
+#ifdef BAM_XML_PROPS
+    <props name="bam_tgt_config" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         bam_tgt_config
+    </props>
+#endif
+#ifdef BAM_MODEM_CONFIG
+    <props name="bam_crypto_info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         bam_crypto_baseirq_info
+    </props>
+    <props name="bam_a2_info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         bam_mssa2_baseirq_info
+    </props>	  
+    <props name="bam_blsp1_info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         bam_blsp1_baseirq_info
+    </props>
+    <props name="bam_qpic_info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         bam_qpic_baseirq_info
+    </props>
+#elif BAM_TZOS_CONFIG
+    <props name="bam_blsp1_info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         bam_blsp1_baseirq_info
+    </props>
+    <props name="bam_crypto1_info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+		bam_crypto1_baseirq_info
+	</props>
+#elif BAM_APPS_CONFIG
+    <props name="bam_crypto1_info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+		bam_crypto1_baseirq_info
+	</props>
+    <props name="bam_blsp1_info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         bam_blsp1_baseirq_info
+    </props>
+    <props name="bam_usb2_info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         bam_usb2_baseirq_info
+    </props>
+    <props name="bam_qdss_info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         bam_qdss_baseirq_info
+    </props>
+    <props name="bam_qpic_info" type=DALPROP_ATTR_TYPE_STRUCT_PTR>
+         bam_qpic_baseirq_info
+    </props>
+#endif
+  </device>
+</driver>
+
+

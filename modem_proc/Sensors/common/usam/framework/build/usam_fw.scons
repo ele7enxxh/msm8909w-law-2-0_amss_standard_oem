@@ -1,0 +1,143 @@
+#===============================================================================
+#
+# SAM framework library
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2015 by Qualcomm Technologies, Inc.  All Rights Reserved
+# Qualcomm Technologies Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+Import('env')
+from glob import glob
+from os.path import join, basename
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/usam/framework/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CCFLAGS = " -O2 ")
+
+#-------------------------------------------------------------------------------
+# External depends within module
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# External depends outside module
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'SECUREMSM',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API, area='core')
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within module
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SENSORS',
+   'SNS_SMR',
+   'SNS_QUEUE',
+   'SNS_PM',
+   'SNS_MEMMGR',
+   'SNS_EVMGR',
+   'SNS_COMMON',
+   'SNS_DEBUG_DSPS'
+   'SNS_INT_SRVC'
+   'SNS_MATHTOOLS',
+]
+
+env.RequireProtectedApi(SENSORS_API)
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+DAL_UCOS_API = [
+   'DAL',
+]
+env.RequireRestrictedApi(DAL_UCOS_API)
+env.RequirePublicApi(DAL_UCOS_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = [
+    "${BUILD_ROOT}/Sensors/api",
+    "${BUILD_ROOT}/Sensors/common/inc",
+    "${BUILD_ROOT}/Sensors/common/idl/inc",
+    "${BUILD_ROOT}/Sensors/common/util/circbuffer/inc",
+    "${BUILD_ROOT}/Sensors/common/util/mathtools/inc",
+    "${BUILD_ROOT}/Sensors/common/usam/framework/inc/",
+    "${BUILD_ROOT}/Sensors/common/usam/prov/inc/",
+    "${BUILD_ROOT}/Sensors/common/usam/util/inc/",
+    "${BUILD_ROOT}/Sensors/rtld/src/stubs/",    
+    "${BUILD_ROOT}/Sensors/debug/inc",
+    "${BUILD_ROOT}/Sensors/pm/inc",
+    "${BUILD_ROOT}/Sensors/common/dl/inc",
+    "${BUILD_ROOT}/Sensors/profiling/inc",
+    "${BUILD_ROOT}/Sensors/common/dl/inc",
+    "${BUILD_ROOT}/qmimsgs/loc/api",
+])
+
+#-------------------------------------------------------------------------------
+# External depends within ADSP Platform
+#-------------------------------------------------------------------------------
+# @note:
+# If dynamic loading is supported we include the RTLD APIs else we use stub
+# variants of dynamic loading
+if 'USES_FEATURE_DYNAMIC_LOADING' in env:
+  PLATFORM_API = [
+    'RTLD',
+  ]
+  env.RequirePublicApi(PLATFORM_API, area='platform')
+else:
+  env.Append(CPPPATH = [
+    "${BUILD_ROOT}/Sensors/rtld/src/stubs",
+  ])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+FRAMEWORK_SOURCES  = ['${BUILDPATH}/' + basename(fname)
+          for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   SAM_FW_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/common/usam/framework/src')
+   SAM_FW_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/usam/framework/inc')
+
+   # Add as binary library
+   samfw_lib = env.AddBinaryLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+     "${BUILDPATH}/usam_fw", FRAMEWORK_SOURCES)
+
+   # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], SAM_FW_CLEAN_SOURCES)
+else:
+   samfw_lib = env.AddLibrary(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+     "${BUILDPATH}/usam_fw", FRAMEWORK_SOURCES)
+
+# Clause common to regular build and HD22
+if 'USES_ISLAND' in env:
+   samfw_sections = ['.text.uSAM', '.data.uSAM']
+   env.AddIslandLibrary('CORE_QDSP6_SENSOR_SW', samfw_lib, samfw_sections)

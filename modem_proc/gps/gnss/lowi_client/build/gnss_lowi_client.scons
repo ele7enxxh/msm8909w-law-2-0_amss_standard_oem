@@ -1,0 +1,120 @@
+# -------------------------------------------------------------------------------- #
+#                          G N S S _ L O W I C L I E N T. S C O N S
+#
+# DESCRIPTION
+#   SCons file for the LOWI subsystem.
+#
+#
+# INITIALIZATION AND SEQUENCING REQUIREMENTS
+#   None.
+#
+#
+# @COPYRIGHT Copyright (c) 2014-2015 Qualcomm Technologies, Inc.
+#  All rights reserved.
+# --------------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------------- #
+#
+#                      EDIT HISTORY FOR FILE
+#
+# This section contains comments describing changes made to this file.
+# Notice that changes are listed in reverse chronological order.
+#
+# $Header:
+# $DateTime:
+# 
+# when         who     what, where, why
+# ---------    ---     ------------------------------------------------------------
+# 06/11/14     amahesh      Initial Version
+#
+# --------------------------------------------------------------------------------- #
+
+#--------------------------------------------------------------------------------
+# Import the SCons environment
+#--------------------------------------------------------------------------------
+Import('env')
+
+#--------------------------------------------------------------------------------
+# Check USES flags and return if library isn't needed
+#--------------------------------------------------------------------------------
+if 'USES_CGPS' not in env:
+    Return()
+
+#--------------------------------------------------------------------------------
+# Setup Debug preferences 
+#--------------------------------------------------------------------------------
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG     = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG     = "")
+
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG     = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG     = "-g")
+
+env.PublishProtectedApi('LOWI',[
+                              '${GPS_ROOT}/gnss/lowi_client/inc',
+                             ])
+
+env.PublishPrivateApi('LOWI',[
+                            '${GPS_ROOT}/gnss/lowi_client/src',
+                           ])
+
+env.RequireProtectedApi('LOWI')                           
+env.RequirePrivateApi('LOWI')
+env.RequirePublicApi(['TEST','COMMON','LOWI'], area='QMIMSGS')
+#--------------------------------------------------------------------------------
+# Setup source PATH
+#--------------------------------------------------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#--------------------------------------------------------------------------------
+# Name of the subsystem to which this unit belongs
+#--------------------------------------------------------------------------------
+LIB_TARGET = '${BUILDPATH}/' + 'gnss_lowi'
+
+#--------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros by removing previous version and adding new
+# Definition
+#--------------------------------------------------------------------------------
+#env.Replace(CPPDEFINES = [x for x in env['CPPDEFINES'] if not x.startswith("MSG_BT_SSID_DFLT=")] +
+#                                         ["MSG_BT_SSID_DFLT=MSG_SSID_GPS"]) 
+
+#--------------------------------------------------------------------------------
+# Images that this VU is added
+#--------------------------------------------------------------------------------
+IMAGES = ['MODEM_MODEM']
+
+#--------------------------------------------------------------------------------
+# Generate the library and add to an image
+#--------------------------------------------------------------------------------
+#BINARY_LIB_SOURCES = ['${BUILDPATH}/' + basename(fname)
+#                      for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+#--------------------------------------------------------------------------------
+# Ship our code as binary library and add it to the Modem image
+#--------------------------------------------------------------------------------
+#env.AddBinaryLibrary(IMAGES, (LIB_TARGET + '_pvt'), BINARY_LIB_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+
+
+
+LOWI_CLIENT_LIB_CPP_SOURCES=[
+    '${BUILDPATH}/lowi_log.cpp',
+    '${BUILDPATH}/lowi_request.cpp',
+    '${BUILDPATH}/lowi_response.cpp',
+    '${BUILDPATH}/lowi_scan_measurement.cpp',
+    '${BUILDPATH}/lowi_mac_address.cpp',
+    '${BUILDPATH}/lowi_ssid.cpp',
+    '${BUILDPATH}/lowi_utils.cpp',
+    '${BUILDPATH}/lowi_qmi_client.cpp',
+    '${BUILDPATH}/lowi_qmi_wrapper.cpp',
+    '${BUILDPATH}/lowi_client.cpp',
+]
+
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+
+env.AddBinaryLibrary(IMAGES, (LIB_TARGET + '_pvt'), [LOWI_CLIENT_LIB_CPP_SOURCES])
+

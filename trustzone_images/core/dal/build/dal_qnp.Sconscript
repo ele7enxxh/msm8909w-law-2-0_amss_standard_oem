@@ -1,0 +1,93 @@
+#===============================================================================
+#
+# DAL Framework Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012 by Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/dal/build/dal_qnp.Sconscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#  
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPDEFINES = ["DAL_CONFIG_MMU_SCHEME=DAL_CONFIG_MMU_SCHEME_L4_PMEM"])
+if 'SINGLE_PROC' not in env:
+    env.Append(CPPDEFINES = ["DAL_FEATURE_REMOTING"])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL_MEMORYMANAGER',
+   # needs to be last also contains wrong comdef.h      
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireRestrictedApi('DAL')
+
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+DALFW_ARM_SOURCES =  [
+      '${DAL_ROOT}/framework/src/dal_asm_rvct.s',
+   ]
+
+DALFW_SOURCES =  [
+      '${DAL_ROOT}/framework/src/DALFramework.c',
+      '${DAL_ROOT}/framework/src/DALHeap.c',
+      '${DAL_ROOT}/framework/src/DALQueue.c',
+      '${DAL_ROOT}/framework/src/DALGlbCtxt.c',
+      '${DAL_ROOT}/framework/src/dalfwkbase.c',
+      '${DAL_ROOT}/framework/src/DALMemDesc.c',
+      '${DAL_ROOT}/framework/src/dal_asm_wrap.c',
+      '${DAL_ROOT}/framework/mod/src/qnp/DALModEnv.c',
+      '${DAL_ROOT}/framework/sys/src/DALProps.c',
+      '${DAL_ROOT}/framework/sys/src/DALSysCmn.c',
+      '${DAL_ROOT}/framework/sys/src/DALSysWorkLoop.c',
+      '${DAL_ROOT}/remote/src/dallocal.c',
+      '${DAL_ROOT}/remote/src/dalremote.c',
+      '${DAL_ROOT}/remote/src/dalremotecom.c',
+      '${DAL_ROOT}/remote/src/dalremotesmd.c',
+      '${DAL_ROOT}/remote/src/dalremotesmdl.c',
+      '${DAL_ROOT}/drivers/timer/src/DALTimerFwk.c',
+      '${DAL_ROOT}/drivers/timer/src/DALTimerInfo.c',
+      '${DAL_ROOT}/drivers/timer/src/amss_arm/DALTimer.c',
+      '${DAL_ROOT}/drivers/interruptcontroller/src/DALInterruptControllerFwk.c',
+      '${DAL_ROOT}/drivers/interruptcontroller/src/DALInterruptControllerInfo.c',
+      '${DAL_ROOT}/drivers/interruptcontroller/src/amss_arm_tramp/DALInterruptController.c'
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE',
+                'CBSP_MODEM_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE'],
+			   '${BUILDPATH}/DALFwk',
+			   DALFW_SOURCES)
+env.AddLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE',
+                'CBSP_MODEM_IMAGE', 'APPS_IMAGE', 'CBSP_APPS_IMAGE'],
+			   '${BUILDPATH}/DALFwk_arm',
+			   DALFW_ARM_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load Subunits
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

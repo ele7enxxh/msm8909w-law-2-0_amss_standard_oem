@@ -1,0 +1,94 @@
+##===============================================================================
+# UIM OBDAPP Subsystem build script
+# GENERAL DESCRIPTION
+#    build script for modem/uim/uimqmi
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/uim/obdapp/build/uim_obdapp.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/09/12   at      New revision
+#
+#===============================================================================
+
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+# Verify that USES_RUIM is set, otherwise bail out now
+if 'USES_RUIM' not in env:
+    Return()
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+SRCPATH = '../src'
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-----------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-----------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_RUIM",
+])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'STORAGE',
+    #'POWER',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'DAL',
+    'SECUREMSM',
+    'MPROC',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+QMI_PUBLIC_APIS = [
+    'UIM',
+    'CAT',
+    'SIM_INTERNAL',
+    'COMMON',
+    ]
+
+# We need the Core BSP API's
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+# We need the QMI API's
+env.RequirePublicApi(QMI_PUBLIC_APIS, area="API")
+
+# We need the UIM API's
+env.RequirePublicApi(['UIM', 'MCS', 'MMODE', 'DATACOMMON', 'WMS', 'PBM', 'DATA', 'GPS'])
+
+# We need DataCommon QMI Restricted APIs
+env.RequireRestrictedApi(['DATACOMMON', 'MMODE', 'PBM', 'DATA', 'UIM', 'MCS', 'GPS'])
+
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+OBDAPP_C_SOURCES = [
+    '${BUILDPATH}/obdapp.c'
+]
+
+# Add our library to the MODEM_AMSS image
+env.AddLibrary(['MODEM_MODEM'], '${BUILDPATH}/uim_obdapp', OBDAPP_C_SOURCES)

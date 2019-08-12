@@ -1,0 +1,542 @@
+//============================================================================
+//  Name:                                                                     
+//    std_cti.cmm
+//
+//  Description:                                                              
+//    Master script to program the CTI (Cross trigger interface)
+//
+//  Usage
+//  do std_cti <master> <slave1> <slave2> <slave3> <slave4> <slave5> <slave6> <slave7> <slave8> <slave9> 
+//
+//  Options:    STM|TPIU|KRAIT0|KRAIT1|KRAIT2|KRAIT3|VENUS|PRONTO|MPSS|ADSP|RPM|SPARROW|VPU
+//
+//  e.g. do std_cti MPSS KRAIT0 KRAIT1 KRAIT2 KRAIT3 RPM
+//          This will cause MPSS to be a 'master' over KRAIT processors and over RPM. 
+//          Thus, whenever MPSS stops, Kraits and RPM will stop. Whenever MPSS goes, Kraits and RPM will go.
+//          Note - if Kraits and RPM were halted by a CTI trigger, you must run the script again for them to go.
+//     
+
+//
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when         who     	what, where, why
+// --------     ---        --------------------------------------------------------
+// 10/29/2013   JBILLING   Created
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////// std_cti //////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        entry &master &slave1 &slave2 &slave3 &slave4 &slave5 &slave6 &slave7 &slave8 &slave9
+
+        GOSUB setupvariables
+        GOSUB cti_macros
+        GOSUB checkarguments
+        
+        if !y.exist(HWIO_APPS0_CTICONTROL_ADDR)
+		(
+			do hwio
+		)
+        
+        do std_utils CTI_Trigger_Broadcast &master_corename &master_CTI_IntBreakTrig &CTM_HALT_CHANNEL
+        do std_utils CTI_Trigger_Broadcast &master_corename &master_CTI_IntResumeTrig &CTM_GO_CHANNEL
+
+
+
+
+        do std_utils CTI_Trigger_Receive &slave1_corename &slave1_CTI_ExtBreakTrig &CTM_HALT_CHANNEL
+        do std_utils CTI_Trigger_Receive &slave1_corename &slave1_CTI_ExtResumeTrig &CTM_GO_CHANNEL
+
+        if "&slave2"!=""
+        (
+             do std_utils CTI_Trigger_Receive &slave2_corename &slave2_CTI_ExtBreakTrig &CTM_HALT_CHANNEL
+             do std_utils CTI_Trigger_Receive &slave2_corename &slave2_CTI_ExtResumeTrig &CTM_GO_CHANNEL
+        )
+        if "&slave3"!=""
+        (
+             do std_utils CTI_Trigger_Receive &slave3_corename &slave3_CTI_ExtBreakTrig &CTM_HALT_CHANNEL
+             do std_utils CTI_Trigger_Receive &slave3_corename &slave3_CTI_ExtResumeTrig &CTM_GO_CHANNEL
+        )
+        if "&slave4"!=""
+        (
+             do std_utils CTI_Trigger_Receive &slave4_corename &slave4_CTI_ExtBreakTrig &CTM_HALT_CHANNEL
+             do std_utils CTI_Trigger_Receive &slave4_corename &slave4_CTI_ExtResumeTrig &CTM_GO_CHANNEL
+        )
+        if "&slave5"!=""
+        (
+             do std_utils CTI_Trigger_Receive &slave5_corename &slave5_CTI_ExtBreakTrig &CTM_HALT_CHANNEL
+             do std_utils CTI_Trigger_Receive &slave5_corename &slave5_CTI_ExtResumeTrig &CTM_GO_CHANNEL
+        )
+        if "&slave6"!=""
+        (
+             do std_utils CTI_Trigger_Receive &slave6_corename &slave6_CTI_ExtBreakTrig &CTM_HALT_CHANNEL
+             do std_utils CTI_Trigger_Receive &slave6_corename &slave6_CTI_ExtResumeTrig &CTM_GO_CHANNEL
+        )
+        if "&slave7"!=""
+        (
+             do std_utils CTI_Trigger_Receive &slave7_corename &slave7_CTI_ExtBreakTrig &CTM_HALT_CHANNEL
+             do std_utils CTI_Trigger_Receive &slave7_corename &slave7_CTI_ExtResumeTrig &CTM_GO_CHANNEL
+        )
+        if "&slave8"!=""
+        (
+             do std_utils CTI_Trigger_Receive &slave8_corename &slave8_CTI_ExtBreakTrig &CTM_HALT_CHANNEL
+             do std_utils CTI_Trigger_Receive &slave8_corename &slave8_CTI_ExtResumeTrig &CTM_GO_CHANNEL
+        )
+        if "&slave9"!=""
+        (
+             do std_utils CTI_Trigger_Receive &slave9_corename &slave9_CTI_ExtBreakTrig &CTM_HALT_CHANNEL
+             do std_utils CTI_Trigger_Receive &slave9_corename &slave9_CTI_ExtResumeTrig &CTM_GO_CHANNEL
+        )
+        
+        
+    GOTO EXIT
+
+//////////////////////////////////////////// end //////////////////////////////////////////////////
+
+
+
+
+
+
+
+checkarguments:
+
+        GOSUB cti_retrieve_core_info &master
+        entry &master_corefamily &master_corename &master_CTI_ExtBreakTrig &master_CTI_ExtResumeTrig  &master_CTI_IntBreakTrig &master_CTI_IntResumeTrig &master_CTI_IntBreakEvent
+        
+        GOSUB cti_retrieve_core_info &slave1
+        entry &slave1_corefamily &slave1_corename &slave1_CTI_ExtBreakTrig &slave1_CTI_ExtResumeTrig  &slave1_CTI_IntBreakTrig &slave1_CTI_IntResumeTrig &slave1_CTI_IntBreakEvent
+        
+        if "&slave2"!=""
+        (
+            GOSUB cti_retrieve_core_info &slave2
+            entry &slave2_corefamily &slave2_corename &slave2_CTI_ExtBreakTrig &slave2_CTI_ExtResumeTrig  &slave2_CTI_IntBreakTrig &slave2_CTI_IntResumeTrig &slave2_CTI_IntBreakEvent
+        )
+        if "&slave3"!=""
+        (
+            GOSUB cti_retrieve_core_info &slave3
+            entry &slave3_corefamily &slave3_corename &slave3_CTI_ExtBreakTrig &slave3_CTI_ExtResumeTrig  &slave3_CTI_IntBreakTrig &slave3_CTI_IntResumeTrig &slave3_CTI_IntBreakEvent
+        )
+        if "&slave4"!=""
+        (        
+            GOSUB cti_retrieve_core_info &slave4
+            entry &slave4_corefamily &slave4_corename &slave4_CTI_ExtBreakTrig &slave4_CTI_ExtResumeTrig  &slave4_CTI_IntBreakTrig &slave4_CTI_IntResumeTrig &slave4_CTI_IntBreakEvent
+        )
+        if "&slave5"!=""
+        (        
+            GOSUB cti_retrieve_core_info &slave5
+            entry &slave5_corefamily &slave5_corename &slave5_CTI_ExtBreakTrig &slave5_CTI_ExtResumeTrig  &slave5_CTI_IntBreakTrig &slave5_CTI_IntResumeTrig &slave5_CTI_IntBreakEvent
+        )
+        if "&slave6"!=""
+        (        
+            GOSUB cti_retrieve_core_info &slave6
+            entry &slave6_corefamily &slave6_corename &slave6_CTI_ExtBreakTrig &slave6_CTI_ExtResumeTrig  &slave6_CTI_IntBreakTrig &slave6_CTI_IntResumeTrig &slave6_CTI_IntBreakEvent
+        )
+        if "&slave7"!=""
+        (        
+            GOSUB cti_retrieve_core_info &slave7
+            entry &slave7_corefamily &slave7_corename &slave7_CTI_ExtBreakTrig &slave7_CTI_ExtResumeTrig  &slave7_CTI_IntBreakTrig &slave7_CTI_IntResumeTrig &slave7_CTI_IntBreakEvent
+        )
+        if "&slave8"!=""
+        (        
+            GOSUB cti_retrieve_core_info &slave8
+            entry &slave8_corefamily &slave8_corename &slave8_CTI_ExtBreakTrig &slave8_CTI_ExtResumeTrig  &slave8_CTI_IntBreakTrig &slave8_CTI_IntResumeTrig &slave8_CTI_IntBreakEvent
+        )
+        if "&slave9"!=""
+        (
+            GOSUB cti_retrieve_core_info &slave9
+            entry &slave9_corefamily &slave9_corename &slave9_CTI_ExtBreakTrig &slave9_CTI_ExtResumeTrig  &slave9_CTI_IntBreakTrig &slave9_CTI_IntResumeTrig &slave9_CTI_IntBreakEvent
+        )
+
+        return
+
+        
+
+       
+        
+cti_retrieve_core_info:
+        LOCAL &corefamily &corename &core_CTI_ExtBreakTrig &core_CTI_ExtResumeTrig  &core_CTI_IntBreakTrig &core_CTI_IntResumeTrig &core_CTI_IntBreakEvent
+
+        entry &core
+
+        ;Will need to have separate logic for processor CTI's vs other CTI blocks
+        ;do std_utils CHECKARGS FATALEXIT &core STM TPIU KRAIT0 KRAIT1 KRAIT2 KRAIT3 VENUS PRONTO MPSS
+        ;do std_utils CHECKARGS FATALEXIT &core ADSP RPM SPARROW VPU        
+        
+        if (("&core"=="APPS0")||("&core"=="APPS1")||("&core"=="APPS2")||("&core"=="APPS3")||("&core"=="apps0")||("&core"=="apps1")||("&core"=="apps2")||("&core"=="apps3")||("&core"=="krait0")||("&core"=="krait1")||("&core"=="krait2")||("&core"=="krait3")||("&core"=="KRait0")||("&core"=="KRAIT1")||("&core"=="KRAIT2")||("&core"=="KRAIT3"))
+        (
+		
+            &corefamily="ARM"
+			&n=STRING.CUT("&core",(STRING.LENGTH("&core")-1))
+			&corename="APPS"+"&n"
+            //Ext events (external, e.g. CTI trigger on core_CTI_ExtBreakTrig causes a core to stop)
+                &core_CTI_ExtBreakTrig=&CTI_TRIG_HALT_ARMCORE
+                &core_CTI_ExtResumeTrig=&CTI_TRIG_GO_ARMCORE
+                
+                //ETM Functionality
+                //&core_EtmExtTrig_out=3
+                //&core_EtmEtbTrig_out=4
+                //&core_EtmExtTrig_in=2
+                
+                //Interrupt
+                &core_CTI_ExtnIRQOUT=6  
+            
+            //Int events (internal, e.g. core stopping asserts a CTI signal from core_IntBreakTrig and can be broadcast to other cores)
+                &core_CTI_IntBreakTrig=&CTI_TRIG_HALT_ARMCORE
+                &core_CTI_IntResumeTrig="NONE"
+                &core_CTI_IntBreakEvent=&CTI_TRIG_HALT_LEVEL_ARMCORE //this is the level trigger
+            
+
+        )
+        else if (("&core"=="RPM")||("&core"=="rpm"))
+        (
+            &corefamily="ARM"
+			&corename="RPM"
+			
+            //Ext events (external, e.g. CTI trigger on core_CTI_ExtBreakTrig causes a core to stop)
+                &core_CTI_ExtBreakTrig=&CTI_TRIG_HALT_ARMCORE
+                &core_CTI_ExtResumeTrig=&CTI_TRIG_GO_ARMCORE
+                
+                //ETM Functionality
+                //&core_EtmExtTrig_out=3
+                //&core_EtmEtbTrig_out=4
+                //&core_EtmExtTrig_in=2
+                
+                //Interrupt
+                &core_CTI_ExtnIRQOUT=6  
+            
+            //Int events (internal, e.g. core stopping asserts a CTI signal from core_IntBreakTrig and can be broadcast to other cores)
+                &core_CTI_IntBreakTrig=&CTI_TRIG_HALT_ARMCORE
+                &core_CTI_IntResumeTrig="NONE"
+                &core_CTI_IntBreakEvent=&CTI_TRIG_HALT_LEVEL_ARMCORE //this is the level trigger
+            
+                
+
+                
+        )
+        else if (("&core"=="PRONTO")||("&core"=="pronto")||("&core"=="WCNSS")||("&core"=="wcnss")||("&core"=="WCN")||("&core"=="wcn"))
+        (
+            &corefamily="ARM"
+			&corename="PRONTO"
+        
+            //Ext events (external, e.g. CTI trigger on core_CTI_ExtBreakTrig causes a core to stop)
+                &core_CTI_ExtBreakTrig=&CTI_TRIG_HALT_ARMCORE
+                &core_CTI_ExtResumeTrig="NONE"
+                
+                //ETM Functionality
+                //&core_EtmExtTrig_out=3
+                //&core_EtmEtbTrig_out=4
+                //&core_EtmExtTrig_in=2
+                
+                //Interrupt
+                &core_CTI_ExtnIRQOUT=6  
+            
+            //Int events (internal, e.g. core stopping asserts a CTI signal from core_IntBreakTrig and can be broadcast to other cores)
+                &core_CTI_IntBreakTrig=&CTI_TRIG_HALT_ARMCORE
+                &core_CTI_IntResumeTrig="NONE"
+                &core_CTI_IntBreakEvent=&CTI_TRIG_HALT_LEVEL_ARMCORE //this is the level trigger        
+        
+        
+        
+        )
+        else if (("&core"=="VENUS")||("&core"=="venus")||("&core"=="video"))
+        (
+            &corefamily="ARM"
+			&corename="VSS"
+        
+            //Ext events (external, e.g. CTI trigger on core_CTI_ExtBreakTrig causes a core to stop)
+                &core_CTI_ExtBreakTrig=&CTI_TRIG_HALT_ARMCORE
+                &core_CTI_ExtResumeTrig="NONE"
+                
+                //ETM Functionality
+                //&core_EtmExtTrig_out=3
+                //&core_EtmEtbTrig_out=4
+                //&core_EtmExtTrig_in=2
+                
+                //Interrupt
+                &core_CTI_ExtnIRQOUT=6  
+            
+            //Int events (internal, e.g. core stopping asserts a CTI signal from core_IntBreakTrig and can be broadcast to other cores)
+                &core_CTI_IntBreakTrig=&CTI_TRIG_HALT_ARMCORE
+                &core_CTI_IntResumeTrig="NONE"
+                &core_CTI_IntBreakEvent=&CTI_TRIG_HALT_LEVEL_ARMCORE //this is the level trigger        
+        
+        
+        
+        )
+        else if (("&core"=="VPU")||("&core"=="vpu")||("&core"=="MAPLE")||("&core"=="maple"))
+        (
+            &corefamily="ARM"
+			&corename="VPU"
+        
+            //Ext events (external, e.g. CTI trigger on core_CTI_ExtBreakTrig causes a core to stop)
+                &core_CTI_ExtBreakTrig=&CTI_TRIG_HALT_ARMCORE
+                &core_CTI_ExtResumeTrig="NONE"
+                
+                //ETM Functionality
+                //&core_EtmExtTrig_out=3
+                //&core_EtmEtbTrig_out=4
+                //&core_EtmExtTrig_in=2
+                
+                //Interrupt
+                &core_CTI_ExtnIRQOUT=6  
+            
+            //Int events (internal, e.g. core stopping asserts a CTI signal from core_IntBreakTrig and can be broadcast to other cores)
+                &core_CTI_IntBreakTrig=&CTI_TRIG_HALT_ARMCORE
+                &core_CTI_IntResumeTrig="NONE"
+                &core_CTI_IntBreakEvent=&CTI_TRIG_HALT_LEVEL_ARMCORE //this is the level trigger        
+        
+        
+        
+        )
+        else if (("&core"=="MPSS")||("&core"=="mpss")||("&core"=="MODEM")||("&core"=="modem"))
+        (
+            &corefamily="Q6"
+			&corename="MPSS"
+        
+            //Ext events (external, e.g. CTI trigger on core_CTI_ExtBreakTrig causes a core to stop)
+                //break and resume features
+                &core_CTI_ExtBreakTrig=&CTI_TRIG_HALT_Q6CORE
+                &core_CTI_ExtResumeTrig=&CTI_TRIG_GO_Q6CORE
+                
+                //ETM functionality            
+                //&core_EtmExtTrig_out=3
+                //&core_EtmEtbTrig_out=4
+                
+                //Interrupt
+                &core_CTI_nIRQOUT=3
+            
+            //Int events (internal, e.g. core stopping asserts a CTI signal from core_IntBreakTrig and can be broadcast to other cores)
+                //break and resume features
+                &core_CTI_IntBreakTrig=&CTI_TRIG_HALT_Q6CORE
+                &core_CTI_IntResumeTrig=&CTI_TRIG_GO_Q6CORE
+                &core_CTI_IntBreakEvent=&CTI_TRIG_HALT_LEVEL_Q6CORE //this is the level trigger
+                
+                //ETM functionality
+                //&core_EtmExtTrig_in=2
+
+         
+
+        )
+        else if (("&core"=="ADSP")||("&core"=="adsp")||("&core"=="audio")||("&core"=="LPASS")||("&core"=="lpass"))
+        (
+            &corefamily="Q6"
+			&corename="ADSP"
+        
+            //Ext events (external, e.g. CTI trigger on core_CTI_ExtBreakTrig causes a core to stop)
+                //break and resume features
+                &core_CTI_ExtBreakTrig=&CTI_TRIG_HALT_Q6CORE
+                &core_CTI_ExtResumeTrig=&CTI_TRIG_GO_Q6CORE
+                
+                //ETM functionality            
+                //&core_EtmExtTrig_out=3
+                //&core_EtmEtbTrig_out=4
+                
+                //Interrupt
+                &core_CTI_nIRQOUT=3
+            
+            //Int events (internal, e.g. core stopping asserts a CTI signal from core_IntBreakTrig and can be broadcast to other cores)
+                //break and resume features
+                &core_CTI_IntBreakTrig=&CTI_TRIG_HALT_Q6CORE
+                &core_CTI_IntResumeTrig=&CTI_TRIG_GO_Q6CORE
+                &core_CTI_IntBreakEvent=&CTI_TRIG_HALT_LEVEL_Q6CORE //this is the level trigger
+                
+                //ETM functionality
+                //&core_EtmExtTrig_in=2
+
+         
+
+        )		
+		else if (("&core"=="HWEVENT")||("&core"=="hwevent")||("&core"=="HWevent")||("&core"=="HWEVENTS")||("&core"=="hwevents")||("&core"=="HWevents"))
+		(
+		
+			&corefamily="QDSS"
+			&corename="QDSS_CTI0"
+			
+			
+            //Ext events (external, e.g. CTI trigger on core_CTI_ExtBreakTrig causes a core to stop)
+                //break and resume features
+                &core_CTI_ExtBreakTrig="NONE"
+                &core_CTI_ExtResumeTrig="NONE"
+                
+                //ETM functionality            
+                //&core_EtmExtTrig_out="NONE"
+                //&core_EtmEtbTrig_out="NONE"
+                
+                //Interrupt
+                &core_CTI_nIRQOUT="NONE"
+            
+            //Int events (internal, e.g. core stopping asserts a CTI signal from core_IntBreakTrig and can be broadcast to other cores)
+                
+                &core_CTI_IntBreakTrig=&CTI_TRIG_HALT_HWEVENT_HETE
+                &core_CTI_IntResumeTrig="NONE"
+                &core_CTI_IntBreakEvent="NONE"
+                
+                //ETM functionality
+                //&core_EtmExtTrig_in="NONE"
+
+		)
+		else if (("&core"=="ETB")||("&core"=="etb"))
+		(
+		
+			&corefamily="QDSS"
+			&corename="QDSS_CTI0"
+			
+			
+            //Ext events (external, e.g. CTI trigger on core_CTI_ExtBreakTrig causes a core to stop)
+                //break and resume features
+                &core_CTI_ExtBreakTrig=&CTI_ETB_Trigger_Instertion //0
+                &core_CTI_ExtResumeTrig="NONE"
+                
+                //ETM functionality            
+                //&core_EtmExtTrig_out="NONE"
+                //&core_EtmEtbTrig_out="NONE"
+                
+                //Interrupt
+                &core_CTI_nIRQOUT="NONE"
+            
+            //Int events (internal, e.g. core stopping asserts a CTI signal from core_IntBreakTrig and can be broadcast to other cores)
+                
+                &core_CTI_IntBreakTrig=&CTI_ETB_BufferFull //0x0
+                &core_CTI_IntResumeTrig="NONE"
+                &core_CTI_IntBreakEvent="NONE"
+                
+                //ETM functionality
+                //&core_EtmExtTrig_in="NONE"
+
+		)
+		else if (("&core"=="GPIO")||("&core"=="gpio")||("&core"=="CTI6")||("&core"=="cti6")||("&core"=="9x25")||("&core"=="9X25"))
+		(
+		
+			&corefamily="QDSS"
+			&corename="QDSS_CTI6"
+			
+			
+            //Ext events (external, e.g. CTI trigger on core_CTI_ExtBreakTrig causes a core to stop)
+                //break and resume features
+                &core_CTI_ExtBreakTrig=&CTI_TRIG_to_GPIO //2
+                &core_CTI_ExtResumeTrig="NONE"
+                
+                //ETM functionality            
+                //&core_EtmExtTrig_out="NONE"
+                //&core_EtmEtbTrig_out="NONE"
+                
+                //Interrupt
+                &core_CTI_nIRQOUT="NONE"
+            
+            //Int events (internal, e.g. core stopping asserts a CTI signal from core_IntBreakTrig and can be broadcast to other cores)
+                
+                &core_CTI_IntBreakTrig=&CTI_TRIG_from_GPIO_Postive_Edge //2
+                &core_CTI_IntResumeTrig="NONE"
+                &core_CTI_IntBreakEvent=&CTI_TRIG_from_GPIO_Positive_Level //4
+                
+                //ETM functionality
+                //&core_EtmExtTrig_in="NONE"
+
+		)
+		else 
+		(
+				if ("&core"!="")
+				(
+					Print "Didnt recognize corename &core. Exiting"
+					GOTO FATALEXIT
+				
+				)
+		)
+
+        
+Return &corefamily &corename &core_CTI_ExtBreakTrig &core_CTI_ExtResumeTrig  &core_CTI_IntBreakTrig &core_CTI_IntResumeTrig &core_CTI_IntBreakEvent
+        
+        
+        
+        
+cti_macros:
+        GLOBAL &CTM_CHANNEL_0
+        GLOBAL &CTM_CHANNEL_1
+        GLOBAL &CTM_CHANNEL_2
+        GLOBAL &CTM_CHANNEL_3
+
+        GLOBAL &CTM_HALT_CHANNEL
+        GLOBAL &CTM_GO_CHANNEL
+        GLOBAL &CTM_STM_HALT_CHANNEL
+
+
+        GLOBAL &CTI_TRIG_HALT_ARMCORE
+        GLOBAL &CTI_TRIG_HALT_Q6CORE
+        GLOBAL &CTI_TRIG_HALT_LEVEL_ARMCORE
+        GLOBAL &CTI_TRIG_HALT_LEVEL_Q6CORE
+        GLOBAL &CTI_TRIG_GO_Q6CORE
+        GLOBAL &CTI_TRIG_GO_ARMCORE
+
+		GLOBAL &CTI_TRIG_HALT_HWEVENT_HETE
+		GLOBAL &CTI_TRIG_HALT_HWEVENT_SPTE
+		GLOBAL &CTI_TRIG_to_GPIO
+		GLOBAL &CTI_TRIG_from_GPIO_Postive_Edge
+		GLOBAL &CTI_TRIG_from_GPIO_Positive_Level
+		GLOBAL &CTI_ETB_Trigger_Instertion
+		GLOBAL &CTI_ETB_BufferFull
+		
+		
+        &CTM_CHANNEL_0=0x0
+        &CTM_CHANNEL_1=0x1
+        &CTM_CHANNEL_2=0x2
+        &CTM_CHANNEL_3=0x3
+
+        &CTM_HALT_CHANNEL=&CTM_CHANNEL_0
+        &CTM_GO_CHANNEL=&CTM_CHANNEL_1
+        &CTM_STM_HALT_CHANNEL=&CTM_CHANNEL_2
+
+        &CTI_TRIG_HALT_ARMCORE=0x0
+        &CTI_TRIG_HALT_Q6CORE=0x0
+        &CTI_TRIG_HALT_LEVEL_ARMCORE=0x1
+        &CTI_TRIG_HALT_LEVEL_Q6CORE=0x2
+        &CTI_TRIG_GO_Q6CORE=0x1
+        &CTI_TRIG_GO_ARMCORE=0x7  
+		
+		&CTI_TRIG_HALT_HWEVENT_HETE=0x4
+		&CTI_TRIG_HALT_HWEVENT_SPTE=0x6
+		&CTI_TRIG_to_GPIO=0x2
+		&CTI_TRIG_from_GPIO_Postive_Edge=0x2
+		&CTI_TRIG_from_GPIO_Positive_Level=0x4
+		&CTI_ETB_Trigger_Instertion=0x0
+		&CTI_ETB_BufferFull=0x0
+        
+		return
+
+        
+setupvariables:
+
+
+        GLOBAL &master_corefamily &master_corename &master_CTI_ExtBreakTrig &master_CTI_ExtResumeTrig  &master_CTI_IntBreakTrig &master_CTI_IntResumeTrig &master_CTI_IntBreakEvent
+        GLOBAL &slave1_corefamily &slave1_corename &slave1_CTI_ExtBreakTrig &slave1_CTI_ExtResumeTrig  &slave1_CTI_IntBreakTrig &slave1_CTI_IntResumeTrig &slave1_CTI_IntBreakEvent
+        GLOBAL &slave2_corefamily &slave2_corename &slave2_CTI_ExtBreakTrig &slave2_CTI_ExtResumeTrig  &slave2_CTI_IntBreakTrig &slave2_CTI_IntResumeTrig &slave2_CTI_IntBreakEvent
+        GLOBAL &slave3_corefamily &slave3_corename &slave3_CTI_ExtBreakTrig &slave3_CTI_ExtResumeTrig  &slave3_CTI_IntBreakTrig &slave3_CTI_IntResumeTrig &slave3_CTI_IntBreakEvent
+        GLOBAL &slave4_corefamily &slave4_corename &slave4_CTI_ExtBreakTrig &slave4_CTI_ExtResumeTrig  &slave4_CTI_IntBreakTrig &slave4_CTI_IntResumeTrig &slave4_CTI_IntBreakEvent
+        GLOBAL &slave5_corefamily &slave5_corename &slave5_CTI_ExtBreakTrig &slave5_CTI_ExtResumeTrig  &slave5_CTI_IntBreakTrig &slave5_CTI_IntResumeTrig &slave5_CTI_IntBreakEvent
+        GLOBAL &slave6_corefamily &slave6_corename &slave6_CTI_ExtBreakTrig &slave6_CTI_ExtResumeTrig  &slave6_CTI_IntBreakTrig &slave6_CTI_IntResumeTrig &slave6_CTI_IntBreakEvent
+        GLOBAL &slave7_corefamily &slave7_corename &slave7_CTI_ExtBreakTrig &slave7_CTI_ExtResumeTrig  &slave7_CTI_IntBreakTrig &slave7_CTI_IntResumeTrig &slave7_CTI_IntBreakEvent
+        GLOBAL &slave8_corefamily &slave8_corename &slave8_CTI_ExtBreakTrig &slave8_CTI_ExtResumeTrig  &slave8_CTI_IntBreakTrig &slave8_CTI_IntResumeTrig &slave8_CTI_IntBreakEvent
+        GLOBAL &slave9_corefamily &slave9_corename &slave9_CTI_ExtBreakTrig &slave9_CTI_ExtResumeTrig  &slave9_CTI_IntBreakTrig &slave9_CTI_IntResumeTrig &slave9_CTI_IntBreakEvent
+
+
+RETURN
+//	Function: Exit
+//	Return with return values	
+EXIT:
+	ENDDO &PASS &RVAL0 &RVAL1 &RVAL2
+
+//	Function: Fatalexit
+//	Return without return values	
+FATALEXIT:
+	END
+        
+        
+        
+        
+       

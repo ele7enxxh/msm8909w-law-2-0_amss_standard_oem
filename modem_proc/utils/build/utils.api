@@ -1,0 +1,72 @@
+# -------------------------------------------------------------------------- #
+# $Header: //source/qcom/qct/modem/utils/build/utils.api#1 $
+# --------------------------------------------------------------------------- #
+# Copyright (c) 2014 Qualcomm Technologies Incorporated.
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------- #
+# Import SCons Environment                                                    #
+# --------------------------------------------------------------------------- #
+Import('env')
+
+if env.PathExists('${BUILD_ROOT}/utils'):
+    env.Replace(UTILS_ROOT = '${INC_ROOT}/utils')
+else:    
+    env.Replace(UTILS_ROOT = '${INC_ROOT}/modem/utils')
+
+env.PublishPublicApi('UTILS',            ['${UTILS_ROOT}/api',   ])
+env.PublishPublicApi('A2',                 [ '${UTILS_ROOT}/api/a2', ])
+env.PublishPublicApi('CFM',             ['${UTILS_ROOT}/api/cfm',   ])
+env.PublishPublicApi('QSH',             ['${UTILS_ROOT}/api/qsh',   ])
+env.PublishPublicApi('QSH',             ['${UTILS_ROOT}/api/qsh/backend',   ])
+env.PublishPublicApi('COMMON',     [ '${UTILS_ROOT}/api/common', ])
+env.PublishPublicApi('FC',                 [ '${UTILS_ROOT}/api/fc',  ])
+env.PublishPublicApi('MCPM',           [ '${UTILS_ROOT}/api/mcpm',  ])
+env.PublishPublicApi('OSYS',            ['${UTILS_ROOT}/api/osys',  ])
+env.PublishPublicApi('RTPERSRC',    ['${UTILS_ROOT}/api/osys/rtpersrc', ])
+env.PublishPublicApi('RTSRC',          [ '${UTILS_ROOT}/api/osys/rtsrc',  ])
+env.PublishPublicApi('RTXSRC',        [ '${UTILS_ROOT}/api/osys/rtxsrc',  ])
+env.PublishPublicApi('PUBLIC',          ['${UTILS_ROOT}/api/public',   ])
+
+env.PublishRestrictedApi('VIOLATIONS',[
+        '${INC_ROOT}/mcs/hwio/inc/${CHIPSET}',
+        '${INC_ROOT}/mcs/hwio/inc',
+        '${INC_ROOT}/core/buses/api/icb',
+        ])
+
+
+# ------------------------------------------------------------------------------
+# UTILS Subsystem API
+#-------------------------------------------------------------------------------
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api"])
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api/a2"])
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api/cfm"])
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api/qsh"])
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api/qsh/backend"])
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api/common"])
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api/fc"])
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api/mcpm"])
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api/osys"])
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api/osys/rtpersrc"])
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api/osys/rtxsrc"])
+env.PublishRestrictedApi('UTILS', ["${INC_ROOT}/modem/utils/api/osys/rtsrc"])
+
+env.PublishPublicApi('UTILS',      ["${INC_ROOT}/modem/utils/api/public"])
+
+env.PublishPublicApi('FC',      ["${UTILS_ROOT}/api/fc"])
+env.PublishPublicApi('FC',      ["${UTILS_ROOT}/fc/inc"])
+
+env.LoadAPIUnits()

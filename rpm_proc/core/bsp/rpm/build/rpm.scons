@@ -1,0 +1,149 @@
+#===========================================================================
+#
+#  @file rpm.scons
+#  @brief Image-level build script for the RPM.
+#
+#  This file can be invoked directly by calling:
+#
+#    build rpm
+#
+#  ===========================================================================
+#
+#  Copyright (c) 2011 Qualcomm Technologies Incorporated.  
+#  All Rights Reserved.
+#  QUALCOMM Proprietary and Confidential.
+#
+#  ===========================================================================
+#
+#  $Header$
+#  $DateTime$
+#  $Author$
+#
+#  ===========================================================================
+
+#------------------------------------------------------------------------------
+# Imports
+#------------------------------------------------------------------------------
+
+import sys
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Define the "rpm" image
+#------------------------------------------------------------------------------
+
+aliases = ['rpm', 'all']
+
+env.InitImageVars(
+   alias_list=aliases,
+   proc='rpm',
+   config='rpm',
+   build_tags = ['CORE_RPM', 'RPM_IMAGE', 'DAL_DEVCFG_IMG', 'QDSS_EN_IMG',
+                 'IMAGE_TREE_VERSION_AUTO_GENERATE'
+                ],
+   tools = ['${BUILD_ROOT}/core/bsp/rpm/build/rpmtools_defs.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+            '${BUILD_ROOT}/tools/build/scons/scripts/buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/rpm_elf_builder.py',
+            '${BUILD_ROOT}/tools/build/scons/sectools/sectools_builder.py',
+           ])
+
+env.Replace(USES_QDSS_SWE = 'TRUE')
+
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+
+if not env.CheckAlias(alias_list=aliases):
+   Return()
+
+#------------------------------------------------------------------------------
+# Init defualt values this PROC/Image
+#------------------------------------------------------------------------------
+# Add DAL_CONFIG_TARGET_ID to CPPDEFINES needed by some dal drivers
+if env['MSM_ID'] in ['9x45']:
+   env.Append(CPPDEFINES = [
+   "DAL_CONFIG_TARGET_ID=0x9645"
+   ])
+elif env['MSM_ID'] in ['9x07']:
+   env.Append(CPPDEFINES = [
+   "DAL_CONFIG_TARGET_ID=0x9607"
+   ])
+   env.Append(CPPDEFINES = 'RPM_GPLL0_PROXY_VOTE')
+elif env['MSM_ID'] in ['8909W']:
+   env.Append(CPPDEFINES = [
+   "DAL_CONFIG_TARGET_ID=0x8909"
+   ])
+else:
+   env.Append(CPPDEFINES = [
+   "DAL_CONFIG_TARGET_ID=0x${MSM_ID}"
+   ])
+
+if env['MSM_ID'] == '8952':
+   env.Append(CPPDEFINES = 'MSM8952_STUBS')
+   env.Append(CPPDEFINES = 'NO_STACK_CHECK')
+   
+if env['MSM_ID'] == '8976':
+   env.Append(CPPDEFINES = 'MSM8976_STUBS')
+   env.Append(CPPDEFINES = 'NO_STACK_CHECK')
+   
+# Enable devcfg feature
+env.Replace(USES_DEVCFG = True)
+
+# Enable sectools option for generating secure image
+if os.environ.has_key("SECPOLICY"):
+  sec_policy_list = os.environ["SECPOLICY"].split()
+  for sec_policy in sec_policy_list:
+    eval("env.Replace(%s = True)"%sec_policy) #to avoid hardcoding all sectool policies
+
+#---------------------------------------------------------------------------
+# Load in uses and path variables
+#---------------------------------------------------------------------------
+
+env.InitBuildConfig()
+
+#env.Replace(USES_NO_STRIP_NO_ODM = 'yes')
+#env.Replace(USES_NO_DEBUG = 'yes')
+
+#---------------------------------------------------------------------------
+# Load build rules
+#---------------------------------------------------------------------------
+
+# The build scripts always expect posix paths, so ensure that here.
+if env.has_key('FILTER_OPT') and env['FILTER_OPT'] is not None:
+  env['FILTER_OPT'] = env.NormPath(env['FILTER_OPT'], posix=True)
+
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+build_libs, build_objs = env.LoadAUSoftwareUnits('build')
+
+#------------------------------------------------------------------------------
+# Build the final product
+#------------------------------------------------------------------------------
+env.Replace(RPM_LIBS = [core_libs, build_libs])
+env.Replace(RPM_OBJS = [core_objs, build_objs])
+
+env.Tool('RPM', toolpath = ['${BUILD_ROOT}/core/bsp/rpm/build'])
+
+#---------------------------------------------------------------------------
+# Now that we know we need to build something, the first thing we need
+# to do is add our image to BuildProducts.txt, so that tools can verify
+# when our build is successful.
+
+if env['MSM_ID'] in ['8909','8909W']:
+  env.BuildProductsFile ('rpm_proc/', '../../../../build/ms/bin/${MSM_ID}/pm8909/rpm.mbn', env)
+else:
+  env.BuildProductsFile ('rpm_proc/', '../../../../build/ms/bin/${MSM_ID}/rpm.mbn', env)
+
+#------------------------------------------------------------------------------
+# Generate Scripts
+#------------------------------------------------------------------------------
+env.CMMBuilder(None, None)

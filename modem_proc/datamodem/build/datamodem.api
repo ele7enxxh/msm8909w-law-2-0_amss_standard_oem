@@ -1,0 +1,61 @@
+#===============================================================================
+#
+# Modem API wrapper script
+#
+# GENERAL DESCRIPTION
+#    build script to load API's for modem
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/data/build/qscons/complete/rel/10.02.02/data.api#1 $
+#  $DateTime: 2010/09/21 16:06:56 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/23/12   ma      Remove Modem directory
+# 05/03/12   jgr     Add moved public files
+# 07/10/10   enj     Initial revision
+#
+#===============================================================================
+Import('env')
+if env.PathExists('${BUILD_ROOT}/datamodem'):
+   env.Replace(DATAMODEM_ROOT = '${INC_ROOT}/datamodem')
+else:    
+   env.Replace(DATAMODEM_ROOT = '${INC_ROOT}/modem/datamodem')
+
+
+env.PublishPublicApi('DATAMODEM',   ["${DATAMODEM_ROOT}/api"])
+env.PublishPublicApi('PUBLIC',      ["${DATAMODEM_ROOT}/api/public"])
+
+
+#Start public VIOLATIONS
+#env.PublishRestrictedApi('DATAMODEM_VIOLATIONS',[
+#		'${INC_ROOT}/utils/osys',
+#        '${INC_ROOT}/utils/fc/inc',
+#		])
+
+if 'USES_MOB' in env:
+  env.PublishRestrictedApi('DATAMODEM',[
+  '${DATAMODEM_ROOT}/tools/tests/wlan/iwlan_s2b/src',
+  '${DATAMODEM_ROOT}/tools/tests/wlan/iwlan_s2b/inc',
+  '${DATAMODEM_ROOT}/tools/tests/wlan/mapcon/src',
+  '${DATAMODEM_ROOT}/tools/tests/wlan/mapcon/inc',
+  ])
+		
+#remove everything through last line, when modem folder is removed-------------------
+env.PublishRestrictedApi('DATAMODEM',   ["${INC_ROOT}/datamodem/interface/qmimsglib/inc"])
+
+
+env.PublishRestrictedApi('DATAMODEM',   ["${INC_ROOT}/datamodem/api"])
+env.PublishPublicApi('DATAMODEM',   ["${INC_ROOT}/datamodem/api/public"])
+
+env.LoadAPIUnits()

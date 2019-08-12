@@ -1,0 +1,102 @@
+#===============================================================================
+#
+# HAL MAO Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$
+#  $DateTime$
+#  $Author$
+#  $Change$
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/09/12   mda     MPMv2 for 8974
+# 09/12/12   mda     MPMv2 for 9x25
+#
+#===============================================================================
+Import('env')
+
+env.Append(CPPDEFINES = [('HAL_MPMINT_TARGET_H', '\\"HALmpmint${MSM_ID}.h\\"')])
+
+env.PublishPrivateApi('POWER_HAL_MPM_USER_API', [
+   "${BUILD_ROOT}/core/power/mpm/hal/include",
+   "${BUILD_ROOT}/core/power/mpm/hal/source/${MSM_ID}",
+])
+
+# Everything else that follows is private to ourselves.
+env = env.Clone()
+
+env['MPM_HW_VERSION'] = 'MPM_V4'
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/power/mpm/hal"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DEBUGTRACE',
+   'POWER'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+env.PublishPrivateApi('POWER_HAL_MPM', [
+   "${BUILD_ROOT}/core/power/mpm/hal/include",
+   "${BUILD_ROOT}/core/power/mpm/hal/bsp/include",
+   "${BUILD_ROOT}/core/power/mpm/hal/source/common",
+   "${BUILD_ROOT}/core/power/mpm/hal/source/${MSM_ID}",
+   "${BUILD_ROOT}/core/power/mpm/hal/source/${MPM_HW_VERSION}",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+if env['MSM_ID'] in ['9x45', '8909', '8952', '9x07']:
+   MPM_COMMON_SOURCES =  [
+      '${BUILDPATH}/source/common/HALmpm.c',
+      '${BUILDPATH}/bsp/source/${HAL_PLATFORM}/BSPmpm.c',
+      '${BUILDPATH}/source/${MPM_HW_VERSION}/HALmpmPlatform.c',  
+      '${BUILDPATH}/source/${MPM_HW_VERSION}/HALmpmint.c',  
+      '${BUILDPATH}/source/${MSM_ID}/HALmpmintRegisters.c',
+      '${BUILDPATH}/source/common/HALmpmVDDCommands.c',
+      '${BUILDPATH}/source/${MSM_ID}/HALmpmintTable.c',
+   ]
+else:
+   MPM_COMMON_SOURCES =  [
+      '${BUILDPATH}/source/common/HALmpm.c',
+      '${BUILDPATH}/bsp/source/${HAL_PLATFORM}/BSPmpm.c',
+      '${BUILDPATH}/source/${MPM_HW_VERSION}/HALmpmPlatform.c',  
+      '${BUILDPATH}/source/${MPM_HW_VERSION}/HALmpmint.c',  
+      '${BUILDPATH}/source/${MSM_ID}/HALmpmintRegisters.c',
+      '${BUILDPATH}/source/${MSM_ID}/HALmpmVDDCommands.c',
+      '${BUILDPATH}/source/${MSM_ID}/HALmpmintTable.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/source/${MPM_HW_VERSION}', MPM_COMMON_SOURCES)
+

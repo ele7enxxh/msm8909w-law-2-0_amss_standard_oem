@@ -1,0 +1,108 @@
+#-------------------------------------------------------------------------------
+
+# HOTPLUG (core storage: PSX compatible version)
+
+#-------------------------------------------------------------------------------
+
+HOTPLUG_SOURCES=\
+
+        fs_blockdev.c \
+
+        fs_blockdev_devnull.c \
+
+        fs_blockdev_devnull_driver.c \
+
+        fs_blockdev_driver.c \
+
+        fs_blockdev_ftl.c \
+
+        fs_blockdev_ftl_driver.c \
+
+        fs_blockdev_sd.c \
+
+        fs_blockdev_sd_cprm.c \
+
+        fs_blockdev_sd_cprm_driver.c \
+
+        fs_blockdev_sd_driver.c \
+
+        fs_blockdev_usb.c \
+
+        fs_blockdev_usb_driver.c \
+
+        fs_hotplug.c \
+
+        fs_hotplug_api.c \
+
+        fs_hotplug_counters.c \
+
+        fs_hotplug_dev.c \
+
+        fs_hotplug_dev_state.c \
+
+        fs_hotplug_discover.c \
+
+        fs_hotplug_events.c \
+
+        fs_hotplug_idle.c \
+
+        fs_hotplug_iter.c \
+
+        fs_hotplug_legacy_hdev.c \
+
+        fs_hotplug_legacy_names.c \
+
+        fs_hotplug_mount.c \
+
+        fs_hotplug_parser.c \
+
+        fs_hotplug_partition.c \
+
+        fs_hotplug_poll.c \
+
+        fs_hotplug_stub.c \
+
+        fs_hotplug_task.c \
+
+        fs_hotplug_usbhost.c \
+
+        #end
+
+
+
+vpath %.h $(HOTPLUG)
+
+vpath %.c $(HOTPLUG)
+
+vpath %.s $(HOTPLUG)
+
+
+
+ifeq ($(BIG),yes)
+
+        HOTPLUG_OBJS := $(TARGETDIR)/hotplug.lib
+
+else
+
+        HOTPLUG_OBJS :=  $(addprefix $(TARGETDIR)/, $(HOTPLUG_SOURCES:%.c=%.o))
+
+endif
+
+
+
+$(TARGETDIR)/hotplug.lib : $(HOTPLUG_SOURCES)
+
+	$(group_c_compile)
+
+
+
+ifeq ($(DO_LINT),yes)
+
+    HOTPLUG_LINT_OBJS := $(addprefix lint/, $(HOTPLUG_SOURCES:%.c=%.lint))
+
+    $(HOTPLUG_LINT_OBJS) : LINT_FLAGS := $(LINT_FLAGS) hotplug.lnt
+
+    lint/hotplug_lint : $(HOTPLUG_LINT_OBJS)
+
+endif
+

@@ -1,0 +1,162 @@
+#===============================================================================
+#
+# Multimedia AU
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2015 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Qualcomm Technologies, Inc. Confidential and Proprietary.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/avs/build/avs.scons#1 $
+#  $DateTime: 2016/12/13 07:59:59 $
+#  $Author: mplcsds1 $
+#  $Change: 11985186 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/11/13   sre     Added support to make VOICECFG public API.
+#===============================================================================
+Import('env')
+
+# Copy the CFLAGS list to a new environment for us
+# (somehow the list is a reference when cloned, so use deepcopy)
+import copy
+orig_env = env
+env = env.Clone()
+env['CFLAGS'] = copy.deepcopy(orig_env['CFLAGS'])
+
+# Set -Werror compiler flag to treat warnings as errors
+if env['CFLAGS'].count('-Wno-low') > 0:
+  env['CFLAGS'].remove('-Wno-low')
+
+if env['CFLAGS'].count('-Wno-medium') > 0:
+  env['CFLAGS'].remove('-Wno-medium')
+
+if env['CFLAGS'].count('-Wno-high') > 0:
+  env['CFLAGS'].remove('-Wno-high')
+
+if env['CFLAGS'].count('-Wno-error') > 0:
+  env['CFLAGS'].remove('-Wno-error')
+
+# Enable below two lines once WCDMA header warning is fixed
+#env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror") 
+#env = env.Clone(HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")
+
+#-------------------------------------------------------------------------------
+# Include PATHs to cover up the core bsp non CMI compliancy issues.
+# TODO: Need to eliminate once CBSP fixes the issues.
+#-------------------------------------------------------------------------------
+
+if env.PathExists('${BUILD_ROOT}/avs'):
+   env.Replace(AVS_ROOT = '${INC_ROOT}/avs')
+else:    
+   env.Replace(AVS_ROOT = '${INC_ROOT}/multimedia/avs')
+
+
+
+env.RequirePublicApi([
+        'APR',
+        ],
+        area='APR')
+
+env.RequirePublicApi([
+        'KERNEL',
+        'MEMORY',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MVS',
+        'CVD',
+        'VS',
+        ],
+        area='AVS')
+
+env.RequirePublicApi([
+        'VOICECFG',
+        ],
+        area='AVS')
+
+env.RequirePublicApi([
+        'DAL',
+        'DEBUGTOOLS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MMUTILS',
+        ],
+        area='AVS')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'STORAGE',
+        'SERVICES',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='WCDMA')
+
+env.RequirePublicApi([
+        'SYSTEMDRIVERS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='TDSCDMA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='UIM')
+
+env.RequirePublicApi([
+        'AUDIOINIT',
+        ],
+        area='AVS')
+
+env.RequirePublicApi([
+        'CVAINIT',
+        ],
+        area='AVS')
+
+
+env.RequireRestrictedApi([
+   'VIOLATIONS',
+])
+
+
+env.PublishProtectedApi('AVS',[
+        '${AVS_ROOT}/vsd/common/mvs/inc',
+        '${AVS_ROOT}/vsd/common/vs/inc',
+        '${AVS_ROOT}/vsd/inc/private',
+        '${AVS_ROOT}/vsd/inc/protected',
+])
+
+
+env.RequireProtectedApi(['AVS'])
+
+
+env.LoadSoftwareUnits()

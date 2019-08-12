@@ -1,0 +1,385 @@
+#====include path optimized=====================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2013 - 2015 Qualcomm Technologies, Inc. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rflm/build/modem_rflm.scons#1 $
+# $DateTime: 2016/12/13 07:59:54 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/20/15   vr      Autopin check-in
+# 11/04/15   kma     Add AUTOPIN for 8909/9607/8937
+# 11/14/14    pv     Support for HORxD Feature for LTE
+# 10/26/14   chenh   Enabled compiler warings to errors
+# 09/22/14   dr      Exposing LM to RFLM
+# 09/11/14   ndb     Add 'USES_JOLOKIA_MODEM' for 'FEATURE_RF_HAS_QTUNER'
+# 07/16/14   kb      Added RFLM tech tdscdma  
+# 06/26/14   gh      Include RFMODEM
+# 06/23/14   aa      Added support for FBRX
+# 06/18/14   php     Add support for new LTE CCS API file 
+# 06/12/14   ra      Fix  Bolt Plus featurization
+# 06/11/14   ac      featurise until dimepm is tested for teh defensive check
+# 05/23/14   av      Not treat warnings as errors - temp hack for Thor
+# 04/23/14   ra      Add support for MSM8994
+# 03/18/14   bsh     Expose NLIC for DIME PM
+# 03/10/14   bsh     Exposing NLIC APIs
+# 03/03/14   kg      Treat warnings as errors 
+# 02/20/14   zhw     Fix OFT
+# 02/13/14   zhw     Added RFLM MSGR support
+# 01/06/14   adk     Added support for antenna tuners
+# 12/03/13   zhw     Added RFLM cmn
+# 12/03/13    pl     Added RFLM meas
+# 10/31/13   bn      Added USES_RFLM_TIME_PROFILE for FEATURE_RFLM_TIME_PROFILE
+# 10/14/13   hdz     Added FEATURE_RFLM_TIME_PROFILE for gtest
+# 10/13/13   jyu     Added path for FW files (for D3925)
+# 10/10/13   cd      added api path for wcdma
+# 10/08/13   cd      Added support for D3925 RF feature
+# 10/04/13   ac      include for ccs files
+# 10/03/13   dej     Enabled FEATURE_D3925_FED for Dime+WTR3925
+# 09/18/13   hdz     Changed to FEATURE_BOLT_DTR_BASED_TXAGC
+# 09/17/13   hdz     Added FEATURE_BOLT_PRE_SILICON
+# 09/11/13   ka      Added FBRx inc folder
+# 08/28/13   sc      Added GSM API folder
+# 08/28/13   hdz     Added RFMODEM_BOLT inc
+# 08/16/13    ka     Added fbrx api folder
+# 08/08/13   hdz     Disable rflm component in bolt for offtarget build
+# 07/29/13   gy      Commented out FW public API
+# 07/02/13   hdz     Created for new RFLM component
+#===============================================================================
+
+Import('env')
+
+if 'HEXAGON_TOOLS' in env:
+    env.MergeFlags('-Wshadow')
+        
+import os
+
+if 'USES_STANDALONE_FW' in env and 'USES_RF_TEST_APP' in env:
+        env.Append(CPPDEFINES = ['RFLM_FEATURE_BUILD_MODE=RFLM_FEATURE_BUILD_FW_LIB'])
+        env.Append(CPPDEFINES = ['RFLM_FEATURE_RF_TEST_APP'])
+
+if 'USES_STANDALONE_FW' in env:
+        env.Append(CPPDEFINES = ['RFLM_FEATURE_BUILD_MODE=RFLM_FEATURE_BUILD_FW_LIB'])
+        
+if env.get('CHIPSET') in ('msm8994'):
+    env.Append(CPPDEFINES = ['FEATURE_RF_CCS_BOLT_PLUS'])
+        
+if env.get('CHIPSET') in ('msm8994'):
+    env.Append(CPPDEFINES = ['FEATURE_RF_BOLT_WCDMA_CCS'])   
+    
+if env.get('CHIPSET') in ('msm8909'):
+    env.Append(CPPDEFINES = ['FEATURE_RF_AUTOPIN'])   
+  
+if env.get('CHIPSET') in ('mdm9607'):
+    env.Append(CPPDEFINES = ['FEATURE_RF_AUTOPIN'])  
+
+if env.get('CHIPSET') in ('msm8937'):
+    env.Append(CPPDEFINES = ['FEATURE_RF_AUTOPIN'])  
+	
+#usage:  ENV_UPDATE_RFA=CHIPSET,=mdm9x15,USES_NO_DEBUG,delete,USES_HI_SPEED,add
+if ARGUMENTS.get('ENV_UPDATE_RFA'):
+
+        env_update_string = ARGUMENTS.get('ENV_UPDATE_RFA')
+        
+        env_update_list = env_update_string.split(',')
+        
+        item_total = len(env_update_list)
+        
+        list_index = 0
+        
+        #note if list is not even number of items, last odd item is ignored
+        while list_index < item_total-1:
+                
+                item            = env_update_list[list_index]  
+                value           = env_update_list[list_index+1]
+                list_index      += 2
+                                
+                if(value == 'add'):
+                          env[str(item)] = 'yes'
+                          print "adding",item,"to env"                                          
+                          
+                elif(value == 'delete'):
+                          del env[str(item)]
+                          print "deleting",item,"from env"
+                
+                else:
+                        if(value[0] != '='):
+                                print "missing leading = in",value
+                                print "not updating ",item
+                                
+                        else:
+                                value2 = value[1:len(value)]
+                                env[str(item)] = value2
+                                print "now setting",item,value
+
+#end command line option processing
+                                
+
+
+#The order of APIs in the rfa_public_api_list determines the order the paths are listed on the build command line.
+#To optimize build times the API list is sorted in descending order of use.
+
+rfa_public_api_list = [
+#        ('CORE',                'SYSTEMDRIVERS'),
+        ('CORE',                'KERNEL'),
+        ('RFA',                 'COMMON'),
+        ('CORE',                'DAL'),
+        ('RFDEVICE_INTERFACE',  'RFDEVICE_INTERFACE'),
+        ('RFA',                 'CDMA'),
+#        ('MMCP',                'PUBLIC'),
+        ('MCS',                 'MCS'),
+        ('LTE',                 'LTE'),
+        ('MMCP',                'MMCP'),
+        ('FW',                  'RF'),
+        ('FW',                  'COMMON'),
+#        ('FW',                  'WCDMA'),
+#        ('FW',                  'C2K'),
+#        ('FW_CCS',              'FW_CCS'),
+#        ('FW_COMMON',           'FW_COMMON'),
+#        ('FW_WCDMA',            'FW_WCDMA'),
+#        ('FW_C2K',              'FW_C2K'),
+        ('RFA',                 'MEAS'),
+        ('CORE',                'DEBUGTOOLS'),
+        ('GERAN',               'GERAN'),
+#        ('GERAN_RFA',           'DEPRECATED'),
+        ('RFA',                 'GSM'),
+        ('RFA',                 'LM'),
+        ('RFA',                 'LTE'),
+#        ('FW',                  'TARGET'),
+#        ('FW',                  'GERAN'),
+#        ('FW_GERAN',            'FW_GERAN'),
+        ('CORE',                'MPROC'),
+        ('CORE',                'MEMORY'),
+        ('CORE',                'SERVICES'),
+        ('RFA',                 'WCDMA'),
+        ('CORE',                'POWER'),
+        ('ONEX',                'PUBLIC'),
+        ('RFNV',                'RFNV'),
+        ('RFDEVICE_WTR1605',    'RFDEVICE_WTR1605'),
+#        ('FW',                  'LTE'),
+#        ('FW_LTE',              'FW_LTE'),
+#        ('WCDMA',               'WCDMA'),
+        ('FW',                  'TDSCDMA'),
+        ('FW_TDSCDMA',          'FW_TDSCDMA'),
+        ('RFA',                 'GNSS'),
+        ('UTILS',               'OSYS'),
+        ('AVS',                 'MVS'),
+        ('HDR',                 'HDR'),
+        ('TDSCDMA',             'TDSCDMA'),
+        ('RFA',                 'TDSCDMA'),
+        ('ONEX',                'ONEX'),
+        ('CORE',                'BUSES'),
+        ('WCDMA',               'PUBLIC'),
+        ('UIM',                 'UIM'),
+        ('CORE',                'STORAGE'),
+        ('RFDEVICE_QFE1320',    'RFDEVICE_QFE1320'),
+        ('UTILS',               'A2'),
+        ('UIM',                 'PUBLIC'),
+        ('GPS',                 'GPS'),
+        ('RFDEVICE_WTR2605',    'RFDEVICE_WTR2605'),
+        ('MCS',                 'PUBLIC'),
+        ('HDR',                 'PUBLIC'),
+        ('MPOWER',              'MPOWER'),
+        ('TDSCDMA',             'PUBLIC'),
+        ('RFDEVICE_WFR2600',    'RFDEVICE_WFR2600'),
+        ('CORE',                'HWENGINES'),
+        ('RFA_RF',              'TUNER'),
+        ('QMIMSGS',             'RFRPE'),
+        ('UTILS',               'COMMON'),
+        ]
+
+for api_area,api_name in rfa_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+env.RequireRestrictedApi(['RFLM'])
+
+env.RequireProtectedApi (['RF_HAL_INC'])
+
+env.RequireRestrictedApi (['RFMODEM_DIMEPM_LM_INC'])
+
+env.RequirePublicApi([
+        'RFA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi(['RFMODEM_NLIC','RFMODEM_THOR'],area='RFMODEM_THOR')
+
+env.RequirePublicApi(['RFMODEM_NLIC'],area='RFMODEM_DIMEPM')
+                
+# if 'USES_STANDALONE_FW' in env:
+#    env.RequireRestrictedApi(['FW'])
+
+env.RequirePublicApi(['RFMODEM','HAL'], area=env.get('RF_GLOBALS')['RFMODEM_AREA'])
+
+env.RequirePublicApi(['RFMODEM','DM'], area=env.get('RF_GLOBALS')['RFMODEM_AREA'])
+
+env.RequirePublicApi(['RFMODEM','LTE'], area=env.get('RF_GLOBALS')['RFMODEM_AREA'])
+
+env.RequirePublicApi(['RFMODEM','FBRX'], area=env.get('RF_GLOBALS')['RFMODEM_AREA'])
+
+if 'USES_STANDALONE_FW' in env:
+        env.Append(CPPDEFINES = ['FEATURE_BOLT_DTR_BASED_TXAGC','FEATURE_RFLM_TIME_PROFILE'])
+
+if 'USES_FEATURE_QFE1320' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1320'])
+        
+if 'USES_FEATURE_QFE2320' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE2320'])     
+
+if 'USES_FEATURE_QFE1510_HDET' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1510_HDET'])
+
+if ('USES_FEATURE_QTUNER' in env):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+
+if 'USES_FEATURE_DPD' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_DPD'])
+
+if 'USES_FEATURE_XPT' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_XPT_SUPPORT'])
+   
+if 'USES_FEATURE_XPT_CDMA_TEMP' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_XPT_CDMA_TEMP'])
+
+if 'USES_1X_EPT_CAL' in env:
+        env.Append(CPPDEFINES = ['RF_1X_EPT_CAL_TEMP'])
+   
+if 'USES_1X_DIME_SAMPLE_CAPTURE' in env:
+        env.Append(CPPDEFINES = ['RF_1X_DIME_SAMPLE_CAPTURE'])
+   
+if 'USES_COMMON_DIME_SAMPLE_CAPTURE' in env:
+        env.Append(CPPDEFINES = ['RF_COMMON_DIME_SAMPLE_CAPTURE'])
+           
+if 'USES_FEATURE_RFA_TP_CARDS' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_TP_CARDS'])
+                
+if 'USES_FTM_HWTC_DEBUG_ONLY_SECURITY_HOLE' in env:
+                print "Add USES_FTM_HWTC"
+                env.Replace(USES_FTM_HWTC = 'yes')
+                print "Enable FEATURE_FTM_HWTC"
+                env.Append(CPPDEFINES = ['FEATURE_FTM_HWTC'])
+
+if 'USES_FEATURE_TX_INT_CAL' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_SUPPORTS_TX_INT_CAL'])
+
+if ( 'USES_DIME_1_0' in env ) or ( 'USES_BOLT_1_0' in env ) or ( 'USES_JOLOKIA_MODEM' in env ):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+
+if (('USES_DIME_1_0' in env or 'USES_DIME_1_1' in env or 'USES_DUAL_ACTIVE' in env or 'USES_DIME_2_0' in env or 'USES_JOLOKIA_MODEM' in env ) and ('USES_TRITON_1_0' not in env)):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_XPT_SUPPORT','FEATURE_RF_XPT_CDMA_TEMP'])
+
+if 'USES_RFA_DIME_FED' in env:
+        env.Append(CPPDEFINES = ['FEATURE_D3925_FED'])
+        
+if 'USES_RFLM_TIME_PROFILE' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RFLM_TIME_PROFILE'])
+
+if ('USES_FEATURE_LTE_HORXD' in env ):
+        env.Append(CPPDEFINES = ['FEATURE_LTE_HORXD'])
+        
+# D3925 sepcific and needs to be cleaned up
+if 'USES_RFA_D3925' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RFA_D3925'])
+        env.RequirePublicApi(['FW_CCS',],area='FW_CCS')
+
+#-------------------------------------------------------------------------------
+# Enable warnings -> errors
+if env.get('CHIPSET') == 'mdm9x35':
+  if 'USES_STANDALONE_FW' not in env and 'USES_RF_TEST_APP' not in env and 'USES_INTERNAL_BUILD' in env:
+     env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror", 
+                     HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")   
+ 
+
+#----------------------------------------------------------------------------#
+# Export Protected API to RFA folder. This will be visible only within
+# RFA folder
+#----------------------------------------------------------------------------#
+
+env.PublishProtectedApi( 'RFLM_INC', [
+        '${RFLM_ROOT}/api',
+        '${RFLM_ROOT}/api/dm',
+        '${RFLM_ROOT}/api/fw',
+        '${RFLM_ROOT}/api/txagc',
+        '${RFLM_ROOT}/api/cmn',
+        '${RFLM_ROOT}/api/dtr',
+        '${RFLM_ROOT}/api/ccs',
+        '${RFLM_ROOT}/api/rxagc',
+        '${RFLM_ROOT}/api/gsm',
+        '${RFLM_ROOT}/api/lte',
+        '${RFLM_ROOT}/api/wcdma',
+        '${RFLM_ROOT}/api/tdscdma',
+        '${RFLM_ROOT}/api/fbrx',
+        '${RFLM_ROOT}/api/meas',
+        '${RFLM_ROOT}/api/autopin',
+	'${RFLM_ROOT}/api/c2k',
+        '${RFLM_ROOT}/dtr/inc', 
+        '${RFLM_ROOT}/rftech/c2k/inc',
+        '${RFLM_ROOT}/rftech/gsm/inc',
+        '${RFLM_ROOT}/rftech/tdscdma/inc',
+        '${RFLM_ROOT}/rftech/wcdma/inc',
+        '${RFLM_ROOT}/rftech/common/inc',
+        '${RFLM_ROOT}/txagc/inc',
+        '${RFLM_ROOT}/ccs/inc',
+        '${RFLM_ROOT}/rxagc/inc',
+        '${RFLM_ROOT}/fbrx/inc',
+        '${RFLM_ROOT}/autopin/inc',
+        '${RFLM_ROOT}/services/diag/inc',
+        '${RFLM_ROOT}/services/diag/src',
+        '${RFLM_ROOT}/services/time/inc',
+        '${RFLM_ROOT}/services/warning/inc',    
+        '${RFLM_ROOT}/services/dm/inc', 
+        '${RFLM_ROOT}/services/includes/inc',
+        '${RFLM_ROOT}/services/math/inc',
+        ])
+
+if 'USES_RFA_DIME_FED' in env:
+        env.PublishProtectedApi( 'RFLM_INC', [
+        '${RFLM_ROOT}/dime_ccs/inc',
+        ])      
+        
+#env.PublishProtectedApi( 'RFTECH_CDMA_TEST_INC', [
+#    '${RFTECH_CDMA_ROOT}/common/rf/test',
+#    ])
+
+env.RequireProtectedApi(['RFLM_INC'])
+
+env.RequireRestrictedApi([
+    'RFMODEM_LM_INC',
+    ])  
+        
+env.RequireRestrictedApi(['RFLM_VIOLATIONS'])
+
+#env.RequireProtectedApi(['RFTECH_CDMA_TEST_INC'])
+
+# if 'RFA_MSDEV' == env['IMAGE_NAME']:
+   # Disable RFLM for offset build for now
+#   Return( )
+
+env.LoadSoftwareUnits( ) 
+
+if 'USES_MSGR' in env:
+    env.AddUMID('${BUILDPATH}/modem_rflm.umid', '${RFLM_ROOT}/api/cmn/rflm_cmn_msg.h')

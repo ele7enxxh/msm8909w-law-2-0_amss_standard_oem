@@ -1,0 +1,50 @@
+#===============================================================================
+#
+# Buses Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2013 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/buses/build/SConscript#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/16/13   VK      Support for LLVM
+# 03/06/12   PS      Added change for converting all warnings to error
+# 01/12/12   PS      Initial release
+#
+#===============================================================================
+Import('env')
+
+if 'ARMTOOLS' in env:
+   #-------------------------------------------------------------------------------
+   # Convert warnings to errors in all Buses components
+   #-------------------------------------------------------------------------------
+   env.Append(CFLAGS = "--diag_error=warning ")
+
+if 'HEXAGON_TOOLS' in env:
+   #-------------------------------------------------------------------------------
+   # Convert warnings to errors in all buses components
+   #-------------------------------------------------------------------------------
+   # Set -Werror compiler flag to treat warnings as errors
+   
+   # Enable warnings -> errors for all, except LLVM toolchain (6.x.x) during migration
+   import os
+   hextool_ver = str(os.environ.get('HEXAGON_RTOS_RELEASE', '0'))[0]
+   if int(hextool_ver)<6:
+      env.Append(CFLAGS = "-Werror ")
+
+env.LoadSoftwareUnits()

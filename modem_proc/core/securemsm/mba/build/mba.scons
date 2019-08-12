@@ -1,0 +1,149 @@
+#===============================================================================
+#
+# MBA CORE Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/15/11   mm      Updated scons to generate mba hwio file
+# 12/15/11   mm      Hexagon.py expects OBJS to be non-empty
+# 11/23/11   mm      First cut of MBA Scons
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/inc/chipset/${MSM_ID}")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/inc")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secpil/inc")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secpil/oem")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/src}")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secdbgplcy/inc/")
+
+if env['MSM_ID'] in ['8937']:
+  INC_PATH = [
+      "${COREBSP_ROOT}/securemsm/secpil/chipset/${CHIPSET}/oem",
+      "${COREBSP_ROOT}/securemsm/uie/inc",
+  ]
+  env.Append(CPPPATH = INC_PATH)
+
+#env.Append(CCFLAGS = " --restrict ")
+
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+MBA_SRC = "${COREBSP_ROOT}/securemsm/mba/src"
+
+env.VariantDir('${BUILDPATH}', MBA_SRC, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',
+   'HWENGINES',
+   'KERNEL',
+   'STORAGE'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['SECUREMSM'])
+
+#-------------------------------------------------------------------------------
+# Generates mba_hwio.h
+#-------------------------------------------------------------------------------
+if env.has_key('HWIO_IMAGE'):
+
+  env.AddHWIOFile('HWIO', [
+    {
+      'filename': '${COREBSP_ROOT}/securemsm/mba/inc/chipset/${MSM_ID}/mba_hwio.h',
+      'modules': ['BIMC_S_DDR0_SCMO', 'DEHR_BIMC','DEHR_VMIDMT', 'DEHR_XPU','MPSS_RMB', 'MPSS_PERPH',
+                  'SECURITY_CONTROL_CORE', 'TLMM_CSR', 'BLSP_BAM_VMIDMT', 'MPM2_SLP_CNTR',
+                  'IPA_IPA_VMIDMT', 'TCSR.*' ],
+    }
+  ]
+)
+
+if env.has_key('HWIO_IMAGE'):
+
+  env.AddHWIOFile('HWIO', [
+    {
+      'filename': '${COREBSP_ROOT}/securemsm/mba/inc/mba_timer.h',
+	  'modules': ['QDSP6SS_QTMR_F0_0', 'QDSP6SS_QTMR_F1_1', 'QDSP6SS_QTMR_AC'],
+    }
+  ]
+)
+
+if env['CHIPSET'] == "msm8937":
+    env.Append(CPPDEFINES = ['FEATURE_DEBUG_POLICY'])
+    env.Append(CPPDEFINES = ['FEATURE_UIE'])
+    env.Append(CPPDEFINES = ['TZ_MPSS_SEC_CHANNEL_ENABLED'])
+    env.Append(CPPDEFINES = ['TZ_MPSS_SEC_CHANNEL_BASE_8937=0x866FD000'])
+	
+if env['MSM_ID'] == "8937":	
+	env.Append(CPPDEFINES = ['TZ_MPSS_SEC_CHANNEL_BASE_8917=0x866FD000'])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+MBA_SOURCES = [ '${BUILDPATH}/mba_main.c',
+                '${BUILDPATH}/mba_rmb.c',
+                '${BUILDPATH}/mba_error_handler.c',
+                '${BUILDPATH}/mba_secctrl.c',
+                '${BUILDPATH}/mba_dehr.c',
+                '${BUILDPATH}/mba_utils.c',
+                '${BUILDPATH}/mba_logger.c',
+                '${BUILDPATH}/mba_modem_timer.c',
+                '${BUILDPATH}/mba_init.c',
+                '${BUILDPATH}/mba_xpu.c',]
+
+if env['MSM_ID'] in ['8937']:
+  MBA_SOURCES += [ '${BUILDPATH}/mba_tz.c',
+]
+
+CLEAN_PACK_SOURCES = [
+		'${BUILDPATH}/mba_tz.c',
+]
+
+PACK_SOURCE_FILES = list(set(CLEAN_PACK_SOURCES))
+			
+#if env.has_key('USES_QPIC_NAND'):
+#  MBA_SOURCES += [ '${BUILDPATH}/mba_nand.c', ]			
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryObject(['MBA_CORE_SW'], MBA_SOURCES)
+env.CleanPack(['MBA_CORE_SW'], PACK_SOURCE_FILES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

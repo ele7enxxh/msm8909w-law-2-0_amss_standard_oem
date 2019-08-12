@@ -1,0 +1,107 @@
+#===============================================================================
+#
+# secure pil Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/16/11   vg      Added AUTH_BOOT_DRIVER to link to boot loaders for future 
+#                    targets
+# 05/04/11   vg      Removed RSA file from compilation as RSA will be built as
+#                    seperate library.
+# 10/10/10   sm      Remove feature for crypto HW hash as it should be used by
+#                    default
+# 10/10/10   sm      Some cleanup
+# 07/07/10   sm      Code is now coming from shared directory
+# 07/07/10   sm      Cleanup unecessary depends and env settings
+#                    Link to the bootloaders and TZ images for 8660
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/mba/inc/chipset/${MSM_ID}")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secpil/inc")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/uie/inc/")
+env.Append(CCFLAGS = "-Wall -Werror")
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${COREBSP_ROOT}/securemsm/secpil"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'DAL',
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequireProtectedApi(['SECUREMSM'])
+
+INC_PATH = [
+      "${COREBSP_ROOT}/securemsm/secpil/oem",
+	  "${COREBSP_ROOT}/securemsm/uie/inc/",
+	  "${COREBSP_ROOT}/securemsm/secdbgplcy/inc",
+      "${COREBSP_ROOT}/securemsm/secboot/hw/secctrl/src",
+      "${COREBSP_ROOT}/securemsm/secboot/src",
+]
+env.Append(CPPPATH = INC_PATH)
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SECPIL_LIB_SOURCES = [
+        '${BUILDPATH}/src/sec_pil.c',
+        '${BUILDPATH}/src/sec_pil_auth.c',
+        '${BUILDPATH}/src/mba/sec_pil_env.c',
+        '${BUILDPATH}/src/sec_pil_priv.c',
+]
+
+SECPIL_SRC_SHIPPED = [
+  '${BUILDPATH}/oem/sec_pil_util.c',
+  '${BUILDPATH}/oem/sec_pil_oem.c',
+]
+
+#env.Append(CPPDEFINES = ['FEATURE_SEC_SW_CRYPTO'])
+if 'USES_ENG_CERT_SECBOOT' in env:
+  env.Append(CCFLAGS = " -DENG_CERT_SECBOOT_BUILD ")
+  SECPIL_LIB_SOURCES += ['${BUILDPATH}/src/sec_pil_oem_auth.c',]
+
+if env['CHIPSET'] in ['msm8936','msm8916','msm8909', 'mdm9607', 'msm8937']:
+	env.Append(CPPDEFINES = ['FEATURE_NON_SECURE_IMAGE_AUTH'])
+
+#-------------------------------------------------------------------------------
+# Add Libraries to images in the secboot3 boot architecture. Note we don't
+# add the library into SBL1 image as SBL1 uses PBL secboot library instead
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary(['MBA_CORE_SW'],'${BUILDPATH}/secpil',SECPIL_LIB_SOURCES)
+env.AddObject(['MBA_CORE_SW'], SECPIL_SRC_SHIPPED)

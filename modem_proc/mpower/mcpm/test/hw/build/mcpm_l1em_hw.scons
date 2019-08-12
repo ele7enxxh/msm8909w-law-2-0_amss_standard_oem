@@ -1,0 +1,103 @@
+#===============================================================================
+#
+# MCPM HW 
+#
+# GENERAL DESCRIPTION
+#    Build scirpt to generate MCPM hw library.
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mpower/mcpm/test/hw/build/mcpm_l1em_hw.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+L1EM_BUILD_ROOT = os.getcwd()
+
+SRCPATH = ".."
+SRCPATH_GEN = "../generic/src"
+SRCPATH_HW  = "../${CHIPSET}/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Necessary Public and Restricted API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+    'HWENGINES',
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'DAL',
+    'POWER',
+    'BUSES',
+    'MPROC',
+    'KERNEL',                             # needs to be last 
+    ], area='core')
+
+# Need to get access to Modem Public headers
+env.RequirePublicApi([
+    'ONEX',
+    'GPS',      
+    'HDR',      
+    'MCS',
+    'MMODE',    
+    'UTILS',
+    'RFA',      
+    'UIM',      
+    'GERAN',
+    'FW',
+    ])
+
+# Need get access to Modem Restricted headers
+env.RequireRestrictedApi([
+    'MMODE',    
+    'NAS',      
+    'RFA',      
+    'MDSP',     
+    'MDSPSVC',  
+    'GERAN',    
+    'GPS',      
+    'ONEX',     
+    'HDR',      
+    'UTILS',
+    'MCS',
+    'FW',
+    ])
+
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+L1EM_HW_SOURCES_RAW = env.GlobFiles(SRCPATH + '/generic/src/*.c', posix=True)
+L1EM_HW_SOURCES_RAW += env.GlobFiles(SRCPATH + '/${CHIPSET}/src/*.c', posix=True)
+
+MCPM_L1EM_HW_SOURCES = [path.replace(SRCPATH, '${BUILDPATH}') for path in L1EM_HW_SOURCES_RAW]
+
+# Compile sources and convert to a binary library only for internal build
+if 'USES_INTERNAL_BUILD' in env:
+  env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/mcpm_l1em_hw', MCPM_L1EM_HW_SOURCES)
+
+

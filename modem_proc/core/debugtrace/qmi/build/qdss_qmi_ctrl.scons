@@ -1,0 +1,211 @@
+#==============================================================================
+# QDSS Control Qualcomm Messaging Interface (QMI)
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+#==============================================================================
+#  Copyright (c) 2013 Qualcomm Technologies, Inc.
+#  All rights reserved.
+#  Confidential and Proprietary - Qualcomm Technologies, Inc.
+#==============================================================================
+#
+#$Header: //components/rel/core.mpss/3.5.c12.3/debugtrace/qmi/build/qdss_qmi_ctrl.scons#1 $
+#
+#==============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Identity subsystem of this build image
+#   Any modifications here should also propagate to those files where used.
+#
+if env.IsTargetEnable(['CORE_MODEM','MODEM_IMAGE','CBSP_MODEM_IMAGE','MCFG_SW']):
+   ssimage = 'MODEM'
+elif env.IsTargetEnable(['CORE_ADSP']):
+   ssimage = 'ADSP'
+elif env.IsTargetEnable(['WCN_IMAGE','CBSP_WCN_IMAGE']):
+   ssimage = 'WCN'
+elif env.IsTargetEnable(['CORE_QDSP6_AUDIO_SW']):
+   ssimage = 'AUDIO'
+elif env.IsTargetEnable(['CORE_QDSP6_SENSOR_SW']):
+   ssimage = 'SENSOR'
+else:
+   ssimage = 'NONE'
+
+# Used for QMI QDSSC service instance, see qdss_qmi_ctrl_svc.c
+env.Append(CCFLAGS = " -DQDSS_QMI_CTRL_SS_ME=QDSS_QMI_CTRL_SVC_" + ssimage)
+
+#-------------------------------------------------------------------------------
+# OS specific
+#-------------------------------------------------------------------------------
+# Use REX by default unless otherwise specified
+if env.IsTargetEnable(['CORE_ADSP','CORE_QDSP6_AUDIO_SW','CORE_QDSP6_SENSOR_SW']):
+   env.Append(CCFLAGS = " -DQDSS_QMI_CTRL_SVC_USING_QURT")
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+   'DEBUGTRACE',
+   'DAL',            #timetick
+   'DEBUGTOOLS',     #rcinit
+   'MPROC',          #qmi
+   'SERVICES',       #comdef
+   'SYSTEMDRIVERS',  #timetick
+   'KERNEL',         #qurt
+])
+
+qmimsgs_area = ''
+if env.PathExists(env.RealPath('${BUILD_ROOT}/api')):
+   qmimsgs_area = 'API'
+if env.PathExists(env.RealPath('${BUILD_ROOT}/qmimsgs')):
+   qmimsgs_area = 'QMIMSGS'
+if qmimsgs_area != '':
+   env.RequirePublicApi([
+      'COMMON',
+      'QDSSC'
+      ], area=qmimsgs_area)
+
+env.RequireRestrictedApi([
+   'DEBUGTRACE',
+   'DAL',
+   'KERNEL'
+])
+env.RequireProtectedApi([
+   'DEBUGTRACE'
+])
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+if env.IsTargetEnable(['CORE_MODEM','MODEM_IMAGE','CBSP_MODEM_IMAGE',
+   'MCFG_SW','CORE_ADSP','CORE_QDSP6_AUDIO_SW','CORE_QDSP6_SENSOR_SW',
+   'WCN_IMAGE','CBSP_WCN_IMAGE']):
+   env.PublishPrivateApi('QDSS_QMI_CTRL_SERVICE', [
+      "../ctrl_service/src",
+      "../common"
+   ])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+QDSS_QMI_CTRL_SERVICE_SRC = [
+   '${BUILDPATH}/ctrl_service/src/qdss_qmi_ctrl_etm.c',
+   '${BUILDPATH}/ctrl_service/src/qdss_qmi_ctrl_hwe.c',
+   '${BUILDPATH}/ctrl_service/src/qdss_qmi_ctrl_svc_thread.c',
+   '${BUILDPATH}/ctrl_service/src/qdss_qmi_ctrl_svc.c',
+   '${BUILDPATH}/ctrl_service/src/qdss_qmi_ctrl_tracer.c',
+   ]
+
+QDSS_QMI_CTRL_CLIENT_SRC = [
+   '${BUILDPATH}/ctrl_client/src/qdss_qmi_ctrl_client.c',
+   ]
+
+# Local copy of SW Event IDs header
+if 'USES_QDSS_SWE' in env:
+   env.SWEBuilder(['${BUILDPATH}/debugtrace_qmi_event_ids.h'],None)
+   env.Append(CPPPATH = ['${BUILD_ROOT}/core/debugtrace/qmi/build/$BUILDPATH'])
+
+# QDSSC Service
+env.AddBinaryLibrary(['MODEM_IMAGE','CORE_QDSP6_SW','WCN_IMAGE','CBSP_WCN_IMAGE',
+   'CORE_ADSP','CORE_QDSP6_SENSOR_SW','CORE_QDSP6_AUDIO_SW'],
+   '${BUILDPATH}/qdss_qmi_ctrl_service', QDSS_QMI_CTRL_SERVICE_SRC)
+
+# QDSSC Client
+env.AddLibrary(['APPS_PROC','APPS_IMAGE','CBSP_APPS_IMAGE'],
+   '${BUILDPATH}/qdss_qmi_ctrl_client', QDSS_QMI_CTRL_CLIENT_SRC)
+
+#-------------------------------------------------------------------------------
+# Determine whether QDSS Control Service is include in build.
+#-------------------------------------------------------------------------------
+
+# Image types
+ADSP_IMG = ['CORE_ADSP','CORE_QDSP6_SENSOR_SW','CORE_QDSP6_AUDIO_SW']
+           #'ADSP_PROC'
+MODEM_IMG = ['CORE_MODEM','MODEM_PROC']
+            #'MODEM_IMAGE'
+APPS_IMG = ['CORE_APPS','APPS_PROC','APPS_IMAGE','CBSP_APPS_IMAGE']
+           #'APPS_IMAGE'
+WCNSS_IMG = ['CORE_WCN','WCN_IMAGE','CBSP_WCN_IMAGE']
+#CORE_IMG = []
+            #'CORE_QDSP6_SW'
+
+# Internal build
+cleanpack = env.GetOption('cleanpack')
+if (('USES_NO_STRIP_NO_ODM' in env) and ('USES_CLEAN_PACK' not in env) and
+   not cleanpack):
+   is_internal_build = 'yes'
+else:
+   is_internal_build = 'no'
+
+# Disabled for ADSP to meet bitmatch requirement between internal &
+# external builds.
+if env.IsTargetEnable(ADSP_IMG):
+   is_override_internal = 'yes'
+else:
+   is_override_internal = 'no'
+
+#-------------------------------------------------------------------------------
+# Enable QDSSC when build flag (USES_QDSSC_QMI_DEBUG_ONLY_SECURITY_HOLE)
+#  is used or for non-ADSP internal builds.
+if (('USES_QDSSC_QMI_DEBUG_ONLY_SECURITY_HOLE' in env) or
+    ((is_internal_build == 'yes') and (is_override_internal == 'no'))):
+   use_qdssc_svc = 'yes'
+else:
+   use_qdssc_svc = 'no'
+
+#-------------------------------------------------------------------------------
+# Build for RCINIT
+#-------------------------------------------------------------------------------
+
+if ('USES_RCINIT' in env) and (use_qdssc_svc == 'yes'):
+   RCINIT_QURT = ADSP_IMG
+   env.AddRCInitFunc(
+      RCINIT_QURT,
+      {
+         'sequence_group'             : 'RCINIT_GROUP_1',              # required
+         'init_name'                  : 'qdssc_svc_init',              # required
+         'init_function'              : 'qdss_qmi_ctrl_svc_task_init', # required
+         'dependencies'               : ['qdss','qmi_fw','qdss_ctrl']
+      }
+   )
+
+   RCINIT_REX = MODEM_IMG + WCNSS_IMG
+   env.AddRCInitTask(
+      RCINIT_REX,
+      {
+         'sequence_group'             : 'RCINIT_GROUP_1',              # required
+         'thread_name'                : 'qdssc_svc_task',              # required
+         'thread_type'                : 'RCINIT_TASK_REXTASK',
+         'thread_entry'               : 'qdss_qmi_ctrl_svc_task',
+         'priority_amss_order'        : 'SHARED_DRIVER_SERVICE_PRI_ORDER',
+         'stack_size_bytes'           : '4096',
+      }
+   )
+if (('USES_RCINIT' in env) and (use_qdssc_svc == 'yes') and
+   env.IsTargetEnable(RCINIT_QURT + RCINIT_REX)):
+   env.PrintInfo('QDSSC service is available')
+else:
+   env.PrintInfo('QDSSC service is not available; intnl=' + is_internal_build +
+                 '; override=' + is_override_internal +
+                 '; use=' + use_qdssc_svc)
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(
+      APPS_IMG,
+      {
+         'sequence_group'          : 'RCINIT_GROUP_1',
+         'init_name'               : 'qdssc_clnt_init',
+         'init_function'           : 'qdss_qmi_ctrl_client_init',
+         'dependencies'            : ['qdss','qmi_fw','qdss_control']
+      })
+

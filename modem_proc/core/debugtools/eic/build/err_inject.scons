@@ -1,0 +1,136 @@
+#===============================================================================
+#
+# ERR INJECT Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/debugtools/eic/build/err_inject.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/01/14   dav     Created separate folder for ERR Inject.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# SUPPORTED IMAGES
+#-------------------------------------------------------------------------------
+
+CRASH_INJECT_IMGS = [
+    'MODEM_IMAGE',
+    'CBSP_MODEM_IMAGE',
+    'SINGLE_IMAGE',
+    'CBSP_SINGLE_IMAGE',
+    'APPS_IMAGE',
+    'CBSP_APPS_IMAGE',
+    'QDSP6_SW_IMAGE',
+    'CBSP_QDSP6_SW_IMAGE',
+	'CORE_GSS', 'WCN_IMAGE'
+]
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/debugtools/eic/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Features and Definitions
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES=['ERR_OS_QURT'])
+env.Append(CPPDEFINES=['ERR_HW_QDSP6'])
+env.Append(CPPDEFINES=['ERR_IMG_MPSS'])
+
+#check for missing dependencies
+if 'USES_ERR_INJECT_CRASH' in env:
+    env.Append(CPPDEFINES=['ERR_INJECT_CRASH'])
+
+if 'USES_DEVCFG' in env:
+    env.Append(CPPDEFINES=['ERR_USES_DEVCFG'])
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+
+env.RequireExternalApi([
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+ERR_INJECT_CRASH_SOURCES = [
+   '${BUILDPATH}/err_inject_crash.c',
+]
+
+
+#-------------------------------------------------------------------------------
+# Libraries
+#-------------------------------------------------------------------------------
+
+if 'USES_ERR_INJECT_CRASH' in env:
+    env.AddLibrary(
+        CRASH_INJECT_IMGS,
+        '${BUILDPATH}/err_inject_crash', ERR_INJECT_CRASH_SOURCES )
+
+# Devcfg Registrations
+if 'USES_ERR_INJECT_CRASH' in env:
+    if 'USES_DEVCFG' in env:
+        DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+        env.AddDevCfgInfo(DEVCFG_IMG,
+        {
+         'soc_xml' : ['${BUILD_ROOT}/core/debugtools/eic/src/err_inject_crash.xml']
+        })
+
+if 'USES_DEVCFG' in env: 
+  if 'USES_ERR_INJECT_CRASH' in env:
+    if 'USES_AUDIO_PD' in env:
+      DEVCFG_IMG_AUDIO = ['DAL_DEVCFG_AUDIO_PD_IMG']
+      env.AddDevCfgInfo(DEVCFG_IMG_AUDIO,
+      {
+         'soc_xml' : ['${BUILD_ROOT}/core/debugtools/eic/src/err_inject_crash.xml']
+      })      
+      
+if 'USES_ERR_INJECT_CRASH' in env:
+  if 'USES_RCINIT' in env:
+     env.AddRCInitFunc( 
+      CRASH_INJECT_IMGS, 
+      {
+       'sequence_group'             : 'RCINIT_GROUP_2',                   # required
+       'init_name'                  : 'err_inject_crash_init',            # required
+       'init_function'              : 'err_inject_crash_init',            # required
+      # 'dependencies'               : ['',]
+      })
+

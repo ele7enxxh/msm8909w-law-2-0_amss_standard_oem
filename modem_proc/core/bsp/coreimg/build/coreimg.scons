@@ -1,0 +1,288 @@
+#===============================================================================
+#
+# Target-Level Build Script for Modem Processor
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/mpss/integration/Dime/common/main/latest/modem_proc/build/bsp/modem_proc_img/build/modem_proc.scons#3 $
+#  $DateTime: 2012/04/18 20:19:28 $
+#  $Change: 2356951 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/20/12   adit     Updated RequirePublicApi for QMIMSGS  3698-6829
+#===============================================================================
+import sys
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = ['core','modem_proc', 'core_devcfg']
+
+build_tags = ['CORE_QDSP6_SW', 'MODEM_MODEM','CORE_MODEM', 'MULTIMEDIA_QDSP6_SW','QDSS_EN_IMG']
+if 'MSM_ID' in env and env['MSM_ID'] == '9x15':
+   build_tags.append('CTA_APPS')
+
+# init environment variables
+env.Replace(QURT_BUILD_CONFIG="modemv56")
+
+env.InitImageVars(
+   alias_list=aliases,           # aliases
+   proc='qdsp6',              # proc
+   config='qdsp6_sw',                # config type, proc_name
+   plat='qurt',
+   target='MODEM_PROC_IMG_${BUILD_ID}',# target (elf, image file name)
+   build_tags = build_tags,
+   deprecated_build_tags = ['CBSP_QDSP6_SW_IMAGE'],
+   tools = ['buildspec_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py',
+            '${BUILD_ROOT}/core/bsp/build/scripts/sleep_lpr_builder.py']
+   )
+
+if not env.CheckAlias():
+   Return()
+
+#------------------------------------------------------------------------------
+# Init include files and CUST_H overide
+#------------------------------------------------------------------------------
+   
+# replace AMSS CUST file, add ours to #undef unwanted features
+env.Replace(AMSS_CUST_H = env.subst('CUST${BUILD_ID}.H').lower())
+env.Replace(CUST_H = 'custcoreimg_q.h')
+   
+# add define for original AMSS custfile
+env.Append(CPPDEFINES = [
+   "AMSS_CUST_H=\\\"${AMSS_CUST_H}\\\"",
+   "FEATURE_COREIMG",
+])
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+env.Replace(MBN_FILE="${BUILD_MS_ROOT}/bin/${SHORT_BUILDPATH}/dsp2")
+env.Replace(USES_DEVCFG = 'yes')
+env.Replace(USES_MULTI_DEVCFG = 'yes')
+env.Replace(DEVCONFIG_ASSOC_FLAG = 'DAL_DEVCFG_IMG')
+env.AddUsesFlags('USES_LCS_FILE', add=False) 
+
+# add QCOREIMG include path
+env.PublishPrivateApi('COREIMG', ["${COREBSP_ROOT}/bsp/coreimg/inc"])
+
+#---------------------------------------------------------------------------
+# Now that we know we need to build something, the first thing we need
+# to do is add our image to BuildProducts.txt, so that tools can verify
+# when our build is successful.  Make sure we append, so that we don't
+# overwrite other images that have written to this file.
+#---------------------------------------------------------------------------
+#build_products_fn = env['TARGET_ROOT'] + "/BuildProducts.txt"
+#if not env.GetOption('clean'):
+#   fh = open(build_products_fn, "a")
+#   fh.write (env.subst("./modem_proc/build/ms/bin/${SHORT_BUILDPATH}/dsp2.mbn")+"\n")
+#   if 'USES_PIL' in env:
+#      fh.write (env.subst("./modem_proc/build/ms/bin/${PIL_BUILDPATH}/modem.mdt")+"\n")
+#      fh.write (env.subst("./modem_proc/build/ms/bin/${PIL_BUILDPATH}/modem.flist")+"\n")
+#   fh.close()
+#else:
+#   if os.path.exists(build_products_fn):
+#      os.remove(build_products_fn)
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.Replace(CONFIG_XML = env.FindConfigFiles('cust_config.xml')[0])
+if env['MSM_ID'] in ['8926','8916','8909']:
+    env.Replace(HEXAGON_IMAGE_ENTRY = '0xC0000000')
+    
+env.LoadToolScript('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+env.LoadToolScript('qdsp6_defs', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+if 'T_CFLAGS' in os.environ:
+   # Surround with spaces to protect against other flags added elsewhere
+   env.Append(CFLAGS = os.environ['T_CFLAGS'])
+if 'T_LFLAGS' in os.environ:
+   # Surround with spaces to protect against other flags added elsewhere
+   env.Append(LFLAGS = os.environ['T_LFLAGS'])
+
+#---------------------------------------------------------------------------
+# Proof of concept, need to find a correct location
+#---------------------------------------------------------------------------
+
+env.Append(CPPDEFINES=['MODEM_FW_NUM_PRIO=64'])
+
+#---------------------------------------------------------------------------
+# Enable Modem AU Attributes Parsing
+#---------------------------------------------------------------------------
+#env.Replace( MODEM_AU_ATTRIB_FILE = '${BUILD_ROOT}/build/bsp/modem_proc_img/build/modem_task_stksz.csv' )
+
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+modem_proc_img_libs = []
+modem_proc_img_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load au_name libs/objs build rules.
+#au_name_items = env.LoadAreaSoftwareUnits('au_name')
+#ourimg_libs.extend(au_name_items['LIBS'])
+#ourimg_objs.extend(au_name_items['OBJS'])
+
+#changing api to qmismsgs
+if env.PathExists('${INC_ROOT}/api'):
+	au_items = env.LoadAreaSoftwareUnits('api')
+else:
+    au_items = env.LoadAreaSoftwareUnits('qmimsgs')
+	
+modem_proc_img_libs.extend(au_items['LIBS'])
+modem_proc_img_objs.extend(au_items['OBJS'])
+
+# load Core BSP libs/objs build rules.
+au_items = env.LoadAreaSoftwareUnits('core')
+modem_proc_img_libs.extend(au_items['LIBS'])
+modem_proc_img_objs.extend(au_items['OBJS'])
+
+# load MODEM libs/objs build rules.
+#au_items = env.LoadAreaSoftwareUnits('modem')
+#modem_proc_img_libs.extend(au_items['LIBS'])
+#modem_proc_img_objs.extend(au_items['OBJS'])
+
+# load Multimedia libs/objs build rules.
+#au_items = env.LoadAreaSoftwareUnits('multimedia')
+#modem_proc_img_libs.extend(au_items['LIBS'])
+#modem_proc_img_objs.extend(au_items['OBJS'])
+
+# load Platform libs/objs build rules.
+#au_items = env.LoadAreaSoftwareUnits('platform')
+#modem_proc_img_libs.extend(au_items['LIBS'])
+#modem_proc_img_objs.extend(au_items['OBJS'])
+
+#if 'USES_THIN_UI' in env:
+   # load API libs/objs build rules.
+   #au_items = env.LoadAreaSoftwareUnits('apps')
+   #modem_proc_img_libs.extend(au_items['LIBS'])
+   #modem_proc_img_objs.extend(au_items['OBJS'])
+   
+   # load cta libs/objs build rules.
+   #au_items = env.LoadAreaSoftwareUnits('cta')
+   #modem_proc_img_libs.extend(au_items['LIBS'])
+   #modem_proc_img_objs.extend(au_items['OBJS'])
+
+#------------------------------------------------------------------------------
+# Init secure varables
+#------------------------------------------------------------------------------
+env.Replace(ENABLE_ENCRYPT = True)
+
+
+#------------------------------------------------------------------------------
+# Putting the image toghther
+#------------------------------------------------------------------------------
+image_units = [modem_proc_img_objs, modem_proc_img_libs]
+
+
+      
+if 'IMAGE_BUILD_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Link image
+   #-------------------------------------------------------------------------
+   #'''
+   env.Append(LINKFLAGS = '-T' + "${BUILD_ROOT}/core/bsp/coreimg/build/COREIMG.lcs")
+   image_elf = env.AddProgram("${SHORT_BUILDPATH}/${TARGET_NAME}", modem_proc_img_objs, LIBS=modem_proc_img_libs)
+   #'''
+   '''
+   image_elf = env.Program("${SHORT_BUILDPATH}/${TARGET_NAME}", modem_proc_img_objs, LIBS=modem_proc_img_libs)
+   
+   image_map = env.subst("${SHORT_BUILDPATH}/${TARGET_NAME}.map")
+   image_sym = env.subst("${SHORT_BUILDPATH}/${TARGET_NAME}.sym")
+   
+   env.Clean(image_elf, image_map)
+   env.Clean(image_elf, image_sym)
+   '''
+if 'IMAGE_BUILD_POST_LINK' in env:
+   #-------------------------------------------------------------------------
+   # Add a dummy segment for dynamic footprints
+   #-------------------------------------------------------------------------
+   if 'USES_DUMMY_SEG' in env:
+      if 'AddDummySegBuilder' not in env.get('BUILDERS'):
+         env.LoadToolScript("${COREBSP_ROOT}/bsp/build/scripts/kernel_builders.py")
+         
+      image_elf = env.AddDummySegBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}_patch",
+         [image_elf, env.FindConfigFiles('cust_config.xml')[0]])
+      
+   #-------------------------------------------------------------------------
+   # Install ELF, reloc files
+   #-------------------------------------------------------------------------
+   # copy elf and reloc to needed locations for AMSS tools to load on target
+  #-------------------------------------------------------------------------
+   # Install ELF, reloc files
+   #-------------------------------------------------------------------------
+   env.Replace(USES_QSHRINK2 = True) 
+   if 'USES_QSHRINK2' in env:
+     env.LoadToolScript("${BUILD_ROOT}/build/myps/qshrink/Qshrink20.py")  
+     qshrink20_elf = env.Qshrink20(
+              "${SHORT_BUILDPATH}/${TARGET_NAME}_qsr2",
+              [image_elf, "${BUILD_ROOT}/build/myps/qshrink/msg_hash.txt"])
+        # copy elf and reloc to needed locations for AMSS tools to load on target
+     install_target_elf = env.InstallAs(
+              "${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_NODEVCFG_CORE.elf", qshrink20_elf)
+   else:
+    install_target_elf = env.InstallAs(
+   "${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_NODEVCFG_CORE.elf", image_elf)
+
+
+   # NOTE: The MBN creation and PIL splitting routines have been moved to devcfg_img.scons
+   ##-------------------------------------------------------------------------
+   ## Build env mbn files
+   ##-------------------------------------------------------------------------
+   #target_mbn = env.MbnBuilder("${SHORT_BUILDPATH}/${TARGET_NAME}", install_target_elf, IMAGE_TYPE='qdsp6sw',
+   #   FLASH_TYPE=env['TARGET_FLASH_TYPE'])
+   #
+   #if 'USES_PIL' in env:
+   #   #-------------------------------------------------------------------------
+   #   # Split mbn file for PIL
+   #   #-------------------------------------------------------------------------
+   #   env.LoadToolScript("${BUILD_ROOT}/core/bsp/build/scripts/pil_splitter_builder.py")
+   #
+   #   # Commenting out some code until we have a chance to have all tools pull files from build\bsp\...
+   #   # split_files = env.PilSplitterBuilder("${SHORT_BUILDPATH}/SPLITBINS_${QC_SHORT_BUILDPATH}/${PIL_SPLITTER_PREFIX}.mdt", target_mbn)
+   #   # install_pil = env.Install("${BUILD_ROOT}/build/ms/bin/PIL_IMAGES", split_files[0].dir)
+   #   # image_units += install_pil
+   #
+   #   split_files = env.PilSplitterBuilder('${BUILD_ROOT}/build/ms/bin/${PIL_BUILDPATH}/${PIL_SPLITTER_PREFIX}.mdt', target_mbn)
+   #   image_units += split_files
+
+   #=========================================================================
+   # Define targets needed 
+   #
+   image_units += [
+      install_target_elf,
+      # target_mbn,
+   ]
+
+#=========================================================================
+# Finish up...
+env.BindAliasesToTargets(image_units)
+
+# This probably needs to go someplace else.
+env.CMMBuilder(None, None)

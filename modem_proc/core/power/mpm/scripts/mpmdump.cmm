@@ -1,0 +1,500 @@
+;============================================================================
+; Script to dump MPM register values
+; Usage: mpmdump.cmm <output_path>
+;
+;  NOTE: For RPM(From RPM T32 window), mpmdump.cmm intern executes hwio.cmm
+;        script to get MPM HW register symbols so mpmdump.cmm should be run from
+;        <Build>\core\power\mpm\scripts Folder only.
+;      : For other subsystems(From other subsystems T32 window), mpmdump.cmm script
+;        uses "registerLayout" symbol to find out vMPM MSG RAM area address offsets
+;        so symbols should be loaded before using mpmdump.cmm script.
+;============================================================================
+
+ENTRY &op_path
+
+;============================================================================
+; Declare variables
+;============================================================================
+;Variable used to store tlmm hw revision register address
+LOCAL &tlmm_hw_rev_addr 
+
+;Variables used to store Register addresses obtained from "registerLayout" symbol
+LOCAL &WakeupReg &EnableReg &DetectReg &DetectReg3 &PolarityReg &StatusReg
+
+;Variables used to save MPM interrupts information
+LOCAL &EnableReg1Val &EnableReg2Val &PolarityReg1Val &PolarityReg2Val
+LOCAL &DetectReg1Val &DetectReg2Val &DetectReg3Val &DetectReg4Val
+LOCAL &StatusReg1Val &StatusReg2Val
+
+;Varibales to store the specific interrupt details - used while dumping interrpus 
+;information in user readable format
+LOCAL &bEnableBit &bDetectBit0 &bDetectBit1 &bPolarityBit &bPendingBit &bStatusBit
+
+;variables used to store hwio.cmm path
+LOCAL &HWIODir &hwio_cmm &target 
+
+;general
+LOCAL &bIsRPM &cpu &curr_dir &nRegCnt &nIntCnt &nIntMax
+
+&nIntCnt=0
+&nRegCnt=0
+&bIsRPM=0
+
+;MPM interrupts
+&nIntMax=0x40
+
+ENTRY
+DISPLAYMENU:
+AREA.RESet
+WINPOS 0. 0. 100% 100%
+AREA.Create INTRMENU
+AREA.view INTRMENU
+
+;Check whether output path is mentioned or not
+&curr_dir=os.pwd()
+if "&op_path"==""
+(
+  ;Print a help message for srcipt
+  PRINT "Error : Output path is not mentioned"
+  PRINT ""
+  PRINT ""
+  PRINT "SCRIPT USAGE:"
+  PRINT "mpmdump.cmm - Script to dump MPM register values"
+  PRINT "Usage: mpmdump.cmm <output_path>"
+  PRINT "NOTE : For RPM case, mpmdump.cmm intern executes hwio.cmm script to get MPM"
+  PRINT "       HW register symbols so mpmdump.cmm should be run from "
+  PRINT "       <Build>\core\power\mpm\scripts Folder only"
+  ENDDO
+)
+
+;============================================================================
+; op_path is the path to output the file, 
+; We will see if that directory already exist if not we try to create
+; If it fails, we abort the script
+;============================================================================
+if !OS.DIR(&op_path)
+(
+  PRINT "Output path does not exist. Trying to create..."
+  mkdir &op_path
+
+  ; Error while creating output path
+  if !OS.DIR(&op_path)
+  (
+    PRINT "Error: Failed to locate/create &(op_path). Exiting..."
+    ENDDO
+  )
+)
+
+;============================================================================
+; Initialize the data, Cretae MPMRegisterValues.txt and dump the register values
+;============================================================================
+; Open a file to write MPM register values
+OPEN #1 "&op_path/MPMRegisterValues.txt" /Create
+
+;Initialize the Data
+GOSUB INITDATA
+
+if (&(bIsRPM)==1)
+(
+  ;Dump MPM registers
+  GOSUB DUMPMPMREGISTERS
+  
+  ;Log 64 MPM interrupt details
+  GOSUB DUMPMPMINTDETAILS
+)
+else
+(
+  ;Dump vMPM registers
+  GOSUB DUMPvMPMREGISTERS
+  
+  ;Log 64 MPM interrupt details from sub-system point of view
+  GOSUB DUMPMPMINTDETAILS
+)
+
+CLOSE #1
+ENDDO
+
+
+;Functions
+;****************************************************************************
+; DUMP MPM register values 
+;****************************************************************************
+DUMPMPMREGISTERS:
+  WRITE #1 "==================================="
+  WRITE #1 "&(target) MPM Register values:"
+  WRITE #1 "==================================="
+
+  GOSUB DUMPREGVAL MPM_INT_EN_1 HWIO_MPM2_MPM_INT_EN_1_ADDR
+  GOSUB DUMPREGVAL MPM_INT_EN_2 HWIO_MPM2_MPM_INT_EN_2_ADDR 
+  GOSUB DUMPREGVAL MPM_INT_POLARITY_1 HWIO_MPM2_MPM_INT_POLARITY_1_ADDR
+  GOSUB DUMPREGVAL MPM_INT_POLARITY_2 HWIO_MPM2_MPM_INT_POLARITY_2_ADDR
+  GOSUB DUMPREGVAL MPM_DETECT_CTL_1 HWIO_MPM2_MPM_DETECT_CTL_1_ADDR
+  GOSUB DUMPREGVAL MPM_DETECT_CTL_2 HWIO_MPM2_MPM_DETECT_CTL_2_ADDR
+  GOSUB DUMPREGVAL MPM_DETECT_CTL_3 HWIO_MPM2_MPM_DETECT_CTL_3_ADDR
+  GOSUB DUMPREGVAL MPM_DETECT_CTL_4 HWIO_MPM2_MPM_DETECT_CTL_4_ADDR
+  GOSUB DUMPREGVAL MPM_INT_STATUS_1 HWIO_MPM2_MPM_INT_STATUS_1_ADDR
+  GOSUB DUMPREGVAL MPM_INT_STATUS_2 HWIO_MPM2_MPM_INT_STATUS_2_ADDR
+RETURN
+
+
+;****************************************************************************
+; DUMP vMPM register values
+;****************************************************************************
+DUMPvMPMREGISTERS:
+  Local &vmpm_reg_addr
+
+  ;---------------------------------------------------------------------------
+  ; vmpm register values read from MSG RAM area
+  ;---------------------------------------------------------------------------
+  WRITE #1 "==================================="
+  WRITE #1 "vMPM Register values:"
+  WRITE #1 "==================================="
+
+  GOSUB DUMPREGVAL vMPM_WAKEUP_REQ_1 &(WakeupReg)
+
+  &vmpm_reg_addr=&(WakeupReg)+0x4
+  GOSUB DUMPREGVAL vMPM_WAKEUP_REQ_2 &(vmpm_reg_addr)
+
+  GOSUB DUMPREGVAL vMPM_INT_EN_1 &(EnableReg)
+
+  &vmpm_reg_addr=&(EnableReg)+0x4
+  GOSUB DUMPREGVAL vMPM_INT_EN_2 &(vmpm_reg_addr)
+
+  GOSUB DUMPREGVAL vMPM_DETECT_CTL_1 &(DetectReg)
+
+  &vmpm_reg_addr=&(DetectReg)+0x4
+  GOSUB DUMPREGVAL vMPM_DETECT_CTL_2 &(vmpm_reg_addr)
+
+  GOSUB DUMPREGVAL vMPM_DETECT_CTL_3 &(DetectReg3)
+
+  &vmpm_reg_addr=&(DetectReg3)+0x4
+  GOSUB DUMPREGVAL vMPM_DETECT_CTL_4 &(vmpm_reg_addr)
+
+  GOSUB DUMPREGVAL vMPM_INT_POLARITY_1 &(PolarityReg)
+
+  &vmpm_reg_addr=&(PolarityReg)+0x4
+  GOSUB DUMPREGVAL vMPM_INT_POLARITY_2 &(vmpm_reg_addr)
+
+  GOSUB DUMPREGVAL vMPM_INT_STATUS_1 &(StatusReg)
+
+  &vmpm_reg_addr=&(StatusReg)+0x4
+  GOSUB DUMPREGVAL vMPM_INT_STATUS_2 &(vmpm_reg_addr)
+RETURN
+
+;****************************************************************************
+; Read the register value and dump it
+;****************************************************************************
+;Read the reg value and dump it 
+DUMPREGVAL:
+  ENTRY &nRegName &nRegAddress
+  LOCAL &nRegVal
+
+  &nRegCnt=&nRegCnt+0x1
+
+  &nRegVal=data.long(a:&nRegAddress)
+  WRITE #1 format.decimal(1,&nRegCnt) ". Register Name:  &(nRegName)"
+  WRITE #1 "          Address: &(nRegAddress)"
+  WRITE #1 "            value: &(nRegVal)"
+  ;WRITE #1 "&(nRegName)         |       (&(nRegAddress))        |   " %S "&nRegVal"
+  WRITE #1 "-----------------------------------"
+RETURN
+
+;****************************************************************************
+; Find target number from tlmm hw revision number
+;****************************************************************************
+GETTARGETNAME:
+ LOCAL &part_number &nRegVal
+
+ ;Part number is used to find out the target info.
+ ;Refer TLMM_HW_REVISION_NUMBER entry in SWI for more information about part number
+ &nRegVal=data.long(a:&tlmm_hw_rev_addr);
+
+ ;Extract the part number (12:27) bits
+ &part_number=(&(nRegVal)&(0x0FFFF000))>>0xC
+ 
+ ;Neglect the last 4 bits - that will be used for variant with in the target
+ &part_number=(&(part_number)&(0xFFF0))
+
+ ;Refer "ChipInfo" doc provided by system drivers team to find appropriate part number
+ ;for each target
+ if (&part_number==0x7B0)
+ (
+   &target="msm8974"
+ )
+ else if (&part_number==0x7F0)
+ (
+   &target="mdm9x25"
+ )
+ else if (&part_number==0x800)
+ (
+  &target="msm8x26"
+ )
+ else if (&part_number==0x810)
+ (
+  &target="msm8x10"
+ )
+ else if (&part_number==0x900)
+ (
+  &target="apq8084"
+ )
+ else
+ (
+   PRINT "Target is not supported"
+   WRITE #1 "Target is not supported"
+   GOSUB ScriptUsage
+ )
+RETURN
+
+;****************************************************************************
+; Run hwio.cmm to get MPM HWIO register symbols
+;****************************************************************************
+RUNHWIOCMMSCRIPT:
+  LOCAL &script_dir
+
+  &script_dir=OS.PPD()
+  ; Set the root of the chipset HWIO
+  &HWIODir="&script_dir/../../../systemdrivers/hwio/scripts/&target"
+  
+  ;For A-Family
+  ;&HWIODir="&script_dir/../../../api/systemdrivers/hwio/&target/t32"
+
+  if !os.dir(&HWIODir)
+  (
+    print "Could not find HW base directory."
+    WRITE #1  "Could not find HW base directory."
+    GOSUB ScriptUsage
+  )
+
+  if os.file("&HWIODir/hwio.cmm")
+  (
+    &hwio_cmm="&HWIODir/hwio.cmm"
+    do &hwio_cmm
+  )
+  else 
+  (
+    print "Script hwio.cmm not found at &HWIODir"
+    WRITE #1 "Script hwio.cmm not found at &HWIODir"
+    GOSUB ScriptUsage
+  )
+  
+RETURN
+
+;***************************************************************************
+;DUMPMPMINTDETAILS - goes through every interrupt and logs the details
+;***************************************************************************
+DUMPMPMINTDETAILS:
+  LOCAL &nShift
+
+WRITE #1 ""
+WRITE #1 ""
+WRITE #1 ""
+WRITE #1 ""
+WRITE #1 "              MPM INTERRUPTS DETAILED INFORMATION                                  "
+WRITE #1 "-----------------------------------------------------------------------------------"
+WRITE #1 "Interrupt No   Enabled/Disabled   Triggered      Pending      Configuration"
+WRITE #1 "-----------------------------------------------------------------------------------"
+
+  &nIntCnt=0
+  &nMask=0x1
+  while ((&nIntCnt)<(&nIntMax)) 
+  (
+    &nShift=(&nIntCnt)%0x20
+    if (0==((&nIntCnt)/0x20))
+    (
+      ;1st 32 interrupts
+      &bEnableBit=(&EnableReg1Val>>&nShift)&(&nMask)
+      &bPolarityBit=(&PolarityReg1Val>>&nShift)&(&nMask)
+      &bDetectBit0=(&DetectReg1Val>>&nShift)&(&nMask)
+      &bDetectBit1=(&DetectReg3Val>>&nShift)&(&nMask)
+      &bPendingBit=(((&StatusReg1Val>>&nShift)&(&nMask))&((&EnableReg1Val>>&nShift)&(&nMask)))
+      &bStatusBit=(&StatusReg1Val>>&nShift)&(&nMask)
+    )
+    else 
+    (
+      ;next 32 interrupts
+      &bEnableBit=(&EnableReg2Val>>&nShift)&(&nMask)
+      &bPolarityBit=(&PolarityReg2Val>>&nShift)&(&nMask)
+      &bDetectBit0=(&DetectReg2Val>>&nShift)&(&nMask)
+      &bDetectBit1=(&DetectReg4Val>>&nShift)&(&nMask)
+      &bPendingBit=(((&StatusReg2Val>>&nShift)&(&nMask))&((&EnableReg2Val>>&nShift)&(&nMask)))
+      &bStatusBit=(&StatusReg1Val>>&nShift)&(&nMask)
+    )
+
+    ;Logs interrupt details interms of Configuration and etc...
+    GOSUB LOGMPMINTDETAILS
+    &nIntCnt=&nIntCnt+1
+  )
+RETURN
+
+;***************************************************************************
+;LOGMPMINTDETAILS - Logs the interrupt details like is it enabled or disabled,
+;                   about interrupt Configuratin
+;***************************************************************************
+LOGMPMINTDETAILS:
+  ;local variables to hold output string and combined polarity-detect value
+  LOCAL &optstr &nPolDetVal
+
+  &nPolDetVal=(&bPolarityBit<<2)+(&bDetectBit1<<1)+(&bDetectBit0)
+  
+  &optstr=format.decimal(1,&nIntCnt)
+
+  if (&nIntCnt<0xA)
+  (
+    &optstr="   &optstr"
+  )
+  else
+  (
+    &optstr="  &optstr"
+  )
+  ;Enabled or Disabled
+  if (&bEnableBit==1)
+  (
+    &optstr="&(optstr)                 Enabled"
+  )
+  else
+  (
+    &optstr="&(optstr)                Disabled"
+  )
+
+  ;Trigger status
+  if (1==&(bStatusBit))
+  (
+    &optstr="&(optstr)      YES"
+  )
+  else
+  (
+    &optstr="&(optstr)       NO"
+  )
+
+  ;Pending status
+  if (1==&(bPendingBit))
+  (
+    &optstr="&(optstr)      YES"
+  )
+  else
+  (
+    &optstr="&(optstr)       NO"
+  )
+
+  ;Polarity and Detect configuration
+  if ((&nPolDetVal)==0)
+  (
+    &optstr="&(optstr)        Low"
+  )
+  else if (((&nPolDetVal)==0x1)||((&nPolDetVal)==0x6))
+  (
+    &optstr="&(optstr)        Falling"
+  ) 
+  else if (((&nPolDetVal)==0x2)||((&nPolDetVal)==0x5))
+  (
+    &optstr="&(optstr)        Rising"
+  )
+  else if (((&nPolDetVal)==0x3)||((&nPolDetVal)==0x7))
+  (
+    &optstr="&(optstr)        Dual"
+  )
+  else if (((&nPolDetVal)==0x4)||((&nPolDetVal)==0x6))
+  (
+    &optstr="&(optstr)        High"
+  )
+
+  WRITE #1 "&(optstr)"
+RETURN
+
+
+;****************************************************************************
+;INITDATA
+; a. Get the target name based on tlmm_hw_rev_addr
+; b. Get MPM HW register symbols/addresses
+; c. Get vMPM base address if it's not RPM
+;****************************************************************************
+INITDATA:
+
+  ;Check the system.cpu settings
+  &cpu=cpu()
+
+  if ("&(cpu)"=="CortexM3")
+  (
+    &bIsRPM=1
+  )
+  
+  if (&bIsRPM==1)
+  (
+    ;Run hwio.cmm script to get MPM HW register symbols
+    ;&mpm2_base_addr=0xfc4a0000
+    &tlmm_hw_rev_addr=0xFD512028 
+
+    ;Get target name based on hw revision number
+    GOSUB GETTARGETNAME
+
+    ;Run target specific hwio.cmm script to get MPM HW register addresses
+    GOSUB RUNHWIOCMMSCRIPT
+
+    ;Read Enable, Detect/Polarity and status bits of MPM usng MPM HW Register symbol addresses
+    &EnableReg1Val=data.long(HWIO_MPM2_MPM_INT_EN_1_ADDR)
+    &EnableReg2Val=data.long(HWIO_MPM2_MPM_INT_EN_2_ADDR)
+    &PolarityReg1Val=data.long(HWIO_MPM2_MPM_INT_POLARITY_1_ADDR)
+    &PolarityReg2Val=data.long(HWIO_MPM2_MPM_INT_POLARITY_2_ADDR)
+    &DetectReg1Val=data.long(HWIO_MPM2_MPM_DETECT_CTL_1_ADDR)
+    &DetectReg2Val=data.long(HWIO_MPM2_MPM_DETECT_CTL_2_ADDR)
+    &DetectReg3Val=data.long(HWIO_MPM2_MPM_DETECT_CTL_3_ADDR)
+    &DetectReg4Val=data.long(HWIO_MPM2_MPM_DETECT_CTL_4_ADDR)
+    &StatusReg1Val=data.long(HWIO_MPM2_MPM_INT_STATUS_1_ADDR)
+    &StatusReg2Val=data.long(HWIO_MPM2_MPM_INT_STATUS_2_ADDR)
+  )
+  else
+  (
+    ;Sub-system specific
+    ;Read Enable, Detect/Polarity and status bits of MPM interrupts from MSG ram area
+    IF symbol.exist(registerLayout)
+    (
+      &WakeupReg=(V.VALUE(registerLayout.WakeupReg))
+      &EnableReg=(V.VALUE(registerLayout.nEnableReg))
+      &DetectReg=(V.VALUE(registerLayout.nDetectReg))
+      &DetectReg3=(V.VALUE(registerLayout.nDetect3Reg))
+      &PolarityReg=(V.VALUE(registerLayout.nPolarityReg))
+      &StatusReg=(V.VALUE(registerLayout.nStatusReg))
+    )
+    ELSE
+    (
+      PRINT "Error: registerLayout symbol is not found, so Please load ELF and use the script.\n"
+      WRITE #1 "Error: registerLayout symbol is not found, so Please load ELF and use the script.\n"
+      GOSUB ScriptUsage
+    )
+	
+  
+    &EnableReg1Val=data.long(a:&EnableReg)
+    &EnableReg2Val=data.long(a:((&EnableReg)+0x4))
+    &DetectReg1Val=data.long(a:&DetectReg)
+    &DetectReg2Val=data.long(a:(&DetectReg+0x4))
+    &DetectReg3Val=data.long(a:(&DetectReg3))
+    &DetectReg4Val=data.long(a:(&DetectReg3+0x4))
+    &StatusReg1Val=data.long(a:&StatusReg)
+    &StatusReg2Val=data.long(a:(&StatusReg+0x4))
+    &PolarityReg1Val=data.long(a:&PolarityReg)
+    &PolarityReg2Val=data.long(a:((&PolarityReg)+0x4))
+  )
+RETURN
+
+;****************************************************************************
+;ScriptUsage
+;****************************************************************************
+ScriptUsage:
+  PRINT ""
+  PRINT "SCRIPT USAGE:"
+  PRINT "mpmdump.cmm - Script to dump MPM register values"
+  PRINT "Usage: mpmdump.cmm <output_path>"
+  PRINT "NOTE : For RPM case, mpmdump.cmm intern executes hwio.cmm script to get MPM"
+  PRINT "       HW register symbols so mpmdump.cmm should be run from "
+  PRINT "       <Build>\core\power\mpm\scripts Folder only"
+  WRITE #1 ""
+  WRITE #1 "SCRIPT USAGE:"
+  WRITE #1 "mpmdump.cmm - Script to dump MPM register values"
+  WRITE #1 "Usage: mpmdump.cmm <output_path>"
+  WRITE #1 "NOTE : For RPM case, mpmdump.cmm intern executes hwio.cmm script to get MPM"
+  WRITE #1 "       HW register symbols so mpmdump.cmm should be run from "
+  WRITE #1 "       <Build>\core\power\mpm\scripts Folder only"
+  WRITE #1 "     : For other subsystems, mpmdump.cmm uses "registerLayout" symbol"
+  WRITE #1 "       to find out vMPM MSG RAM area address offsets"
+CLOSE #1
+ENDDO

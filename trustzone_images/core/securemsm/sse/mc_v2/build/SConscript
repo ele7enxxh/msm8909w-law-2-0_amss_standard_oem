@@ -1,0 +1,57 @@
+#===============================================================================
+#
+# SECUREMSM SSE Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2013 Qualcomm Technologies, Inc. 
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/sse/mc_v2/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('MCTL_API', [
+   '${INC_ROOT}/core/securemsm/sse/mc_v2/mobicore/tlapi/inc',
+])
+env.PublishPrivateApi('MCDR_API', [
+   '${INC_ROOT}/core/securemsm/sse/mc_v2/mobicore/drapi/inc',
+])
+env.PublishPrivateApi('MCTL_SDK', [
+   '${INC_ROOT}/core/securemsm/sse/mc_v2/mobicore/sdk/inc',
+])
+env.PublishPrivateApi('MCDR_SDK', [
+   '${INC_ROOT}/core/securemsm/sse/mc_v2/mobicore/drsdk/inc',
+])
+env.PublishPrivateApi('MTK_API', [
+   '${INC_ROOT}/core/securemsm/sse/mc_v2/mobicore/mtkapi/inc',
+])
+
+# Common SSE MC includes
+env.PublishPrivateApi('SSE_MC_COMMON_API', [
+   '${INC_ROOT}/core/securemsm/sse/mc_v2/common/include',
+])
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

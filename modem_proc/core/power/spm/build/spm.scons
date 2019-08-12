@@ -1,0 +1,182 @@
+#===============================================================================
+#
+# SPM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM Technologies, Inc. (QTI)
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/power/spm/rel/1h10/build/SConscript#7 $
+#  $DateTime: 2011/08/30 17:22:20 $
+#  $Author: tulmer $
+#  $Change: 1908500 $
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#===== CCFLAGS - add the flags to the C compiler command line.
+env.Append(CPPDEFINES = ['-DSPM_HWIO_PREFIX=QDSP6SS_SAW2'])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/power/spm"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+  'CS',
+   'MODEM_PMIC',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.PublishPrivateApi('POWER_SPM', [
+   "${BUILD_ROOT}/core/power/spm/inc"
+])
+
+env.PublishPrivateApi('POWER_HAL_SPM', [
+   "${INC_ROOT}/core/power/spm/src/hal",
+])
+
+if env['MSM_ID'] in ['8916']:
+  env.PublishPrivateApi('POWER_HAL_SPM', [
+     "${INC_ROOT}/core/power/spm/src/hal/hwio/8916", 
+  ])
+elif env['MSM_ID'] in ['8909']:
+  env.PublishPrivateApi('POWER_HAL_SPM', [
+     "${INC_ROOT}/core/power/spm/src/hal/hwio/8909", 
+  ])
+elif env['MSM_ID'] in ['8937']:
+  env.PublishPrivateApi('POWER_HAL_SPM', [
+     "${INC_ROOT}/core/power/spm/src/hal/hwio/8937", 
+  ])
+elif env['MSM_ID'] in ['9607']:
+  env.PublishPrivateApi('POWER_HAL_SPM', [
+     "${INC_ROOT}/core/power/spm/src/hal/hwio/9607", 
+  ])
+elif env['MSM_ID'] in ['8952']:
+  env.PublishPrivateApi('POWER_HAL_SPM', [
+     "${INC_ROOT}/core/power/spm/src/hal/hwio/8952", 
+  ])
+elif env['MSM_ID'] in ['9609']:
+  env.PublishPrivateApi('POWER_HAL_SPM', [
+     "${INC_ROOT}/core/power/spm/src/hal/hwio/9609", 
+  ])
+elif env['MSM_ID'] in ['8926']:
+    env.PublishPrivateApi('POWER_HAL_SPM', [
+     "${INC_ROOT}/core/power/spm/src/hal/hwio/8926", 
+  ])
+elif env['MSM_ID'] in ['8936']:
+    env.PublishPrivateApi('POWER_HAL_SPM', [
+     "${INC_ROOT}/core/power/spm/src/hal/hwio/8936", 
+  ])
+elif env['MSM_ID'] in ['8952']:
+  env.PublishPrivateApi('POWER_HAL_SPM', [
+     "${INC_ROOT}/core/power/spm/src/hal/hwio/8909", 
+  ])  
+elif env['MSM_ID'] in ['8976']:
+  env.PublishPrivateApi('POWER_HAL_SPM', [
+     "${INC_ROOT}/core/power/spm/src/hal/hwio/8976", 
+  ])  
+elif env['MSM_ID'] in ['9607']:
+  env.PublishPrivateApi('POWER_HAL_SPM', [
+     "${INC_ROOT}/core/power/spm/src/hal/hwio/9607", 
+  ])  
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+
+SPM_SOURCES =  [
+   '${BUILDPATH}/src/spm.c'
+]
+
+SPM_HAL_SOURCES =  [
+   '${BUILDPATH}/src/hal/BSPspm.c',
+   '${BUILDPATH}/src/hal/HALspmPlatform.c',
+   '${BUILDPATH}/src/hal/HALspmmmap.c',
+   '${BUILDPATH}/config/asic/${MSM_ID}/SPMDevCfgData.c',
+]
+
+#------------------------------------------------------------------------------
+# Adding device config data
+#------------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   # Select appropriate xml config file based on target. May not change on
+   # single core targets
+   env.AddDevCfgInfo(
+      DEVCFG_IMG,
+      {
+         '8916_xml' : ['${BUILD_ROOT}/core/power/spm/config/SPMDevCfg.xml',
+                       '${BUILD_ROOT}/core/power/spm/config/asic/8916/SPMDevCfgData.c'],
+	     '8909_xml' : ['${BUILD_ROOT}/core/power/spm/config/SPMDevCfg.xml',
+                       '${BUILD_ROOT}/core/power/spm/config/asic/8909/SPMDevCfgData.c'],
+	     '8937_xml' : ['${BUILD_ROOT}/core/power/spm/config/SPMDevCfg.xml',
+                       '${BUILD_ROOT}/core/power/spm/config/asic/8937/SPMDevCfgData.c'],
+		 '9607_xml' : ['${BUILD_ROOT}/core/power/spm/config/SPMDevCfg.xml',
+                       '${BUILD_ROOT}/core/power/spm/config/asic/9607/SPMDevCfgData.c'],		   
+         '8936_xml' : ['${BUILD_ROOT}/core/power/spm/config/SPMDevCfg.xml',
+                       '${BUILD_ROOT}/core/power/spm/config/asic/8936/SPMDevCfgData.c'],
+         '8974_xml' : ['${BUILD_ROOT}/core/power/spm/config/SPMDevCfg.xml',
+                       '${BUILD_ROOT}/core/power/spm/config/asic/8974/SPMDevCfgData.c'],
+         '8962_xml' : ['${BUILD_ROOT}/core/power/spm/config/SPMDevCfg.xml',
+                       '${BUILD_ROOT}/core/power/spm/config/asic/89xx/SPMDevCfgData.c'],
+         '8926_xml' : ['${BUILD_ROOT}/core/power/spm/config/SPMDevCfg.xml',
+                       '${BUILD_ROOT}/core/power/spm/config/asic/89xx/SPMDevCfgData.c'],
+         '9625_xml' : ['${BUILD_ROOT}/core/power/spm/config/SPMDevCfg.xml',
+                       '${BUILD_ROOT}/core/power/spm/config/asic/9x25/SPMDevCfgData.c'],	
+         '8952_xml' : ['${BUILD_ROOT}/core/power/spm/config/SPMDevCfg.xml',
+                       '${BUILD_ROOT}/core/power/spm/config/asic/8952/SPMDevCfgData.c'],
+		 '8976_xml' : ['${BUILD_ROOT}/core/power/spm/config/SPMDevCfg.xml',
+                       '${BUILD_ROOT}/core/power/spm/config/asic/8976/SPMDevCfgData.c'],				
+      }
+   )
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+IMAGE_LIST = ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 
+              'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE']
+
+env.AddLibrary(IMAGE_LIST, '${BUILDPATH}/spm', SPM_SOURCES + SPM_HAL_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Initialize using RCINIT
+#-------------------------------------------------------------------------------
+
+RCINIT_PROPS = {
+  'sequence_group'             : 'RCINIT_GROUP_0',
+  'init_name'                  : 'spm',
+  'init_function'              : 'spm_initialize',
+}
+
+if 'USES_RCINIT' in env:
+  env.AddRCInitFunc(IMAGE_LIST, RCINIT_PROPS)

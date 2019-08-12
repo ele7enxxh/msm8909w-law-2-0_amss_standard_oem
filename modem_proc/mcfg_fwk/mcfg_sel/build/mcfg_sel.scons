@@ -1,0 +1,100 @@
+#===============================================================================
+#
+# MODEM_CFG Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$
+#  $DateTime$
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/07/12   bd      Created module
+#===============================================================================
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+if 'USES_GNSS_SA' not in env:
+  #--------------------------------------------------------------------------------
+  # Required Public, Restricted & Protected APIs
+  #--------------------------------------------------------------------------------
+
+  env.RequirePublicApi([
+      'DEBUGTOOLS',
+      'SERVICES',
+      'SYSTEMDRIVERS',
+      'BUSES',
+      'HAL',
+      'HWENGINES',
+      'IODEVICES',
+      'MPROC',
+      'POWER',
+      'SECUREMSM',
+      'SERVICES',
+      'STORAGE',
+      'DAL',
+      # needs to be last also contains wrong comdef.h
+      'KERNEL',
+      ], area='core')
+
+  env.RequirePublicApi([
+      'PDC',
+      'COMMON',
+      ], area='QMIMSGS')
+
+  env.RequirePublicApi('MCFG', area='mcfg')
+  env.RequirePublicApi('MCS', area='mcs')
+  env.RequirePublicApi(['UIM','PUBLIC','PRIVATE'], area='uim')
+
+  env.RequireRestrictedApi('MCFG')
+  env.RequireProtectedApi('MCFG')
+
+  #-------------------------------------------------------------------------------
+  # Setup source PATH
+  #-------------------------------------------------------------------------------
+  SRCPATH = '../src'
+
+  env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+  #-------------------------------------------------------------------------------
+  # Set MSG_BT_SSID_DFLT for legacy MSG macros
+  #-------------------------------------------------------------------------------
+  env.Append(CPPDEFINES = [
+    "MSG_BT_SSID_DFLT=MSG_SSID_MCFG",
+  ])
+
+  #-------------------------------------------------------------------------------
+  # Generate the library and add to an image
+  #-------------------------------------------------------------------------------
+  MCFG_SEL_SOURCES = [
+    '${BUILDPATH}/mcfg_imgsel.c',
+    '${BUILDPATH}/mcfg_sel.c',
+    '${BUILDPATH}/mcfg_trl.c',
+    '${BUILDPATH}/mcfg_uim.c',
+  ]
+
+  # Add our library to the MODEM_AMSS image
+  env.AddLibrary(['MODEM_MODEM'], '${BUILDPATH}/mcfg_sel', MCFG_SEL_SOURCES)
+
+  # Build image for which this task belongs
+  RCINIT_MCFG = ['MODEM_MODEM']
+
+  # Check USES_MODEM_RCINIT flag
+  if 'USES_MODEM_RCINIT' not in env:
+     env.PrintError('MCFG: USES_MODEM_RCINIT is not defined in env!\n')

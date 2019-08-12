@@ -1,0 +1,178 @@
+#===============================================================================
+#
+# GERAN Subsystem SCons build script
+#
+# Copyright (c) 2010-2015 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/geran/build/geran.scons#1 $
+#  $DateTime: 2016/12/13 08:00:21 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 20100906   tjw     Initial revision
+#
+#===============================================================================
+import os, sys, glob
+
+def main(env):
+  # GERAN_ROOT may be already defined if this is a development build.
+  # Normally it won't.
+  if not env.PathExists('${GERAN_ROOT}'):
+    # (No source trees have modem/ anymore)
+    env.Replace(GERAN_ROOT = '${INC_ROOT}/geran')
+
+  env.Replace(GERAN_BUILD_TOOLS = '${GERAN_ROOT}/build')
+  sys.path.append('${GERAN_BUILD_TOOLS}')
+  import geran_build_tools
+
+  buildTool_o = geran_build_tools.buildTool(env)
+
+  if buildTool_o.devFolder() == False:  # carry on normally
+
+    """
+    API terminology:
+    Public        visible to other AUs
+    Restricted    visible to other SUs
+    Protected     visible only within the SU
+    """
+
+    # Publish GERAN's internal header file paths for internal use
+    # Separate L1 and Protocol internal APIs
+    env.PublishProtectedApi('GERAN_COMMON', ["${GERAN_ROOT}/gcommon/gapi"])
+    env.PublishProtectedApi('GERAN_PROTOCOL',["${GERAN_ROOT}/gprotocol/gapi"])
+    env.PublishProtectedApi('GERAN_L1',     ["${GERAN_ROOT}/gl1/gapi"])
+    # Protocol only
+    env.PublishProtectedApi('GCOMMON',      ["${GERAN_ROOT}/gcommon/inc"])
+    env.PublishProtectedApi('GDIAG',        ["${GERAN_ROOT}/gdiag/inc"])
+    env.PublishProtectedApi('GL2',          ["${GERAN_ROOT}/gl2/inc"])
+    env.PublishProtectedApi('GLLC',         ["${GERAN_ROOT}/gllc/inc"])
+    env.PublishProtectedApi('GMAC',         ["${GERAN_ROOT}/gmac/inc"])
+    env.PublishProtectedApi('GRLC',         ["${GERAN_ROOT}/grlc/inc"])
+    env.PublishProtectedApi('GRR',          ["${GERAN_ROOT}/grr/inc"])
+    env.PublishProtectedApi('GSNDCP',       ["${GERAN_ROOT}/gsndcp/inc"])
+    # L1 only
+    env.PublishProtectedApi('GDRIVERS',     ["${GERAN_ROOT}/gdrivers/inc"])
+    # The generated gdrivers_tracer_event_ids.h must go into BUILDPATH along with
+    # the generated .o and .lib files. Set the include path for it.
+    # Add it explicitly otherwise it is not created unless the path already exists
+    # (Understanding the reason requires deeper knowledge of SCons than I have)
+    _gtracer_path = "/gdrivers/build/${BUILDPATH}" # (sidestep SC warning)
+    env.Append(CPPPATH = ["${GERAN_ROOT}%s" % _gtracer_path])
+    env.PublishProtectedApi('GTRACER_IDS',  ["${GERAN_ROOT}%s" % _gtracer_path])
+    env.PublishProtectedApi('GL1',          ["${GERAN_ROOT}/gl1/inc"])
+    env.PublishProtectedApi('GMDSP',        ["${GERAN_ROOT}/gmdsp6/inc"])
+    env.PublishProtectedApi('GPLT',         ["${GERAN_ROOT}/gl1/gplt/inc"])
+    env.PublishProtectedApi('GMSGRIF',      ["${GERAN_ROOT}/gmsgrif/inc"])
+    # Test directories may not be present
+    env.PublishProtectedApi('GL1TEST',      ["${GERAN_ROOT}/gl1/test"])
+    env.PublishProtectedApi('GMDSP6TEST',   ["${GERAN_ROOT}/gmdsp6/test"])
+    env.PublishProtectedApi('GTEST',        ["${GERAN_ROOT}/test/inc"])
+
+
+
+    # Add the GERAN API
+    env.RequireRestrictedApi(['GERAN'])
+
+    # cust file relocation
+    # Protected is "private within the SU" vs. Restricted which is visible to other SUs
+    env.PublishProtectedApi('GERAN', [
+                                     '${GERAN_ROOT}/cust/inc',
+                                     ])
+    # /variation/inc/geran_variation.h is now internal, moved to cust/inc.
+    # A null file /variation/inc/geran_variation.h has been added for other SUs that
+    # reference it.
+
+    #---------------------------------------------------------------------------
+    # Load cleanpack script to remove private files etc. from customer builds.
+    if os.path.exists('geran_cleanpack.py'):
+       env.LoadToolScript('geran_cleanpack.py')
+
+    if geran_build_tools.build_variation(env, 'PREPROCESS_GERAN'):
+      # Preprocessor and assembler files can be found in build/ms
+      env.Append(CFLAGS = ['-save-temps'])
+
+    #---------------------------------------------------------------------------
+    # Handling compiler warnings: specific to compiler and PL
+    if geran_build_tools.build_variation(env, 'MSDEV_COMPILER'):
+      # suppress annoyingly frequent msdev warnings
+      # warning C4005: '...' : macro redefinition
+      # warning C4013: '....' undefined; assuming extern
+      # warning C4018: '>' : signed/unsigned mismatch
+      # warning C4068: unknown pragma
+      # warning C4200: nonstandard extension used : zero-sized array in struct/union
+      #  That warning is still generated
+      # warning C4244: '=' : conversion from '...' to '...'
+      # Errors in LLVM:
+      # warning 4090: 'operation' : different 'modifier' qualifiers
+      # -wd Disables the compiler warning that is specified in n.
+      # -we Treats as an error the compiler warning that is specified in n.
+      env.Append(MSVC_WARN = ' -wd4005 -wd4013 -wd4018 -wd4068 -wd4200 -wd4244 -we4090 ')
+
+    else: # not MSDEV
+      if geran_build_tools.build_variation(env, 'COMPILER_WARNINGS_AS_ERRORS'):
+        # This ensures that continuous build processes will reject code with warnings
+        env.Append(HEXAGON_WARN = ' -Werror ')
+
+      # for compatibility prevent variable declarations in code as the
+      # MSDEV compiler does not permit them
+      if geran_build_tools.build_variation(env, 'LLVM_COMPILER'):
+        env.Append(CFLAGS = ' -Werror=c99-declaration-after-statement ')
+        # (HEXAGON_WARN doesn't overrule -Wno-low)
+      else: # gcc
+        env.Append(GCC_WARN = ' -Wdeclaration-after-statement ')
+        # Add warnings generated by LLVM but not gcc
+        env.Append(GCC_WARN = ' -Wunused-function -Wunused-variable')
+
+    # FEATUREs defined for particular SIs that share a baseline.
+    if geran_build_tools.build_variation(env, 'FEATURE_GSM_CXM_L3_STATE'):
+      env.Append(CPPDEFINES = 'FEATURE_GSM_CXM_L3_STATE')
+      env.PrintInfo('#define FEATURE_GSM_CXM_L3_STATE')
+
+    if geran_build_tools.build_variation(env, 'FEATURE_IDLE_DRX_SCALING'):
+      env.Append(CPPDEFINES = 'FEATURE_IDLE_DRX_SCALING')
+      env.PrintInfo('#define FEATURE_IDLE_DRX_SCALING')
+
+    if env['PRODUCT_LINE'].startswith("MPSS.AT"):
+      env.Append(CPPDEFINES = 'FEATURE_GERAN_ATLAS_MODEM')
+      env.PrintInfo('#define FEATURE_GERAN_ATLAS_MODEM')
+
+    # Not yet, causes MAC to build for UTF
+    #if geran_build_tools.build_variation(env, 'PERLUTF'):
+    #  env.Append(CPPDEFINES = 'PERLUTF')
+
+    if geran_build_tools.build_variation(env, 'SCONS_DEBUG'):
+      try:  # env variable may not exist
+        env.PrintDebugInfo('geran', 'GeRaN HEXAGON_WARN',  env['HEXAGON_WARN'])
+        env.PrintDebugInfo('geran', 'GeRaN CFLAGS',  env['CFLAGS'])
+        env.PrintDebugInfo('geran', 'GeRaN MSVC_WARN',  env['MSVC_WARN'])
+      except:
+        pass
+
+    # This feature is only available in internal builds and should not be exposed to customers
+    if 'USES_INTERNAL_BUILD' in env:
+      env.Append(CPPDEFINES = 'FEATURE_GSM_SIMULATE_GL1_RF ')
+      env.PrintInfo('#define FEATURE_GSM_SIMULATE_GL1_RF')
+
+    env.LoadSoftwareUnits() # discover other .scons files
+
+try:
+  Import('env') # Fails if used from SCons test harness
+  _usingTestHarness = False
+except:
+  _usingTestHarness = True
+
+if not _usingTestHarness:
+  main(env)
+#else: test harness calls main() directly with its own env
+
+
+

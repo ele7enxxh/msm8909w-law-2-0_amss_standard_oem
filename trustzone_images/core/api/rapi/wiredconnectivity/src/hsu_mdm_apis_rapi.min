@@ -1,0 +1,40 @@
+
+# *****************************************************************************
+#
+# DESCRIPTION:
+#    Makefile for generating hsu_mdm_apis_xxx remote API stubs.
+#
+#
+# Copyright (c) 2009 by Qualcomm, Inc.  All Rights Reserved.
+# *****************************************************************************
+#===========================================================++=================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/api/rapi/wiredconnectivity/src/hsu_mdm_apis_rapi.min#1 $
+#
+# when         who     what, where, why
+# ----------   ---     --------------------------------------------------------
+# 10/12/2009   dk      Initial revision
+#
+#==============================================================================
+
+#============================================================================
+# Support for exporting the HSU_MDM_APIS APIs from modem to apps
+#============================================================================
+
+ifndef HTORPC_hsu_mdm_apis_ARGS
+  vpath %.h $(AU_CORE_RAPI)/wiredconnectivity/inc
+  vpath %.c $(AU_CORE_RAPI)/wiredconnectivity/src
+
+  ifneq ($(REMOTE_API_LOC_KNOWN),yes)
+    htorpc_hsu_mdm_apis : REMOTE_API_LOC = $(AU_CORE_RAPI)/wiredconnectivity/src
+    htorpc_hsu_mdm_apis : REMOTE_API_H_LOC = $(AU_CORE_RAPI)/wiredconnectivity/inc
+  endif
+
+  HTORPC_DEPS += hsu_mdm_apis
+
+  HTORPC_hsu_mdm_apis_ARGS = -a hsu_mdm_apis
+endif
+
+ 

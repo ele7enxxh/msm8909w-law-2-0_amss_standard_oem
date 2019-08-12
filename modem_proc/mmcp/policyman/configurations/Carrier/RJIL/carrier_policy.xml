@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Carrier Policy for RJIL configuration.
+$Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/policyman/configurations/Carrier/RJIL/carrier_policy.xml#1 $
+-->
+<policy name        = "generic"
+        changelist  = "$Change: 11985193 $"
+        schema_ver  = "1"
+        policy_ver  = "110.1.2"
+>
+
+  <initial>
+    <actions>
+
+      <!-- Define the Home MCCs -->
+      <mcc_list name="home_mccs"> 404 405 </mcc_list>
+
+      <!-- These are the RJIL IMSI PLMNs -->
+      <!-- NAS has a dependency on this PLMN list's name. Please don't change it. -->
+      <plmn_list name = "nondds_volte_plmns">
+        405-840 405-854 405-855 405-856 405-857 405-858 405-859 405-860 405-861 405-862 405-863 405-864 405-865 405-866 405-867 405-868 405-869 405-870 405-871 405-872 405-873 405-874
+      </plmn_list>
+
+      <rf_bands base="hardware" />
+
+      <boolean_define name="cm:volte_allowed" initial="true" />
+      <boolean_define name="nas:Lte_Only_Operator" initial="true" />
+
+      <!-- Set initial power up RAT_capability -->
+      <rat_capability base="none">
+        <include> G W L </include>
+      </rat_capability>
+
+    </actions>
+  </initial>
+
+  <rule precond="IMSI">
+    <conditions>
+      <true />
+    </conditions>
+    <actions>
+      <boolean_set name="cm:volte_allowed">
+        <imsi_plmn_in list="nondds_volte_plmns" />
+      </boolean_set>
+      <continue />
+    </actions>
+  </rule>
+  
+  <rule precond="none">
+    <conditions>
+      <any_of>
+        <not> <phone_operating_mode> ONLINE </phone_operating_mode> </not>
+        <not> <have_location /> </not>
+      </any_of>
+    </conditions>
+    <actions />
+  </rule>
+  
+  <rule>
+    <conditions>
+      <any_of>
+        <location_mcc_in subs="this" list="home_mccs" />
+        <location_mcc_in subs="other" list="home_mccs" />
+      </any_of>
+      <imsi_plmn_in subs="1" list="nondds_volte_plmns" />
+    </conditions>
+    <actions>
+      <device_configuration num_sims="2" max_active_data="2" />
+    </actions>
+  </rule>
+  
+  <rule>
+    <conditions>
+      <true />
+    </conditions>
+    <actions>
+      <device_configuration num_sims="2" max_active_data="1" />
+    </actions>
+  </rule>
+  
+</policy>

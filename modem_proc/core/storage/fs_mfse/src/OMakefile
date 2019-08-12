@@ -1,0 +1,70 @@
+# Build rules for libfs_mfse.
+
+.DEFAULT: libfs_mfse.a
+
+FS_MFSE_MODULES = \
+        fs_mfse \
+        fs_mfse_task \
+        fs_mfse_util \
+        modem_filesystem_external_impl_v01 \
+        #end
+
+# Flags for fs_mfse:
+CFLAGS += -Werror
+CFLAGS += -std=c99 -pedantic
+
+
+if $(defined-env CALLGRAPH)
+    CFLAGS += -finstrument-functions
+    CFLAGS += -DENABLE_INSTRUMENT_FUNCTIONS
+    CFLAGS += -D'CALLGRAPH_OUTPUT_FILE="$(EXENAME)"'
+    export
+
+INCLUDES += $(dir $(ROOT)/fs_mfse/src)
+INCLUDES += $(dir $(ROOT)/efs/api)
+INCLUDES += $(dir $(ROOT)/efs/inc)
+INCLUDES += $(dir $(ROOT)/csupport)
+
+CFLAGS_BASE = $(CFLAGS)
+
+StaticCLibrary (libfs_mfse, $(FS_MFSE_MODULES))
+
+######################################################################
+# Linting.
+
+# Lint needs the GCC specific search dirs.  To start with, just grab the
+# GCC install base.
+GCC_BASE = $(shell $(CC) --print-search-dirs | grep 'install:' | \
+             sed 's/install: //')
+
+LINT = flint
+# Start the LINT_FLAGS with what is specified in the build-config file.
+LINT_FLAGS = $(CFG_LINT_FLAGS)
+
+LINT_DEPS =
+LINT_DEPS += $(file $(ROOT)/etc/lint/co-gnu3.lnt)
+LINT_DEPS += $(file $(ROOT)/efs/src/efs.lnt)
+LINT_DEPS += $(file $(ROOT)/etc/lint/off-target.lnt)
+LINT_DEPS += $(file $(ROOT)/etc/lint/amss_std.lnt)
+LINT_FLAGS += $(LINT_DEPS)
+
+LINT_FLAGS += -I$(dir $(ROOT)/fs_mfse/src)
+LINT_FLAGS += -I$(dir $(ROOT)/efs/api)
+LINT_FLAGS += -I$(dir $(ROOT)/efs/inc)
+LINT_FLAGS += -I$(dir $(ROOT)/csupport)
+LINT_FLAGS += -I$(dir $(GCC_BASE)/include)
+LINT_FLAGS += -I/usr/include
+
+# Needed, until buffer removes the MD5 stuff.
+LINT_FLAGS += -I$(OCAML_BASE)
+
+LINT_FLAGS += -DFS_STANDALONE
+
+section
+        CFILES = $(addsuffix .c, $(FS_MFSE_MODULES))
+        fs_mfse_lint.stamp: $(CFILES) $(LINT_DEPS)
+                rm -f fs_mfse_lint.stamp
+                $(LINT) $(LINT_FLAGS) $(CFILES)
+                touch fs_mfse_lint.stamp
+######################################################################
+

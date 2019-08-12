@@ -1,0 +1,26 @@
+
+; dumps msgr_profiling_data to c:\delete_me\profile_data_<time stamp>
+
+; if processor still running, stop it
+if run()
+(
+  break
+)
+
+; make sure symbols are loaded
+IF (!Y.EXIST("msgr_profiling_data"))
+(
+    print "Please load symbols before running script."
+    enddo
+)
+
+; print log contents to dump_file
+; create file name
+&time_val=os.timer()
+&file_name="profile_data_&time_val"
+
+printer.open c:\delete_me\&file_name
+wp.v.w %f msgr_profiling_data
+printer.close
+
+print "Logs collected"

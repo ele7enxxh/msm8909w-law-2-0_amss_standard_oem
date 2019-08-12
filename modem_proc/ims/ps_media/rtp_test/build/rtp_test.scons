@@ -1,0 +1,71 @@
+#===============================================================================
+#
+# TMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/ps_media/rtp_test/build/rtp_test.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('IMS_RTP_TEST_INC', [ 
+"${INC_ROOT}/modem/ims/ps_media/common/inc",
+"${INC_ROOT}/modem/ims/ps_media/rtp_test/inc",
+])
+
+
+IMS_API_PUB = [
+	'IMS_DPL',
+	'IMS_PS_MEDIA_COMMON_INC',
+	'IMS_PS_MEDIA_QDJ',
+	'IMS_PS_MEDIA_RTP_CORE',
+	'IMS_PS_MEDIA_RTP_TEST',
+	'IMS_PS_MEDIA_RTP_JITTER_BUFFER',
+	'IMS_PS_MEDIA_RTP_PROFILE',
+]
+
+env.RequireProtectedApi(IMS_API_PUB)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+QVP_RTP_RTPTEST_LIB_C_SOURCES=[
+	'${BUILDPATH}/qvp_rtp_unit_test.c',
+	'${BUILDPATH}/qvp_rtp_unit_test_cb.c',
+	'${BUILDPATH}/qvp_rtp_unit_test_file.c',
+	'${BUILDPATH}/rtptest.c',
+]
+
+
+#-------------------------------------------------------------------------------
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+#-------------------------------------------------------------------------------
+
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/qvp_rtptest', [QVP_RTP_RTPTEST_LIB_C_SOURCES])

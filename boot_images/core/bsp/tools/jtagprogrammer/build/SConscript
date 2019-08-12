@@ -1,0 +1,43 @@
+#===============================================================================
+#
+# JTAGPROGRAMMER build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/bsp/tools/jtagprogrammer/build/SConscript#1 $
+#  $DateTime: 2015/09/01 00:30:35 $
+#  $Author: pwbldsvc $
+#  $Change: 8935858 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2013-03-07   ab      Initial checkin for jtagprogrammer for UFS
+#
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+STORAGE_MEDIUM = ARGUMENTS.get('STORAGE_MEDIUM', None)
+if STORAGE_MEDIUM is None:
+    if env['CHIPSET'] in ['apq8084']:
+        STORAGE_MEDIUM = "ufs"
+    else:
+        STORAGE_MEDIUM = "emmc"
+
+if STORAGE_MEDIUM.lower() == "emmc":
+    env.SConscript('jtagprogrammer_emmc.scons', exports='env')
+elif STORAGE_MEDIUM.lower() == "ufs":
+    env.SConscript('jtagprogrammer_ufs.scons', exports='env')

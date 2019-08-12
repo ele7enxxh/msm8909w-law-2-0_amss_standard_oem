@@ -1,0 +1,153 @@
+﻿#===============================================================================
+#
+# TMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/ps_media/rtp_core/build/rtp_core.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within IMS
+#-------------------------------------------------------------------------------
+IMS_API = ['IMS_DPL',
+           'IMS_FRAMEWORK',
+	   'IMS_QMI']
+
+env.RequireProtectedApi(IMS_API)
+
+#-------------------------------------------------------------------------------
+# Necessary Multimedia Public API's
+#-------------------------------------------------------------------------------
+MM_PUBLIC_APIS = [
+  'AUDIO',
+	'APR',
+	'CVD',
+	'MMUTILS',
+	'VOICEMEM',	
+	'VOICELOG',	
+	'COMMON',
+	'VOICECFG',
+]
+
+
+env.RequirePublicApi(MM_PUBLIC_APIS, area='multimedia')
+
+IMS_API_PUB = [
+	'IMS_PS_MEDIA_COMMON_INC',
+	'IMS_PS_MEDIA_QDJ',
+	'IMS_PS_MEDIA_RTP_PROFILE',
+	'IMS_PS_MEDIA_RTP_JITTER_BUFFER',
+	'IMS_PS_MEDIA_RTP_CORE',
+	'IMS_PS_MEDIA_RTP_TEST',
+	'IMS_DPL_MEDIA',
+	'IMS_PROCESS',
+]
+
+env.RequirePrivateApi('IMS_QMI_INC')
+
+
+env.RequireProtectedApi(IMS_API_PUB)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+QVP_RTP_LIB_C_SOURCES=[
+	'${BUILDPATH}/qvp_rtcp.c',
+	'${BUILDPATH}/qvp_rtp_api.c',
+	'${BUILDPATH}/qvp_rtp_task.c',
+	'${BUILDPATH}/qvp_rtp_packet.c',
+	'${BUILDPATH}/qvp_rtp_buf.c',
+	'${BUILDPATH}/qvp_rtp_stubs.c',
+	'${BUILDPATH}/qvp_rtp_nw_ds.c',
+	#'${BUILDPATH}/qvp_rtp_codec_video.c',
+	'${BUILDPATH}/qvp_rtp_log.c',
+	'${BUILDPATH}/qvp_rtp_service.c',
+	'${BUILDPATH}/qvp_rtp_codec_txt.c',
+	'${BUILDPATH}/qvp_srtp.c',
+]
+#-------------------------------------------------------------------------------
+# Changes for SVS Feature to not compile it for BO.2.6.2
+#-------------------------------------------------------------------------------
+QVP_RTP_LIB_C_NON_SVS_SOURCES=[
+	'${BUILDPATH}/qvp_rtp_app_cmd.c',
+	'${BUILDPATH}/qvp_rtp_codec.c',
+]
+
+
+QVP_RTP_LIB_C_SVS_SOURCES=[
+	'${BUILDPATH}/qvp_rtp_app_cmd_svs.c',
+	'${BUILDPATH}/qvp_rtp_codec_svs.c',
+]
+
+if 'USES_NO_IMS_SVS' in env:
+	QVP_RTP_LIB_C_SOURCES+=QVP_RTP_LIB_C_NON_SVS_SOURCES
+else:
+	QVP_RTP_LIB_C_SOURCES+=QVP_RTP_LIB_C_SVS_SOURCES
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+QVP_RTP_LIB_CPP_SOURCES=[
+	'${BUILDPATH}/qvp_rtp_dpl.cpp'
+]
+
+
+#-------------------------------------------------------------------------------
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Modem Image
+#-------------------------------------------------------------------------------
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/qvp_rtpcore', [QVP_RTP_LIB_C_SOURCES,QVP_RTP_LIB_CPP_SOURCES])
+
+# Build image for which this task belongs
+RCINIT_RTP = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_RTP = {
+            'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+            'init_name'           : 'qvp_rtp_task_init',
+            'init_function'       : 'qvp_rtp_task_init',            
+    }	
+
+# RC Init Task Dictionary
+RCINIT_TASK_RTP = {
+            'thread_name'          : 'qvp_rtp',
+            'sequence_group'       : env.subst('$MODEM_UPPERLAYER'),
+            'stack_size_bytes'     : env.subst('$QVP_RTP_STKSZ'),
+            'priority_amss_order'  : 'QVP_RTP_PRI_ORDER',
+            'stack_name'           : 'qvp_rtp_stack',
+            'thread_entry'         : 'qvp_rtp_task',
+            'tcb_name'             : 'qvp_rtp_tcb',
+            'cpu_affinity'         : 'REX_ANY_CPU_AFFINITY_MASK'
+}
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+ env.AddRCInitFunc(RCINIT_RTP, RCINIT_INIT_RTP)
+ env.AddRCInitTask(RCINIT_RTP , RCINIT_TASK_RTP)

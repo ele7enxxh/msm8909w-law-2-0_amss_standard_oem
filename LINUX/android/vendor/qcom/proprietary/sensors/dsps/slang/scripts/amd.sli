@@ -1,0 +1,34 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub main( @argv)
+{
+    my $client = slopen();
+
+    my $enable_req = slnew_req( "amd", "enable", {"report_period" => 1, "notify_suspend" => 1});
+    if ( defined( $enable_req)) {
+        print( "enable_req defined\n");
+    }
+
+    my $timeout = 3;
+    my $enable_resp = slsend_recv( $client, $enable_req, $timeout);
+    if ( defined( $enable_resp)) {
+        print( "enable_resp defined\n");
+    }
+
+    my ( $instance_id) = slget( $enable_resp, { instance_id} );
+    if ( defined( $instance_id)) {
+        print( "instance_id defined\n");
+    }
+
+    sleep( 10);
+
+    my $disable_req  = slnew_req( "amd", "disable");
+    my $disable_resp = slsend_recv( $client, $disable_req, $timeout);
+
+    slclose( $client);
+}
+
+

@@ -1,0 +1,345 @@
+ #===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/data/umts/umtscs/complete/rel/10.02.02/build/data_umts_umtscs.scons#5 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+	
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_DS",
+])
+
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'SECUREMSM',
+    'BUSES',
+    'DAL',
+    'MPROC',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    'TDSCDMA',
+    'ECALL',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+segment_load_public_api_list = [
+        ('CORE',                'BUSES'),
+        ('UTILS',               'OSYS'),
+        ('UTILS',               'A2'),
+        ('AVS',                 'MVS'),
+        ('UIM',                 'UIM'),
+        ('MPOWER',              'MPOWER'),
+        ('WCDMA',               'WCDMA'),
+        ('FW',                  'WCDMA'),
+        ('TDSCDMA',             'TDSCDMA'),
+        ('MCFG',                'MCFG'),
+        ('GPS',                 'GPS'),
+        ('RFA',                 'CDMA'),
+        ('RFA',                 'MEAS'),
+        ('FW',                  'GERAN'),
+        ('RFA',                 'LM'),
+        ('RFA',                 'GSM'),
+        ('RFA',                 'GNSS'),
+        ('RFA',                 'LTE'),
+        ('FW',                  'RF'),
+        ('FW',                  'COMMON'),
+        ]
+
+for api_area,api_name in segment_load_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    'FW',
+    'TDSCDMA',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+
+#-------------------------------------------------------------------------------
+# Necessary Multimedia Public API's
+#-------------------------------------------------------------------------------
+MM_PUBLIC_APIS = [
+    'AUDIO',
+    'MVS',
+    ]
+
+env.RequirePublicApi(MM_PUBLIC_APIS, area='multimedia')
+
+#-------------------------------------------------------------------------------
+# Non-compliant Private Header Include Paths (Must be removed for CRM builds)
+#-------------------------------------------------------------------------------
+#if ARGUMENTS.get('SCONS_VIOLATIONS_LEVEL',0) > 99:
+#print "SCONS VIOLATIONS enabled" 
+
+#env.PublishPrivateApi('VIOLATIONS',[
+#   '${INC_ROOT}/modem/datamodem/3gpp/csd/src',
+#   '${INC_ROOT}/core/systemdrivers/clk/inc',
+#   '${INC_ROOT}/modem/utils/oss/oss_asn1_rvds21/include',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/nv/src',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/core/src',
+#   '${INC_ROOT}/modem/rfa/rf/common/rf/rfc/src',
+#   '${INC_ROOT}/modem/rfa/rf/device/rtr8600_1x/inc',
+#   '${INC_ROOT}/modem/rfa/rf/device/rfdev_intf/inc',
+#   '${INC_ROOT}/modem/rfa/rf/hal/p2_1x/inc',
+#   '${INC_ROOT}/modem/rfa/rf/hal/common/inc',
+#   '${INC_ROOT}/modem/rfa/rf/wcdma/rf/mc/inc',
+#   '${INC_ROOT}/modem/rfa/rf/wcdma/rf/nv/inc',
+#   '${INC_ROOT}/modem/rfa/rf/gsm/rf/core/src',
+#   ])
+
+#env.RequirePrivateApi('VIOLATIONS')
+
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../.."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+UMTSCS_COMMON_SOURCES = [
+   '${BUILDPATH}/csd/src/dsucsdlog.c',
+   ]
+
+if 'USES_UMTS' in env:
+   UMTSCS_COMMON_SOURCES.extend([ '${BUILDPATH}/csd/src/dswcsdmshif.c', ])
+
+UMTSCS_APPS_SOURCES = [
+   '${BUILDPATH}/csd/src/dsucsdappif.c',
+   '${BUILDPATH}/csd/src/dsucsdbc.c',
+   '${BUILDPATH}/csd/src/dsucsdhdlr.c',
+   ]
+
+if 'USES_UMTS' in env:
+   UMTSCS_APPS_SOURCES.extend([
+      '${BUILDPATH}/csd/src/dswcsddl.c',
+      '${BUILDPATH}/csd/src/dswcsddltask.c',
+      '${BUILDPATH}/csd/src/dswcsdul.c',
+      '${BUILDPATH}/csd/src/dswcsdultask.c',
+      '${BUILDPATH}/csd/src/dswcsdv80.c',
+      ])
+
+UMTSCS_MODEM_SOURCES = [
+   '${BUILDPATH}/csd/src/dsfps.c',
+   '${BUILDPATH}/csd/src/dsgcsd_task.c',
+   '${BUILDPATH}/csd/src/dsgcsdfa.c',
+   '${BUILDPATH}/csd/src/dsgcsdfatrans.c',
+   '${BUILDPATH}/csd/src/dsgcsdl1if.c',
+   '${BUILDPATH}/csd/src/dsgcsdra0.c',
+   '${BUILDPATH}/csd/src/dsgcsdra1.c',
+   '${BUILDPATH}/csd/src/dsgcsdsio.c',
+   '${BUILDPATH}/csd/src/dsgcsdsio_iram.c',
+   '${BUILDPATH}/csd/src/dsgcsdtdata.c',
+   '${BUILDPATH}/csd/src/dst31.c',
+   '${BUILDPATH}/csd/src/dst31hdlc.c',
+   '${BUILDPATH}/csd/src/dst31sop.c',
+   '${BUILDPATH}/csd/src/dst31states.c',
+   '${BUILDPATH}/csd/src/dsucsddlpdu.c',
+   '${BUILDPATH}/csd/src/dsucsdmpshim.c',
+   '${BUILDPATH}/csd/src/dsucsdnt.c',
+   '${BUILDPATH}/csd/src/dsucsdremap.c',
+   '${BUILDPATH}/csd/src/dsucsdrlp.c',
+   '${BUILDPATH}/csd/src/dsucsdrlphw.c',
+   '${BUILDPATH}/csd/src/dsucsdtimer.c',
+   '${BUILDPATH}/csd/src/dsucsdulpdu.c',
+   '${BUILDPATH}/csd/src/dsucsdv42.c',
+   '${BUILDPATH}/csd/src/dsucsdv42_iram.c',
+   '${BUILDPATH}/csd/src/dsucsdv42buf.c',
+   '${BUILDPATH}/csd/src/dsucsdv42c.c',
+   '${BUILDPATH}/csd/src/dsucsdv42d.c',
+   ]
+
+if 'USES_UMTS' in env:
+   UMTSCS_MODEM_SOURCES.extend([
+      '${BUILDPATH}/csd/src/dswcsdntrlcif.c',
+      ])
+
+if 'USES_DATA_ON_APPS' in env:
+   # Dual processor build has split sources
+   if env.get('TARGET_IMAGE','') == 'APPS_PROC':
+      UMTSCS_SOURCES = UMTSCS_COMMON_SOURCES + UMTSCS_APPS_SOURCES
+
+   if env.get('TARGET_IMAGE','') == 'MODEM_PROC':
+      UMTSCS_SOURCES = UMTSCS_COMMON_SOURCES + UMTSCS_MODEM_SOURCES
+else:
+   # Single processor has all source
+   UMTSCS_SOURCES = UMTSCS_COMMON_SOURCES + UMTSCS_APPS_SOURCES + UMTSCS_MODEM_SOURCES
+
+
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/umtscs',[UMTSCS_SOURCES, ])
+
+# Build image for which this task belongs
+RCINIT_DSWCSD_UL  = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_DSWCSD_UL = {
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'init_name'           : 'dswcsd_ul_init',
+	    'init_function'       : 'dswcsd_ul_task_init',
+	    # 'dependencies'      : ['cfm']
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_DSWCSD_UL = {
+	    'thread_name'         : 'DSWCSD_UL',
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'stack_size_bytes'    : env.subst('$DSWCSD_UL_STKSZ'),
+	    'priority_amss_order' : 'DSWCSD_UL_PRI_ORDER',
+	    'stack_name'          : 'dswcsd_ul_stack',
+	    'thread_entry'        : 'dswcsd_ul_task',
+	    'tcb_name'            : 'dswcsd_ul_tcb',
+            'cpu_affinity'	  : env.subst('$MODEM_CPU_AFFINITY')
+    }
+
+# Add init function to RCInit
+if ('USES_MODEM_RCINIT' in env) and ('USES_UMTS' in env):
+	    env.AddRCInitFunc(RCINIT_DSWCSD_UL, RCINIT_INIT_DSWCSD_UL)
+	    env.AddRCInitTask(RCINIT_DSWCSD_UL, RCINIT_TASK_DSWCSD_UL)
+	
+# Build image for which this task belongs
+RCINIT_DSWCSD_DL  = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_DSWCSD_DL = {
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'init_name'           : 'dswcsd_dl_init',
+	    'init_function'       : 'dswcsd_dl_task_init',
+	    # 'dependencies'      : ['cfm']
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_DSWCSD_DL = {
+	    'thread_name'         : 'DSWCSD_DL',
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'stack_size_bytes'    : env.subst('$DSWCSD_DL_STKSZ'),
+	    'priority_amss_order' : 'DSWCSD_DL_PRI_ORDER',
+	    'stack_name'          : 'dswcsd_dl_stack',
+	    'thread_entry'        : 'dswcsd_dl_task',
+	    'tcb_name'            : 'dswcsd_dl_tcb',
+            'cpu_affinity'	  : env.subst('$MODEM_CPU_AFFINITY')
+    }
+
+# Add init function to RCInit
+if ('USES_MODEM_RCINIT' in env) and ('USES_UMTS' in env):
+		env.AddRCInitFunc(RCINIT_DSWCSD_DL, RCINIT_INIT_DSWCSD_DL)
+		env.AddRCInitTask(RCINIT_DSWCSD_DL, RCINIT_TASK_DSWCSD_DL)
+	
+# Build image for which this task belongs
+RCINIT_DS_GCSD  = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_DS_GCSD = {
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'init_name'           : 'ds_gcsd_init',
+	    'init_function'       : 'ds_gcsd_task_init',
+	    # 'dependencies'      : ['cfm']
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_DS_GCSD = {
+	    'thread_name'         : 'DS_GCSD',
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'stack_size_bytes'    : env.subst('$DS_GCSD_STKSZ'),
+	    'priority_amss_order' : 'DS_GCSD_PRI_ORDER',
+	    'stack_name'          : 'ds_gcsd_stack',
+	    'thread_entry'        : 'ds_gcsd_task',
+	    'tcb_name'            : 'Gcsd_tcb',
+            'cpu_affinity'	  : env.subst('$MODEM_CPU_AFFINITY')
+    }
+
+# Add init function to RCInit
+if ('USES_MODEM_RCINIT' in env) and ('USES_UMTS' in env or 'USES_TDSCDMA' in env ):
+		env.AddRCInitFunc(RCINIT_DS_GCSD, RCINIT_INIT_DS_GCSD)
+		env.AddRCInitTask(RCINIT_DS_GCSD, RCINIT_TASK_DS_GCSD)

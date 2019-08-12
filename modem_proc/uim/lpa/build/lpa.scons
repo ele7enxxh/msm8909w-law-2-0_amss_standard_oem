@@ -1,0 +1,150 @@
+##===============================================================================
+# LPA Subsystem build script
+# GENERAL DESCRIPTION
+#    build script for modem/uim/lpa
+#
+# Copyright (c) 2016 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/28/16   av      Move LPA task init to same group as qmiuim
+# 04/11/16   av      Initial version
+#
+#===============================================================================
+
+
+#-----------------------------------------
+# Import and clone the SCons environment
+#-----------------------------------------
+Import('env')
+env = env.Clone()
+
+# Verify that USES_RUIM is set, otherwise bail out now
+if 'USES_RUIM' not in env:
+    Return()
+
+#-----------------------------------------
+# Setup source PATH
+#-----------------------------------------
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-----------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-----------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_RUIM",
+])
+
+#-----------------------------------------
+# Necessary Public API's
+#-----------------------------------------
+CORE_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'DAL',
+    'SECUREMSM',
+    'MPROC',
+    'KERNEL',
+    ]
+
+UTILS_APIS = [
+    'OSYS',
+    'RTXSRC',
+    'RTSRC',
+    'RTPERSRC',
+    'RTBERSRC',
+    ]
+
+LPA_PUBLIC_APIS = [
+    'UIM',
+    'COMMON',
+    'UIMRMT',
+    ]
+
+# We need the UTILS API's
+# env.RequirePublicApi(UTILS_APIS, area="UTILS")
+
+env.RequirePublicApi([
+    'UIM',
+    'UTILS',
+    ])
+
+# We need the UIM "inc" dirs
+env.RequireRestrictedApi(['UIM'])
+
+#-----------------------------------------
+# Generate the library and add to an image
+#-----------------------------------------
+if env['PRODUCT_LINE'] in ['MPSS.JO.1.2', 'MPSS.JO.2.0', 'MPSS.TA.2.3', 'MPSS.AT.2.0']:
+  LPA_C_SOURCES = [
+      '${BUILDPATH}/lpa.c',
+      '${BUILDPATH}/lpa_cmd.c',
+      '${BUILDPATH}/lpalib.c',
+      '${BUILDPATH}/lpa_state.c',
+      '${BUILDPATH}/lpa_timer.c',
+      '${BUILDPATH}/lpa_http.c',
+      '${BUILDPATH}/lpa_json.c',
+      '${BUILDPATH}/lpa_mmgsdi.c',
+      '${BUILDPATH}/lpa_util.c',
+      '${BUILDPATH}/lpa_lpd.c',
+      '${BUILDPATH}/lpa_asn1_encoder.c',
+      '${BUILDPATH}/lpa_asn1_decoder.c',
+      '${BUILDPATH}/lpa_efs.c'
+  ]
+else:
+  LPA_C_SOURCES = [
+      '${BUILDPATH}/lpa_stubs.c'
+  ]
+
+# Add our library to the MODEM_AMSS image
+env.AddLibrary(['MODEM_MODEM','MOB_UIM'], '${BUILDPATH}/uim_lpa', LPA_C_SOURCES)
+
+# Load test units
+env.LoadSoftwareUnits()
+
+# Do not start the LPA task or compile the LPA code for any PL other than
+# this PL and its derivatives/CPLs. However, on mob, we need to start LPA
+# task to avoid introducing featurization in the UIM mob framework
+if env['PRODUCT_LINE'] in ['MPSS.JO.1.2', 'MPSS.JO.2.0', 'MPSS.TA.2.3', 'MPSS.AT.2.0']:
+  RCINIT_LPA = ['MODEM_MODEM','MOB_UIM']
+else:
+  RCINIT_LPA = ['MOB_UIM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_LPA = {
+            'sequence_group'      : 'RCINIT_GROUP_4',
+            'init_name'           : 'lpa_task_init',
+            'init_function'       : 'lpa_task_init',
+            'dependencies'        : []
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_LPA= {
+            'thread_name'         : 'lpa',
+            'sequence_group'      : 'RCINIT_GROUP_6',
+            'stack_size_bytes'    : '4096',
+            'priority_amss_order' : 'GSDI_PRI_ORDER',
+            'stack_name'          : 'lpa_stack',
+            'thread_entry'        : 'lpa_main',
+            'tcb_name'            : 'lpa_tcb',
+            'cpu_affinity'        : env.subst('$MODEM_CPU_AFFINITY')
+    }
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+        env.AddRCInitTask(RCINIT_LPA, RCINIT_TASK_LPA)
+        env.AddRCInitFunc(RCINIT_LPA, RCINIT_INIT_LPA)

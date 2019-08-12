@@ -1,0 +1,29 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub main( @argv)
+{
+    my ( $filename, $string, $iterations) = @argv;
+
+    if ( !( defined( $filename) && defined( $string) && defined( $iterations))) {
+        print( "usage -args=filname,data,iterations\n");
+        return;
+    }
+
+    my $fd = fopen( $filename, "w");
+    if ( !defined( $fd)) {
+        print( "fopen fd fail\n");
+        return;
+    }
+    my $i = 0;
+    while ( $i < $iterations) {
+        my $output = sprint( "$string $i\n");
+        my $length = fwrite( $fd, $output);
+        $i += 1;
+    }
+
+    my $rc = fclose( $fd);
+    print( "fclose rc $rc\n");
+}

@@ -1,0 +1,82 @@
+#===============================================================================
+#
+# Boot Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2009-2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/dev/pconnors.pconnors_apq8064_1025/boot_images/core/boot/build/boot.scons#1 $
+#  $DateTime: 2011/10/25 12:51:50 $
+#  $Author: coresvc $
+#  $Change: 2001975 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 07/29/11   kpa     Support compilation for new PW1.2 structure.
+# 03/22/11   aus     Renaming from $MSM_ID to $CHIPSET
+# 11/17/10   dxiang  Add support for Boot API Document Generation 
+# 08/06/10   sl      Moved DDR from Protected Boot API to Restricted.
+# 07/30/10   aus     Clean-up for secboot3
+# 06/22/10   sl      Added path for DDR
+# 06/01/10   plc     Refactored for SB3.0
+# 03/03/10   plc     Added RPMSBL paths
+# 12/21/09   aus     Moved MIBIB to Restricted paths
+# 11/25/09   aus     Added path for FOTA
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+#---------------------------------------------------------------------------
+# Set up the rules for document building for Boot API
+#---------------------------------------------------------------------------
+env['DOCREVISION']="80-0000 Rev A"
+env['DOCTITLE']="BOOT API (DDR/QFPROM)"
+
+DOCSRCPATH = "${BUILD_ROOT}/core/api/boot"
+env.Replace(DOCSRCPATH = DOCSRCPATH)
+
+#---------------------------------------------------------------------------
+# List of Header files relevant to the Boot API 
+#---------------------------------------------------------------------------
+ddr_api_docs = [
+    '${DOCSRCPATH}/ddr_common.h', 
+    '${DOCSRCPATH}/ddr_drivers.h',
+    '${DOCSRCPATH}/npa_ddr.h',
+    '${DOCSRCPATH}/docsrc/ddr/ddr_mainpage.h',
+    '${DOCSRCPATH}/docsrc/introduction.tex',
+    '${DOCSRCPATH}/docsrc/overview.tex',
+     ]
+
+qfprom_api_docs = [
+    '${DOCSRCPATH}/qfprom/qfprom.h', 
+    '${DOCSRCPATH}/docsrc/qfprom/qfprom_mainpage.h',
+    '${DOCSRCPATH}/docsrc/introduction.tex',
+    '${DOCSRCPATH}/docsrc/overview.tex',
+     ]
+
+#---------------------------------------------------------------------------
+# Finally call the builder with the name of the document. The Boot API documents
+# can be found under \core\api\doc if the coredocs are built.
+#---------------------------------------------------------------------------
+try:
+   target_doc = env.AddDocument('CORE_DOCS','DDR_API', ddr_api_docs)
+   target_doc = env.AddDocument('CORE_DOCS','QFPROM_API', qfprom_api_docs)
+
+except:
+   pass
+

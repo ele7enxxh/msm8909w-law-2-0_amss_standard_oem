@@ -1,0 +1,46 @@
+#===============================================================================
+#
+# BOOT INC PATHs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2009-2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/rpm/dev/tomwang.rpm_ddr_126_fix/core/boot/build/paths.sconscript#1 $
+#  $DateTime: 2012/04/04 12:41:53 $
+#  $Author: coresvc $
+#  $Change: 2321954 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who       what, where, why
+# --------   ---       ---------------------------------------------------------
+# 04/05/12   tw        Initial port for 8974
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# these are accecible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('BOOT', [ "${INC_ROOT}/core/api/boot" ])
+
+#-------------------------------------------------------------------------------
+# Publish Restricted APIs
+# these are accecible only within CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishRestrictedApi('BOOT', [
+   "${INC_ROOT}/core/boot/ddr/common",
+])
+
+env.PublishRestrictedApi('BOOT_TOOLS', [
+   "${INC_ROOT}/core/api/boot",
+])

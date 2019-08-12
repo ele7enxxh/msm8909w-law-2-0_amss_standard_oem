@@ -1,0 +1,142 @@
+#===============================================================================
+#
+# TMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/framework/build/ims_framework.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+
+# Execute the sconsript in which the variables needs to be imported for the Current Script
+# and export the current environment to that script into which the variables will be exported to the it's export list
+# Import the required Variables from the export list of the Environment to which the other script file has added
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../'
+
+env.VariantDir('${BUILDPATH}',SRCPATH, duplicate=0)
+
+env.PublishPrivateApi('IMS_FRAMEWORK_INC', [ 
+"${INC_ROOT}/modem/ims/framework/coreutils/src",
+"${INC_ROOT}/modem/ims/framework/coreutils/src/amss",
+"${INC_ROOT}/modem/ims/framework/maf/src",
+"${INC_ROOT}/modem/ims/framework/osih/src",
+"${INC_ROOT}/modem/ims/framework/singo/src",
+])
+
+IMS_API = [
+	'IMS_DPL',	
+	'IMS_SIP',
+	'IMS_IMSCORE',
+	'IMS_FRAMEWORK',
+	'IMS_REGMGR',
+	'IMS_UT',
+	'IMS_APCS',
+	'IMS_PM']
+
+env.RequireProtectedApi(IMS_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+IMS_FRAMEWORK_FLAGS = ['AEE_STATIC',                          
+'MAF_NO_GLOBALS',                          
+'QMAF',
+]
+
+IMS_FRAMEWORK_LIB_C_SOURCES = [
+]
+
+IMS_FRAMEWORK_LIB_CPP_SOURCES=[
+	'${BUILDPATH}/coreutils/src/QimfEvManager.cpp',
+	'${BUILDPATH}/coreutils/src/QimfHttp.cpp',
+	'${BUILDPATH}/coreutils/src/QpConnection.cpp',
+        '${BUILDPATH}/coreutils/src/qpGAAGBAAuth.cpp',
+	'${BUILDPATH}/osih/src/osihAppInit.cpp',
+	'${BUILDPATH}/osih/src/osihCall.cpp',
+	'${BUILDPATH}/osih/src/osihIpc.cpp',
+	'${BUILDPATH}/osih/src/osihNet.cpp',
+	'${BUILDPATH}/osih/src/osMsg.cpp',
+	'${BUILDPATH}/maf/src/mafErrorHandler.cpp',
+	'${BUILDPATH}/maf/src/MafEvManagerAObj.cpp',
+	'${BUILDPATH}/maf/src/mafGlobals.cpp',
+	'${BUILDPATH}/maf/src/mafFSM.cpp',
+	'${BUILDPATH}/maf/src/mafInit.cpp',
+	'${BUILDPATH}/maf/src/mafMessage.cpp',
+	'${BUILDPATH}/maf/src/mafModule.cpp',
+	'${BUILDPATH}/maf/src/MafTimer.cpp',
+	'${BUILDPATH}/maf/src/mafTrace.cpp',
+	'${BUILDPATH}/maf/src/mafutils.cpp',
+	'${BUILDPATH}/maf/src/mafWorkerThread.cpp',
+	'${BUILDPATH}/singo/src/singoConfig.cpp',
+	'${BUILDPATH}/singo/src/SingoCallEvManager.cpp',
+	'${BUILDPATH}/singo/src/SingoSysErrEvManager.cpp',
+	'${BUILDPATH}/singo/src/SingoTimersEvManager.cpp',
+	'${BUILDPATH}/coreutils/src/qpOsihMmi.cpp',
+	'${BUILDPATH}/coreutils/src/qpCapabilityResult.cpp',
+	'${BUILDPATH}/coreutils/src/QpPDNIPTypeManager.cpp',	
+	'${BUILDPATH}/coreutils/src/HttpUtility.cpp',
+]
+if not 'USES_IMS_NO_MEDIA' in env:
+   IMS_FRAMEWORK_LIB_CPP_SOURCES += [
+      '${BUILDPATH}/maf/src/MafAudioHandlerAObj.cpp',
+]
+
+if not 'USES_IMS_NO_SDP' in env:
+   IMS_FRAMEWORK_LIB_CPP_SOURCES += [
+      '${BUILDPATH}/coreutils/src/QOSHelper.cpp',
+]
+
+IMS_FRAMEWORK_LIB_C_SOURCES += [
+    '${BUILDPATH}/coreutils/src/qpAppConfigIds.c',
+    '${BUILDPATH}/coreutils/src/amss/qpConfig.c',
+    '${BUILDPATH}/coreutils/src/qpTcConfig.c',
+]
+
+IMS_FRAMEWORK_MSRP_CPP_SOURCES = [
+	'${BUILDPATH}/coreutils/src/qpDataConnMgmtSingleton.cpp',
+	'${BUILDPATH}/coreutils/src/QPMsrp.cpp',
+	'${BUILDPATH}/coreutils/src/QPMsrpParser.cpp',
+	'${BUILDPATH}/singo/src/SingoMSRPEvManager.cpp',
+	'${BUILDPATH}/coreutils/src/QpMsrpSessionManager.cpp',
+]
+
+IMS_FRAMEWORK_MSRP_C_SOURCES = [
+]
+
+IMS_FRAMEWORK_OTHER_C_SOURCES = ['${BUILDPATH}/osih/src/osihAudio.cpp','${BUILDPATH}/coreutils/src/BufferPool.cpp']
+
+if not 'USES_IMS_NO_MSRP' in env:
+   IMS_FRAMEWORK_LIB_CPP_SOURCES += IMS_FRAMEWORK_MSRP_CPP_SOURCES
+   IMS_FRAMEWORK_LIB_C_SOURCES += IMS_FRAMEWORK_MSRP_C_SOURCES
+
+env.Append(CPPDEFINES = IMS_FRAMEWORK_FLAGS)
+   
+
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/ims_framework', [IMS_FRAMEWORK_LIB_CPP_SOURCES,IMS_FRAMEWORK_LIB_C_SOURCES])

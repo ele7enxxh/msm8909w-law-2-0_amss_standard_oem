@@ -1,0 +1,114 @@
+#===============================================================================
+#
+# smecom_ixosal_shared Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/securemsm/smecom/main/latest/ixosal/shared/build/SConscript$
+#  $DateTime: $
+#  $Author: nkotekar$
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/30/10   nk      Initial Revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/smecom"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+   'MODEM_API',
+   'MODEM_UIM',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+SME_PROTECTED_API = [
+                      'DRMCOM',
+                      'DRMOMA',
+                      'DRMMS',
+                      'SMECOM',
+                      'CHDLR',
+                      'CHDLRCOM',
+                      'SMESQL',
+                      'STATICEXT',
+]
+env.RequireProtectedApi(SME_PROTECTED_API)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = ['_ARM_', '__arm', 'ARM', 'ARM_BREW_BUILD'])
+env.Append(ARMCC_OPT = ' -Ec --loose_implicit_cast ')
+env.Append(ARMCPP_OPT = ' -Ec --loose_implicit_cast ')
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------
+# IxOSAL Shared Interface
+#----------------------------------------------------------------------------
+IXOSAL_C_SHARED_SOURCES = [
+	'${BUILDPATH}/ixosal/shared/src/IxOSLock.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+IXOSAL_SHARED_IMAGES = [
+	'SINGLE_IMAGE', 
+	'CBSP_SINGLE_IMAGE',
+	'MODEM_IMAGE',  
+	'CBSP_MODEM_IMAGE',
+	'APPS_IMAGE',   
+	'CBSP_APPS_IMAGE',
+	'QDSP6_SW_IMAGE', 
+	'CBSP_QDSP6_SW_IMAGE'
+]
+
+if env.has_key('USES_SEC'):
+	env.AddBinaryLibrary(IXOSAL_SHARED_IMAGES,'${BUILDPATH}/sme_ixosal_shared', IXOSAL_C_SHARED_SOURCES)

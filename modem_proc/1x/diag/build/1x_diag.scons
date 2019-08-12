@@ -1,0 +1,242 @@
+#==============================================================================#
+#
+#           1 X / D I A G   S C O N S   C O N F I G U R A T I O N
+#
+# GENERAL DESCRIPTION
+#    SCons build script for modem/1x/diag
+#
+# Copyright (c) 2010 - 2013 Qualcomm Technologies, Inc. 
+# All Rights Reserved Qualcomm Proprietary
+# 
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+# 
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies, Inc. and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies, Inc.
+#
+#------------------------------------------------------------------------------#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/1x/diag/build/1x_diag.scons#1 $
+#------------------------------------------------------------------------------#
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ----------------------------------------------------------
+# 03/07/13   trc     Replace AddLibsToImage() with AddLibrary() Scons API
+# 01/18/13   srk     Scons cleanup
+# 05/10/11   vks     Add MPROC to the CORE API.
+# 05/09/11   vks     Add UTILS to the modem api.
+# 04/11/11   vks     Add FW to the modem api.
+# 02/02/11   vks     Add LTE to the modem api.
+# 10/14/10   cjb     Workaround for "clk.h".
+# 10/08/10   cjb     Added USES_FLAGS and DEBUG ON/OFF feature support.
+# 09/10/10   cjb     Initial revision.
+#
+#==============================================================================#
+
+################################################################################
+# SIMPLE CONFIGURABLE ITEMS
+################################################################################
+#----------------------------------------------------------------------------#
+# Name of the subsystem to which this unit belongs
+#----------------------------------------------------------------------------#
+SU_NAME = 'ONEX'
+
+#----------------------------------------------------------------------------#
+# Name of this unit
+#----------------------------------------------------------------------------#
+VU_NAME = 'DIAG'
+
+#----------------------------------------------------------------------------#
+# Source path
+#----------------------------------------------------------------------------#
+# The path to the source files
+SRCPATH = '../src'
+
+#----------------------------------------------------------------------------#
+# Source files
+# NOTE:
+#     The source files. Either [] or list the files individually
+#     e.g. SRC_FILES = ['foo.c', 'folder/bar.c']
+#----------------------------------------------------------------------------#
+SRC_FILES = []
+
+#----------------------------------------------------------------------------#
+# Published APIs
+#----------------------------------------------------------------------------#
+# RESTRICTED Include Paths for the rest of Modem (if not necessary, set to '')
+RESTRICTED_API = ''
+
+# PROTECTED Include Paths for VUs within the SU (if not necessary, set to '')
+PROTECTED_API = '../inc'
+
+# PRIVATE Include Paths for the VU (if not necessary, set to '')
+PRIVATE_API = ''
+
+#----------------------------------------------------------------------------#
+# Required external APIs
+#----------------------------------------------------------------------------#
+CORE_APIS = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'MPROC',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'SECUREMSM',
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+MODEM_APIS = [
+    'DATA',
+    'FW',
+    'GERAN',
+    'HDR',
+    'LTE',
+    'MCS',
+    'MDSP',
+    'MMODE',
+    'NAS',
+    'RFA',
+    'UIM',
+    'UTILS',
+    'WMS',
+    ]
+
+#----------------------------------------------------------------------------#
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#----------------------------------------------------------------------------#
+REQUIRED_NON_SCONS_APIS = []
+
+#----------------------------------------------------------------------------#
+# Images the SU will be loaded into (MODEM_APPS and/or MODEM_AMSS)
+#----------------------------------------------------------------------------#
+IMAGES = [
+    'MODEM_MODEM',
+    ]
+
+################################################################################
+# SCONS
+# NOTE: It should not normally be necessary to edit anything below this line.
+################################################################################
+from glob import glob
+from os.path import join, basename
+
+#----------------------------------------------------------------------------#
+# Setup SCons environment
+#----------------------------------------------------------------------------#
+Import('env')
+env = env.Clone()
+
+#----------------------------------------------------------------------------#
+# Check for USES Flags
+#----------------------------------------------------------------------------#
+# Verify that USES_CDMA is set, otherwise bail out now
+if 'USES_CDMA' not in env:
+    Return()
+
+#----------------------------------------------------------------------------#
+# Enable/Disable DEBUG information
+#----------------------------------------------------------------------------#
+# turn OFF debug if requested
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+# turn ON debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2")
+    env.Replace(HEXAGON_DBG = "-g")
+    env.Replace(GCC_DBG = "-g")
+
+#----------------------------------------------------------------------------#
+# Setup source PATH
+#----------------------------------------------------------------------------#
+#FULL_SRCPATH = join('${BUILD_ROOT}',SRCPATH)
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#----------------------------------------------------------------------------#
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#----------------------------------------------------------------------------#
+#env.Append(CPPDEFINES = [
+#   'MSG_BT_SSID_DFLT=MSG_SSID_DIAG',
+#])
+
+#----------------------------------------------------------------------------#
+# Publish Restricted Include Paths
+#----------------------------------------------------------------------------#
+#if RESTRICTED_API != '':
+# env.PublishRestrictedApi(SU_NAME, [join('${ONEX_ROOT}', RESTRICTED_API)])
+
+#----------------------------------------------------------------------------#
+# Publish Protected Include Paths
+#----------------------------------------------------------------------------#
+if PROTECTED_API != '':
+ #env.PublishProtectedApi(VU_NAME, [join('${ONEX_ROOT}', PROTECTED_API)])
+ env.PublishProtectedApi(VU_NAME, [PROTECTED_API])
+
+#----------------------------------------------------------------------------#
+# Publish Private Include Paths
+#----------------------------------------------------------------------------#
+#if PRIVATE_API != '':
+# env.PublishPrivateApi(VU_NAME, [join('${ONEX_ROOT}', PRIVATE_API)])
+
+#----------------------------------------------------------------------------#
+################## Workaround for "clk.h" dependency issue ###################
+#----------------------------------------------------------------------------#
+#env.PublishPrivateApi('VIOLATIONS',
+#                     ['${INC_ROOT}/core/systemdrivers/clk/inc'])
+
+#----------------------------------------------------------------------------#
+# Request necessary APIs
+#----------------------------------------------------------------------------#
+# ----- We need the following PUBLIC APIs (from outside our area) ----- #
+env.RequirePublicApi(CORE_APIS, area='CORE')
+
+# ----- We also need PUBLIC/RESTRICTED APIs (in same area as we are) ----- #
+env.RequirePublicApi(MODEM_APIS)
+env.RequireRestrictedApi(MODEM_APIS)
+
+# ----- Need to get access to SU's own Public headers ----- #
+env.RequirePublicApi(SU_NAME)
+env.RequireRestrictedApi(SU_NAME)
+
+# ----- We need our PROTECTED API too ("inc" dir of the <VU>) ----- #
+if PROTECTED_API != '':
+  env.RequireProtectedApi(VU_NAME)
+
+# ----- We need our PRIVATE API too ("protected" dir of the <VU>) ----- #
+if PRIVATE_API != '':
+  env.RequirePrivateApi(VU_NAME)
+
+# ----- We need EXTERNAL API (not built with SCons) ----- #
+if REQUIRED_NON_SCONS_APIS != []:
+  env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#----------------------------------------------------------------------------#
+# Generate the library and add to an image
+#----------------------------------------------------------------------------#
+if SRC_FILES == []:
+  # ----- Construct the list of source files by looking for *.c ----- #
+  SOURCES = ['${BUILDPATH}/' + basename(fname)
+                for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+else:
+  # ----- Construct the list of source files from the given list ----- #
+  SOURCES = ['${BUILDPATH}/' + fname
+                for fname in SRC_FILES]
+
+# ----- Add our library to the ModemApps image ----- #
+env.AddLibrary(IMAGES, join('${BUILDPATH}', VU_NAME.lower()), SOURCES)

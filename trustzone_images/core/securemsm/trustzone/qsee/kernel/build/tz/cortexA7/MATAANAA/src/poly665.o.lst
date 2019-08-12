@@ -1,0 +1,258 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000                 EXPORT           poly665_hash
+    2 00000000                 EXPORT           poly665_hash_copy
+    3 00000000                 PRESERVE8
+    4 00000000                 CODE32
+    5 00000000                 AREA             TZBSP_ASM, CODE, READONLY, alig
+n=2
+    6 00000000         poly665_hash
+                               FUNCTION
+    7 00000000 E92D0FF0        push             {r4-r11}
+    8 00000004 E3C33007        bic              r3, r3, #0x7
+    9 00000008 E8910030        ldmia            r1, {r4-r5}
+   10 0000000C E0266006        eor              r6, r6, r6
+   11 00000010 E0277007        eor              r7, r7, r7
+   12 00000014 E0288008        eor              r8, r8, r8
+   13 00000018 E8B20C00 
+                       1       ldmia            r2!, {r10-r11}
+   14 0000001C E096600A        adds             r6, r6, r10
+   15 00000020 E0B7700B        adcs             r7, r7, r11
+   16 00000024 E2B88001        adcs             r8, r8, #1
+   17 00000028 E0211001        eor              r1, r1, r1
+   18 0000002C E08A9694        umull            r9, r10, r4, r6
+   19 00000030 E08CB794        umull            r11, r12, r4, r7
+   20 00000034 E04BA695        umaal            r10, r11, r5, r6
+   21 00000038 E04CB894        umaal            r11, r12, r4, r8
+   22 0000003C E04B1795        umaal            r1, r11, r5, r7
+   23 00000040 E04CB895        umaal            r11, r12, r5, r8
+   24 00000044 E2018003        and              r8, r1, #0x3
+   25 00000048 E3C11003        bic              r1, r1, #0x3
+   26 0000004C E0996001        adds             r6, r9, r1
+   27 00000050 E0BA700B        adcs             r7, r10, r11
+   28 00000054 E0B8800C        adcs             r8, r8, r12
+   29 00000058 E0966121        adds             r6, r6, r1, lsr #2
+   30 0000005C E0B7712B        adcs             r7, r7, r11, lsr #2
+   31 00000060 E0B8812C        adcs             r8, r8, r12, lsr #2
+   32 00000064 E0966F0B        adds             r6, r6, r11, lsl #30
+   33 00000068 E0B77F0C        adcs             r7, r7, r12, lsl #30
+   34 0000006C E2B88000        adcs             r8, r8, #0
+   35 00000070 E3C81003        bic              r1, r8, #0x3
+   36 00000074 E2088003        and              r8, r8, #0x3
+   37 00000078 E0811121        add              r1, r1, r1, lsr #2
+   38 0000007C E0966001        adds             r6, r6, r1
+   39 00000080 E2B77000        adcs             r7, r7, #0
+   40 00000084 E2B88000        adcs             r8, r8, #0
+   41 00000088 E2533008        subs             r3, r3, #8
+   42 0000008C 1AFFFFE1        bne              %b1
+   43 00000090 E3C81003        bic              r1, r8, #0x3
+   44 00000094 E2088003        and              r8, r8, #0x3
+   45 00000098 E0811121        add              r1, r1, r1, lsr #2
+   46 0000009C E0966001        adds             r6, r6, r1
+   47 000000A0 E2B77000        adcs             r7, r7, #0
+   48 000000A4 E2B88000        adcs             r8, r8, #0
+   49 000000A8 E3C81003        bic              r1, r8, #0x3
+   50 000000AC E2088003        and              r8, r8, #0x3
+   51 000000B0 E0811121        add              r1, r1, r1, lsr #2
+   52 000000B4 E0966001        adds             r6, r6, r1
+   53 000000B8 E2B77000        adcs             r7, r7, #0
+   54 000000BC E2B88000        adcs             r8, r8, #0
+   55 000000C0 E3E02004        mvn              r2, #0x4
+   56 000000C4 E3E03000        mvn              r3, #0x0
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   57 000000C8 E0562002        subs             r2, r6, r2
+   58 000000CC E0D73003        sbcs             r3, r7, r3
+   59 000000D0 E2D84003        sbcs             r4, r8, #0x3
+   60 000000D4 E1A04FC4        asr              r4, r4, #31
+   61 000000D8 E0066004        and              r6, r6, r4
+   62 000000DC E0077004        and              r7, r7, r4
+   63 000000E0 E1C22004        bic              r2, r2, r4
+   64 000000E4 E1C33004        bic              r3, r3, r4
+   65 000000E8 E1866002        orr              r6, r6, r2
+   66 000000EC E1877003        orr              r7, r7, r3
+   67 000000F0 E88000C0        stmia            r0, {r6-r7}
+   68 000000F4 E8BD0FF0        pop              {r4-r11}
+   69 000000F8 E12FFF1E        bx               lr
+   70 000000FC                 ENDFUNC
+   71 000000FC         poly665_hash_copy
+                               FUNCTION
+   72 000000FC E92D0FF0        push             {r4-r11}
+   73 00000100 E52D0004        push             {r0}
+   74 00000104 E59D0024        ldr              r0, [sp, #36]
+   75 00000108 E3C33007        bic              r3, r3, #0x7
+   76 0000010C E8910030        ldmia            r1, {r4-r5}
+   77 00000110 E0266006        eor              r6, r6, r6
+   78 00000114 E0277007        eor              r7, r7, r7
+   79 00000118 E0288008        eor              r8, r8, r8
+   80 0000011C E8B20C00 
+                       1       ldmia            r2!, {r10-r11}
+   81 00000120 E8A00C00        stmia            r0!, {r10-r11}
+   82 00000124 E096600A        adds             r6, r6, r10
+   83 00000128 E0B7700B        adcs             r7, r7, r11
+   84 0000012C E2B88001        adcs             r8, r8, #1
+   85 00000130 E0211001        eor              r1, r1, r1
+   86 00000134 E08A9694        umull            r9, r10, r4, r6
+   87 00000138 E08CB794        umull            r11, r12, r4, r7
+   88 0000013C E04BA695        umaal            r10, r11, r5, r6
+   89 00000140 E04CB894        umaal            r11, r12, r4, r8
+   90 00000144 E04B1795        umaal            r1, r11, r5, r7
+   91 00000148 E04CB895        umaal            r11, r12, r5, r8
+   92 0000014C E2018003        and              r8, r1, #0x3
+   93 00000150 E3C11003        bic              r1, r1, #0x3
+   94 00000154 E0996001        adds             r6, r9, r1
+   95 00000158 E0BA700B        adcs             r7, r10, r11
+   96 0000015C E0B8800C        adcs             r8, r8, r12
+   97 00000160 E0966121        adds             r6, r6, r1, lsr #2
+   98 00000164 E0B7712B        adcs             r7, r7, r11, lsr #2
+   99 00000168 E0B8812C        adcs             r8, r8, r12, lsr #2
+  100 0000016C E0966F0B        adds             r6, r6, r11, lsl #30
+  101 00000170 E0B77F0C        adcs             r7, r7, r12, lsl #30
+  102 00000174 E2B88000        adcs             r8, r8, #0
+  103 00000178 E3C81003        bic              r1, r8, #0x3
+  104 0000017C E2088003        and              r8, r8, #0x3
+  105 00000180 E0811121        add              r1, r1, r1, lsr #2
+  106 00000184 E0966001        adds             r6, r6, r1
+  107 00000188 E2B77000        adcs             r7, r7, #0
+  108 0000018C E2B88000        adcs             r8, r8, #0
+  109 00000190 E2533008        subs             r3, r3, #8
+  110 00000194 1AFFFFE0        bne              %b1
+  111 00000198 E3C81003        bic              r1, r8, #0x3
+  112 0000019C E2088003        and              r8, r8, #0x3
+  113 000001A0 E0811121        add              r1, r1, r1, lsr #2
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+  114 000001A4 E0966001        adds             r6, r6, r1
+  115 000001A8 E2B77000        adcs             r7, r7, #0
+  116 000001AC E2B88000        adcs             r8, r8, #0
+  117 000001B0 E3C81003        bic              r1, r8, #0x3
+  118 000001B4 E2088003        and              r8, r8, #0x3
+  119 000001B8 E0811121        add              r1, r1, r1, lsr #2
+  120 000001BC E0966001        adds             r6, r6, r1
+  121 000001C0 E2B77000        adcs             r7, r7, #0
+  122 000001C4 E2B88000        adcs             r8, r8, #0
+  123 000001C8 E3E02004        mvn              r2, #0x4
+  124 000001CC E3E03000        mvn              r3, #0x0
+  125 000001D0 E0562002        subs             r2, r6, r2
+  126 000001D4 E0D73003        sbcs             r3, r7, r3
+  127 000001D8 E2D84003        sbcs             r4, r8, #0x3
+  128 000001DC E1A04FC4        asr              r4, r4, #31
+  129 000001E0 E0066004        and              r6, r6, r4
+  130 000001E4 E0077004        and              r7, r7, r4
+  131 000001E8 E1C22004        bic              r2, r2, r4
+  132 000001EC E1C33004        bic              r3, r3, r4
+  133 000001F0 E1866002        orr              r6, r6, r2
+  134 000001F4 E1877003        orr              r7, r7, r3
+  135 000001F8 E49D0004        pop              {r0}
+  136 000001FC E88000C0        stmia            r0, {r6-r7}
+  137 00000200 E8BD0FF0        pop              {r4-r11}
+  138 00000204 E12FFF1E        bx               lr
+  139 00000208                 ENDFUNC
+  140 00000208                 END
+Command Line: --debug --dwarf2 --diag_suppress=1480,1786,2523,1786,2523 --cpu=C
+ortex-A7 --fpu=SoftVFP --apcs=/noswst/interwork -o/local/mnt/workspace/CRMBuild
+s/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/
+securemsm/trustzone/qsee/kernel/build/tz/cortexA7/MATAANAA/src/poly665.o -I/loc
+al/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454
+/b/trustzone_images/core/securemsm/trustzone/qsee/kernel/build -I/local/mnt/wor
+kspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzo
+ne_images/build/cust -I. -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M
+8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qse
+e/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2
+_20161130_222454/b/trustzone_images/core/api/services -I/local/mnt/workspace/CR
+MBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images
+/core/api/rapi/services/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-0000
+4-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/dal -I/local/mnt
+/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/tru
+stzone_images/core/api/systemdrivers -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5
+.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/systemd
+rivers/pmic -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT
+-2_20161130_222454/b/trustzone_images/core/api/systemdrivers/hwio/msm8909w -I/l
+ocal/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_2224
+54/b/trustzone_images/core/api/systemdrivers/hwio/msm8909w/phys -I/local/mnt/wo
+rkspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustz
+one_images/core/kernel/lk/kernel/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5
+.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/lk/a
+rch/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_2
+0161130_222454/b/trustzone_images/core/kernel/lk/platform/inc -I/local/mnt/work
+space/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzon
+e_images/core/kernel/vmidmt/hal/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.
+c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/vmidm
+t/hal/inc/8909w -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAA
+NAZT-2_20161130_222454/b/trustzone_images/core/kernel/xpu2/hal/inc -I/local/mnt
+/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/tru
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+stzone_images/core/kernel/xpu2/hal/inc/8909w -I/local/mnt/workspace/CRMBuilds/T
+Z.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/ker
+nel/mmu/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT
+-2_20161130_222454/b/trustzone_images/core/kernel/hypervisor/inc -I/local/mnt/w
+orkspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trust
+zone_images/core/kernel/hypervisor/inc/8909w -I/local/mnt/workspace/CRMBuilds/T
+Z.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/ker
+nel/smmu/smmu500 -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAA
+ANAZT-2_20161130_222454/b/trustzone_images/core/kernel/smmu/smmu500/8909w/tz -I
+/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_22
+2454/b/trustzone_images/core/systemdrivers/busywait/inc -I/local/mnt/workspace/
+CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_imag
+es/core/systemdrivers/clk/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00
+004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/systemdrivers/hal/
+qgic/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_
+20161130_222454/b/trustzone_images/core/securemsm/unifiedcrypto/shared/sha/src 
+-I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_
+222454/b/trustzone_images/core/securemsm/unifiedcrypto/shared/sha/inc -I/local/
+mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/
+trustzone_images/core/securemsm/unifiedcrypto/environment/inc -I/local/mnt/work
+space/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzon
+e_images/core/securemsm/unifiedcrypto/core/sha/inc -I/local/mnt/workspace/CRMBu
+ilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/co
+re/securemsm/cryptodrivers/ce/shared/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF
+.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securem
+sm/trustzone/qsee/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-
+M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qs
+ee/arch/armv7/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M890
+9AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/secmath/shared/i
+nc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_201611
+30_222454/b/trustzone_images/core/securemsm/secrsa/shared/inc -I/local/mnt/work
+space/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzon
+e_images/core/securemsm/secrsa/shared/src -I/local/mnt/workspace/CRMBuilds/TZ.B
+F.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/secure
+msm/secboot/api -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAA
+NAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/arch/ms
+m8909/cfg/mmu -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANA
+ZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/arch/msm8
+909/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_2
+0161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/arch/common/inc
+ -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130
+_222454/b/trustzone_images/core/securemsm/trustzone/qsee/services/ks/inc -I/loc
+al/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454
+/b/trustzone_images/core/securemsm/trustzone/qsee/kernel/inc -I/local/mnt/works
+pace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone
+_images/core/securemsm/trustzone/qsee/sec_app/inc -I/local/mnt/workspace/CRMBui
+lds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/cor
+e/securemsm/trustzone/qsee/services/elfloader/inc -I/local/mnt/workspace/CRMBui
+lds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/cor
+e/securemsm/trustzone/qsee/services/external -I/local/mnt/workspace/CRMBuilds/T
+Z.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/sec
+uremsm/trustzone/qsee/services/fuseprov/inc --list=/local/mnt/workspace/CRMBuil
+ds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core
+/securemsm/trustzone/qsee/kernel/build/tz/cortexA7/MATAANAA/src/poly665.o.lst -
+-sitelicense /local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-
+2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/kernel/build
+/tz/cortexA7/MATAANAA/src/poly665.o.i

@@ -1,0 +1,95 @@
+#==============================================================================
+#
+# Unified Image Encryption Library
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#==============================================================================
+Import('env')
+env = env.Clone()
+
+env.Append(CPPPATH='${COREBSP_ROOT}/securemsm/uie/inc')
+env.Append(CPPPATH='${COREBSP_ROOT}/securemsm/uie/src')
+env.Append(CPPPATH='${COREBSP_ROOT}/securemsm/uie/chipset/${CHIPSET}/src')
+env.Append(CPPPATH='${COREBSP_ROOT}/securemsm/secboot/hw/secctrl/src')
+env.Append(CCFLAGS='-Wall -Werror')
+
+#------------------------------------------------------------------------------
+# Source PATH
+#------------------------------------------------------------------------------
+SRCPATH = "${COREBSP_ROOT}/securemsm/uie"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#------------------------------------------------------------------------------
+CBSP_API = [
+    'DAL',
+    'DEBUGTOOLS',
+    'HAL',
+    'MPROC',
+    'SECUREMSM',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'BOOT',
+    'HWENGINES',
+    'POWER',
+    'KERNEL'  # KERNEL needs to be last
+    ]
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#------------------------------------------------------------------------------
+HWIO_FILE = (
+    '${INC_ROOT}/core/securemsm/uie/chipset/${CHIPSET}/src/uiehwioreg.h')
+if 'HWIO_IMAGE' in env:
+    env.AddHWIOFile('HWIO', [
+        {
+          'filename': HWIO_FILE,
+          'modules': ['SECURITY_CONTROL_CORE']
+        }
+    ])
+
+#------------------------------------------------------------------------------
+# Sources, libraries
+#------------------------------------------------------------------------------
+UIE_SOURCES = [
+    '${BUILDPATH}/src/uie.c',
+    '${BUILDPATH}/src/uie_crypto.c',
+    '${BUILDPATH}/src/uie_common_hw.c',
+    '${BUILDPATH}/chipset/${CHIPSET}/src/uie_key.c',
+    '${BUILDPATH}/chipset/${CHIPSET}/src/uie_crypto_hw.c'
+    ]
+
+CLEAN_PACK_SOURCES = [
+	'${BUILDPATH}/src/uie.c',
+    '${BUILDPATH}/src/uie_crypto.c',
+    '${BUILDPATH}/src/uie_common_hw.c',
+    '${BUILDPATH}/chipset/${CHIPSET}/src/uie_key.c',
+    '${BUILDPATH}/chipset/${CHIPSET}/src/uie_crypto_hw.c'
+    ]							
+
+PACK_SOURCE_FILES = list(set(CLEAN_PACK_SOURCES))	
+
+env_map = {
+    'TZOS_IMAGE': '${COREBSP_ROOT}/securemsm/uie/env/tz/inc',
+    'MBA_CORE_SW': '${COREBSP_ROOT}/securemsm/uie/env/mba/inc',
+    'SBL1_BOOT': '${COREBSP_ROOT}/securemsm/uie/env/sbl/inc'
+    }
+for image_name, header_dir in env_map.items():
+    if image_name in env:
+        env.Append(CPPPATH=header_dir)
+        env.AddBinaryLibrary([image_name], '${BUILDPATH}/uie', UIE_SOURCES)
+        break
+		
+env.CleanPack(['MBA_CORE_SW'], PACK_SOURCE_FILES)

@@ -1,0 +1,43 @@
+ENTRY &elf &tmc
+
+sys.cpu CortexM3
+
+SYStem.CONFIG ETMBASE E:0xE0041000
+SYStem.CONFIG.TPIU1.BASE DAP:0x80018000
+
+
+SYStem.u
+
+// Setup using T32 commands
+ETM.on                                 // enables formatting
+ETM.PORTMODE WRAPPED
+ETM.CONTEXTID OFF
+ETM.CYCLEACCURATE OFF
+ETM.stall off
+;ETM.TIMESTAMPS OFF
+ETM.SmartTrace OFF
+ETM.Datatrace OFF
+ETM.TRACEID 32.
+
+if ("&elf"=="")
+(
+	Print "Select RPM elf file"
+	d.load.elf *
+)
+else
+(
+	d.load.elf "&elf"
+)
+
+la.mode flowtrace on
+if ("&tmc"=="")
+(
+	Print "Select TMC binary file"
+	la.import.etb *.bin
+)
+else
+(
+	la.import.etb "&tmc"
+)
+
+la.list all tp tpc

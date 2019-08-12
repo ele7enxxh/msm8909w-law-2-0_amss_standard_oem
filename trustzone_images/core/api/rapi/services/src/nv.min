@@ -1,0 +1,81 @@
+#-------------------------------------------------------------------------------
+# NV (NV item manager)
+#-------------------------------------------------------------------------------
+NVIM_SOURCES=\
+        nvim.c \
+        nvio.c \
+        nv_info_tab.c
+
+NVIM_RUIM_SOURCES=\
+	nvruim.c \
+	nvsim.c \
+	nvruimsms.c
+	
+NVIM_OBJS :=  $(addprefix $(TARGETDIR)/, $(NVIM_SOURCES:%.c=%.o))
+
+NVIM_RUIM_OBJS :=  $(addprefix $(TARGETDIR)/, $(NVIM_RUIM_SOURCES:%.c=%.o))
+
+vpath %.c $(NVIM)
+
+ifeq ($(BIG),yes)
+        NVIM_OBJS := $(TARGETDIR)/nvim.lib
+        NVIM_RUIM_OBJS := $(TARGETDIR)/nvim_ruim.lib
+else
+	NVIM_OBJS :=  $(addprefix $(TARGETDIR)/, $(NVIM_SOURCES:%.c=%.o))
+	NVIM_RUIM_OBJS :=  $(addprefix $(TARGETDIR)/, $(NVIM_RUIM_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/nvim.lib : $(NVIM_SOURCES)
+	$(group_c_compile)
+
+$(TARGETDIR)/nvim_ruim.lib : $(NVIM_RUIM_SOURCES)
+	$(group_c_compile)
+
+#============================================================================
+# Support for exporting the NV APIs from modem to apps
+#============================================================================
+ifeq ($(USES_EXPORT_NV),yes)
+  NV_CLIENT_SOURCES=\
+    nv_clnt.c \
+    nv_xdr.c \
+    nvimnv_apps.c
+
+  NV_SERVER_SOURCES=\
+    nv_svc.c \
+    nv_xdr.c
+
+  NV_CLIENT_OBJS := $(addprefix $(TARGETDIR)/, $(NV_CLIENT_SOURCES:%.c=%.o))
+  NV_SERVER_OBJS := $(addprefix $(TARGETDIR)/, $(NV_SERVER_SOURCES:%.c=%.o))
+
+  ifneq ($(REMOTE_API_LOC_KNOWN),yes)
+    htorpc_nv: REMOTE_API_LOC = $(NVIM)
+  endif
+
+  HTORPC_nv_ARGS = -a nv
+
+  APITRIM_nv_ARGS = -H nv_items.h
+
+  HTORPC_DEPS += nv
+
+  vpath %.h $(NVIM)
+
+  # Hook into htorpc.mak to post-process nv_PPExpand.h and insert
+  # meta-comments in it.
+  $(TARGETDIR)/nv_PPExpand.h: $(NV)/nv_items_meta.pl
+  $(TARGETDIR)/nv_PPExpand.i: $(TARGETDIR)/nv_PPExpand.h
+	@echo $(SEPARATOR)
+	@echo Inserting nv_items.h metacomments into $<
+	@cp $< $@
+	@perl $(NV)/nv_items_meta.pl $@ $<
+	@touch $@
+	@echo $(SEPARATOR)
+
+  htorpc_nv_PPExpand: $(TARGETDIR)/nv_PPExpand.i
+
+  $(TARGETDIR)/nv_apitrim: $(TARGETDIR)/nv_PPExpand.i
+	@cp $(TARGETDIR)/nv_PPExpand.i $(TARGETDIR)/nv_PPExpand.h
+	@touch $@
+
+  apitrim_nv_PPExpand: $(TARGETDIR)/nv_apitrim
+
+endif

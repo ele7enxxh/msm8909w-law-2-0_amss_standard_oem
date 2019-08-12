@@ -1,0 +1,272 @@
+/*!
+  @file
+  lte_rrc_config.stm
+
+  @brief
+  This module contains the state machine description of RRC CONFIG.
+*/
+/*===========================================================================
+
+  Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved
+
+  Qualcomm Proprietary
+
+  Export of this technology or software is regulated by the U.S. Government.
+  Diversion contrary to U.S. law prohibited.
+
+  All ideas, data and information contained in or disclosed by
+  this document are confidential and proprietary information of
+  QUALCOMM Incorporated and all rights therein are expressly reserved.
+  By accepting this material the recipient agrees that this material
+  and the information contained therein are held in confidence and in
+  trust and will not be used, copied, reproduced in whole or in part,
+  nor its contents revealed in any manner to others without the express
+  written permission of QUALCOMM Incorporated.
+
+===========================================================================*/
+
+/*===========================================================================
+
+                        EDIT HISTORY FOR MODULE
+
+This section contains comments describing changes made to the module.
+Notice that changes are listed in reverse chronological order.
+
+$Header: //source/qcom/qct/modem/lte/RRC/main/latest/src/lte_rrc_config.stm#5 $
+
+when       who     what, where, why
+--------   ---     ----------------------------------------------------------
+12/22/11   mm      Added support for HO to EUTRA
+06/23/10   mm      Added support for handling Mobility from EUTRA msg
+03/06/09   mm      Added changes for queuing back to back Reconfig messages
+12/03/08   mm      Added changes related to Phase II
+08/06/08   da      Created initial file
+
+===========================================================================*/
+#include <customer.h>
+/*!===========================================================================
+
+                      STATE MACHINE DESCRIPTION
+
+The state machine implements the RRC CONFIG.
+
+
+===========================================================================*/
+
+STATE_MACHINE LTE_RRC_CONFIG_SM
+{
+  ENTRY             lte_rrc_config_sm_entry;
+  EXIT              NULL;
+  INITIAL_STATE     INITIAL;
+  ERROR_HOOK        lte_rrc_stm_error;
+  DEBUG_HOOK        lte_rrc_stm_debug;
+  INPUT_DEF_FILE    lte_rrc_stm.h;
+  INPUT_DEF_FILE    lte_rrc_int_msg.h;
+  INPUT_DEF_FILE    lte_rrc_ext_msg.h;
+  INPUT_DEF_FILE    lte_mac_msg.h;
+  INPUT_DEF_FILE    lte_fc.h;
+  INPUT_DEF_FILE    lte_pdcp_msg.h;
+  INSTANCES         1;
+
+  /*!
+  INITIAL state: CONFIG procedure is waiting for downlink message containing
+  RRC CONNECTION RECONFIGURATION message to become active. 
+  */
+  STATE INITIAL
+  {
+    ENTRY           lte_rrc_config_initial_entry;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      /*! Download RRC Connection Reconfiguration message from message handler */ 
+      LTE_RRC_RRC_CONNECTION_RECONFIGURATION_DLM lte_rrc_reconfig_dlm_handler;
+
+      /*! Download Mobility from EUTRA command from message handler */ 
+      LTE_RRC_MOBILITY_FROM_EUTRA_COMMAND_DLM lte_rrc_mobility_from_eutra_dlm_handler;
+
+      /*! CRE_COMPLETED_INDI from CRE module when reestablishment succeeds */
+      LTE_RRC_CRE_COMPLETED_INDI  lte_rrc_config_cre_complete_handler;
+
+      /*! LTE_RRC_IRAT_TO_LTE_PSHO_STARTED_INDI from IRAT module when IRAT to LTE HO starts */
+      LTE_RRC_IRAT_TO_LTE_PSHO_STARTED_INDI   lte_rrc_config_psho_started_handler;
+
+      /*! LTE_RRC_IRAT_TO_LTE_PSHO_REQI from IRAT module */
+      LTE_RRC_IRAT_TO_LTE_PSHO_REQI lte_rrc_config_ho_to_eutra_reqi_handler;
+
+      /*! RECONFIG_WAIT timer expiry indication */
+      LTE_RRC_RECONFIG_WAIT_TMRI lte_rrc_config_reconfig_wait_tmri_handler;
+
+      /*! Connection release started indication */ 
+      LTE_RRC_CONN_REL_STARTED_INDI lte_rrc_config_conn_rel_lte_stopped_handler;
+
+      /*! LTE Stopped indication  */ 
+      LTE_RRC_STOPPED_INDI lte_rrc_config_conn_rel_lte_stopped_handler;
+	  
+	  /*! Connection release indication*/ 
+      LTE_RRC_CONN_RELEASED_INDI lte_rrc_config_idle_transition_handler;
+
+      #ifdef FEATURE_LTE_ELS_ENABLED
+      /*! ELS Connection reconfig DLM*/ 
+      LTE_RRC_ELS_RRC_CONNECTION_RECONFIGURATION_DLM lte_rrc_config_els_reconfig_dlm_handler;
+      #endif
+
+      /*! LTE_CPHY_RF_UNAVAILABLE_IND from CPHY */
+      LTE_CPHY_RF_UNAVAILABLE_IND lte_rrc_config_rf_unavail_handler;
+	  
+	  /*! LTE_CPHY_RF_AVAILABLE_IND from CPHY */
+      LTE_CPHY_RF_AVAILABLE_IND lte_rrc_config_rf_avail_handler;
+    }
+  }
+
+  /*!
+  WAIT_FOR_CFG_CNFI state:  CONFIG procedure has send LTE_RRC_CFG_REQI to LLC and 
+  is waiting for LTE_RRC_CFG_CNFI.  
+  */
+  STATE WAIT_FOR_CFG_CNFI
+  {
+    ENTRY           NULL;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      /*! CFG confirm from LLC */  
+      LTE_RRC_CFG_CNFI lte_rrc_config_cfg_cnfi_handler;
+
+      /*! T304 timer expiry indication */ 
+      LTE_RRC_T304_TMRI lte_rrc_config_failure_during_rach_handler;
+
+      /*! LTE Stopped indication  */ 
+      LTE_RRC_STOPPED_INDI lte_rrc_config_idle_transition_handler;
+
+      /*! Connection release indication, handled for Intra-LTE Reconfiguration  */ 
+      LTE_RRC_CONN_RELEASED_INDI lte_rrc_config_idle_transition_handler;
+
+      /*! Connection release started indication, handled for MobilityFromEUTRA  */ 
+      LTE_RRC_CONN_REL_STARTED_INDI lte_rrc_config_idle_transition_handler;
+
+      /*! LTE_RRC_IRAT_TO_LTE_PSHO_ABORT_REQI from IRAT module */
+      LTE_RRC_IRAT_TO_LTE_PSHO_ABORT_REQI lte_rrc_config_ho_to_eutra_abort_reqi_handler;
+
+	  /*! LTE_CPHY_RF_UNAVAILABLE_IND from CPHY */
+      LTE_CPHY_RF_UNAVAILABLE_IND lte_rrc_config_rf_unavail_handler;
+	  
+	  /*! LTE_CPHY_RF_AVAILABLE_IND from CPHY */
+      LTE_CPHY_RF_AVAILABLE_IND lte_rrc_config_rf_avail_handler;
+
+    } 
+  }
+
+  /*!
+  WAIT_FOR_MEAS_CFG_CNFI state: CONFIG procedure has initiated measurement configuration
+  with RRC Measurement procedure and is waiting for LTE_RRC_MEAS_CFG_CNFI.
+  */
+  STATE WAIT_FOR_MEAS_CFG_CNFI
+  {
+    ENTRY           NULL;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      /*! MEAS_CFG_CNFI from measurement module */ 
+      LTE_RRC_MEAS_CFG_CNFI lte_rrc_config_meas_cfg_cnfi_handler;
+
+      /*! T304 timer expiry indication */ 
+      LTE_RRC_T304_TMRI lte_rrc_config_failure_during_rach_handler;
+
+      /*! CRE started Indication*/
+      LTE_RRC_CRE_STARTED_INDI lte_rrc_config_failure_during_rach_handler;
+
+			/*! LTE Stopped indication  */ 
+      LTE_RRC_STOPPED_INDI lte_rrc_config_idle_transition_handler;
+
+      /*! Connection release indication  */ 
+      LTE_RRC_CONN_RELEASED_INDI lte_rrc_config_idle_transition_handler;
+	  
+	  /*! LTE_CPHY_RF_UNAVAILABLE_IND from CPHY */
+      LTE_CPHY_RF_UNAVAILABLE_IND lte_rrc_config_rf_unavail_handler;
+	  
+	  /*! LTE_CPHY_RF_AVAILABLE_IND from CPHY */
+      LTE_CPHY_RF_AVAILABLE_IND lte_rrc_config_rf_avail_handler;
+    }
+  }
+
+  /*!
+   WAIT_FOR_MAC_ACCESS_CNF state:  CONFIG procedure has initiated RACH access 
+   procedure with MAC due to connected mode mobility (Handover) procedure.
+  */
+  STATE WAIT_FOR_MAC_ACCESS_CNF
+  {
+    ENTRY           NULL;
+    EXIT            NULL;
+
+    INPUTS
+    {
+      /*! MAC Access Confirm */
+      LTE_MAC_ACCESS_CNF lte_rrc_config_mac_access_cnf_handler; 
+
+      /*! MAC Access Abort Confirm */
+      LTE_MAC_ACCESS_ABORT_CNF lte_rrc_config_mac_access_abort_cnf_handler; 
+
+      /*! T304 timer expiry indication */ 
+      LTE_RRC_T304_TMRI lte_rrc_config_failure_during_rach_handler;
+
+      /*! CRE started Indication*/
+      LTE_RRC_CRE_STARTED_INDI lte_rrc_config_failure_during_rach_handler;
+
+      /*! LTE Stopped indication  */ 
+      LTE_RRC_STOPPED_INDI lte_rrc_config_idle_transition_handler;
+
+      /*! Connection release indication  */ 
+      LTE_RRC_CONN_RELEASED_INDI lte_rrc_config_idle_transition_handler;
+
+      /*! LTE_RRC_IRAT_TO_LTE_PSHO_ABORT_REQI from IRAT module */
+      LTE_RRC_IRAT_TO_LTE_PSHO_ABORT_REQI lte_rrc_config_ho_to_eutra_abort_reqi_handler;
+	  
+      /*! RL Failure Indication */ 
+      LTE_CPHY_RL_FAILURE_IND lte_rrc_config_failure_during_rach_handler;
+
+      /*! FC Shutdown Indication */ 
+      LTE_FC_SHUTDOWN_IND lte_rrc_config_failure_during_rach_handler;
+      
+      /*! PDCPUL Conn Rel Indication */ 
+      LTE_PDCPUL_CONN_REL_IND lte_rrc_config_failure_during_rach_handler;
+
+      /*! PDCPUL RL Failure Indication */ 
+      LTE_PDCPUL_RL_FAIL_IND lte_rrc_config_failure_during_rach_handler;
+	  
+	  /*! LTE_CPHY_RF_UNAVAILABLE_IND from CPHY */
+      LTE_CPHY_RF_UNAVAILABLE_IND lte_rrc_config_rf_unavail_handler;
+	  
+	  /*! LTE_CPHY_RF_AVAILABLE_IND from CPHY */
+      LTE_CPHY_RF_AVAILABLE_IND lte_rrc_config_rf_avail_handler;
+	  
+	  /*! LTE_CPHY_RACH_MSG1_SCHED_IND from CPHY */
+      LTE_CPHY_RACH_MSG1_SCHED_IND lte_rrc_config_msg1_handler;
+    }
+  }
+
+  /*!
+  WAIT_FOR_PS_HO_TO_COMPLETE state:  CONFIG procedure has sent 
+  LTE_RRC_IRAT_TO_LTE_PSHO_CNFI to IRAT MGR and 
+  is waiting for LTE_RRC_IRAT_TO_LTE_PSHO_COMPLETED_INDI.  
+  */
+  STATE WAIT_FOR_PS_HO_TO_COMPLETE
+  {
+    ENTRY           NULL;
+    EXIT            NULL;
+
+    INPUTS
+    {
+
+      /*! PS HO completed indication */ 
+      LTE_RRC_IRAT_TO_LTE_PSHO_COMPLETED_INDI lte_rrc_config_psho_complete_handler;
+
+      /*! LTE Stopped indication  */ 
+      LTE_RRC_STOPPED_INDI lte_rrc_config_idle_transition_handler;
+
+      /*! Connection release started indication */ 
+      LTE_RRC_CONN_REL_STARTED_INDI lte_rrc_config_idle_transition_handler; 
+    } 
+  }
+}

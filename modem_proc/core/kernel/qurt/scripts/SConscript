@@ -1,0 +1,150 @@
+#########################################################################
+# This SConscript installs the destination "install/scripts" directory. #
+#  Most files are simply copied from elsewhere in the tree.             #
+#  A few files get extra processing.                                    #
+#########################################################################
+
+#############################################################
+# Files in this list are copied from the scripts directory. #
+#############################################################
+
+copy_script_files = '''
+   analy_qurt_error.cmm
+   build_flags.py
+   kernel_mem.py
+   pctrace_parser.py
+   qurt-island-link.py
+   qurt-object-scan.py
+   qurt_run_db.py
+   trace_parser.py
+   trace_profile.py
+   island_analysis.py
+   list_extref.py
+
+   Input/cust_config_template.c
+   Input/default_build_config.def
+   Input/static_build_config.def
+   Input/qurt_tlb_unlock.xml
+
+   lib/__init__.py
+   lib/build_qurt_config.py
+   lib/build_xml.py
+   lib/ezxml.py
+   lib/genheader.py
+   lib/interrupt_xml.py
+   lib/kernel_xml.py
+   lib/machine_xml.py
+   lib/merge.py
+   lib/parse_build_params.py
+   lib/parse_spec.py
+   lib/physpool_xml.py
+   lib/program_xml.py
+   lib/qurt.py
+'''
+
+##############################################################
+# Files in this list are copied from the QURT_TOP directory. #
+##############################################################
+
+copy_root_files = '''
+   qurt_builders.py
+   target_tools.py
+'''
+
+###################################################################
+# Begin the real processing; the above code is located at the top #
+#  of the file as it is most likely to be of interest.            #
+###################################################################
+
+Import('env')
+
+######################################################
+# Clone env; we add a builder and we don't want that #
+#  to propagate out into the main environment.       #
+######################################################
+
+env = env.Clone()
+
+####################################
+# Install the files from QURT_TOP. #
+####################################
+
+scripts = []
+
+for name in copy_root_files.split():
+    src_name = env.GetBuildPath('$QURT_TOP/%s' % name)
+    dst_name = '$INSTALL_SCRIPTS/%s' % name
+    scripts.append(env.InstallAs(dst_name, src_name))
+
+##################################################
+# Install those files from the scripts directory #
+#  which are copied unchanged.                   #
+##################################################
+
+for name in copy_script_files.split():
+    src_name = env.GetBuildPath(name)
+    dst_name = '$INSTALL_SCRIPTS/%s' % name
+    scripts.append(env.InstallAs(dst_name, src_name))
+
+##########################################
+# Build the Input/build_params.txt file. #
+##########################################
+
+build_params = env.build_param_builder(env.subst('$INSTALL_SCRIPTS/Input/build_params.txt'), scripts)
+scripts.append(build_params)
+
+#######################################
+# Build the Input/cust_config.c file. #
+#######################################
+
+cust_config_c = env.cust_config_builder(env.subst('$INSTALL_SCRIPTS/Input/cust_config.c'),
+                                        [env.subst('$INSTALL_SCRIPTS/Input/cust_config_template.c'),
+                                         env.subst('$CONSTS_AUTOGEN')])
+scripts.append(cust_config_c)
+
+##################################################################
+# Build the qurt_config.py file.  Copy the file from its source, #
+#  and append a digest of all of the files in the Input and lib  #
+#  subdirectories to the end as a comment.                       #
+##################################################################
+
+def signed_file_digest(target, source, env):
+    # target[0] is the output file
+    # source[0] is the input file
+    # source[1:] are the files to be included in the digest
+
+    output_value = source[0].get_contents()
+    output_value += '\n# Signatures of the files that this depends on\n'
+    for s in source[1:]:
+        output_value += '# %s %s\n' % (s.get_csig(), str(s))
+
+    f = open(str(target[0]), 'w')
+    f.write(output_value)
+    f.close()
+
+    import os
+    os.chmod(str(target[0]), 0755)    # rwxr-xr-x
+
+    return 0
+
+env['BUILDERS']['SignedFileDigest'] = Builder(action = signed_file_digest)
+
+qib = env.SignedFileDigest(env.subst('$INSTALL_SCRIPTS/qurt-image-build.py'),
+                           ['qurt-image-build.py',
+                            env.subst('$INSTALL_SCRIPTS/lib/qurt.py')])
+
+scripts.append(qib)
+
+srcs=['qurt_config.py']
+
+for src in Flatten(scripts):
+    installed_name = env.GetBuildPath(src).replace('\\','/')
+    if ('/Input/' in installed_name) or ('/lib/' in installed_name):
+        srcs.append(src)
+    elif ('qurt-image-build') in installed_name:
+        srcs.append(src)
+
+scripts.append(env.SignedFileDigest(env.subst('$INSTALL_SCRIPTS/qurt_config.py'), srcs))
+
+Return('scripts')
+

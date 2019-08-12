@@ -1,0 +1,272 @@
+#===============================================================================
+#
+# MPOWER main scon script.
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/mpower/Bolt/dev/build/mpower.scons#6 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 12/25/14   yz      Scons violations fix
+# 12/16/13   bd      Generating QDSS Events Locally
+# 02/15/13   vs      Ported from Dime release branch.
+#
+#===============================================================================
+
+Import('env')
+
+# Load cleanpack script:
+import os
+if os.path.exists('mpower_cleanpack.py'):
+   env.LoadToolScript('mpower_cleanpack.py')
+
+if env.PathExists('${BUILD_ROOT}/mpower'):
+    env.Replace(MPOWER_ROOT = '${INC_ROOT}/mpower')
+else:    
+    env.Replace(MPOWER_ROOT = '${INC_ROOT}/modem/mpower')
+
+
+env.RequirePublicApi([
+        'KERNEL',
+        'DAL',
+        'SYSTEMDRIVERS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'POWER',
+        'SERVICES',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MCS',
+        ],
+        area='MCS')
+
+env.RequirePublicApi([
+        'MPOWER',
+        ],
+        area='MPOWER')
+
+env.RequirePublicApi([
+        'DEBUGTOOLS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'CDMA',
+        'MEAS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'STORAGE',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'GSM',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'RF',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'WCDMA',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='ONEX')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'MMCP',
+        ],
+        area='MMCP')
+
+env.RequirePublicApi([
+        'MPROC',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'GNSS',
+        ],
+        area='RFA')
+
+env.RequirePublicApi([
+        'GERAN',
+        ],
+        area='GERAN')
+
+env.RequirePublicApi([
+        'LM',
+        'LTE',
+        ],
+        area='RFA')
+
+
+#next one added manually
+env.RequirePublicApi([
+        'COMMON',
+        ],
+        area='FW')
+
+env.RequirePublicApi([
+        'CCS',
+        ],
+        area='RFMODEM_BOLT')
+
+
+
+env.RequireRestrictedApi(['VIOLATIONS'])
+
+#Source files that may be changed at chipset level. Any source files in this folder will be
+#compiled instead of similar named files in any other HW directories.
+MPOWER_CHIPSET_DIR = []
+MPOWER_HW_DIR = [] # Location of the HW specific files
+HW_PATHS = [] # final list of all directories for HW code
+MPOWER_HW_DIR = ['${MPOWER_ROOT}/mcpm/hw/default/src']
+MPOWER_CHIPSET_DIR = ['${MPOWER_ROOT}/mcpm/hw/${CHIPSET}/src']
+HW_PATHS   += MPOWER_CHIPSET_DIR #to compile chipset directories *before* any HW ones
+HW_PATHS   += MPOWER_HW_DIR
+
+
+# cust file relocation
+# Protected is "private within the SU" vs. Restricted with is visible to other SUs
+env.PublishProtectedApi('MPOWER', [
+        '${MPOWER_ROOT}/cust/inc',
+        '${MPOWER_ROOT}/variation/inc',
+        '${MPOWER_ROOT}/mcpm/common/src',
+        '${MPOWER_ROOT}/mcpm/inc',
+        HW_PATHS,
+        '${MPOWER_ROOT}/mcpm/test/common/inc',
+        '${MPOWER_ROOT}/mcpm/test/hw/generic/inc',
+        '${MPOWER_ROOT}/mcpm/test/hw/${CHIPSET}/inc'
+         ])
+
+Export('MPOWER_HW_DIR')
+Export('MPOWER_CHIPSET_DIR')
+
+INC_PATHS        = [] # Location of the include files
+L1EM_CMN_DIRS    = [] # Location of the common files
+L1EM_TARGET_DIRS = [] # Location of the HW specific files
+#Source files that may be changed at chipset level. Any source files in this folder will be
+#compiled instead of similar named files in any other HW directories.
+L1EM_CHIPSET_DIR = []
+
+# For internal builds build entire L1EM, otherwise, for customer builds only source stubs file
+# to strip out the L1EM code
+if 'USES_INTERNAL_BUILD' in env:
+   if 'USES_GNSS_SA' not in env: 
+   #NOTE: The order of entries in the list determines which HW folders will be searched first
+   #to find files that may exist in both chipset and default levels
+      L1EM_TARGET_DIRS  = [
+							'${MPOWER_ROOT}/mcpm/test/target/default'
+						]
+      L1EM_CMN_DIRS = 	[
+							'${MPOWER_ROOT}/mcpm/test/common',
+							'${MPOWER_ROOT}/mcpm/test/common/hw',
+						]
+      L1EM_CHIPSET_DIR = [
+							'${MPOWER_ROOT}/mcpm/test/target/${CHIPSET}'
+						 ]	
+   else:
+      L1EM_CMN_DIRS = 	[
+							'${MPOWER_ROOT}/mcpm/test/stubs'
+						]								
+else:
+   L1EM_CMN_DIRS = 		[
+							'${MPOWER_ROOT}/mcpm/test/stubs'
+						]
+				  
+		
+INC_PATHS    += L1EM_CHIPSET_DIR #include chipset directories *before* any HW ones
+INC_PATHS    += L1EM_TARGET_DIRS
+INC_PATHS    += L1EM_CMN_DIRS
+INC_SUB_DIRS  = [ '/inc' ] # sub-directories of INC_PATHS that can contain include files
+L1EM_INC_DIRS = [] # final list of all include directories for L1EM code
+
+#construct the inc path list
+for dir_paths in INC_PATHS:
+  for sub_dirs in INC_SUB_DIRS:
+    L1EM_INC_DIRS += [ dir_paths + sub_dirs ]
+
+env.PrintInfo("L1EM include directories: " + ', '.join(L1EM_INC_DIRS))
+
+#export the include directories to be further processed into -I parameter
+env.PublishProtectedApi('MPOWERL1EM', [
+         L1EM_INC_DIRS
+         ])
+
+#export path locations to be processed further for source files in any sub level l1emulator scons files
+Export('L1EM_TARGET_DIRS')
+Export('L1EM_CMN_DIRS')
+Export('L1EM_CHIPSET_DIR')
+
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+env.RequireProtectedApi(['MPOWERL1EM'])
+env.RequireProtectedApi(['MPOWER'])
+
+
+#delete all blocks to end of file when modem folder is removed
+
+env.RequirePublicApi([
+    'HWENGINES',
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'DAL',
+    'POWER',
+    'BUSES',
+    'SECUREMSM',
+    'DEBUGTRACE',
+    'KERNEL',                             # needs to be last
+    ], area='core')
+
+
+
+#----------------------------------------------------.---------------------------
+# Continue loading software units
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+

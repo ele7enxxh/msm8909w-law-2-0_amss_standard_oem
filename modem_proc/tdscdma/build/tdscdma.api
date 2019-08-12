@@ -1,0 +1,88 @@
+#===============================================================================
+#
+# Modem TDSCDMA API wrapper script
+#
+# GENERAL DESCRIPTION
+#    build script to load API's for modem/tdscdma
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$
+#  $DateTime$
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 10/20/12   mkh     Scons clean up that publishes all sorts of APIs to scons 
+#                    that are not TDSCDMA APIs
+# 07/26/12   fp      Merged the PW team changes for modem refactoring.
+# 05/03/12   jgr     Add moved public files
+# 07/12/12   fp      Add access tdscdma/api headers and changed double-quote to single quote.
+# 05/03/12   jgr     Add moved public files
+# 03/07/11           Initial revision
+#
+#===============================================================================
+Import('env')
+
+if env.PathExists('${BUILD_ROOT}/tdscdma'):
+    env.Replace(TDSCDMA_ROOT = '${INC_ROOT}/tdscdma')
+else:    
+    env.Replace(TDSCDMA_ROOT = '${INC_ROOT}/modem/tdscdma')
+
+
+env.PublishPublicApi('TDSCDMA', ['${TDSCDMA_ROOT}/api',])
+env.PublishPublicApi('PUBLIC',      ['${TDSCDMA_ROOT}/api/public',])
+
+env.PublishRestrictedApi('VIOLATIONS',[
+        '${INC_ROOT}/utils/osys',
+        '${INC_ROOT}/wcdma/l1/offline/inc',
+        '${INC_ROOT}/geran/cust/inc',
+        '${INC_ROOT}/wcdma/rrc/inc',
+        '${INC_ROOT}/mcs/cust/inc',
+        '${INC_ROOT}/mcs/variation/inc',
+        '${INC_ROOT}/geran/variation/inc',
+        '${INC_ROOT}/wcdma/cust/inc',
+        '${INC_ROOT}/datamodem/cust/inc',
+        '${INC_ROOT}/wcdma/mac/inc',
+        '${INC_ROOT}/wcdma/rlc/inc',
+        '${INC_ROOT}/wcdma/variation/inc',
+        '${INC_ROOT}/datamodem/variation/inc',
+        '${INC_ROOT}/core/buses/api/icb',
+        '${INC_ROOT}/utils/fc/inc',
+        '${INC_ROOT}/mpower/mcpm/src',
+        '${INC_ROOT}/mpower/variation/inc',
+        '${INC_ROOT}/mpower/cust/inc',
+        ])
+
+
+# ------------------------------------------------------------------------------
+# TDSCDMA Subsystem API
+#-------------------------------------------------------------------------------
+env.PublishRestrictedApi('TDSCDMA', ['${INC_ROOT}/modem/tdscdma/diag/inc',
+                                  '${INC_ROOT}/modem/tdscdma/l1/inc',
+                                  '${INC_ROOT}/modem/tdscdma/l2/inc',
+                                  '${INC_ROOT}/modem/tdscdma/mac/inc',
+                                  '${INC_ROOT}/modem/tdscdma/rlc/inc',
+                                  '${INC_ROOT}/modem/tdscdma/rrc/inc',
+								  '${INC_ROOT}/modem/tdscdma/variation/inc',
+								  '${INC_ROOT}/modem/tdscdma/cust/inc',
+                                ])
+
+env.PublishPublicApi('TDSCDMA', ['${INC_ROOT}/modem/tdscdma/api',
+                                 '${INC_ROOT}/modem/tdscdma/api/public'])
+
+if env.has_key('USES_QDSP6'):
+   env.PublishRestrictedApi('TDSCDMA', ['${INC_ROOT}/modem/tdscdma/api'])
+
+
+
+
+env.LoadAPIUnits()

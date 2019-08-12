@@ -1,0 +1,196 @@
+#===============================================================================
+#
+# Target-Level Build Script for Modem Processor
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by QUALCOMM Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/build/bsp/multi_pd_img/build/multi_pd_img.scons#1 $
+#  $DateTime: 2016/12/13 07:59:25 $
+#  $Change: 11985153 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import sys
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = ['multi_pd_img']
+
+# init environment variables
+boot_img_name="bootimage_relocflag_${BUILD_ID}"
+boot_img_name_non_reloc="bootimage_nonrelocflag_${BUILD_ID}"
+
+env.InitImageVars(
+   alias_list=aliases,           # aliases
+   proc='qdsp6',              # proc
+   config='qdsp6_sw',
+   plat='qurt',
+   target=boot_img_name,# target (elf, image file name)
+   tools = [
+       '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py',
+       '${BUILD_ROOT}/core/bsp/build/scripts/QurtImageSconsBuilder.py',
+       '${BUILD_ROOT}/tools/build/scons/sectools/sectools_builder.py',
+       ]
+   )
+
+if not env.CheckAlias(alias_list=aliases):
+   Return()
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+
+env.Replace(QDSP6_LIBDIR = "${COREBSP_ROOT}/kernel/qurt/install/modemv5/lib")
+
+env.Tool('hexagon', toolpath = ['${BUILD_ROOT}/tools/build/scons/scripts'])
+
+#this is the path for kernel to be used in multi PD build
+env.Replace(QDSP6_QURT_TOOLDIR = "${COREBSP_ROOT}/kernel/qurt/install/modemv5/scripts")
+if 'AddDummySegBuilder' not in env.get('BUILDERS'):
+   env.LoadToolScript('kernel_builders', toolpath=['${COREBSP_ROOT}/bsp/build/scripts'])
+
+
+MPSS_PHYS_ADDR = os.environ.get('HEXAGON_IMAGE_ENTRY')
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+target_images = []
+build_ms_targets = []
+target_images_non_reloc = []
+build_ms_targets_non_reloc = []
+
+#input to this scons
+audio_img = env.RealPath('${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}_AUDIO_MERGED.elf', posix=True)
+guest_img = env.RealPath('${BUILD_MS_ROOT}/M${BUILD_ASIC}${BUILD_ID}${BUILD_VER}.elf', posix=True)
+
+#output of multipd weaver
+boot_img=env.RealPath('${BUILDPATH}/bootimage.pbn')
+output_boot_img_name=env.RealPath('${BUILD_MS_ROOT}/'+boot_img_name+'.pbn')
+output_boot_img_name_non_reloc=env.RealPath('${BUILD_MS_ROOT}/'+boot_img_name_non_reloc+'.pbn')
+
+target_images.extend([boot_img])
+
+#call multi pd weaver to generate relocated elf and final pbn
+output_boot_img = env.QurtImageBuilder(target_images, [guest_img,audio_img], PHYS_ADDR=MPSS_PHYS_ADDR, ALIAS={guest_img:'root_process', audio_img:'audio_process'})
+
+#call ModifyRelocatableFlag after qurt image builder for both Relocatable & Non-Relocatable
+build_ms_targets = env.ModifyRelocatableFlagsBuilder(output_boot_img_name, output_boot_img[0])
+build_ms_targets_non_reloc = env.InstallAs(output_boot_img_name_non_reloc, output_boot_img[0])
+
+#-------------------------------------------------------------------------
+# Add a dummy segment for dynamic footprints
+#-------------------------------------------------------------------------
+build_ms_targets_stage2 = env.AddDummySegBuilder("${BUILD_MS_ROOT}/bootimage_relocflag_withdummyseg_${BUILD_ID}.pbn", [build_ms_targets, env.FindConfigFiles('cust_config.xml')[0]])
+build_ms_targets_non_reloc_stage2 = env.AddDummySegBuilder("${BUILD_MS_ROOT}/bootimage_nonrelocflag_withdummyseg_${BUILD_ID}.pbn", [build_ms_targets_non_reloc, env.FindConfigFiles('cust_config.xml')[0]])
+
+#generate mbn out of the final pbn
+## relocatable variant is default.
+install_root = env.subst('${MBN_ROOT}')
+image_name = 'qdsp6sw'
+installed_unsigned_root = env.SectoolGetUnsignedInstallPath(install_base_dir=install_root)
+
+multipd_mbn = env.MbnBuilder("${SHORT_BUILDPATH}/mpd", build_ms_targets_stage2, IMAGE_TYPE="qdsp6sw",
+   FLASH_TYPE=env['TARGET_FLASH_TYPE'],ENABLE_RELOCATABLE=True,
+   MBN_FILE=os.path.join(installed_unsigned_root, image_name))
+
+# multi PD memory checker
+# find out where the myps tools are {{{
+myps_paths = [
+  'build/myps/tools',
+]
+
+myps_paths = [
+  os.path.abspath(
+    os.path.join(*([
+      env.subst('${BUILD_ROOT}')] +
+      i.split('/')))) for i in myps_paths]
+
+for potential_myps_dir in myps_paths:
+  if os.path.exists(potential_myps_dir):
+    myps_dir = potential_myps_dir
+    break
+# }}}
+
+env.LoadToolScript(os.path.join(myps_dir, 'hook_mc.py'))
+mc_standalone = env.McStandalonePrint(None, build_ms_targets_stage2)
+env.Depends(multipd_mbn, mc_standalone)
+
+## build non-relocatable variant
+install_nonreloc_root = os.path.join(env.subst('${MBN_ROOT}'), 'non-reloc')
+install_nonreloc_unsigned_root = env.SectoolGetUnsignedInstallPath(install_base_dir=install_nonreloc_root)
+
+multipd_mbn_non_reloc = env.MbnBuilder("${SHORT_BUILDPATH}/mpd_non_reloc", build_ms_targets_non_reloc_stage2, IMAGE_TYPE="qdsp6sw",
+   FLASH_TYPE=env['TARGET_FLASH_TYPE'],MBN_FILE=os.path.join(install_nonreloc_unsigned_root, image_name))
+
+#----------------------------------------------------------------------------
+# Sectools signing
+# Default mapping will be used if msm_jtag_mapping.xml does not exist
+#----------------------------------------------------------------------------
+msm_jtag_mapping_path = env.RealPath('${BUILD_ROOT}/build/ms/msm_jtag_mapping.xml')
+sectools_signed_mbn = env.SectoolBuilder(
+       target_base_dir = '${SHORT_BUILDPATH}',
+       source= multipd_mbn,
+       sign_id="qdsp6sw",
+       msmid = env['MSM_ID'],
+       sectools_install_base_dir = install_root,
+       install_file_name = image_name + '.mbn',
+       msm_jtag_mapping_file=msm_jtag_mapping_path)
+
+sectools_signed_nonreloc_mbn = env.SectoolBuilder(
+       target_base_dir = '${SHORT_BUILDPATH}/non-reloc',
+       source= multipd_mbn_non_reloc,
+       sign_id="qdsp6sw",
+       msmid = env['MSM_ID'],
+       sectools_install_base_dir = install_nonreloc_root,
+       install_file_name = image_name + '.mbn',
+       msm_jtag_mapping_file=msm_jtag_mapping_path)
+
+target_images.extend([sectools_signed_mbn, sectools_signed_nonreloc_mbn])
+
+#install relocatable target elf
+target_elf = env.InstallAs('${BUILD_MS_ROOT}/${SHORT_BUILDPATH}/dsp.elf', multipd_mbn)
+obj_mbn = env.InstallAs('${BUILD_MS_ROOT}/obj/qdsp6v5_ReleaseG/${SHORT_BUILDPATH}/dsp.mbn', multipd_mbn)
+
+#install non-relocatable target elf
+target_elf_non_reloc = env.InstallAs('${BUILD_MS_ROOT}/${SHORT_BUILDPATH}/dsp_non_reloc.elf', multipd_mbn_non_reloc)
+obj_mbn_non_reloc = env.InstallAs('${BUILD_MS_ROOT}/obj/qdsp6v5_ReleaseG/non_reloc/${SHORT_BUILDPATH}/dsp.mbn', multipd_mbn_non_reloc)
+
+target_images.extend([build_ms_targets,
+                     multipd_mbn,
+                     target_elf,
+                     obj_mbn])
+
+target_images_non_reloc.extend([build_ms_targets_non_reloc,
+                                 multipd_mbn_non_reloc,
+                                 target_elf_non_reloc,
+                                 obj_mbn_non_reloc])
+
+print FindFile('build.cmd', '${BUILD_MS_ROOT}')
+for alias in aliases:
+   env.Alias(alias, target_images + target_images_non_reloc)
+

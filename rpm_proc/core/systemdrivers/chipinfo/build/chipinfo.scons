@@ -1,0 +1,52 @@
+#=============================================================================
+# CHIPINFO
+#
+# Targets:    MSM8974, MDM9x25
+# Processors: RPM
+#
+#=============================================================================
+#                    Copyright 2011 Qualcomm Technologies Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#=============================================================================
+#  $Header: //source/qcom/qct/core/pkg/mpss/dev/grahamr.hwio_scons/modem_proc/core/systemdrivers/busywait/build/SConscript#1 $
+#  $DateTime: 2011/07/20 17:30:29 $
+#  $Author: coresvc $
+#  $Change: 1845300 $
+#===============================================================================
+
+Import('env')
+env = env.Clone()
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/systemdrivers/chipinfo/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'DAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # Must be last due to comdef.h issues
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+CHIPINFO_SOURCES =  [
+  '${BUILDPATH}/Chipinfo.c'
+]
+
+env.AddLibrary(['RPM_IMAGE' ], '${BUILDPATH}/chipinfo', CHIPINFO_SOURCES)
+
+

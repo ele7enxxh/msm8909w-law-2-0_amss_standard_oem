@@ -1,0 +1,206 @@
+#===============================================================================
+#
+# RLC
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/services/rlc/build/rlc.scons#1 $
+#  $DateTime: 2016/12/13 07:59:23 $
+#  $Author: mplcsds1 $
+#  $Change: 11985146 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# Source PATH
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+SRCPATH = "${BUILD_ROOT}/core/services/rlc"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#env.Append(CFLAGS = "--diag_error=warning ")
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+env.RequirePublicApi([
+   'DAL',
+   'DEBUGTOOLS',
+   'DEBUGTRACE',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'STORAGE',
+   'MEMORY',
+   'KERNEL',
+   'SECUREMSM',
+   ], area='CORE')
+
+env.RequireRestrictedApi([
+   'SERVICES',
+   'DEBUGTRACE',
+   'MPROC',
+   'POWER',
+   'SECUREMSM',
+])
+
+
+#---------------------------------------
+# Common Time Sources
+#---------------------------------------
+
+RLC_COMMON_C_SOURCES = [
+   '${BUILDPATH}/src/rlc.c',
+   '${BUILDPATH}/src/rlc_cluster.c',
+   '${BUILDPATH}/src/rlc_correct.c',
+   '${BUILDPATH}/src/rlc_learning.c',
+   '${BUILDPATH}/src/rlc_cluster.c',
+   '${BUILDPATH}/src/rlc_report_efs.c',
+   '${BUILDPATH}/src/rlc_report_qxdm.c',
+   '${BUILDPATH}/src/rlc_report_tracer.c',
+   '${BUILDPATH}/src/rlc_calc.c',
+]
+
+
+RLC_QURT_C_SOURCES = [
+   '${BUILDPATH}/src/rlc_os_qurt.c',
+]
+
+RLC_REX_C_SOURCES = [
+   '${BUILDPATH}/src/rlc_os_rex.c',
+]
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# Add Libraries to image
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+RLC_RCINIT_IMAGE = []
+
+#-------------------------------------------------------------------------------
+# Q6 Modem Image
+#-------------------------------------------------------------------------------
+## Compile Libraries
+env.AddLibrary(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/src/rlc_common', [RLC_COMMON_C_SOURCES])
+env.AddLibrary(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/src/rlc_os', [RLC_QURT_C_SOURCES])
+
+## Add to RCINIT
+RLC_RCINIT_IMAGE.extend(['QDSP6_SW_IMAGE','CBSP_QDSP6_SW_IMAGE'])
+
+
+#-------------------------------------------------------------------------------
+# WCNSS Image
+#-------------------------------------------------------------------------------
+## Compile Libraries
+env.AddLibrary(['WCN_IMAGE','CBSP_WCN_IMAGE','CORE_WCN'],'${BUILDPATH}/src/rlc_common', [RLC_COMMON_C_SOURCES])
+env.AddLibrary(['WCN_IMAGE','CBSP_WCN_IMAGE','CORE_WCN'],'${BUILDPATH}/src/rlc_os', [RLC_REX_C_SOURCES])
+
+## Add to RCINIT
+RLC_RCINIT_IMAGE.extend(['WCN_IMAGE','CBSP_WCN_IMAGE','CORE_WCN'])
+
+
+#-------------------------------------------------------------------------------
+# Rex/L4 Apps Image
+#-------------------------------------------------------------------------------
+## Compile Libraries
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'],'${BUILDPATH}/src/rlc_common', [RLC_COMMON_C_SOURCES])
+env.AddLibrary(['APPS_IMAGE', 'CBSP_APPS_IMAGE'],'${BUILDPATH}/src/rlc_os', [RLC_REX_C_SOURCES])
+  
+## Add to RCINIT
+RLC_RCINIT_IMAGE.extend(['APPS_IMAGE', 'CBSP_APPS_IMAGE'])
+
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# RCINIT Initializations and Task Entries
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc(          
+    RLC_RCINIT_IMAGE,          # define RLC_RCINIT_IMAGE
+    {
+     'sequence_group'             : 'RCINIT_GROUP_0',                   # required
+     'init_name'                  : 'rlc',                              # required
+     'init_function'              : 'rlc_init',                         # required
+    })
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitTask(           # STUB FOR DATA STRUCTURES; NEEDS CREATED EARLY
+    RLC_RCINIT_IMAGE,    # define RLC_RCINIT_IMAGE
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',                  # required
+      'thread_name'                : 'rlc_r',                           # required
+      'thread_entry'               : 'rlc_r_task',                      # NOT AVAILABLE
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'SHARED_FOREGROUND_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitTask(           # STUB FOR DATA STRUCTURES; NEEDS CREATED EARLY
+    RLC_RCINIT_IMAGE,    # define RLC_RCINIT_IMAGE
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',                  # required
+      'thread_name'                : 'rlc_l',                           # required
+      'thread_entry'               : 'rlc_l_task',                      # NOT AVAILABLE
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'SHARED_FOREGROUND_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+
+
+#-------------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitTask(           # STUB FOR DATA STRUCTURES; NEEDS CREATED EARLY
+    RLC_RCINIT_IMAGE,    # define RLC_RCINIT_IMAGE
+    {
+      'sequence_group'             : 'RCINIT_GROUP_0',                  # required
+      'thread_name'                : 'rlc_c',                           # required
+      'thread_entry'               : 'rlc_c_task',                      # NOT AVAILABLE
+      'stack_size_bytes'           : '4096',
+      'priority_amss_order'        : 'SHARED_FOREGROUND_PRI_ORDER',
+      'cpu_affinity'               : 'REX_ANY_SMT_MASK',
+    })
+
+
+

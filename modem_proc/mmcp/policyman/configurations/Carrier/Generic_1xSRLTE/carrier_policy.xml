@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Carrier configuration file for SRLTE with CHGWL roaming -->
+
+<policy name        = "generic"
+        enabled     = "true"
+        schema_ver  = "1"
+        policy_ver  = "84.1.4"
+>
+
+  <initial>
+    <actions>
+
+      <!-- List of the MCCs in which SRLTE is allowed -->
+      <mcc_list name="sxlte_mccs"> 310 311 312 </mcc_list>
+
+      <!-- "sxlte_plmns" list intentionally doesn't exist -->
+      <!-- "sxlte_mccs" && !"sxlte_plmns" ==> sxlte_on_any_plmn -->
+
+      <!-- Define the hybr_oos timer with a 1 minute interval -->
+      <define_timer name = "hybr_oos" interval = "1" units = "min" id = "101" />
+
+      <!-- Define initial RAT capability as CHGWL -->
+      <rat_capability base="none">
+        <include> CDMA HDR GSM WCDMA LTE </include>
+      </rat_capability>
+
+      <!-- On boot, include GWL bands for SUBS1 -->
+      <rf_bands>
+        <gw_bands base="hardware" />
+        <lte_bands base="hardware" />
+        <tds_bands base="none" />
+      </rf_bands>
+
+      <!-- Define Intial UE mode as 1XSRLTE_ONLY -->
+      <ue_mode> 1XSRLTE_ONLY </ue_mode>
+
+      <feature> srlte </feature>
+
+      <!-- Boolean: Is the device to use only srlte? -->
+      <boolean_define name="in_srlte_only_mcc" initial="true" />
+
+    </actions>
+  </initial>
+
+<!--
+  ====================================================================
+    Rules to handle OOS situations and timers.
+  ====================================================================
+  -->
+
+  <!-- RULE #1 -->
+  <!-- This rule only runs when we have service on either subs.
+       Set the "in_srlte_only_mcc" boolean based on location MCC,
+       then move to full service and continue evaluation.
+  -->
+  <rule>
+    <conditions>
+      <have_service />
+    </conditions>
+    <actions>
+      <boolean_set name="in_srlte_only_mcc">
+        <location_mcc_in list="sxlte_mccs" />
+      </boolean_set>
+      <svc_mode> FULL </svc_mode>
+      <continue />
+    </actions>
+  </rule>
+
+  <!-- RULE #2 -->
+  <!-- We wait if we don't have location or we are not ONLINE.
+  -->
+  <rule precond="none">
+    <conditions>
+      <any_of>
+        <not> <have_location /> </not>
+        <not> <phone_operating_mode> ONLINE </phone_operating_mode> </not>
+      </any_of>
+    </conditions>
+    <actions/>
+  </rule>
+
+<!--
+  ====================================================================
+    Rules to implement SRLTE
+  ====================================================================
+  -->
+
+  <!-- RULE #3 -->
+  <!-- If conditions allow, operate as SRLTE with CHGWL.
+  -->
+  <rule>
+    <conditions>
+      <boolean_test name="in_srlte_only_mcc" />
+    </conditions>
+    <actions>
+      <ue_mode> 1XSRLTE_ONLY </ue_mode>
+    </actions>
+  </rule>
+
+  <!-- RULE #4 -->
+  <!-- Anything else is CSFB with CHGWL.
+  -->
+  <rule>
+    <conditions>
+      <true />
+    </conditions>
+    <actions>
+      <ue_mode> CSFB </ue_mode>
+    </actions>
+  </rule>
+
+</policy>

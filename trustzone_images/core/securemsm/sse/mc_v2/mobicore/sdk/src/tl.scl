@@ -1,0 +1,36 @@
+;*******************************************************************************
+;*
+;* generic linker file for trustlets.
+;*
+;* Copyright Copyright Trustonic 2013,2014 
+;*******************************************************************************
+
+; virtual address space starts at 0x1000, so any NULL pointer dereferencing
+; causes a memory access fault.
+
+RAM_LOAD 0x1000
+{
+    ; don't use first page, so NULL pointer dereferencing will cause a seg fault.
+    .text +0 ALIGN 0x1000
+    {
+        * (stext, +FIRST)       
+        * (+RO)                 ; all other sections
+        * (etext, +LAST)
+    }
+    
+    ; in the virtual address space we leave one page unused between code and data.
+    .data +0x1000 ALIGN 0x1000
+    {
+        * (sdata, +FIRST)
+        * (+RW)                 ; all other sections with data
+        * (edata, +LAST)
+    }
+
+    .bss +0x0
+    {
+        * (sbss, +FIRST)
+        * (+ZI)                  ; uninitialized data
+        * (stack)                ; put stacks at the end.
+        * (ebss, +LAST)
+    }
+}

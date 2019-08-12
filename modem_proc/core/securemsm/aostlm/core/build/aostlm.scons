@@ -1,0 +1,194 @@
+#===============================================================================
+#
+# STARTUP Scons
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 Qualcomm Technologies Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/core.mpss/3.5.c12.3/securemsm/aostlm/core/build/aostlm.scons#1 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/02/14   djc     Initial version.
+#===============================================================================
+from glob import glob
+from os.path import join, basename
+
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/aostlm"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+env.Append(CPPPATH = "${BUILD_ROOT}/core/securemsm/aostlm/api")
+env.Append(CPPPATH = "${BUILD_ROOT}/core/securemsm/aostlm/core/inc")
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'SECUREMSM',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.RequirePublicApi(['AOSTLM'], area='QMIMSGS')
+
+env.PublishPrivateApi('AOSTLM_PRIVATE', [
+    '${BUILDPATH}/core/inc',
+])
+
+# Public APIs these are accessible by anyone internal or external to CoreBSP
+env.PublishProtectedApi('AOSTLM', [
+   '${BUILDPATH}/api',
+   '${BUILDPATH}/core/inc',
+])
+
+
+####################################################################################
+#
+#  AOSTLM Enablement
+#
+#    AOSTLM is only 'on' for certain targets.  It is 'off' for SIM and any targets
+#    not in the enabled list.  When AOSTLM is 'off', all license requests are
+#    granted automatically.
+#
+####################################################################################
+
+#
+#  Users can change these flags to control their AOSTLM
+#
+
+#  AOSTLM will print DEBUG messages if AOSTLM_DEBUG is defined.  Comment out for release
+#env.Append(CPPDEFINES = ['AOSTLM_DEBUG'])
+
+#  Flip this to 'TRUE' to ensure that AOSTLM is on regardless of target
+env.Replace(AOSTLM_FORCE_ON = 'FALSE')
+
+#  Set to true to turn AOSTLM off for EVERYTHING
+env.Replace(DISABLE_AOSTLM = 'FALSE')
+
+
+#  The enabled targets.  Add new targets as necessary
+AOSTLM_ENABLED_TARGETS = [
+   'msm8936',
+   'msm8939',
+]
+
+#
+#   Do not change the remainder of these lines
+#
+if env.get('CHIPSET') not in AOSTLM_ENABLED_TARGETS:
+   env.Replace(DISABLE_AOSTLM = 'TRUE')
+
+if ARGUMENTS.get('SIM') == "1" or ARGUMENTS.get('SIM') == "TRUE":
+   env.Replace(DISABLE_AOSTLM = 'TRUE')
+
+if env.get('AOSTLM_FORCE_ON') == "TRUE":
+   env.Replace(DISABLE_AOSTLM = 'FALSE')
+
+#
+#  Inform whether AOSTLM is enabled or not
+#
+if env.get('DISABLE_AOSTLM') == "TRUE":
+   env.PrintInfo("AOSTLM Disabled for this build")
+else :
+   env.PrintInfo("AOSTLM Enabled for this build")
+
+#-------------------------------------------------------------------------------
+# Indicate the processor we are building this client for
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [('AOSTLM_PROC_ID', 'AOSTLM_PROC_ID_MDSP')])
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+if env.get('DISABLE_AOSTLM') == "TRUE":
+    AOSTLM_SRC = [
+	    '${BUILDPATH}/core/src/aostlm_client_stub.c', 
+    ]
+else:
+    AOSTLM_SRC = [
+    	'${BUILDPATH}/core/src/aostlm_client.c', 
+        '${BUILDPATH}/core/src/aostlm_trans_mgr.c', 
+        '${BUILDPATH}/core/src/aostlm_feature_table.c', 
+        '${BUILDPATH}/core/src/aostlm_chan_prep.c',
+        '${BUILDPATH}/core/src/aostlm_qmi_client.c',
+        '${BUILDPATH}/core/src/aostlm_diag.c',
+        '${BUILDPATH}/core/src/aostlm_log.c',
+        '${BUILDPATH}/core/src/aostlm_feature_table_api.c',
+        '${BUILDPATH}/core/src/aostlm_audiomm_wrapper.c',
+    ]
+
+#-------------------------------------------------------------------------------
+# Add RC INIT
+#-------------------------------------------------------------------------------
+
+RCINIT_BUILD_TAG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+
+RCINIT_INIT_AOSTLM = {
+   'sequence_group'     : 'RCINIT_GROUP_1',
+   'init_name'          : 'AOSTLM',
+   'init_function'      : 'aostlm_client_startup',
+}
+
+
+if 'USES_RCINIT' in env:
+   env.AddRCInitFunc( RCINIT_BUILD_TAG, RCINIT_INIT_AOSTLM )
+
+
+
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary(
+     ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE',
+      'MODEM_IMAGE',  'CBSP_MODEM_IMAGE',
+      'APPS_IMAGE',   'CBSP_APPS_IMAGE',
+      'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+      '${BUILDPATH}/aostlm_client',
+      AOSTLM_SRC)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

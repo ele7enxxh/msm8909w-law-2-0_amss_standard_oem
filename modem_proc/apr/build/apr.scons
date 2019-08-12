@@ -1,0 +1,154 @@
+#===============================================================================
+#
+# APR Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Qualcomm Technologies Inc. Confidential and Proprietary. 
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/apr/build/apr.scons#1 $
+#  $DateTime: 2016/12/13 07:57:50 $
+#  $Author: mplcsds1 $
+#  $Change: 11985105 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/02/14    mh     Enabling the USE_INIT_IPC_HACK flag.
+# 10/15/2015  sv	 APR unified component(3.0 and 3.0.1) to form 3.0
+#===============================================================================
+Import('env')
+
+env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror") 
+env = env.Clone(HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")
+
+"""
+BEAR_FAMILY_CHIPSETS -> This flag is used for bear family chipsets like 9x07, 8909
+BEAR_PLUS_FAMILY_CHIPSETS --> This flag is used for bear plus- which has adsp and mdsp like 8937, 8952, 8953
+
+"""
+#import pdb;pdb.set_trace()
+
+if env['CHIPSET'] in ['msm8952','msm8953','msm8937','msm8917']:
+   print "Enabling BEAR_PLUS_FAMILY_CHIPSETS flag"
+   
+   
+#TODO: Following flag needs to be enabled when RCINIT changes are ready   
+if env['CHIPSET'] in ['mdm9607','msm8909','apq8909']:
+   print "Enabling BEAR_FAMILY_CHIPSETS flag"
+   env.Append(CFLAGS = '-DBEAR_FAMILY_CHIPSETS')
+
+
+if env.PathExists('${BUILD_ROOT}/apr'):
+   env.Replace(APR_ROOT = '${INC_ROOT}/apr')
+else:    
+   env.Replace(APR_ROOT = '${INC_ROOT}/multimedia/apr')
+
+
+
+env.PublishProtectedApi('APR',[
+        '${APR_ROOT}/osal/inc',             
+        '${APR_ROOT}/utils/inc',            
+        '${APR_ROOT}/core/inc',             
+        '${APR_ROOT}/domain/inc',           
+        '${APR_ROOT}/datalink/apr_smdl/inc', 
+        '${APR_ROOT}/example/toyserver/inc',
+        '${APR_ROOT}/custom/inc',           
+        '${APR_ROOT}/datalink/diag/inc',    
+        ])
+
+env.RequireProtectedApi([
+   'APR',
+])
+
+
+#remove next block when modem folder is removed----------------------
+multimedia_config = env.get('MULTIMEDIA_CONFIG', 'none')
+
+#-------------------------------------------------------------------------------
+# CoreBSP dependencies
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BOOT',
+   'BUSES',
+   'DEBUGTOOLS',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'POWER',
+   'SECUREMSM',
+   'SENSORS',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API, area='core')
+
+env.RequirePublicApi([
+   'MMUTILS',
+   'APR',
+])
+
+#requre dsm from modem API
+if multimedia_config == 'csfb':
+  env.RequireExternalApi([  
+     'MODEM_API',
+  ])
+
+env.RequireProtectedApi([
+   'APR',
+])
+
+env.RequireRestrictedApi([
+   'APR',
+])
+
+
+#no modem folder list below -----------------------------------
+env.RequirePublicApi([
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'APR',
+        ],
+        area='APR')
+
+env.RequirePublicApi([
+        'DAL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'MMUTILS',
+        ],
+        area='AVS')
+
+env.RequirePublicApi([
+        'SERVICES',
+        'SYSTEMDRIVERS',
+        'DEBUGTOOLS',
+        'MPROC',
+        ],
+        area='CORE')
+
+
+env.LoadSoftwareUnits()
+

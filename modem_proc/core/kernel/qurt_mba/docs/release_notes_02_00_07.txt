@@ -1,0 +1,48 @@
+[*======================= COPYRIGHT NOTICE ======================*]
+[* Copyright 2012 QUALCOMM Incorporated.                         *]  
+[* All rights reserved.                                          *] 
+[*                                                               *]   
+[* All data and information contained in or disclosed by this    *]
+[* document is confidential and proprietary information of       *]
+[* QUALCOMM Incorporated and all rights therein are expressly    *]
+[* reserved. By accepting this material the recipient agrees     *]
+[* that this material and the information contained therein is   *]
+[* held in confidence and in trust and will not be used, copied, *]
+[* reproduced in whole or in part, nor its contents revealed in  *]
+[* any manner to others without the express written permission   *]
+[* of QUALCOMM.                                                  *]
+[*===============================================================*]
+
+HEXAGON QuRT RTOS VERSION 02.00.07 - RELEASE NOTES 
+
+* Overview
+    - Kernel
+    - QuRT User library
+    - OSAM
+    - Bug Fixes 
+
+* Kernel
+    - PI futex support
+        Enabled PI futex by default with turning on CONFIG_PI_FUTEX for modemv5 uncore target
+        Disabled previous PI mutex with turning off CONFIG_PRIORITY_INHERITANCE
+    - Removed the kernel futex array and used the PI futex array for kernel operation on regular mutex/signal/sem etc when there is contention.
+    - Use QURTK_futex_entry_t to replace  QURTK_pi_futex_entry_t so that both PI futexes and non-PI futexes can share the same pool.
+    - Optimize futex_wait/futex_resume for accurate step order on input validation. And optimized mutex code and reduced packets in 
+      mutex/rmutex_unlock upto kernel trap0 - from original 6 pkts to 4 ptks.
+    - Remove QURTK_curr_tcb asm function and use inline code for replacement to simply the logic.
+    - Extend kernel support for 128-entry TLB on v5 architecture. To reserve N tlb entries to be manipulated at run time, use 
+        tlb_first_replaceable=N instead of tlb index as was the case previously. The name will change in upcoming release to reflect correct
+        semantics. 
+
+* QuRT user library
+    - Moved the queue field in mutex struct to the 3rd word, in sync with signal/sem/barrier struct. 
+    - Reduced the mutex struct from 24bytes to 16 bytes
+    - QURT_API_VERSION changed to 3.
+
+* OSAM
+    - Supported new futex list for both PI Futexes and non-PI futexes
+
+* Bug Fixes
+    - Fixed the issue of http://aus-bugzilla/show_bug.cgi?id=6969
+    - Fixed incorrect setting of global bit for static memory
+

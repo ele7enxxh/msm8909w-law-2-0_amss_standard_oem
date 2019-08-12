@@ -1,0 +1,59 @@
+#===============================================================================
+#
+# SSE HDMI Driver
+#
+# GENERAL DESCRIPTION
+#    SSE HDMI Driver Module
+#
+# Copyright (c) 2013 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/sse/mc_v2/tests/hdmi/dr/drv/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+env.RequireProtectedApi(['MCDR_API'])
+env.RequireProtectedApi(['MTK_API'])
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/sse/mc_v2/tests/hdmi/dr/drv/inc")
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+DR_SRC = "${COREBSP_ROOT}/securemsm/sse/mc_v2/tests/hdmi/dr/drv/src"
+
+env.VariantDir('${BUILDPATH}', DR_SRC, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SOURCES = [ 
+            '${BUILDPATH}/drExcHandler.c',
+            '${BUILDPATH}/drIpcHandler.c',
+            '${BUILDPATH}/drMain.c',
+            '${BUILDPATH}/drUtils.c',
+            '${BUILDPATH}/01_getStatus.c',
+          ]
+
+HEADERS = env.FindFiles(['*.h'], DR_SRC + '/../inc')
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary('DRTESTHDMI_IMAGE', '${BUILDPATH}/drtesthdmi', SOURCES)
+env.CleanPack('DRTESTHDMI_IMAGE', HEADERS)

@@ -1,0 +1,108 @@
+#===============================================================================
+#
+# Widevine TZ Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011-2014 Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# Qualcomm Technologies Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains pkwrapperents describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/18/14    rk     Added new path for app_common_svc_handler.h
+# 16/12/13    rk     Modified new path for security checker
+# 05/09/13    ck     SCHK dxhdcp2 support. Independent lib, Added callback reg function to remove config dependency.
+#                    Removed operation parameter. Added log for debugging. Added datarate check.
+# 01/15/13    cz     Used BUILDPATH
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/widevine/wv_svc/shared"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES',
+   'SYSTEMDRIVERS',
+]
+
+env.RequirePublicApi(CBSP_API)
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsee/include/crypto/",
+   "${COREBSP_ROOT}/securemsm/trustzone/qsee/include/",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/crypto/chipset/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/config/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/tzcommon/common/chipset/${CHIPSET}/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/common/security_checker/shared/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/widevine/wv_svc/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/tzdrm/widevine/core/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/libs/services/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsapps/common/app_common_svc/shared/inc",
+   "${INC_ROOT}/core/api/dal",
+])
+
+if env.has_key('USES_NO_DEBUG'):
+   env.Replace(DBUG_MODE = "NoDebug")
+else:
+   env.Replace(DBUG_MODE = "Debug")
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+# do not generate thumb code for inline assembler code
+env.Append(ARMCC_OPT = ' --loose_implicit_cast -W')
+env.Append(ARMCPP_OPT = ' --loose_implicit_cast -W')
+
+
+#----------------------------------------------------------------------------
+# WIDEVINE Shared Library
+#----------------------------------------------------------------------------   
+
+SME_WIDEVINE_SHARED_LIB_SOURCES = [
+        '${BUILDPATH}/src/wv_oemcrypto_svc.c',   
+        '${BUILDPATH}/src/wv_decrypt_svc.c',   
+]
+
+sme_widevine_shared_lib = '${BUILDPATH}/sme_widevine_shared'
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary (['WIDEVINE_IMAGE'],sme_widevine_shared_lib, [SME_WIDEVINE_SHARED_LIB_SOURCES])
+
+#-------------------------------------------------------------------------------
+# Pack out files
+#-------------------------------------------------------------------------------
+NOSHIP_SOURCES = env.FindFiles("*", SRCPATH + "/inc")
+env.CleanPack('WIDEVINE_IMAGE', NOSHIP_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

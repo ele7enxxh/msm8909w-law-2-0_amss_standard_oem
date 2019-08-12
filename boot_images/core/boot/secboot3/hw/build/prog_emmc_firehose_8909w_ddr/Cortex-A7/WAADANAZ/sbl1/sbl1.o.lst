@@ -1,0 +1,823 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+    2 00000000         ;
+    3 00000000         ;                              SBL1
+    4 00000000         ;
+    5 00000000         ; GENERAL DESCRIPTION
+    6 00000000         ;   This file bootstraps the processor. The Start-up Pri
+                       mary Bootloader
+    7 00000000         ;   (SBL1) performs the following functions:
+    8 00000000         ;
+    9 00000000         ;      - Set up the hardware to continue boot process.
+   10 00000000         ;      - Initialize DDR memory
+   11 00000000         ;      - Load Trust-Zone OS
+   12 00000000         ;      - Load RPM firmware
+   13 00000000         ;      - Load APPSBL and continue boot process
+   14 00000000         ;
+   15 00000000         ;   The SBL1 is written to perform the above functions w
+                       ith optimal speed.
+   16 00000000         ;   It also attempts to minimize the execution time and 
+                       hence reduce boot time.
+   17 00000000         ;
+   18 00000000         ; Copyright 2014-2015 by Qualcomm Technologies, Incorpor
+                       ated.All Rights Reserved.
+   19 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   20 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   21 00000000         ;
+   22 00000000         ;                           EDIT HISTORY FOR FILE
+   23 00000000         ;
+   24 00000000         ; This section contains comments describing changes made
+                        to the module.
+   25 00000000         ; Notice that changes are listed in reverse chronologica
+                       l order.
+   26 00000000         ;
+   27 00000000         ; $Header: 
+   28 00000000         ;
+   29 00000000         ; when       who     what, where, why
+   30 00000000         ; --------   ---     -----------------------------------
+                       ---------------------
+   31 00000000         ; 11/17/14   sk      added sbl_memcpy function with neon
+                        instructions
+   32 00000000         ; 02/27/15   aus     Fixed to check for correct abort mo
+                       de
+   33 00000000         ; 07/22/14   sk      Changes for 8909
+   34 00000000         ; 07/14/14   sk      Added sbl1_external_abort_enable fu
+                       ntion
+   35 00000000         ; 07/01/14   sk      Added sbl_save_regs function
+   36 00000000         ; 05/01/14   ck      Added logic to assign stacks based 
+                       on processor mode
+   37 00000000         ; 03/19/14   ck      Fixed stack base issue.  Now using 
+                       proper address which is "Limit" of SBL1_STACK 
+   38 00000000         ; 03/07/14   ck      Removed -4 logic from check_for_nes
+                       ting as bear SBL has its own vector table
+   39 00000000         ; 03/03/14   ck      Updated vector table with branches 
+                       as VBAR is being used in Bear family 
+   40 00000000         ; 11/15/12   dh      Add boot_read_l2esr for 8974
+   41 00000000         ; 08/31/12   dh      Correct the stack base in check_for
+                       _nesting, remove unused code
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   42 00000000         ; 07/16/12   dh      Remove watchdog reset code
+   43 00000000         ; 02/06/12   dh      Update start up code
+   44 00000000         ; 01/31/12   dh      Initial revision for 8974
+   45 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   46 00000000         ;=======================================================
+                       =====================
+   47 00000000         ;
+   48 00000000         ;                            MODULE INCLUDES
+   49 00000000         ;
+   50 00000000         ;=======================================================
+                       =====================
+   51 00000000         ;=======================================================
+                       =====================
+   52 00000000         ;
+   53 00000000         ;                             MODULE DEFINES
+   54 00000000         ;
+   55 00000000         ;=======================================================
+                       =====================
+   56 00000000         ;
+   57 00000000 00000013 
+                       Mode_SVC
+                               EQU              0x13
+   58 00000000 00000017 
+                       Mode_ABT
+                               EQU              0x17
+   59 00000000 0000001B 
+                       Mode_UND
+                               EQU              0x1b
+   60 00000000 00000010 
+                       Mode_USR
+                               EQU              0x10
+   61 00000000 00000011 
+                       Mode_FIQ
+                               EQU              0x11
+   62 00000000 00000012 
+                       Mode_IRQ
+                               EQU              0x12
+   63 00000000 0000001F 
+                       Mode_SYS
+                               EQU              0x1F
+   64 00000000 00000080 
+                       I_Bit   EQU              0x80
+   65 00000000 00000040 
+                       F_Bit   EQU              0x40
+   66 00000000 00000100 
+                       A_Bit   EQU              0x100
+   67 00000000         ;=======================================================
+                       =====================
+   68 00000000         ;
+   69 00000000         ;                             MODULE IMPORTS
+   70 00000000         ;
+   71 00000000         ;=======================================================
+                       =====================
+   72 00000000         ; Import the external symbols that are referenced in thi
+                       s module.
+   73 00000000                 IMPORT           |Image$$SBL1_SVC_STACK$$ZI$$Lim
+it|
+   74 00000000                 IMPORT           |Image$$SBL1_UND_STACK$$ZI$$Lim
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+it|
+   75 00000000                 IMPORT           |Image$$SBL1_ABT_STACK$$ZI$$Lim
+it|
+   76 00000000                 IMPORT           boot_undefined_instruction_c_ha
+ndler
+   77 00000000                 IMPORT           boot_swi_c_handler
+   78 00000000                 IMPORT           boot_prefetch_abort_c_handler
+   79 00000000                 IMPORT           boot_data_abort_c_handler
+   80 00000000                 IMPORT           boot_reserved_c_handler
+   81 00000000                 IMPORT           boot_irq_c_handler
+   82 00000000                 IMPORT           boot_fiq_c_handler
+   83 00000000                 IMPORT           boot_nested_exception_c_handler
+   84 00000000                 IMPORT           sbl1_main_ctl
+   85 00000000                 IMPORT           boot_crash_dump_regs_ptr
+   86 00000000         ;=======================================================
+                       =====================
+   87 00000000         ;
+   88 00000000         ;                             MODULE EXPORTS
+   89 00000000         ;
+   90 00000000         ;=======================================================
+                       =====================
+   91 00000000         ; Export the external symbols that are referenced in thi
+                       s module.
+   92 00000000                 EXPORT           sbl_loop_here
+   93 00000000                 EXPORT           boot_read_l2esr
+   94 00000000         ; Export the symbols __main and _main to prevent the lin
+                       ker from
+   95 00000000         ; including the standard runtime library and startup rou
+                       tine.
+   96 00000000                 EXPORT           __main
+   97 00000000                 EXPORT           _main
+   98 00000000                 EXPORT           sbl_save_regs
+   99 00000000                 EXPORT           sbl1_external_abort_enable
+  100 00000000                 EXPORT           sbl_memcpy
+  101 00000000         ;=======================================================
+                       =====================
+  102 00000000         ;
+  103 00000000         ;                             MODULE DATA AREA
+  104 00000000         ;
+  105 00000000         ;=======================================================
+                       =====================
+  106 00000000         ;
+  107 00000000         ; Area that defines the register data structure
+  108 00000000         ;
+  109 00000000                 AREA             SAVE_REGS, DATA
+  110 00000000        7 
+                       arm_core_t
+                               RN               r7
+  111 00000000                 MAP              0,arm_core_t
+  112 00000000 00000000 
+                       svc_r0  FIELD            4
+  113 00000000 00000004 
+                       svc_r1  FIELD            4
+  114 00000000 00000008 
+                       svc_r2  FIELD            4
+  115 00000000 0000000C 
+                       svc_r3  FIELD            4
+  116 00000000 00000010 
+                       svc_r4  FIELD            4
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+  117 00000000 00000014 
+                       svc_r5  FIELD            4
+  118 00000000 00000018 
+                       svc_r6  FIELD            4
+  119 00000000 0000001C 
+                       svc_r7  FIELD            4
+  120 00000000 00000020 
+                       svc_r8  FIELD            4
+  121 00000000 00000024 
+                       svc_r9  FIELD            4
+  122 00000000 00000028 
+                       svc_r10 FIELD            4
+  123 00000000 0000002C 
+                       svc_r11 FIELD            4
+  124 00000000 00000030 
+                       svc_r12 FIELD            4
+  125 00000000 00000034 
+                       svc_sp  FIELD            4
+  126 00000000 00000038 
+                       svc_lr  FIELD            4
+  127 00000000 0000003C 
+                       svc_spsr
+                               FIELD            4
+  128 00000000 00000040 
+                       svc_pc  FIELD            4
+  129 00000000 00000044 
+                       cpsr    FIELD            4
+  130 00000000 00000048 
+                       sys_sp  FIELD            4
+  131 00000000 0000004C 
+                       sys_lr  FIELD            4
+  132 00000000 00000050 
+                       irq_sp  FIELD            4
+  133 00000000 00000054 
+                       irq_lr  FIELD            4
+  134 00000000 00000058 
+                       irq_spsr
+                               FIELD            4
+  135 00000000 0000005C 
+                       abt_sp  FIELD            4
+  136 00000000 00000060 
+                       abt_lr  FIELD            4
+  137 00000000 00000064 
+                       abt_spsr
+                               FIELD            4
+  138 00000000 00000068 
+                       udf_sp  FIELD            4
+  139 00000000 0000006C 
+                       udf_lr  FIELD            4
+  140 00000000 00000070 
+                       udf_spsr
+                               FIELD            4
+  141 00000000 00000074 
+                       fiq_r8  FIELD            4
+  142 00000000 00000078 
+                       fiq_r9  FIELD            4
+  143 00000000 0000007C 
+                       fiq_r10 FIELD            4
+  144 00000000 00000080 
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+                       fiq_r11 FIELD            4
+  145 00000000 00000084 
+                       fiq_r12 FIELD            4
+  146 00000000 00000088 
+                       fiq_sp  FIELD            4
+  147 00000000 0000008C 
+                       fiq_lr  FIELD            4
+  148 00000000 00000090 
+                       fiq_spsr
+                               FIELD            4
+  149 00000000                 PRESERVE8
+  150 00000000                 AREA             SBL1_VECTORS, CODE, READONLY, A
+LIGN=4
+  151 00000000                 CODE32
+  152 00000000         unused_reset_vector
+  153 00000000 EAFFFFFE        B                0x00000000
+  154 00000004         undefined_instruction_vector
+  155 00000004 EAFFFFFE        B                sbl1_undefined_instruction_nest
+ed_handler
+  156 00000008         swi_vector
+  157 00000008 EAFFFFFE        B                boot_swi_c_handler
+  158 0000000C         prefetch_abort_vector
+  159 0000000C EAFFFFFE        B                sbl1_prefetch_abort_nested_hand
+ler
+  160 00000010         data_abort_vector
+  161 00000010 EAFFFFFE        B                sbl1_data_abort_nested_handler
+  162 00000014         reserved_vector
+  163 00000014 EAFFFFFE        B                boot_reserved_c_handler
+  164 00000018         irq_vector
+  165 00000018 EAFFFFFE        B                boot_irq_c_handler
+  166 0000001C         fiq_vector
+  167 0000001C EAFFFFFE        B                boot_fiq_c_handler
+  168 00000020         ;=======================================================
+                       =====================
+  169 00000020         ; Qualcomm SECONDARY BOOT LOADER 1 ENTRY POINT
+  170 00000020         ;=======================================================
+                       =====================
+  171 00000020                 AREA             SBL1_ENTRY, CODE, READONLY, ALI
+GN=4
+  172 00000000                 CODE32
+  173 00000000                 ENTRY
+  174 00000000         __main
+  175 00000000         _main
+  176 00000000         ;=======================================================
+                       =====================
+  177 00000000         ;   We contiue to disable interrupt and watch dog until 
+                       we jump to apps
+  178 00000000         ;=======================================================
+                       =====================
+  179 00000000         sbl1_entry
+  180 00000000         ;Change to Supervisor Mode
+  181 00000000 E321F0D3        msr              CPSR_c, #Mode_SVC:OR:I_Bit:OR:F
+_Bit
+  182 00000004         ; Save the passing parameter from PBL
+  183 00000004 E1A07000        mov              r7, r0
+  184 00000008         ; Set VBAR (Vector Base Address Register) to SBL vector 
+                       table
+  185 00000008 E59F0264        ldr              r0, =0x08006000
+  186 0000000C EE0C0F10        MCR              p15, 0, r0, c12, c0, 0
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+  187 00000010         ; Setup the supervisor mode stack
+  188 00000010 E59F0260        ldr              r0, =|Image$$SBL1_SVC_STACK$$ZI
+$$Limit|
+  189 00000014 E1A0D000        mov              r13, r0
+  190 00000018         ; Switch to IRQ
+  191 00000018 E321F0D2        msr              CPSR_c, #Mode_IRQ:OR:I_Bit:OR:F
+_Bit
+  192 0000001C E1A0D000        mov              r13, r0
+  193 00000020         ; Switch to FIQ
+  194 00000020 E321F0D1        msr              CPSR_c, #Mode_FIQ:OR:I_Bit:OR:F
+_Bit
+  195 00000024 E1A0D000        mov              r13, r0
+  196 00000028         ; Switch to undefined mode and setup the undefined mode 
+                       stack
+  197 00000028 E321F0DB        msr              CPSR_c, #Mode_UND:OR:I_Bit:OR:F
+_Bit
+  198 0000002C E59F0248        ldr              r0, =|Image$$SBL1_UND_STACK$$ZI
+$$Limit|
+  199 00000030 E1A0D000        mov              r13, r0
+  200 00000034         ; Switch to abort mode and setup the abort mode stack
+  201 00000034 E321F0D7        msr              CPSR_c, #Mode_ABT:OR:I_Bit:OR:F
+_Bit
+  202 00000038 E59F0240        ldr              r0, =|Image$$SBL1_ABT_STACK$$ZI
+$$Limit|
+  203 0000003C E1A0D000        mov              r13, r0
+  204 00000040         ; Return to supervisor mode
+  205 00000040 E321F0D3        msr              CPSR_c, #Mode_SVC:OR:I_Bit:OR:F
+_Bit
+  206 00000044         ; Restore the passing parameter
+  207 00000044 E1A00007        mov              r0, r7
+  208 00000048         ; ------------------------------------------------------
+                       ------------
+  209 00000048         ; Call functions external to perform SBL1 function.
+  210 00000048         ; It should never return.
+  211 00000048         ; ------------------------------------------------------
+                       ------------
+  212 00000048 E59F5234        ldr              r5, =sbl1_main_ctl
+  213 0000004C E12FFF35        blx              r5
+  214 00000050         ; For safety
+  215 00000050 EB000069        bl               loophere    ; never returns, ke
+                                                            ep lr in r14 for de
+                                                            bug
+  216 00000054         ;=======================================================
+                       =====================
+  217 00000054         ; sbl_save_regs
+  218 00000054         ;
+  219 00000054         ; PROTOTYPE
+  220 00000054         ;   void sbl_save_regs();
+  221 00000054         ;
+  222 00000054         ; ARGS
+  223 00000054         ;   None
+  224 00000054         ;
+  225 00000054         ; DESCRIPTION
+  226 00000054         ;   Configure VBAR, vector table base register.
+  227 00000054         ;   
+  228 00000054         ;=======================================================
+                       =====================    
+  229 00000054         sbl_save_regs
+  230 00000054         ; Save CPSR
+
+
+
+ARM Macro Assembler    Page 7 
+
+
+  231 00000054 E92D0040        stmfd            sp!, {r6}
+  232 00000058 E10F6000        mrs              r6, CPSR
+  233 0000005C E92D0080        stmfd            sp!, {r7}
+  234 00000060         ; Switch to SVC mode
+  235 00000060 E321F0D3        msr              CPSR_c, #Mode_SVC:OR:I_Bit:OR:F
+_Bit
+  236 00000064         ; Capture User Mode r0-r14 (no SPSR)
+  237 00000064         ; Registers are stored in svc structure for backwards co
+                       mpatibility
+  238 00000064 E59F721C        ldr              arm_core_t,=boot_crash_dump_reg
+s_ptr
+  239 00000068 E5977000        ldr              arm_core_t, [r7]
+  240 0000006C E5870000        str              r0,  svc_r0
+  241 00000070 E5871004        str              r1,  svc_r1
+  242 00000074 E5872008        str              r2,  svc_r2
+  243 00000078 E587300C        str              r3,  svc_r3
+  244 0000007C E5874010        str              r4,  svc_r4
+  245 00000080 E5875014        str              r5,  svc_r5
+  246 00000084         ; Store r6 later after restoring it from the stack
+  247 00000084         ; Store r7 later after restoring it from the stack
+  248 00000084 E5878020        str              r8,  svc_r8
+  249 00000088 E5879024        str              r9,  svc_r9
+  250 0000008C E587A028        str              r10, svc_r10
+  251 00000090 E587B02C        str              r11, svc_r11
+  252 00000094 E587C030        str              r12, svc_r12
+  253 00000098 E587E038        str              r14, svc_lr
+  254 0000009C         ; Store SP value
+  255 0000009C E587D034        str              sp, svc_sp
+  256 000000A0         ; Store SPSR
+  257 000000A0 E14F0000        mrs              r0, SPSR
+  258 000000A4 E587003C        str              r0, svc_spsr
+  259 000000A8         ; Store the PC for restoration later
+  260 000000A8 E59F01DC        ldr              r0, =sbl_save_regs
+  261 000000AC E5870040        str              r0, svc_pc
+  262 000000B0         ; Save SYS mode registers
+  263 000000B0 E321F0DF        msr              CPSR_c, #Mode_SYS:OR:I_Bit:OR:F
+_Bit
+  264 000000B4 E587D048        str              r13, sys_sp
+  265 000000B8 E587E04C        str              r14, sys_lr
+  266 000000BC         ; Save IRQ mode registers
+  267 000000BC E321F0D2        msr              CPSR_c, #Mode_IRQ:OR:I_Bit:OR:F
+_Bit
+  268 000000C0 E587D050        str              r13, irq_sp
+  269 000000C4 E587E054        str              r14, irq_lr
+  270 000000C8 E14F0000        mrs              r0, SPSR
+  271 000000CC E5870058        str              r0, irq_spsr
+  272 000000D0         ; Save ABT mode registers
+  273 000000D0 E321F0D7        msr              CPSR_c, #Mode_ABT:OR:I_Bit:OR:F
+_Bit
+  274 000000D4 E587D05C        str              r13, abt_sp
+  275 000000D8 E587E060        str              r14, abt_lr
+  276 000000DC E14F0000        mrs              r0, SPSR
+  277 000000E0 E5870064        str              r0, abt_spsr
+  278 000000E4         ; Save UND mode registers
+  279 000000E4 E321F0DB        msr              CPSR_c, #Mode_UND:OR:I_Bit:OR:F
+_Bit
+  280 000000E8 E587D068        str              r13, udf_sp
+  281 000000EC E587E06C        str              r14, udf_lr
+  282 000000F0 E14F0000        mrs              r0, SPSR
+
+
+
+ARM Macro Assembler    Page 8 
+
+
+  283 000000F4 E5870070        str              r0, udf_spsr
+  284 000000F8         ; Save FIQ mode registers
+  285 000000F8 E321F0D1        msr              CPSR_c, #Mode_FIQ:OR:I_Bit:OR:F
+_Bit
+  286 000000FC E5878074        str              r8,  fiq_r8
+  287 00000100 E5879078        str              r9,  fiq_r9
+  288 00000104 E587A07C        str              r10, fiq_r10
+  289 00000108 E587B080        str              r11, fiq_r11
+  290 0000010C E587C084        str              r12, fiq_r12
+  291 00000110 E587D088        str              r13, fiq_sp
+  292 00000114 E587E08C        str              r14, fiq_lr
+  293 00000118 E14F0000        mrs              r0, SPSR
+  294 0000011C E5870090        str              r0, fiq_spsr
+  295 00000120         ; Switch back to original mode using r6 which holds the 
+                       cpsr
+  296 00000120 E121F006        msr              CPSR_c, r6
+  297 00000124         ; Store CPSR
+  298 00000124 E5876044        str              r6, cpsr
+  299 00000128         ; Restore r7 value 
+  300 00000128 E8BD0004        ldmfd            sp!, {r2}
+  301 0000012C E587201C        str              r2, svc_r7
+  302 00000130         ; Restore r6 value
+  303 00000130 E8BD0002        ldmfd            sp!, {r1}
+  304 00000134 E5871018        str              r1, svc_r6
+  305 00000138 E1A06001        mov              r6, r1
+  306 0000013C E1A07002        mov              r7, r2
+  307 00000140         ; Finished so return    
+  308 00000140 E12FFF1E        bx               lr
+  309 00000144         ;=======================================================
+                       ===============
+  310 00000144         ;
+  311 00000144         ; void sbl_memcpy(uint32* dst, uint32* src, int32 size)
+  312 00000144         ;
+  313 00000144         ; We perform our copy by using assembly.
+  314 00000144         ; Parameters:
+  315 00000144         ;   r0 contains the destination address
+  316 00000144         ;   r1 is the source address
+  317 00000144         ;   r2 is the size to be copied.
+  318 00000144         ; Notes:
+  319 00000144         ;   - Does not handle source/destination overlapping 
+  320 00000144         ;=======================================================
+                       ===============
+  321 00000144         sbl_memcpy
+  322 00000144 E3520080        cmp              r2,   #0x80 ; check bigger than
+                                                             128 bytes or not.
+  323 00000148 AA000006        bge              loop_for_128byte_copy
+  324 0000014C         check_32byte_left_over
+  325 0000014C E3520020        cmp              r2,   #0x20 ; check bigger than
+                                                             32 bytes or not.
+  326 00000150 AA00000A        bge              loop_for_32byte_copy
+  327 00000154         check_4byte_left_over
+  328 00000154 E3520004        cmp              r2,   #0x4
+  329 00000158 AA00000E        bge              loop_for_4byte_copy
+  330 0000015C         check_byte_left_over
+  331 0000015C E3520000        cmp              r2,   #0x0
+  332 00000160 CA000012        bgt              loop_for_byte_copy
+  333 00000164         memcpy_end
+  334 00000164 E12FFF1E        bx               lr
+  335 00000168         loop_for_128byte_copy
+
+
+
+ARM Macro Assembler    Page 9 
+
+
+  336 00000168 ECB10B20        vldm             r1!, {Q0-Q7} ; copy 128 bytes a
+                                                            t a time
+  337 0000016C ECA00B20        vstm             r0!, {Q0-Q7}
+  338 00000170 E2422080        sub              r2, r2, #0x80 ; decrement size 
+                                                            by 128
+  339 00000174 E3520080        cmp              r2, #0x80
+  340 00000178 AAFFFFFA        bge              loop_for_128byte_copy
+  341 0000017C BAFFFFF2        blt              check_32byte_left_over
+  342 00000180         loop_for_32byte_copy
+  343 00000180 ECB10B08        vldm             r1!, {Q0-Q1} ; copy 32 bytes at
+                                                             a time
+  344 00000184 ECA00B08        vstm             r0!, {Q0-Q1}
+  345 00000188 E2422020        sub              r2, r2, #0x20 ; decrement size 
+                                                            by 32
+  346 0000018C E3520020        cmp              r2, #0x20
+  347 00000190 AAFFFFFA        bge              loop_for_32byte_copy
+  348 00000194 BAFFFFEE        blt              check_4byte_left_over
+  349 00000198         loop_for_4byte_copy
+  350 00000198 E8B10008        ldmia            r1!,  {r3}  ; load 4 bytes each
+                                                             time
+  351 0000019C E8A00008        stmia            r0!,  {r3}
+  352 000001A0 E2422004        sub              r2,r2,#0x4  ;
+  353 000001A4 E3520004        cmp              r2,#0x4
+  354 000001A8 AAFFFFFA        bge              loop_for_4byte_copy
+  355 000001AC BAFFFFEA        blt              check_byte_left_over
+  356 000001B0         loop_for_byte_copy
+  357 000001B0 E4D13001        ldrb             r3,   [r1], #0x1
+  358 000001B4 E4C03001        strb             r3,   [r0], #0x1
+  359 000001B8 E2422001        sub              r2,r2,#0x1
+  360 000001BC E3520000        cmp              r2, #0x0
+  361 000001C0 CAFFFFFA        bgt              loop_for_byte_copy
+  362 000001C4 DAFFFFE6        ble              memcpy_end  ; end the byte copy
+                                                            .
+  363 000001C8         ;=======================================================
+                       ===============
+  364 000001C8         ; Called by sbl1_error_handler only. We clean up the reg
+                       isters and loop
+  365 000001C8         ; here until JTAG is connected.
+  366 000001C8         ;=======================================================
+                       ===============
+  367 000001C8         sbl_loop_here
+  368 000001C8 E3A00000        mov              r0,#0
+  369 000001CC E3A01000        mov              r1,#0
+  370 000001D0 E3A02000        mov              r2,#0
+  371 000001D4 E3A03000        mov              r3,#0
+  372 000001D8 E3A04000        mov              r4,#0
+  373 000001DC E3A05000        mov              r5,#0
+  374 000001E0 E3A06000        mov              r6,#0
+  375 000001E4 E3A07000        mov              r7,#0
+  376 000001E8 E3A08000        mov              r8,#0
+  377 000001EC E3A09000        mov              r9,#0
+  378 000001F0 E3A0A000        mov              r10,#0
+  379 000001F4 E3A0B000        mov              r11,#0
+  380 000001F8 E3A0C000        mov              r12,#0
+  381 000001FC         loophere
+  382 000001FC EAFFFFFE        b                loophere
+  383 00000200         ;=======================================================
+                       ===============
+  384 00000200         ; SBL1 exception handlers that can have nested calls to 
+
+
+
+ARM Macro Assembler    Page 10 
+
+
+                       them.  These
+  385 00000200         ; handlers check for nesting and if it is the first exce
+                       ption they
+  386 00000200         ; call a "C" exception handler that calls the SBL1 error
+                        handler.
+  387 00000200         ; If it is a nested exception, the "C" exception handler
+                        is not
+  388 00000200         ; re-entered and the JTAG interface is enabled immediate
+                       ly. Nesting
+  389 00000200         ; is only a concern for undefined instruction and abort 
+                       exceptions.
+  390 00000200         ; Note, a separate exception handler is used for each ex
+                       ception to
+  391 00000200         ; provide additional debug information (see sbl1_error_h
+                       andler.c for
+  392 00000200         ; more information).
+  393 00000200         ;=======================================================
+                       ===============
+  394 00000200         sbl1_undefined_instruction_nested_handler
+  395 00000200 E59F5088        ldr              r5,=boot_undefined_instruction_
+c_handler
+  396 00000204 EA000003        b                check_for_nesting
+  397 00000208         sbl1_prefetch_abort_nested_handler
+  398 00000208 E59F5084        ldr              r5,=boot_prefetch_abort_c_handl
+er
+  399 0000020C EA000001        b                check_for_nesting
+  400 00000210         sbl1_data_abort_nested_handler
+  401 00000210 E59F5080        ldr              r5,=boot_data_abort_c_handler
+  402 00000214 EAFFFFFF        b                check_for_nesting
+  403 00000218         ;=======================================================
+                       ===============
+  404 00000218         ; Checks for nested exceptions and then calls the "C" ex
+                       ception
+  405 00000218         ; handler pointed to by R5 if this is the first time thi
+                       s exception
+  406 00000218         ; has occurred, otherwise it calls the "C" nested except
+                       ion handler
+  407 00000218         ; that just enables JTAG debug access.  The mode stack p
+                       ointer is used
+  408 00000218         ; to determine if a nested exception or a second abort e
+                       xception has
+  409 00000218         ; occurred.  This is accomplished by comparing the mode 
+                       stack pointer
+  410 00000218         ; to the top of the stack that was initially assigned to
+                        the stack.
+  411 00000218         ; If they are equal, it is a first time exception.
+  412 00000218         ;=======================================================
+                       ===============
+  413 00000218         check_for_nesting
+  414 00000218         ; Initial stack base depends on the current processor mo
+                       de
+  415 00000218         ; Mode will either be ABT or UND.  Load proper stack bas
+                       e.
+  416 00000218 E10F7000        mrs              r7, cpsr
+  417 0000021C E207701F        and              r7, r7, #Mode_SYS ; Use Mode_SY
+                                                            S for mode bitmask 
+                                                            as all bits are hig
+                                                            h
+  418 00000220 E3570017        cmp              r7, #Mode_ABT
+
+
+
+ARM Macro Assembler    Page 11 
+
+
+  419 00000224 059F6054        ldreq            r6,=|Image$$SBL1_ABT_STACK$$ZI$
+$Limit|
+  420 00000228 E357001B        cmp              r7, #Mode_UND
+  421 0000022C 059F6048        ldreq            r6,=|Image$$SBL1_UND_STACK$$ZI$
+$Limit|
+  422 00000230 E1A0700D        mov              r7, r13     ; Save current stac
+                                                            k ptr
+  423 00000234 E1560007        cmp              r6, r7      ; Compare initial a
+                                                            nd actual
+  424 00000238 012FFF35        blxeq            r5          ; First time except
+                                                            ion
+  425 0000023C E59F5058        ldr              r5,=boot_nested_exception_c_han
+dler 
+                                                            ; This is a nested 
+                                                            exception
+  426 00000240 E12FFF35        blx              r5
+  427 00000244         boot_read_l2esr
+  428 00000244 E3A01F81        mov              r1, #0x204  ;Indirect address o
+                                                            f L2ESR
+  429 00000248 F57FF06F        isb
+  430 0000024C EE6F1FD0        mcr              p15,3,r1,c15,c0,6 ;Write the L2
+                                                            CPUCPSELR with the 
+                                                            indirect address of
+                                                             the L2ESR
+  431 00000250 F57FF06F        isb
+  432 00000254 EE7F0FF0        mrc              p15,3,r0,c15,c0,7 
+                                                            ;store L2ESR to r0
+  433 00000258 F57FF06F        isb
+  434 0000025C E12FFF1E        bx               lr
+  435 00000260         ; void sbl1_external_abort_enable(uint32 flags)
+  436 00000260         sbl1_external_abort_enable
+                               FUNCTION
+  437 00000260 E2000D07        and              r0, r0, #F_Bit:OR:I_Bit:OR:A_Bi
+t 
+                                                            ; Only care about A
+                                                            /I/F bits.
+  438 00000264 E10F1000        mrs              r1, cpsr    ; Read the status r
+                                                            egister.
+  439 00000268 E1C11000        bic              r1, r1, r0  ; Clear requested A
+                                                            /I/F bits
+  440 0000026C E123F001        msr              cpsr_cx, r1 ; Write control & e
+                                                            xtension field
+  441 00000270 E12FFF1E        bx               lr
+  442 00000274                 ENDFUNC
+  443 00000274                 END
+              08006000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+Command Line: --cpu=Cortex-A7 --apcs=/noswst/interwork --no_unaligned_access -o
+/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208
+_043404/b/boot_images/core/boot/secboot3/hw/build/prog_emmc_firehose_8909w_ddr/
+
+
+
+ARM Macro Assembler    Page 12 
+
+
+Cortex-A7/WAADANAZ/sbl1/sbl1.o -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c
+3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/secboot3/hw/bu
+ild -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20
+161208_043404/b/boot_images/build/cust -I. -I/local/mnt/workspace/CRMBuilds/BOO
+T.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/boo
+t -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/api/boot/qfprom -I/local/mnt/workspace/CRMBuilds
+/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/bus
+es/api/spmi -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAAN
+AZB-1_20161208_043404/b/boot_images/core/buses/api/icb -I/local/mnt/workspace/C
+RMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/
+core/buses/api/uart -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M89
+09WAAAANAZB-1_20161208_043404/b/boot_images/core/buses/api/i2c -I/local/mnt/wor
+kspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot
+_images/core/api/dal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8
+909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/services -I/local/mnt/wor
+kspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot
+_images/core/api/storage -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0001
+2-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/systemdrivers -I/loca
+l/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_0434
+04/b/boot_images/core/api/systemdrivers/pmic -I/local/mnt/workspace/CRMBuilds/B
+OOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/s
+ystemdrivers/hwio/msm8909 -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-000
+12-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/wiredconnectivity -I
+/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208
+_043404/b/boot_images/core/api/securemsm -I/local/mnt/workspace/CRMBuilds/BOOT.
+BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/securemsm
+/secboot/api -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAA
+NAZB-1_20161208_043404/b/boot_images/core/api/kernel/libstd/stringl -I/local/mn
+t/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b
+/boot_images/core/api/hwengines -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.
+c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/secboot3/src 
+-I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_201612
+08_043404/b/boot_images/core/boot/ddr/common -I/local/mnt/workspace/CRMBuilds/B
+OOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/
+ddr/hw/msm8909w -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WA
+AAANAZB-1_20161208_043404/b/boot_images/core/boot/ddr/hw/phy -I/local/mnt/works
+pace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_i
+mages/core/boot/ddr/hw/controller -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.
+2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/secboot3/hw
+/msm8909 -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB
+-1_20161208_043404/b/boot_images/core/dal/src -I/local/mnt/workspace/CRMBuilds/
+BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/dal/
+config -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1
+_20161208_043404/b/boot_images/core/services/utils/src -I/local/mnt/workspace/C
+RMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/
+core/storage/flash/src/dal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00
+012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flash/src/hal -
+I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016120
+8_043404/b/boot_images/core/storage/flash/tools/inc -I/local/mnt/workspace/CRMB
+uilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/cor
+e/storage/flash/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M89
+09WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/sdcc/src -I/local/mnt/
+workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/b
+oot_images/core/storage/sdcc/src/hal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3
+.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/sdcc/
+src/bsp -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-
+1_20161208_043404/b/boot_images/core/storage/efs/inc -I/local/mnt/workspace/CRM
+Builds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/co
+
+
+
+ARM Macro Assembler    Page 13 
+
+
+re/storage/hfat/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M89
+09WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/hotplug/inc -I/local/m
+nt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/
+b/boot_images/core/storage/tools/deviceprogrammer_ddr/src/firehose -I/local/mnt
+/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/
+boot_images/core/storage/ufs/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2
+.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/systemdrivers/tlm
+m/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_
+20161208_043404/b/boot_images/core/systemdrivers/tlmm/src -I/local/mnt/workspac
+e/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_imag
+es/core/wiredconnectivity/qhsusb/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3
+.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/wiredconnecti
+vity/qusb/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAA
+ANAZB-1_20161208_043404/b/boot_images/core/securemsm/cryptodrivers/ce/shared/in
+c -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2016
+1208_043404/b/boot_images/core/securemsm/cryptodrivers/ce/test/inc -I/local/mnt
+/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/
+boot_images/core/securemsm/cryptodrivers/prng/shared/inc -I/local/mnt/workspace
+/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_image
+s/core/securemsm/cryptodrivers/prng/test/inc -I/local/mnt/workspace/CRMBuilds/B
+OOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/secur
+emsm/cryptodrivers/prng/shared/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1
+.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/securemsm/s
+ecboot -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1
+_20161208_043404/b/boot_images/core/api/securemsm/seccfg -I/local/mnt/workspace
+/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_image
+s/core/securemsm/secmath/shared/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.
+1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/securemsm/fuse
+prov/chipset/msm8909/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0001
+2-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/hwengines/mhi -I/local/mn
+t/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b
+/boot_images/core/hwengines/pcie --list=/local/mnt/workspace/CRMBuilds/BOOT.BF.
+3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/secboot
+3/hw/build/prog_emmc_firehose_8909w_ddr/Cortex-A7/WAADANAZ/sbl1/sbl1.o.lst --si
+telicense /local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-
+1_20161208_043404/b/boot_images/core/boot/secboot3/hw/build/prog_emmc_firehose_
+8909w_ddr/Cortex-A7/WAADANAZ/sbl1/sbl1.o.i

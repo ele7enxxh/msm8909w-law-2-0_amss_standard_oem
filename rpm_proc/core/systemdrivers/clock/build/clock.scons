@@ -1,0 +1,183 @@
+#=============================================================================
+# CLOCK DRIVER SHARED LIBRARY
+#
+# Target:    All
+# Processor: All
+#
+#=============================================================================
+# $Header: //components/rel/rpm.bf/2.1.1/core/systemdrivers/clock/build/clock.scons#4 $
+#=============================================================================
+#  Copyright 2011-2012 Qualcomm Technologies Incorporated.
+#  All Rights Reserved.
+#  QUALCOMM Proprietary/GTDR
+#=============================================================================
+
+import os
+
+Import('env')
+env = env.Clone()
+
+supported_targets = ['8916', '8936', '9x45', '8909', '8952', '8976', '9x07','8909W']
+if env['MSM_ID'] not in supported_targets:
+    env.PrintWarning('Bailing from clock scripts; no support for build targets other than %s' % supported_targets)
+    Return()
+
+env.Append(CCFLAGS = ' --c99')
+
+#------------------------------------------------------------------------------
+# Add API folders
+#------------------------------------------------------------------------------
+
+CLOCK_BUILD_ROOT = os.getcwd();
+
+env.PublishPrivateApi('SYSTEMDRIVERS_CLOCK', [
+   CLOCK_BUILD_ROOT + "/../src",
+   "${BUILD_ROOT}/core/systemdrivers/hal/clk/inc",
+   "${BUILD_ROOT}/core/systemdrivers/hal/avs/inc",
+])
+
+#-----------------------------------------------------------------------------
+# Define paths
+#-----------------------------------------------------------------------------
+
+SRCPATH = "../"
+SRCPATHSCRIPTS = env['BUILD_ROOT'] + '/core/systemdrivers/clock/scripts/'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'POWER',
+   'KERNEL',
+   'DEBUGTRACE'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Define sources
+#-------------------------------------------------------------------------------
+
+CLOCK_SOURCES = [
+   '${BUILDPATH}/src/ClockDriver.c',
+   '${BUILDPATH}/src/ClockSources.c',
+   '${BUILDPATH}/src/ClockVoltage.c',
+   '${BUILDPATH}/src/ClockCommon.c'
+]
+
+if env['CHIPSET'] in ['msm8916', 'mdm9x45', 'msm8909', 'msm8952', 'mdm9x07']:
+  CLOCK_HW_SOURCES = [
+     '${BUILDPATH}/hw/${CHIPSET}/ClockRPM.c',
+     '${BUILDPATH}/hw/${CHIPSET}/ClockRPMNPA.c',
+     '${BUILDPATH}/hw/${CHIPSET}/ClockRPMBIMC.c'
+  ]
+else:
+  CLOCK_HW_SOURCES = [
+   '${BUILDPATH}/hw/${CHIPSET}/ClockRPM.c',
+   '${BUILDPATH}/hw/${CHIPSET}/ClockRPMNPA.c'
+]
+
+CLOCK_TEST_SOURCES = [
+   '${BUILDPATH}/hw/${CHIPSET}/ClockRPMTest.c'
+]
+
+#-------------------------------------------------------------------------------
+# DEVCFG - Clock BSP
+#-------------------------------------------------------------------------------
+
+if 'USES_DEVCFG' in env:
+  if env['MSM_ID'] == '8909W':
+     CLOCK_BSP_SOURCES = [
+       '${BUILDPATH}/config/msm8909W/ClockBSP.c',
+     ]
+     env.AddLibrary(['DAL_DEVCFG_IMG'], '${BUILDPATH}/Clock_msm8909W_bsp', CLOCK_BSP_SOURCES)
+  else:
+     CLOCK_BSP_SOURCES = [
+       '${BUILDPATH}/config/${CHIPSET}/ClockBSP.c',
+     ]
+     env.AddLibrary(['DAL_DEVCFG_IMG'], '${BUILDPATH}/Clock_${CHIPSET}_bsp', CLOCK_BSP_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Add CMM Scripts to T32 Menu
+#-------------------------------------------------------------------------------
+
+CMM_ARGUMENT = env['CHIPSET']
+
+try:
+  env.AddCMMScripts ('RPM', [SRCPATHSCRIPTS], { 'Clock.cmm' : ['Clocks', CMM_ARGUMENT] }, 'SystemDrivers')
+except:
+  pass
+
+#-------------------------------------------------------------------------------
+# Define objects
+#-------------------------------------------------------------------------------
+
+ClockShared_lib   = env.Library('${BUILDPATH}/Clock',       CLOCK_SOURCES)
+ClockHW_lib       = env.Library('${BUILDPATH}/ClockHW',     CLOCK_HW_SOURCES)
+
+if 'USES_NO_STRIP_NO_ODM' in env:
+  ClockTest_lib     = env.Library('${BUILDPATH}/ClockHWTest', CLOCK_TEST_SOURCES)
+else:
+  ClockTest_lib     = env.File('${BUILDPATH}/ClockHWTest${LIBSUFFIX}')
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+
+if env['MSM_ID'] in ['8974']: 
+  env.AddLibsToImage(
+    'RPM_IMAGE', [ClockShared_lib, ClockHW_lib, ClockTest_lib])
+else:
+  env.AddLibsToImage(
+    'RPM_IMAGE', [ClockShared_lib, ClockHW_lib])
+
+#-------------------------------------------------------------------------------
+# SWEvent processing
+#-------------------------------------------------------------------------------
+if 'USES_QDSS_SWE' in env:
+   QDSS_IMG = ['QDSS_EN_IMG']
+   events = [['CLOCK_EVENT_FIRST=384','clock first event placeholder'],
+             ['CLOCK_EVENT_INIT','Clock Initialize'],
+             ['CLOCK_EVENT_STATUS','Clock Name: %d.\t requested state = %d (enable/disable) actual state (Reference count of clock requests) = %d'],
+             ['CLOCK_EVENT_FREQ','Clock Name: %d.\t Frequency = %d'],
+             ['CLOCK_EVENT_PLL_STATUS','Clock PLL %d.\t Status = %d'],
+             ['CLOCK_EVENT_POWER_COLLAPSE','Clock Power Collapse - %s'],
+             ['CLOCK_EVENT_POWER_RESTORE','Clock Power Restore - %s'],
+             ['CLOCK_EVENT_BIMC_COLLAPSE','Clock BIMC Collapse - %s'],
+             ['CLOCK_EVENT_BIMC_RESTORE','Clock BIMC Restore - %s'],
+             ['CLOCK_EVENT_CX','Clock CX voltage = %d'],
+             ['CLOCK_EVENT_GFX','Clock GFX voltage = %d'],
+             ['CLOCK_EVENT_LAST=511','clock last event placeholder']
+            ]
+   env.AddSWEInfo(QDSS_IMG, events)
+
+
+#---------------------------------------------------------------------------
+# Invoke document generation SConscript
+#---------------------------------------------------------------------------
+
+if os.path.exists(env['BUILD_ROOT'] + '/core/api/systemdrivers/docsrc/clock/SConscript') :
+  env.SConscript(
+    '${BUILD_ROOT}/core/api/systemdrivers/docsrc/clock/SConscript',
+    exports='env')
+
+#-------------------------------------------------------------------------------
+# DEVCFG - Clock XML
+#-------------------------------------------------------------------------------
+
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG,
+   {
+      'devcfg_xml'    : '${BUILD_ROOT}/core/systemdrivers/clock/config/DalClock.xml'
+   })
+

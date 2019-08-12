@@ -1,0 +1,209 @@
+#===============================================================================
+# Copyright (c) 2012-14 by Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#===============================================================================
+# FS Libs
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/storage/sdcc/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'CS',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BOOT',
+   'DEBUGTOOLS',
+   'HWENGINES',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',   
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+
+if env.has_key('BUILD_SDCC_MINIMIZED_API'):
+   env.Append(CPPDEFINES = [
+      'SDCC_OSAL_H=\\"sdcc_osal_boot.h\\"',
+      'SDCC_PAL_H=\\"sdcc_pal_tool.h\\"',
+      'FEATURE_SDCC_DISABLE_DMA',
+      'FEATURE_SDCC_FOR_TOOLS_ENV',
+   ])
+elif env.has_key('BUILD_BOOT_CHAIN'):
+   env.Append(CPPDEFINES = [
+      'SDCC_OSAL_H=\\"sdcc_osal_boot.h\\"',
+      'SDCC_PAL_H=\\"sdcc_pal_tool.h\\"',
+      'FEATURE_SDCC_FOR_TOOLS_ENV',
+      'FEATURE_SDCC_USES_CACHE_OP',
+      'FEATURE_SDCC_DISABLE_DMA',
+   ])
+elif env.has_key('BUILD_TOOL_CHAIN'):
+   env.Append(CPPDEFINES = [
+      'SDCC_OSAL_H=\\"sdcc_osal_boot.h\\"',
+      'SDCC_PAL_H=\\"sdcc_pal_tool.h\\"',
+      'FEATURE_SDCC_DISABLE_DMA',
+      'FEATURE_SDCC_FOR_TOOLS_ENV',
+   ])
+
+if env['PROC'] in ['scorpion']:
+   env.Append(CPPDEFINES = [
+      'SDCC_USES_SCORPION_WAIT'
+   ])
+
+SDCC_SOURCES =  [
+   '${BUILDPATH}/sdcc_sdio.c',
+   '${BUILDPATH}/sdcc_sdio_util.c',
+   '${BUILDPATH}/sdcc_pal_os.c',
+   '${BUILDPATH}/sdcc_util.c',
+   '${BUILDPATH}/sdcc_api.c',
+   '${BUILDPATH}/sdcc_debug.c',
+   '${BUILDPATH}/sdcc_sd_util.c',
+   '${BUILDPATH}/sdcc_mmc_util.c',
+   '${BUILDPATH}/sdcc_handle_util.c'
+]
+
+SDCC_BOOT_SOURCES =  [
+   '${BUILDPATH}/sdcc_pal_boot.c',
+   '${BUILDPATH}/sdcc_util.c',
+   '${BUILDPATH}/sdcc_mini_api.c',
+   '${BUILDPATH}/sdcc_debug.c',
+   '${BUILDPATH}/sdcc_sd_util.c',
+   '${BUILDPATH}/sdcc_mmc_util.c',
+   '${BUILDPATH}/sdcc_handle_util.c'
+]
+
+SDCC_MINI_SOURCES =  [
+   '${BUILDPATH}/sdcc_mini_api.c',
+   '${BUILDPATH}/sdcc_pal_tool.c',
+   '${BUILDPATH}/sdcc_util.c',
+   '${BUILDPATH}/sdcc_debug.c',
+   '${BUILDPATH}/sdcc_sd_util.c',
+   '${BUILDPATH}/sdcc_mmc_util.c',
+   '${BUILDPATH}/sdcc_handle_util.c',
+]
+
+if env.has_key('DEVICE_PROGRAMMER_BUILD_FLAG'):
+   env.Append(CPPDEFINES = ["SDHCI_AMDA_MODE_ENABLED"])
+
+# Enable SDHCI mode for 8909 Device Programmer only
+if env['HAL_PLATFORM'] in ['8909', '8909w', '8952', '8956']:
+  if env.has_key('DEVICE_PROGRAMMER_BUILD_FLAG'):
+    SDCC_SDHCI_SOURCES =  [
+      '${BUILDPATH}/sdcc_hc.c',
+      '${BUILDPATH}/hal/HALsdhci.c',
+    ]
+  else:
+    SDCC_SDHCI_SOURCES =  [
+      '${BUILDPATH}/sdcc_hc_stub.c',
+      '${BUILDPATH}/hal/HALsdhci_stub.c',
+    ]
+elif env['HAL_PLATFORM'] in ['8916', '8936', '9x45']:
+  SDCC_SDHCI_SOURCES =  [
+    '${BUILDPATH}/sdcc_hc_stub.c',
+    '${BUILDPATH}/hal/HALsdhci_stub.c',
+  ]
+
+if env['HAL_PLATFORM'] in ['8909', '8909w']:
+  SDCC_BSP_PLATFORM = '8909'
+else:
+  SDCC_BSP_PLATFORM = env['MSMID']
+
+SDCC_BSP_PATH = 'bsp/' + SDCC_BSP_PLATFORM
+
+#Include the following line for dumping out environment variables
+#print env.Dump()
+
+SDCC_BSP_BOOT_SOURCES =  [
+   '${BUILDPATH}/'+ SDCC_BSP_PATH +'/sdcc_bsp_boot.c'
+]
+
+SDCC_BSP_SOURCES =  [
+   '${BUILDPATH}/'+ SDCC_BSP_PATH +'/sdcc_bsp.c'
+]
+
+if env['HAL_PLATFORM'] in ['8916','8936','8909', '8909w','8952']:
+   SDCC_HAL_SOURCES = [
+      '${BUILDPATH}/hal/HALsdcc_sdcc4.c',
+      '${BUILDPATH}/hal/HALsdcc_util.s',
+      '${BUILDPATH}/hal/HALsdcc_8916.c',
+   ]
+   env.Append(CPPDEFINES = [
+      'SDCC_HWIO_H=\\"sdcc_hwio_8916.h\\"',
+  ])
+
+if env['HAL_PLATFORM'] in ['8956']:
+   SDCC_HAL_SOURCES = [
+      '${BUILDPATH}/hal/HALsdcc_sdcc4.c',
+      '${BUILDPATH}/hal/HALsdcc_util.s',
+      '${BUILDPATH}/hal/HALsdcc_8956.c',
+   ]
+   env.Append(CPPDEFINES = [
+      'SDCC_HWIO_H=\\"sdcc_hwio_8956.h\\"',
+  ])
+  
+if env['HAL_PLATFORM'] in ['9x45']:
+   SDCC_HAL_SOURCES = [
+      '${BUILDPATH}/hal/HALsdcc_sdcc4.c',
+      '${BUILDPATH}/hal/HALsdcc_util.s',
+      '${BUILDPATH}/hal/HALsdcc_9x45.c',
+   ]
+   env.Append(CPPDEFINES = [
+      'SDCC_HWIO_H=\\"sdcc_hwio_9x45.h\\"',
+  ])
+  
+sdcc_obj = env.Object([SDCC_SOURCES, SDCC_BSP_SOURCES])
+sdcc_lib = env.Library('${BUILDPATH}/sdcc', sdcc_obj)
+
+sdcc_boot_obj = env.Object([SDCC_BOOT_SOURCES, SDCC_BSP_BOOT_SOURCES])
+sdcc_boot_lib = env.Library('${BUILDPATH}/sdcc_boot', sdcc_boot_obj)
+
+sdcc_hal_obj = env.Object(SDCC_HAL_SOURCES)
+sdcc_hal_lib = env.Library('${BUILDPATH}/HALsdcc', sdcc_hal_obj)
+
+sdcc_mini_obj = env.Object([SDCC_MINI_SOURCES, SDCC_BSP_BOOT_SOURCES, SDCC_SDHCI_SOURCES])
+sdcc_mini_lib = env.Library('${BUILDPATH}/mini_sdcc', sdcc_mini_obj)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibsToImage(['JSDCC_TOOL_IMAGE', 'EMMCBLD_IMAGE', 'RPMSBL_BOOT_IMAGE'],
+   [sdcc_mini_lib, sdcc_hal_lib])
+
+if env.has_key('BUILD_BOOT_CHAIN_WITHOUT_SDCC') != True:
+   env.AddLibsToImage(['SBL1_BOOT_IMAGE', 'SDCC_BOOT_DRIVER'],
+      [sdcc_mini_lib, sdcc_hal_lib])
+
+if env.has_key('BUILD_BOOT_CHAIN_WITHOUT_SDCC') != True:
+   env.AddLibsToImage(['SBL2_BOOT_IMAGE', 'SBL3_BOOT_IMAGE'],
+      [sdcc_boot_lib, sdcc_hal_lib])
+

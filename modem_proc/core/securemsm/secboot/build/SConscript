@@ -1,0 +1,135 @@
+#===============================================================================
+#
+# secboot auth Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header:  $
+#  $DateTime: $
+#  $Author:  $
+#  $Change:  $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+
+# 07/07/10   mm      Initial Version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/secboot/"
+
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secboot/api")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secboot/src")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/secmath/api")
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/chipset/msm8974")
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'BOOT',
+   'BOOT_TOOLS',
+   'DAL',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+#-------------------------------------------------------------------------------
+# Generates mba_hwio.h
+#-------------------------------------------------------------------------------
+if env.has_key('HWIO_IMAGE'):
+
+  env.AddHWIOFile('HWIO', [
+    {
+      'filename': '${INC_ROOT}/core/securemsm/secboot/hw/secctrl/src/msmhwioreg.h',
+	  'modules': ['CRYPTO.*','PERIPH.*','SECURITY.*','MSS_PERPH'],
+    }
+  ]
+)
+
+SME_PROTECTED_API = [
+     'CRYPTODRIVERS',
+]
+env.RequireProtectedApi(SME_PROTECTED_API)
+
+INC_PATH = [
+      "${BUILDPATH}/src",
+]
+env.Append(CPPPATH = INC_PATH)
+
+if 'USES_SENSORS_COMPONENT' in env:
+	env.Append(CPPDEFINES = ['FLAVOR_8909W'])
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SECBOOT_LIB_SOURCES = [
+        '${BUILDPATH}/src/secboot.c',
+        '${BUILDPATH}/src/secboot_asn1.c',
+        '${BUILDPATH}/src/secboot_x509.c',
+        '${BUILDPATH}/src/secboot_util.c',       
+        #'${BUILDPATH}/oem/secboot_img_util.c', 
+]
+if env['CHIPSET'] in ['mdm9607', 'msm8937']:
+    SECBOOT_LIB_SOURCES += ['${BUILDPATH}/hw/secctrl/${CHIPSET}/src/secboot_hw.c',
+ 	                        '${BUILDPATH}/hw/secctrl/${CHIPSET}/src/secboot_hw_modem.c',]
+else:
+	SECBOOT_LIB_SOURCES += ['${BUILDPATH}/hw/secctrl/src/secboot_hw.c',
+                            '${BUILDPATH}/hw/secctrl/src/secboot_hw_modem.c',]
+							
+if env['CHIPSET'] in ['mdm9607']:
+	CLEAN_PACK_SOURCES = ['${BUILDPATH}/hw/secctrl/msm8937/src/secboot_hw.c',
+ 	                      '${BUILDPATH}/hw/secctrl/msm8937/src/secboot_hw_modem.c',
+						  '${BUILDPATH}/hw/secctrl/src/secboot_hw.c',
+                          '${BUILDPATH}/hw/secctrl/src/secboot_hw_modem.c',]							
+elif env['CHIPSET'] in ['msm8937']:
+    CLEAN_PACK_SOURCES = ['${BUILDPATH}/hw/secctrl/mdm9607/src/secboot_hw.c',
+ 	                      '${BUILDPATH}/hw/secctrl/mdm9607/src/secboot_hw_modem.c',
+						  '${BUILDPATH}/hw/secctrl/src/secboot_hw.c',
+                          '${BUILDPATH}/hw/secctrl/src/secboot_hw_modem.c',]	
+else:	
+    CLEAN_PACK_SOURCES = ['${BUILDPATH}/hw/secctrl/msm8937/src/secboot_hw.c',
+ 	                      '${BUILDPATH}/hw/secctrl/msm8937/src/secboot_hw_modem.c',
+						  '${BUILDPATH}/hw/secctrl/mdm9607/src/secboot_hw.c',
+                          '${BUILDPATH}/hw/secctrl/mdm9607/src/secboot_hw_modem.c',]
+
+PACK_SOURCE_FILES = list(set(CLEAN_PACK_SOURCES))						  
+
+
+#env.Append(CPPDEFINES = ['FEATURE_SEC_SW_CRYPTO'])
+
+#-------------------------------------------------------------------------------
+# Add Libraries to MBA Image
+#-------------------------------------------------------------------------------
+
+env.AddBinaryLibrary(
+        ['MBA_CORE_SW','CORE_QDSP6_SW','MODEM_MODEM'],
+        '${BUILDPATH}/secboot_auth',
+        SECBOOT_LIB_SOURCES)
+env.CleanPack(['MBA_CORE_SW','CORE_QDSP6_SW','MODEM_MODEM'], PACK_SOURCE_FILES)		

@@ -1,0 +1,88 @@
+#===============================================================================
+#
+#                             Edit History
+#
+# $Header: //source/qcom/qct/core/buses/icb/dev/2.0/build/SConscript#2 $
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011/12/12   sds     Initial Creation
+#
+#===============================================================================
+#                    Copyright (c) 2011 QUALCOMM Incorporated.
+#                              All Rights Reserved.
+#                            QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Python library imports
+#-------------------------------------------------------------------------------
+import os, glob
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+BUILDPATH = '..'
+env.VariantDir('${BUILDPATH}', BUILDPATH, duplicate=0)
+SRCPATH = os.path.join( BUILDPATH, 'src' )
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'BUSES',
+   'HAL',
+   'POWER',
+   'DAL',
+   'SYSTEMDRIVERS',
+   'DEBUGTRACE',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+#-------------------------------------------------------------------------------
+# Private depends within ICB
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('ICB_API', [
+    os.path.join(SRCPATH, 'common'),
+    ])
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = '--c99')
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+# Add common code
+icb_src = glob.glob( os.path.join(SRCPATH, 'common', '*.c') )
+
+#-------------------------------------------------------------------------------
+# Device Configuration Sources
+#-------------------------------------------------------------------------------
+if env['MSM_ID'] in ['8909W']: 
+   env['MSM_ID'] = '8909' 
+
+if 'USES_DEVCFG' in env:
+  # Look for data and xml file for the current MSM_ID
+  icb_cfg_src = glob.glob( os.path.join(SRCPATH, env['MSM_ID'], '*.c') )
+  icb_config_xml = glob.glob( '../config/*%s.xml' % env['MSM_ID'] )
+
+  # If we have both, add to device configuration library
+  if icb_cfg_src and icb_config_xml:
+    for xml in icb_config_xml:
+      env.AddDevCfgInfo( ['DAL_DEVCFG_IMG'], {'devcfg_xml' : xml} )
+    env.AddLibrary( ['DAL_DEVCFG_IMG'], '${BUILDPATH}/icb_cfg_lib', icb_cfg_src )
+else:
+  icb_src.extend( glob.glob( os.path.join(SRCPATH, env['MSM_ID'], '*.c') ) )
+
+#-------------------------------------------------------------------------------
+# Images
+#-------------------------------------------------------------------------------
+# Prepend build path
+icb_src = ['${BUILDPATH}' + filename[2:] for filename in icb_src]
+
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/icb', icb_src)

@@ -1,0 +1,43 @@
+#===============================================================================
+#
+# CoreBSP build rules
+#
+# GENERAL DESCRIPTION
+#    Core BSP buils script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: $
+#
+#===============================================================================
+import os
+import glob
+import time
+
+print "------------------------------------------------------------------------------"
+print "   Loading CBSP build system"
+print "------------------------------------------------------------------------------"
+
+#------------------------------------------------------------------------------
+# Get system Environment
+#------------------------------------------------------------------------------
+env = Environment(ENV = os.environ, tools = ['mingw'])
+#env = DefaultEnvironment(ENV = os.environ)
+#env = Environment(ENV = os.environ, platform = 'posix')
+#env = Environment(ENV = os.environ, platform = 'cygwin')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Set global variables and defaults
+#------------------------------------------------------------------------------
+#t_start = time.clock()
+BUILD_ROOT = '../../../'
+env.Replace(BUILD_ROOT = BUILD_ROOT)
+env.Tool('ComSConstruct', toolpath = ['${BUILD_ROOT}/core/bsp/build/tools'])
+#t_end = time.clock()
+#print "** SConsctruct Elapsed time = " + str(round(t_end - t_start, 3))

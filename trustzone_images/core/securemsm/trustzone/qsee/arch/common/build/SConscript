@@ -1,0 +1,123 @@
+#===============================================================================
+#
+# Architecture lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2016 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/qsee/arch/common/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 04/25/16   dpk     Added stub I2C api to remove I2C driver from build to reduce the binary size.
+# 05/08/13   xc      add mdm9x35 to cleanpack source
+# 04/29/13   xc      keeping tzbsp_sec_core.c & tzbsp_subsys.c in Z build.
+# 09/12/11   nkazi   Support version rollback prevention and Qfprom drivers
+# 12/18/10   cap     initial version
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/arch/common"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'BOOT_TOOLS',
+   'SECUREMSM',
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'HWENGINES',
+   'MPROC',
+   'POWER',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API + ['TZIMGAUTH', 'TZLIBARMV7', 'TZCHIPSET', 'TZCOMMON'])
+
+INC_PATH = [
+      "${INC_ROOT}/core/securemsm/trustzone/image_version/inc",   #< image version
+      "${BUILD_ROOT}/core/securemsm/trustzone/qsee/arch/${CHIPSET}/src", 
+      "${BUILD_ROOT}/core/securemsm/trustzone/qsee/arch/${CHIPSET}/cfg/common", 
+]
+env.Append(CPPPATH = INC_PATH)
+
+#-------------------------------------------------------------------------------
+# External depends outside of CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi('MODEM_PMIC_EXTERNAL')
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+env.Append(ASFLAGS = ' --predefine "SYSINI_STUBS SETL {TRUE}"')
+
+if 'tzbsp_disable_spi' in env and env['tzbsp_disable_spi'] == 1:
+   env.Append(CPPDEFINES = ["TZBSP_SS_DISABLE_SPI"])
+
+if 'tzbsp_disable_i2c' in env and env['tzbsp_disable_i2c'] == 1:
+   env.Append(CPPDEFINES = ["TZBSP_SS_DISABLE_I2C"])
+   
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+TZ_COMMON_LIB_SOURCES = [
+  '${BUILDPATH}/src/tzbsp_dehr.c',
+  '${BUILDPATH}/src/tzbsp_amt.c',
+  '${BUILDPATH}/src/tzbsp_nand.c',
+  '${BUILDPATH}/src/tzbsp_pmic.c',
+  '${BUILDPATH}/src/a7_aarch32_sysini.s',
+  '${BUILDPATH}/src/tzbsp_cpu_config.c',
+  '${BUILDPATH}/src/tzbsp_securechannel.c',
+  '${BUILDPATH}/src/a7_sysini_config_silicon.s',
+  '${BUILDPATH}/src/tzbsp_peripheral_info.c',
+  '${BUILDPATH}/src/tzbsp_hyp.c',
+  '${BUILDPATH}/src/tzbsp_krait_cp15.s',
+  '${BUILDPATH}/src/tzbsp_sys_asm.s',
+]
+
+TZ_COMMON_SOURCES = [
+  '${BUILDPATH}/src/tzbsp_abt.c',
+  '${BUILDPATH}/src/tzbsp_blacklist.c',
+  '${BUILDPATH}/src/tzbsp_crypto.c',
+  '${BUILDPATH}/src/tzbsp_i2c.c',
+  '${BUILDPATH}/src/tzbsp_mmss.c',
+  '${BUILDPATH}/src/tzbsp_mpu.c',
+  '${BUILDPATH}/src/tzbsp_spi.c',
+]
+
+if env['CHIPSET'] in ['msm8909','mdm9x07','msm8909w']:
+    CLEAN_SOURCES = env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/trustzone/qsee/arch/msm8936/")
+    CLEAN_SOURCES += env.FindFiles("*", "${BUILD_ROOT}/core/securemsm/trustzone/qsee/arch/msm8916/")
+    env.AddBinaryLibrary('TZOS_IMAGE', '${BUILDPATH}/tz_common', TZ_COMMON_LIB_SOURCES)
+    env.AddBinaryObject('TZOS_IMAGE', TZ_COMMON_SOURCES, pack_exception=['USES_L1_ADD_SOURCE'])
+    env.CleanPack('TZOS_IMAGE', CLEAN_SOURCES)

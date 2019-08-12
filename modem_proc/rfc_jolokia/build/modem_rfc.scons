@@ -1,0 +1,368 @@
+#====include path optimized=====================================================
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2012 - 2014 QUALCOMM Technologies Inc. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/rfc_jolokia/build/modem_rfc.scons#1 $
+# $DateTime: 2016/12/13 07:59:53 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/14/16   ds      Added support for rfc_wtr2965_dlca_ulca_4360_88xx
+# 08/16/16   dh      Added support for QPA4360
+# 02/09/16   dbc     Define FEATURE_RF_HAS_QPA4351
+# 01/14/15   mmd     Added support for QPA4351
+# 01/05/15   mmd     Added support for QPA4340
+# 10/16/15   mmd     Added support for QFE4373FC
+# 07/24/15   mmd    added fix for jumping table and vineer problems
+# 05/13/15   fhuo    Added support for QFE2082FC and QFE3340FC
+# 04/09/15   fhuo    Added support for RFC_WTR2955_CHINA_CMCC_5M_DLCA
+# 11/05/14   dr      Enabling rfc_tabasco compilation 
+# 10/31/14   tod     Disabling rfc_tabasco compilation 
+# 10/18/14   sma     Add RFDEVICE_QFE1440 for jolokia
+# 10/16/14   dej     Clean-up SCons and add support for TABASCO
+# 10/06/14   dbc     Add 'RFDEVICE_QTHERM' Public API List
+# 09/17/14   bm      Added support for WTR2955
+# 09/11/14   ndb     Add 'USES_JOLOKIA_MODEM' for 'FEATURE_RF_HAS_QTUNER'
+# 07/02/14   dr      Disabling RFC_JOLOKIA compilation.
+# 06/09/14   dr      Adding QFE1100 for JOLOKIA 
+# 03/14/14   sd      Initial Version
+#===============================================================================
+
+Import('env')
+
+env = env.Clone()
+
+import os
+
+if ('USES_RFA_D3925' not in env):
+    env.Append(CFLAGS = ['-G0'])
+
+rfc_public_api_list =[
+    ('BUSES',                    'CORE'),
+    ('DAL',                      'CORE'),
+    ('DEBUGTOOLS',               'CORE'),
+    ('HWENGINES',                'CORE'),
+    ('KERNEL',                   'CORE'),
+    ('MEMORY',                   'CORE'),
+    ('MPROC',                    'CORE'),
+    ('POWER',                    'CORE'),
+    ('SERVICES',                 'CORE'),
+    ('STORAGE',                  'CORE'),
+    ('SYSTEMDRIVERS',            'CORE'),
+    ('C2K',                      'FW'),
+    ('COMMON' ,                  'FW'),
+    ('FW',                       'FW'),
+    ('GERAN',                    'FW'),
+    ('LTE',                      'FW'),
+    ('RF',                       'FW'),
+    ('TDSCDMA',                  'FW'),
+    ('WCDMA',                    'FW'),
+    ('GERAN',                    'GERAN'),
+    ('GPS',                      'GPS'),
+    ('MCFG',                     'MCFG'),
+    ('MCS',                      'MCS'),
+    ('MMCP',                     'MMCP'),
+    ('PUBLIC',                   'MMCP'),
+    ('MMODE',                    'MODEM'),
+    ('ONEX',                     'MODEM'),
+    ('RFA',                      'MODEM'),
+    ('ONEX',                     'ONEX'),
+    ('PUBLIC',                   'ONEX'),
+    ('CDMA',                     'RFA'),
+    ('COMMON',                   'RFA'),
+    ('GNSS',                     'RFA'),
+    ('GSM',                      'RFA'),
+    ('LM',                       'RFA'),
+    ('LTE',                      'RFA'),
+    ('MEAS',                     'RFA'),
+    ('RF_TUNER',                 'RFA'),
+    ('RFA',                      'RFA'),
+    ('TDSCDMA',                  'RFA'),
+    ('WCDMA',                    'RFA'),
+    ('RFDEVICE_ASM',             'RFDEVICE_ASM'),
+    ('RFDEVICE_INTERFACE',       'RFDEVICE_INTERFACE'),
+    ('RFDEVICE_PA',              'RFDEVICE_PA'),
+    ('RFDEVICE_PAPM',            'RFDEVICE_PAPM'),
+    ('RFDEVICE_QCOUPLER',        'RFDEVICE_QCOUPLER'),
+    ('RFDEVICE_QTHERM',          'RFDEVICE_QTHERM'),
+    ('RFDEVICE_QFE1100',         'RFDEVICE_QFE1100'),
+    ('RFDEVICE_QFE1520',         'RFDEVICE_QFE1520'),
+    ('RFDEVICE_QFE1550',         'RFDEVICE_QFE1550'),
+    ('RFDEVICE_QFE2320',         'RFDEVICE_QFE2320'),
+    ('RFDEVICE_QFE2340',         'RFDEVICE_QFE2340'),
+    ('RFDEVICE_QFE2520',         'RFDEVICE_QFE2520'),
+    ('RFDEVICE_QFE2550',         'RFDEVICE_QFE2550'),
+    ('RFDEVICE_QFE2082FC',       'RFDEVICE_QFE2082FC'),
+    ('RFDEVICE_QFE3340FC',       'RFDEVICE_QFE3340FC'),
+	('RFDEVICE_QFE4320',         'RFDEVICE_QFE4320'),
+    ('RFDEVICE_QFE4373FC',       'RFDEVICE_QFE4373FC'),
+    ('RFDEVICE_QFE1040',         'RFDEVICE_QFE1040'),
+	('RFDEVICE_QPA4340',         'RFDEVICE_QPA4340'),
+    ('RFDEVICE_QPA4360',         'RFDEVICE_QPA4360'),
+	('RFDEVICE_QPA4351',         'RFDEVICE_QPA4351'),
+    ('RFDEVICE_QTUNER',          'RFDEVICE_QTUNER'),
+    ('RFDEVICE_WTR2955',         'RFDEVICE_WTR2955'),
+	('RFDEVICE_WTR2965',         'RFDEVICE_WTR2965'),	
+    ('RFDEVICE_WTR2955V110',     'RFDEVICE_WTR2955V110'),		
+    ('RFDEVICE_WTR2605',         'RFDEVICE_WTR2605'),
+    ('RFDEVICE_WTR4905',         'RFDEVICE_WTR4905'),
+    ('RFNV',                     'RFNV'),
+    ('RFLM',                     'RFLM'),
+    ('RFTECH_CDMA',              'RFTECH_CDMA'),
+    ('RFTECH_CDMA_INCONVENIENT', 'RFTECH_CDMA'),
+    ('RFTECH_GNSS',              'RFTECH_GNSS'),
+    ('RFTECH_GSM',               'RFTECH_GSM'),
+    ('RFTECH_LTE',               'RFTECH_LTE'),
+    ('RFTECH_TDSCDMA',           'RFTECH_TDSCDMA'),
+    ('RFTECH_WCDMA',             'RFTECH_WCDMA'),
+    ('STUBS',                    'STUBS'),
+    ('RFMODEM',                  env.get('RF_GLOBALS')['RFMODEM_AREA']),
+    ] 
+
+for api_name,api_area in rfc_public_api_list:
+    env.RequirePublicApi([api_name], area=api_area)
+
+env.PublishProtectedApi( 'RF_COMMON_INC', [
+    '${RFA_ROOT}/rf/common/rf/atuner/protected',
+    '${RFA_ROOT}/rf/common/ftm/inc',
+    '${RFA_ROOT}/rf/common/hwtc/inc',
+    '${RFA_ROOT}/rf/common/hwtc/protected',
+    '${RFA_ROOT}/rf/common/rf/atuner/inc',
+    '${RFA_ROOT}/rf/common/rf/atuner/inc',
+    '${RFA_ROOT}/rf/common/rf/atuner/src',
+    '${RFA_ROOT}/rf/common/rf/atuner/test',
+    '${RFA_ROOT}/rf/common/rf/core/inc',
+    '${RFA_ROOT}/rf/common/rf/core/src',
+    '${RFA_ROOT}/rf/common/rf/mc/inc',
+    '${RFA_ROOT}/rf/common/rf/nv/inc',
+    '${RFA_ROOT}/rf/common/rf/rfc/inc',
+    '${RFA_ROOT}/rf/common/rf/zlib/inc',
+    '${RFA_ROOT}/rf/common/rf/zlib/src',
+    '${RFA_ROOT}/rf/common/stubs/inc',
+    '${RFA_ROOT}/rf/common/rf/atuner/test',
+    '${RFA_ROOT}/rf/common/ftm/inc',
+    '${RFA_ROOT}/rf/common/ftm/protected',
+    '${RFA_ROOT}/rf/common/hwtc/inc',
+    '${RFA_ROOT}/rf/common/hwtc/protected',
+    '${RFA_ROOT}/rf/common/rf/atuner/inc',
+    '${RFA_ROOT}/rf/common/rf/core/inc',
+    '${RFA_ROOT}/rf/common/rf/core/src',
+    '${RFA_ROOT}/rf/common/rf/mc/inc',
+    '${RFA_ROOT}/rf/common/rf/nv/inc',
+    '${RFA_ROOT}/rf/common/rf/rfc/inc',
+    '${RFA_ROOT}/rf/common/rf/zlib/inc',
+    '${RFA_ROOT}/rf/common/stubs/inc',
+    '${RFA_ROOT}/rf/hal/common/inc',
+    '${RFA_ROOT}/rf/hal/gnss/gen8a/inc',
+    '${RFA_ROOT}/rf/mdsp/qdsp6_common/inc',
+    '${RFA_ROOT}/rf/rfd/common/inc',
+    '${RFA_ROOT}/rf/rfd/nikel/inc',
+    '${RFA_ROOT}/rf/task/common/inc',
+    '${RFA_ROOT}/variation/inc',
+    ])
+
+env.PublishProtectedApi( 'RFC_COMMON_INC', [
+    '${RFA_ROOT}/rfc/common/inc',
+    '${RFA_ROOT}/rfc/vreg_mgr/common/inc',
+    '${RFA_ROOT}/rfc/vreg_mgr/rfc_configurable_test_vreg_mgr/inc',
+    '${RFA_ROOT}/rfc/vreg_mgr/wtr1605_sv/inc',
+    ])
+
+env.PublishProtectedApi( 'RFC_RF_COMMON_CARD_INC', [
+    '${RFA_ROOT}/rfc/rf_card/rfc_configurable_test_card/cdma/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_configurable_test_card/common/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_configurable_test_card/gnss/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_configurable_test_card/gsm/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_configurable_test_card/lte/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_configurable_test_card/tdscdma/inc',            
+    '${RFA_ROOT}/rfc/rf_card/rfc_configurable_test_card/wcdma/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_efs_card/cdma/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_efs_card/common/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_efs_card/gnss/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_efs_card/gsm/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_efs_card/lte/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_efs_card/tdscdma/inc',
+    '${RFA_ROOT}/rfc/rf_card/rfc_efs_card/wcdma/inc',
+    ])
+
+env.PublishProtectedApi( 'RFC_RF_CARD_INC', [
+    '${RFC_ROOT}/rf_card/rfc_wtr2965_dlca_ulca_4360_88xx/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr2965_v2_na_ca_4320_b66/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr2965_swoc_na/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_tmo/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_om/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_non_ca/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_na_dlca/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_japan_v2/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_japan_4320/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_china_tds_4320/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_china_cu_4m/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_china_ct_4m/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_china_cmcc_3m/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_china_4320/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_chile_3g/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr4905_amx_antenna/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr2965_v2_na_ca_4320/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr2965_v2_jp_ca_4320/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr2965_v2_chile_ca_4320/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr2965_non_ca2_4320_srx/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr2965_dual_wtr_4320_srx/common/inc',
+	'${RFC_ROOT}/rf_card/rfc_wtr2965_dual_wtr_4320_srx_w/common/inc',
+    '${RFC_ROOT}/rf_card_internal/rfc_wtr2955_non_ca_sawless_4320/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr2955_non_ca_sawless_v2/common/inc',
+	'${RFC_ROOT}/rf_card_internal/rfc_wtr2965_non_ca2_4320/common/inc',
+	'${RFC_ROOT}/rf_card/rfc_wtr2965_non_ca2_4320_3g/common/inc',
+	'${RFC_ROOT}/rf_card/rfc_wtr4905_chile_srlte_v2/common/inc',
+	'${RFC_ROOT}/rf_card_internal/rfc_wtr2965_dual_wtr_4320_gps/common/inc',
+	'${RFC_ROOT}/rf_card/rfc_wtr2965_qrd_non_ca_4373_1/common/inc',
+	'${RFC_ROOT}/rf_card/rfc_wtr2965_qrd_non_ca_4373_2/common/inc',
+	'${RFC_ROOT}/rf_card/rfc_wtr2965_qrd_non_ca_4373_3/common/inc',	
+	'${RFC_ROOT}/rf_card/rfc_wtr2965_tmo/common/inc',
+	'${RFC_ROOT}/rf_card/rfc_wtr2965_dual_wtr_4320/common/inc',
+	'${RFC_ROOT}/rf_card/rfc_wtr2965_non_ca2_4320_saw/common/inc',
+    '${RFC_ROOT}/rf_card/rfc_wtr2965_dual_wtr_4320_d/common/inc',
+	'${RFC_ROOT}/rf_card_internal/rfc_wtr2965_non_ca_4373_4351/common/inc',
+	'${RFC_ROOT}/rf_card/rfc_wtr2965_non_ca_4373_v2/common/inc',
+	'${RFC_ROOT}/rf_card/rfc_wtr2965_dlca_ulca_4340_v2/common/inc',
+	'${RFC_ROOT}/rf_card_internal/rfc_wtr2965_non_ca_4373_v2_saw/common/inc',
+    ])
+
+env.PublishProtectedApi( 'RF_DEVICE_INC', [
+    '${INC_ROOT}/rfdevice_qfe1510/common/inc',
+    '${INC_ROOT}/rfdevice_qfe1520/common/inc',
+    '${INC_ROOT}/rfdevice_qfe1550/common/inc',
+    '${INC_ROOT}/rfdevice_tptuner/common/inc',
+    '${INC_ROOT}/rfdevice_wgr7640/common/inc',
+    '${INC_ROOT}/rfdevice_wgr7640/gnss/protected',
+    '${RFA_ROOT}/device/asm/inc',
+    '${RFA_ROOT}/device/pa/inc',
+    '${RFA_ROOT}/device/qfe_intf/inc',
+    '${RFA_ROOT}/device/rfdev_intf/inc',
+    '${RFA_ROOT}/device/rffe/inc',
+    ])
+
+env.PublishProtectedApi( 'RFMODEM_COMMON_INC', [ '${RFMODEM_ROOT}/hal/common/inc', ])
+
+env.PublishProtectedApi( 'RFC_TARGET_INC', [ '${RFC_ROOT}/target/${CHIPSET}/inc', ])
+
+env.RequireProtectedApi([
+    'RF_COMMON_INC',
+    'RF_DEVICE_INC',
+    'RFC_COMMON_INC',
+    'RFC_RF_CARD_INC',
+    'RFC_RF_COMMON_CARD_INC',
+    'RFC_TARGET_INC',
+    'RFMODEM_COMMON_INC',
+    ])
+
+env.RequireRestrictedApi([
+    'VIOLATIONS',
+    ])
+
+#-------------------------------------------------------------------------------
+# Override CCFLAGS for this Module. Make all Warnings to Errors!
+#-------------------------------------------------------------------------------
+# Enable warnings -> errors for all, except LLVM toolchain (6.x.x) during migration
+if not os.environ.get('HEXAGON_RTOS_RELEASE').startswith('6') and 'USES_INTERNAL_BUILD' in env:
+   env = env.Clone(HEXAGONCC_WARN = "${HEXAGONCC_WARN} -Werror", 
+                   HEXAGONCXX_WARN = "${HEXAGONCCXX_WARN} -Werror")  
+  
+if env.get('CHIPSET') == 'msm8926':
+    env.Append(CPPDEFINES = ['FEATURE_RF_SUPPORTS_DIME_LP'])
+
+if env.get('CHIPSET') != 'mdm9607':
+    env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE3320'])
+    env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE2320'])
+    env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE2520'])
+
+
+#Do not compile for wearable flavors  
+if env.get('CHIPSET') == 'msm8909' and 'USES_SENSORS_COMPONENT' not in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_WTR4905'])
+
+# WTR1625-WFR1620
+if('USES_WTR1625' in env):
+  env.Append(CPPDEFINES = ['FEATURE_RF_HAS_WTR1625_WFR1620'])
+
+if 'USES_FEATURE_QFE1510_HDET' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1510_HDET'])
+
+if 'USES_FEATURE_QTUNER' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+		
+if 'USES_FEATURE_QFE1510' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1510'])		
+		
+if 'USES_FEATURE_QFE1520' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1520'])		
+		
+if 'USES_FEATURE_QFE1550' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1550'])			
+
+if 'USES_FEATURE_DPD' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_DPD'])
+
+if 'USES_FEATURE_XPT' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_XPT_SUPPORT'])
+   
+if 'USES_FEATURE_XPT_CDMA_TEMP' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_XPT_CDMA_TEMP'])
+   
+if 'USES_1X_EPT_CAL' in env:
+        env.Append(CPPDEFINES = ['RF_1X_EPT_CAL_TEMP'])
+   
+if 'USES_1X_DIME_SAMPLE_CAPTURE' in env:
+        env.Append(CPPDEFINES = ['RF_1X_DIME_SAMPLE_CAPTURE'])
+   
+if 'USES_COMMON_DIME_SAMPLE_CAPTURE' in env:
+        env.Append(CPPDEFINES = ['RF_COMMON_DIME_SAMPLE_CAPTURE'])
+           
+if 'USES_FEATURE_TX_INT_CAL' in env:
+        env.Append(CPPDEFINES = ['FEATURE_RF_SUPPORTS_TX_INT_CAL'])
+
+if (('USES_DIME_1_0' in env or 'USES_DIME_2_0' in env)) or ('USES_BOLT_1_0' in env ) or ('USES_JOLOKIA_MODEM' in env ) or ('USES_TABASCO_MODEM' in env ):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QTUNER'])
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1520'])	
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1550'])	
+ 
+# Enable the features for QFE1520 and QFE1550 only on Dime 1.0.1/Dime 2.0		
+if ((('USES_DIME_1_0' in env  and 'USES_WTR1625' in env) or ('USES_DIME_2_0' in env))) and ('USES_BOLT_1_0' not in env ):
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1550'])	
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1520'])	
+        env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE1510'])
+ 
+env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QFE2340'])
+
+env.Append(CPPDEFINES = ['FEATURE_RF_HAS_QPA4351'])
+
+# antenna switch diversity
+if ('USES_MODEM_ANTENNA_SWITCH_DIVERSITY' in env ):
+   env.Append(CPPDEFINES = ['FEATURE_RF_ASDIV'])
+
+if ('USES_RFA_D3925' in env):
+        env.Append(CPPDEFINES = ['FEATURE_RFA_D3925'])
+		
+env.LoadSoftwareUnits()

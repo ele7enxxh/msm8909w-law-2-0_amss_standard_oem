@@ -1,0 +1,30 @@
+;======================================
+; Create window
+;======================================
+
+AREA.Create Swevent 100. 1000.
+AREA.Select Swevent
+AREA.View Swevent
+winresize 100. 24.
+
+
+print "+-----------------------------+"
+print "|                             |"
+print "|    Swevent Log Dump Tool    |"
+print "|                             |"
+print "+-----------------------------+"
+
+print
+print
+print
+print "Enter the path to the root of your RPM build: "
+local &rpm_path
+enter &rpm_path
+local &ulogdump_path
+&ulogdump_path="&rpm_path\core\power\ulog\scripts\rpm_ulogdump.cmm"
+local &logoutput_path
+&logoutput_path="&rpm_path\core\systemdrivers\pmic\scripts"
+DO &ulogdump_path &logoutput_path "RPM External Log"
+AREA.Select Swevent
+OS.COMMAND cmd /k python &logoutput_path/../../../power/rpm/debug/scripts/rpm_log_bfam.py -f "&logoutput_path/RPM External Log.ulog"
+OS.COMMAND cmd /k python &logoutput_path/../../../power/rpm/debug/scripts/rpm_log_bfam.py -f "&logoutput_path/RPM External Log.ulog" > &logoutput_path/swevent_log_parsed.txt

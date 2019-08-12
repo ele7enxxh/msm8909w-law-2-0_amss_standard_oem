@@ -1,0 +1,47 @@
+#===============================================================================
+#
+# Modem QCHAT SCons wrapper script
+#
+# GENERAL DESCRIPTION
+#    build script to load API's for qchat
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/qchat/hps/build/qchat_hps.scons#1 $
+#  $DateTime: 2016/12/13 07:57:51 $
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/29/13   suren     Updated QC-Scons-based pack mechanism
+# 03/12/12   suren     Included integrated client for QChat DLA.
+# 08/14/11   suren     Updated SCons scripts to compile UPK libs from source.
+# 08/30/10   suren     Initial revision
+#
+#===============================================================================
+import os
+Import('env')
+
+env.Append(CDEFINES = [
+    "FEATURE_QCHAT_USES_MODEM_HEAP",
+    "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+   ])
+
+env.Append(CPPDEFINES = [
+   "FEATURE_QCHAT_USES_MODEM_HEAP",
+   "QCHAT_OVERLOAD_OPERATOR_NEW_AND_DELETE",
+   ])
+
+
+#----------------------------------------------------------------------------#
+# Recurse through the sub-units
+#----------------------------------------------------------------------------#
+env.LoadSoftwareUnits()

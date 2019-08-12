@@ -1,0 +1,149 @@
+#===============================================================================
+#
+# TMC Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/ims/Presence/build/ims_presence.scons#1 $
+#  $DateTime: 2016/12/13 08:00:34 $
+#  $Author: mplcsds1 $
+#  $Change: 11985224 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/18/10   CM      First release
+# 06/22/12   RJ      Add Feature for Presence
+#===============================================================================
+Import('env')
+
+if 'USES_IMS_PRESENCE' not in env:
+	Return()
+# Execute the sconsript in which the variables needs to be imported for the Current Script
+# and export the current environment to that script into which the variables will be exported to the it's export list
+
+# Import the required Variables from the export list of the Environment to which the other script file has added
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+
+# ------------------------------------------------------------------------------
+# Sepcify the list of required include Paths
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('IMS_PRESENCE_INC', [ 
+"${INC_ROOT}/modem/ims/Presence/inc",
+])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within IMS
+#-------------------------------------------------------------------------------
+IMS_API = ['IMS_DPL',
+		   'IMS_FRAMEWORK',
+		   'IMS_IMSCORE',
+		   'IMS_SIP',
+		   'IMS_SIGCOMP',
+		   'IMS_REGMGR',
+		   'IMS_QIPCALL',
+		   'IMS_PS_MEDIA_COMMON_INC',
+		   'IMS_PS_MEDIA_SDP',
+		   'IMS_PS_MEDIA_RTP_CORE',
+		   'IMS_PM']
+
+env.RequireProtectedApi(IMS_API)
+
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(['BREW',
+						'MODEM_API',
+						'MODEM_DATA',
+						'MODEM_HDR',
+						'MODEM_SERVICES',
+						'MODEM_UIM'])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = ['DEBUGTOOLS',
+			'SERVICES',
+			'STORAGE',
+			'SYSTEMDRIVERS',
+			'MMODE',
+			'MCS',
+			'UIM',
+			'DATA',
+			'DATACOMMON',
+			'DATAMODEM',
+			'HDR',
+			# needs to be last also contains wrong comdef.h
+			'KERNEL']
+
+env.RequirePublicApi(CBSP_API)
+env.RequirePublicApi('DAL', area='CORE')
+env.RequirePublicApi('KERNEL', area='CORE')
+env.RequirePublicApi('SERVICES', area='CORE')
+env.RequirePublicApi('DEBUGTOOLS', area='CORE')
+env.RequirePublicApi('STORAGE', area='CORE')
+env.RequirePublicApi('SYSTEMDRIVERS', area='CORE')
+env.RequirePublicApi('SECUREMSM', area='CORE')
+
+# needs to be last also contains wrong comdef.h
+env.RequirePublicApi('MMUTILS', area='MULTIMEDIA')
+env.RequirePublicApi('AUDIO', area='MULTIMEDIA')
+env.RequirePublicApi('APR', area='MULTIMEDIA')
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+IMS_PRESENCE_FLAGS = ['MAF_NO_GLOBALS',
+						'QP_DONOT_OVERLOAD_NEW_DELETE',
+						'QMAF',
+						'QP_ENABLE_MMI_MODULE',
+						'FORCE_STATIC',
+						'AEE_STATIC',
+						'USE_SIMPLE_LOGGING',
+						'IMS_AMSS_STATIC_BUILD',
+						'FEATURE_AMSS_DPL',
+						'QP_ENABLE_SIGNALS',
+						'XDM_INCLUDE_GROUPMEMBER']
+
+
+
+IMS_PRESENCE_LIB_CPP_SOURCES = [
+  '${BUILDPATH}/IMSPresenceConfigMgr.cpp',
+  '${BUILDPATH}/IMSPresenceEnabler.cpp',
+  '${BUILDPATH}/IMSPresenceList.cpp',
+  '${BUILDPATH}/IMSPresenceXmlParser.cpp',
+  '${BUILDPATH}/IMSPresenceRequestResponseListener.cpp',
+  '${BUILDPATH}/IMSPresenceServiceMgr.cpp',
+  '${BUILDPATH}/imsp_handler.cpp',
+  ]
+
+# Append the list of Macro Definitions as flags to the Compiler so that it will do a conditional compilation
+env.Append( CPPDEFINES = IMS_PRESENCE_FLAGS )
+
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/ims_presence', [IMS_PRESENCE_LIB_CPP_SOURCES])
+

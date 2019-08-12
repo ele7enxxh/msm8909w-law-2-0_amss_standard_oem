@@ -1,0 +1,72 @@
+;****************************************************************************
+;** Dumps ETB contents in hexadecimal format into a file.
+;**         
+;**
+;** Copyright (c) 2011-2012 by Qualcomm Technologies Incorporated.  All Rights Reserved.
+;**
+;****************************************************************************
+;**  $Header: //components/rel/rpm.bf/2.1.1/core/debugtrace/tools/scripts/8916/8916_Help.cmm#1 $
+;**                        EDIT HISTORY FOR MODULE
+;**
+;**
+;** when       who     what, where, why
+;** --------   ---     ------------------------------------------------------
+;** 11/15/12   jb     First revision for Aragorn(8974)
+;** 2/26/13    jb     Second Revision for Aragorn (8974)
+;** 4/22/13    jb     Ported to 8x10
+;** 3/31/14    jb     Ported for 8084
+;** 3/31/14    jb     Ported for 8916
+
+area.clear
+area
+
+print "                      ================ QDSS (DebugTrace) Script Info================  "
+print " "
+print "                               ================ 8916 ================ "
+print "  "
+print "  "
+print "                      ================ CTI (Cross Trigger Interface) ================ "
+print " "
+print " "
+print "Overview -       do std_cti script can be used to make one processor a master over others."
+print "                 The first argument is the master CPU, the second argument is the slave"
+print "                 e.g. - do std_cti RPM APSS0 will cause APPS0 to stop when RPM is stopped."
+print "                 Example scripts (RPM master, MPSS master) are described below"
+print " "
+print "CTI RPM Master - RPM acts as 'master'. Halting on RPM will cause other cores to halt.   "
+print "                 Other cores must have debug functionality enabled or they may not halt.   "
+print "                 A 'Go' on RPM will cause Kraits to resume as well, but not other cores.  "
+print "  "
+print "CTI MPSS Master  - MPSS acts as 'master'. Halting on MPSS will cause other cores to halt,   "
+print "                   and a 'Go' on MPSS core will cause other cores to resume. Other cores   "
+print "                   must have debug functionality enabled or they may not halt  "
+print "  "
+print "Disable and Clear all CTIs - clears configuration of all CTI's and disables CTI for all cores.   "
+print "                             Recommended to run this script if the msm will be going into   "
+print "                             download mode after your resume, otherwise CTI may halt the   "
+print "                             system mid-download mode, preventing a crash dump from   "
+print "                             completing successfully.  "
+print "  "
+print "Link HWevents to CTI - If you wish for incoming hardware events to trigger CTI (thus   "
+print "                       halting the cores), you must use this script, AS WELL AS one of   "
+print "                       the 'Master' Scripts. E.g. - to cause the system to halt on a   "
+print "                       NoC error, run the 'HWevents - Bus erros and timeouts' script,   "
+print "                       the 'Link HWevents to CTI' script, and the 'CTI RPM Master' script.  "
+print "                       A system halt will occur with any other HWevent script as long   "
+print "                       as that script has been configured with triggering enabled.  "
+print "  "
+print "                      ============= Collecting Traces and Dumps ============= "
+print "  "
+print "Dump ETB to C:\Temp - This will dump the ETB to the file C:\Temp\stpdump.dat.   "
+print "                      Use the HW/SWevent parsing tool (QTF) to display       "
+print "                      the events. The tool will need the parsing file, which   "
+print "                      shows up after you run this script. For information on   "
+print "                      the QTF, see 'go/qtf'.  "
+print "  "
+print "Dump ETR to C:\Temp - This will dump the ETR (ETB data that has been stored to DDR)"
+print "                      to the file C:\Temp\stpdump.dat.     "
+print "                      Use the HW/SWevent parsing tool (QTF) to display        "
+print "                      the events. The tool will need the parsing file, which   "
+print "                      shows up after you run this script. "
+print " "
+enddo

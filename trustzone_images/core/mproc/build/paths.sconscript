@@ -1,0 +1,56 @@
+#===============================================================================
+#
+# MPROC INC PATHs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2012 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/mproc/build/paths.sconscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#  $Change: 10727476 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+Import('env')
+
+#-------------------------------------------------------------------------------
+# Publish Public APIs
+# These are accessible internal or external to CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('MPROC', [
+   "${INC_ROOT}/core/api/mproc",
+])
+
+if env.has_key('USES_STA'):
+  env.PublishPublicApi('MPROC', ["${INC_ROOT}/core/api/mproc/tst",])
+
+
+#-------------------------------------------------------------------------------
+# Publish Restricted APIs
+# These are accessible only within CoreBSP
+#-------------------------------------------------------------------------------
+env.PublishRestrictedApi('MPROC', [
+   "${INC_ROOT}/core/mproc/ipc_router",
+   "${INC_ROOT}/core/mproc/smem/inc",
+   "${INC_ROOT}/core/mproc/smd/inc",
+   "${INC_ROOT}/core/mproc/smsm/inc",
+   "${INC_ROOT}/core/mproc/qmi/qcsi",
+   "${INC_ROOT}/core/mproc/qmi/common",
+   "${INC_ROOT}/core/mproc/qmi/core_server",
+])
+
+env.Append(CPPPATH = "${INC_ROOT}/core/securemsm/trustzone/qsee/include")
+

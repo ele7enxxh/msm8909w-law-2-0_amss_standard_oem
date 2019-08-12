@@ -1,0 +1,34 @@
+#-------------------------------------------------------------------------------
+# RABM
+#-------------------------------------------------------------------------------
+
+RABM_SOURCES=\
+	rabmtask.c            \
+	rabmtimers.c
+             
+RABM_CINCPATH=\
+             $(RABM)          \
+             $(CNM)           \
+             $(RRC)           \
+             $(UIM)           \
+             $(GSDI)          \
+             $(CUST)          \
+	     $(DIAG)          \
+             $(REG)           \
+             $(REX)           \
+             $(MM)            \
+             $(MN)            \
+             $(TASK)          \
+             $(NV)            \
+             $(CM)            \
+             $(SM)            \
+             $(SD)            \
+             $(UTILS)
+
+RABM_OBJS :=  $(addprefix $(TARGETDIR)/, $(RABM_SOURCES:%.c=%.o))
+$(RABM_OBJS): INCLUDES = $(addprefix -I, $(RABM_CINCPATH))
+$(RABM_OBJS): CFLAGS := $(CFLAGS) -DFEATURE_6200_COMPATIBILITY
+RABM_DEPS :=  $(addprefix $(TARGETDIR)/, $(RABM_SOURCES:%.c=%.dep))
+$(RABM_DEPS): INCLUDES = $(addprefix -I, $(RABM_CINCPATH))
+vpath %.c $(RABM)
+

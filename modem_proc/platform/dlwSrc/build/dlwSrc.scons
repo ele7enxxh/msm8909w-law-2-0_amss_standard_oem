@@ -1,0 +1,55 @@
+#===============================================================================
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+platform_root = '${BUILD_ROOT}/platform'
+env.Replace(ADSP_PLATFORM_ROOT = platform_root)
+
+env.RequirePublicApi([
+  'PLATFORM_LIBS',
+  'STDDEF',
+  'DLW',
+  ])
+
+env.RequireRestrictedApi([
+  'ATOMIC',
+  ])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${ADSP_PLATFORM_ROOT}/dlwSrc/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# Register as static library
+env.PLRegister("dlw")
+
+if 'USES_PLATFORM_MINIMAL' in env:
+	DLW_SOURCES =  [
+	   '${BUILDPATH}/dlw_stubbed.c',
+	   ]
+else:
+	DLW_SOURCES =  [
+	   '${BUILDPATH}/dlw.c',
+	   ]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+dlw_lib = env.AddBinaryLibrary(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+    'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],'${BUILDPATH}/dlwSrc', DLW_SOURCES)
+
+
+#-------------------------------------------------------------------------------
+# Load Subunits (sys)
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*.c', '*.cpp', '*.h'], '${ADSP_PLATFORM_ROOT}/dlwSrc/src'))
+env.CleanPack(['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+     'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'], CLEAN_LIST)

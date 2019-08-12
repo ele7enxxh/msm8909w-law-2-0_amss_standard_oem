@@ -1,0 +1,154 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#
+# Copyright (c) 2011-2013 QUALCOMM Technologies Incorporated. All Rights Reserved
+#
+# Qualcomm Proprietary
+#
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+#
+#-------------------------------------------------------------------------------
+#
+# $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/systemdrivers/pmic/framework/build/pmic_framework.scons#1 $
+# $DateTime: 2015/09/01 00:30:35 $ 
+#
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/23/15   mr      Added support for PMIC Test Framework (CR-801845)
+# 11/02/12   hw      Expose source code. Move "protected" to "src"
+# 09/25/12   hw      Modify scons to support PMIC API access in boot
+# 06/25/12   hs      Moved to core\systemdrivers.
+# 03/09/12   hs      Added support for RPM.
+# 04/23/11   prp     Created
+#===============================================================================
+
+Import('env')
+
+LIB_NAME        = 'pmic_framework'
+IMAGE_SOURCES   = ['SBL1_BOOT','EMMCBLD_IMAGE', 'EHOSTDL_IMAGE' , 'HOSTDL_IMAGE', 'DEVICEPROGRAMMER_NAND_IMAGE']
+
+LIB_SRC         = 'src'
+LIB_PROTECTED   = 'protected'
+LIB_TEST        = 'test'
+
+
+from glob import glob
+
+env = env.Clone()
+
+# Method to abort processing of this file, if not required for current air interface mode, etc
+#if ( (USES_TEST_FLAG1 in env and USES_TEST_FLAG2 not in env) or USES_TEST_FLAG3 not in env)):
+#   Return( )
+
+#-------------------------------------------------------------------------------
+# Source PATH:  
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+#BUILDPATH =  image_name / processor_name, eg modem_libs / arm11 = directory where built objects stored
+env.VariantDir('${BUILDPATH}', SRCPATH , duplicate=0)
+
+    
+env.RequirePublicApi([
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'HWENGINES',
+    'KERNEL',
+    'MPROC',
+    'SERVICES',
+    'HWENGINES',
+    'SYSTEMDRIVERS',
+    ],
+    area='CORE')
+
+env.RequireProtectedApi([  
+    'PMIC_APP',
+    'PMIC_COMM',
+	'PMIC_CONFIG',
+    'PMIC_DRIVERS',
+    'PMIC_FRAMEWORK',
+    'PMIC_DEVICES',
+    'PMIC_TARGET_SBL1',
+    ])
+
+env.RequireRestrictedApi([
+    'BOOT',
+    ])
+
+
+
+env.Append(CPPDEFINES = ['FEATURE_LIBRARY_ONLY'])
+
+#this statement must appear outside of 'USES_NO_STRIP_NO_ODM' test so that AddBinaryLibrary can be launched
+LIB_SOURCES = [ ]  #empy list
+
+SOURCE_FILES = [ ] 
+
+PROTECT_SOURCE_FILES = [ ] 
+
+PROTECT_LIB_SOURCES = [ ]  #empy list
+
+#find all .c
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.c'))
+
+#find all .cpp files 
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.cpp'))
+
+#find all .s files
+SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_SRC+'/*.s'))
+
+if 'USES_PM_TEST' in env:
+    #find all .c, .cpp files, .s files
+    SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_TEST+'/*.c'))
+    SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_TEST+'/*.cpp'))
+    SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_TEST+'/*.s'))
+
+    #define the macro for compilation of test code
+    env.Append(CPPDEFINES = 'PM_TEST_FRAMEWORK_DRIVER')
+
+#find all .protected files
+PROTECT_SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.c'))
+
+#find all .cpp files 
+PROTECT_SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.cpp'))
+
+#find all .s files
+PROTECT_SOURCE_FILES.extend(glob(SRCPATH + '/'+LIB_PROTECTED+'/*.s'))
+
+
+for filename in SOURCE_FILES:
+        LIB_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+for filename in PROTECT_SOURCE_FILES:
+        PROTECT_LIB_SOURCES.append('${BUILDPATH}/' + filename.replace(SRCPATH,''))
+
+PACK_FILES = env.FindFiles('*', (SRCPATH + '/'+LIB_PROTECTED))
+ 
+env.CleanPack(IMAGE_SOURCES, PACK_FILES)
+
+env.AddBinaryLibrary(IMAGE_SOURCES, '${BUILDPATH}/'+LIB_NAME+'_protected',[
+        PROTECT_LIB_SOURCES,
+        ])
+
+env.AddLibrary(IMAGE_SOURCES, '${BUILDPATH}/'+LIB_NAME,[
+     LIB_SOURCES,
+     ])
+

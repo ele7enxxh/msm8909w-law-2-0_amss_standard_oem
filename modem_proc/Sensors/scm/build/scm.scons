@@ -1,0 +1,48 @@
+#===============================================================================
+#
+# SCM Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03-16-11   ad      initial version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_SMR',
+]
+env.RequireRestrictedApi(SENSORS_API)
+
+
+#
+# TODO: sns_smr.h includes comdef.h. This should be resolved in smr.scons(?),
+#       but until then, include the comdef include path manually here.
+env.RequirePublicApi( ['SERVICES'] )
+
+env.LoadSoftwareUnits()
+
+CLEAN_LIST=[]
+CLEAN_LIST.extend(env.FindFiles(['*.c'], '../algo'))
+env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], CLEAN_LIST)

@@ -1,0 +1,69 @@
+#-------------------------------------------------------------------------------
+# HDR HIT source file(s)
+#-------------------------------------------------------------------------------
+
+HDRHIT_SOURCES=\
+        hdrhitcmd.c     \
+        hitapp.c        \
+        hitcmd.c        \
+        hitdiag.c       \
+        hitqueue.c      \
+        hithdrcmd.c     
+
+#-------------------------------------------------------------------------------
+# HDR HIT include file(s) path
+#-------------------------------------------------------------------------------
+
+HDR_CINCPATH=\
+        $(COMMON)       \
+        $(ADC)          \
+        $(ADSP)         \
+        $(AVS)          \
+        $(CM)           \
+        $(BIO)          \
+        $(BOOT)         \
+        $(CLK)          \
+        $(CP)           \
+        $(DATA)         \
+        $(DEC)          \
+        $(DFM)          \
+        $(DIAG)         \
+        $(ENC)          \
+        $(FTM)          \
+        $(GPS)          \
+        $(HS)           \
+        $(HW)           \
+        $(MUX)          \
+        $(MDSP)         \
+        $(QDSP)         \
+        $(NV)           \
+        $(PM)           \
+        $(PLT)          \
+        $(RF)           \
+        $(SBI)          \
+        $(SIO)          \
+        $(SRCH)         \
+        $(TLMM)         \
+        $(TRAMP)        \
+        $(TRERM)        \
+        $(UASMS)        \
+        $(UI)           \
+        $(VBATT)        \
+        $(USB)
+
+#-----------------------------------------------------------------------------
+# HDR HIT object file(s)
+#-----------------------------------------------------------------------------
+
+HDRHIT_OBJS :=  $(addprefix $(TARGETDIR)/, $(HDRHIT_SOURCES:%.c=%.o))
+$(HDRHIT_OBJS): INCLUDES = $(addprefix -I, $(HDR_CINCPATH))
+
+HDRHIT_DEPS :=  $(addprefix $(TARGETDIR)/, $(HDRHIT_SOURCES:%.c=%.dep) )
+$(HDRHIT_DEPS): INCLUDES = $(addprefix -I, $(HDR_CINCPATH))
+
+#-----------------------------------------------------------------------------
+# HDR HIT source files search path
+#-----------------------------------------------------------------------------
+
+vpath %.c $(HDRHIT)/src
+

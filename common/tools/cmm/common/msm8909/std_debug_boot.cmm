@@ -1,0 +1,128 @@
+//============================================================================
+//  Name:                                                                     
+//    std_debug_boot.cmm 
+//
+//  Description:                                                              
+//    Boot debug script
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 10/10/2012 AJCheriyan	Moved to actual reset based debug mechanism
+// 08/14/2012 AJCheriyan	Fixed typo.
+// 07/19/2012 AJCheriyan    Created for B-family.
+
+// Following arguments are supported. 
+// ARG0 - Image to debug. 
+// ARG1 - En/Disable Sleep. LPM_ENABLE / LPM_DISABLE 
+// ARG2 - Entry point for this debug session. will default to image entry point
+//        if nothing is specified.
+// ARGn - n > 2 - Any other arguments to be passed to the script
+//
+ENTRY &ARG0 &ARG1 &ARG2 &ARG3 &ARG4 &ARG5
+
+LOCAL &ELFILE
+
+MAIN:
+	// The arguments are valid at this point and the required T32 sessions are open
+	// Go about business without error checking
+	do hwio.cmm
+
+	// For Apps PBL / SBL
+	IF ("&ARG0"=="appspbl")
+	(
+		// Stop just before apps is out of reset
+		// Change the reset address to start of some onchip memory
+		// We use start of RPM Data RAM here
+		do std_utils HWIO_OUT APCS_START_ADDR 0xFC190001
+
+		WAIT 20ms
+		WHILE (RUN())
+		(
+		)
+
+		// Put an infinite loop
+		D.S A:0x190000 %LONG 0xEAFFFFFE 
+		GO
+		// If all has gone well, APPS will be sitting in an infinite loop
+		// Change it back to the start of BOOT ROM
+		do std_intercom_do &APPS0_PORT std_utils BREAKPROC
+
+		// Change the PC back to the default start address
+		INTERCOM.EXECUTE &APPS0_PORT R.S PC 0xFC010000
+
+		// We can't check for the address again like RPM PBL 
+		INTERCOM.EXECUTE &APPS0_PORT GO &ARG2 /O
+	)
+
+	// We have work to do if it is SBL
+	IF ("&ARG0"=="sbl1")
+	(
+	 	// We expect the device to be in 'fastdebug' mode
+		// Attach to the RPM and break
+		do std_utils BREAKPROC
+		// Switch to the tools directory
+		&CWD=OS.PWD()
+
+		;WAIT 5s
+	
+		cd &COMMON_METASCRIPTSDIR/msm8909
+		do spmiCfg.cmm 8909 true
+		do pmicpeek.cmm 0x14746 0x0 0x80
+
+		cd &CWD
+
+		// Set the cookie to enable SBL1 debug
+		DATA.SET EZAXI:&SBL1_DEBUG_COOKIE %LONG %LE &DEBUG_COOKIE_VALUE
+
+	 	// Select the path to the elf
+		 &ELFFILE="&BOOT_BUILDROOT/&BOOT_ELF"
+
+	    // Load the SBL elf 
+		INTERCOM.EXECUTE &APPS0_PORT D.LOAD.ELF &ELFFILE /nocode /noclear /strippart "boot_images" /sourcepath "&BOOT_BUILDROOT/boot_images"
+		
+		// Change the fastdebug variable
+		do std_exitfastdebug sbl1
+
+		// Now user has selected the elf. Let's check if the symbol is present
+		INTERCOM.EVALUATE &APPS0_PORT Y.EXIST("&ARG2")			
+		IF (1==EVAL())
+		(
+			// Go to user determined breakpoint
+			INTERCOM.EXECUTE &APPS0_PORT GO &ARG2 /O
+		)
+		ELSE
+		(
+			// Go to known point
+		   ; INTERCOM.EXECUTE &APPS0_PORT GO boot_config_process_bl /O 	
+		   INTERCOM.EXECUTE &APPS0_PORT GO sbl1_main_ctl /O
+		)
+
+		WHILE (RUN())
+		(
+		)
+
+    	// Change the fastdebug variable
+		;do std_exitfastdebug sbl1
+	
+		
+	)
+
+
+EXIT:
+	ENDDO
+
+FATALEXIT:
+	END
+
+
+	
+		

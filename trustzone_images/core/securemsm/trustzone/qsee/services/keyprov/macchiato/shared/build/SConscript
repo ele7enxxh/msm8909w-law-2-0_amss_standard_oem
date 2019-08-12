@@ -1,0 +1,120 @@
+#===============================================================================
+#
+# QSEE Macchiato lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2014 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/14/15    cz      Added key unwrapping files
+# 05/28/14    sn
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/services/keyprov/macchiato/shared/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SERVICES',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${INC_ROOT}/core/api/securemsm/crypto",
+   "${INC_ROOT}/core/api/securemsm/trustzone/qsee",
+   "${INC_ROOT}/core/api/kernel/libstd/stringl",
+   "${INC_ROOT}/core/api/dal",
+   "${INC_ROOT}/core/api/services",
+   "${INC_ROOT}/core/api/systemdrivers",
+   "${INC_ROOT}/core/api/boot/qfprom",
+   "${INC_ROOT}/core/api/systemdrivers/hwio/${CHIPSET}/phys",
+   "${INC_ROOT}/core/securemsm/cryptodrivers/ce/shared/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/core/ecc/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/ecc/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/aes/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/core/aes/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/sha/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/core/sha/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/core/ecc/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/shared/ecc/inc",
+   "${INC_ROOT}/core/securemsm/unifiedcrypto/environment/inc",
+   "${INC_ROOT}/core/securemsm/secmath/shared/inc",
+   "${INC_ROOT}/core/securemsm/secrsa/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/armlib/v7/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/arch/${CHIPSET}/cfg",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/arch/${CHIPSET}/src",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/services/fuseprov/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/services/keyprov/macchiato/shared/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/services/keyprov/macchiato/shared/inc/x509",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/services/keyprov/macchiato/environment/tz/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/include/crypto",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/services/img_auth/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/sec_app/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/kernel/mink/lk/arch/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/kernel/mink/lk/kernel/inc",
+   "${INC_ROOT}/core/securemsm/trustzone/qsee/kernel/inc",
+   "${INC_ROOT}/core/boot/mibib/src",
+   "${INC_ROOT}/core/boot/secboot3/src",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+MACCHIATO_SOURCES = [
+  '${BUILDPATH}/macchiato.c',
+  '${BUILDPATH}/macchiato_ecc.c',
+  '${BUILDPATH}/macchiato_service.c',
+  '${BUILDPATH}/macchiato_test.c',
+  '${BUILDPATH}/macchiato_eciesad.c',
+  '${BUILDPATH}/macchiato_wrapper.c',
+  '${BUILDPATH}/macchiato_keygen.c',
+  '${BUILDPATH}/macchiato_cert.c',
+  '${BUILDPATH}/macchiato_rsa.c',
+  '${BUILDPATH}/x509/secasn1.c',
+  '${BUILDPATH}/x509/secx509.c',
+  '${BUILDPATH}/x509/secx509chain.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary(['TZOS_IMAGE'], '${BUILDPATH}/macchiato_keyprov', MACCHIATO_SOURCES)
+

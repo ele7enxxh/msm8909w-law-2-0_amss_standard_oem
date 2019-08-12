@@ -1,0 +1,95 @@
+#===============================================================================
+#
+#                             Edit History
+# $Header: //source/qcom/qct/core/kernel/lk/rel/1h10/build/SConscript#3 $
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2011/07/12   spa     Create initial version
+#
+#===============================================================================
+#                    Copyright (c) 2011 QUALCOMM Incorporated.
+#                           All Rights Reserved.
+#                         QUALCOMM Proprietary/GTDR
+#===============================================================================
+# QSEE Lib
+#-------------------------------------------------------------------------------
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+#SRCPATH = ".."
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/qsee/services/elfloader"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+   'BUSES',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'KERNEL',
+   'SECUREMSM',   
+   'TZCHIPSET',                   #< tzbsp_target.h
+   'TZLIBARMV7',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+env.RequirePrivateApi(CBSP_APIS)
+
+env.PublishPrivateApi('SECUREMSM', [
+   '${INC_ROOT}/core/securemsm/trustzone/qsee/kernel/inc',
+])
+
+INC_PATH_API = ["${INC_ROOT}/core/api/securemsm/trustzone/qsee"]
+env.Append(CPPPATH = INC_PATH_API)
+
+INC_PATH_COMMON = ["${INC_ROOT}/core/securemsm/trustzone/qsee/include"]
+env.Append(CPPPATH = INC_PATH_COMMON)
+
+INC_PATH_QSEE = [
+      "${INC_ROOT}/core/securemsm/trustzone/qsee/kernel/inc",
+      "${INC_ROOT}/core/securemsm/trustzone/qsee/sec_app/inc",
+      "${INC_ROOT}/core/securemsm/trustzone/qsee/services/elfloader/inc",
+      "${INC_ROOT}/core/securemsm/trustzone/qsee/services/external",
+]
+env.Append(CPPPATH = INC_PATH_QSEE)
+
+INC_PATH_LK = [
+      "${INC_ROOT}/core/kernel/lk/kernel/inc",
+      "${INC_ROOT}/core/kernel/lk/arch/inc",
+      "${INC_ROOT}/core/kernel/lk/platform/inc",
+]
+env.Append(CPPPATH = INC_PATH_LK)
+
+env.Append(CCFLAGS = " --diag_suppress=1786,2523 ")
+env.Append(ASFLAGS = " --diag_suppress=1786,2523 ")
+
+#-------------------------------------------------------------------------------
+# Compiler options
+#-------------------------------------------------------------------------------
+env.Append(CCFLAGS = "--gnu")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+QSEE_SERVICES_ELFLOADER_SOURCES = [
+   '${BUILDPATH}/src/elf.c',
+   '${BUILDPATH}/src/mem.c',
+]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary(['TZOS_IMAGE'], '${BUILDPATH}/QSEEELFSERV', QSEE_SERVICES_ELFLOADER_SOURCES)
+
+

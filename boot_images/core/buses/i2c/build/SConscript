@@ -1,0 +1,122 @@
+#===============================================================================
+#
+# I2C Libs
+#
+# GENERAL DESCRIPTION
+#    Public build script for I2C BUS driver.
+#
+# Copyright (c) 2009-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/buses/i2c/build/SConscript#2 $
+#  $DateTime: 2015/09/13 23:33:33 $
+#  $Author: pwbldsvc $
+#  $Change: 9017835 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 06/18/14   ms     Added support for 8909
+# 04/09/14   ms     Added support for 8936
+# 03/13/14   ms     Created for 8916 based off BOOT.BF.2.1.
+#
+#===============================================================================
+Import('env')
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+env = env.Clone()
+#print env
+# Additional defines
+env.Append(CPPDEFINES = ["FEATURE_LIBRARY_ONLY"])   
+env['CCCOMSTR'] = "$CCCOM"
+SRCPATH = "../src"
+
+IMAGES = []
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+CBSP_APIS = []
+I2C_CONFIG_XML = []
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('BUSES_I2C_DEVICE', [
+   '${INC_ROOT}/core/buses/i2c/src/device/inc',
+   '${INC_ROOT}/core/buses/i2c/src/logs/inc',
+   '${INC_ROOT}/core/buses/qup/src/logs/inc',
+   '${INC_ROOT}/core/buses/qup/inc',
+   '${INC_ROOT}/core/buses/qup/hw',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS += [
+   'BUSES',
+   'DAL',
+   'HAL',
+   'SYSTEMDRIVERS',
+   'HWENGINES',
+   'KERNEL',   
+   'SERVICES',
+   'POWER'
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+# for tzbsp_* definitions
+env.RequireRestrictedApi('TZCHIPSET')
+# for tzbsp_int* definitions
+env.RequireRestrictedApi('TZLIBARMV7')
+
+IMAGES = ['I2C_BOOT_DRIVER']
+      
+if env['MSM_ID'] in ['8916']:
+      env.Replace(I2C_CONFIG_XML = 'i2c_boot_8916.xml')
+if env['MSM_ID'] in ['8956']:
+      env.Replace(I2C_CONFIG_XML = 'i2c_boot_8956.xml')
+elif env['MSM_ID'] in ['8936','8952']:
+      env.Replace(I2C_CONFIG_XML = 'i2c_boot_8936.xml')
+elif env['MSM_ID'] in ['8909', '8909w']:
+      env.Replace(I2C_CONFIG_XML = 'i2c_boot_8909.xml')	      
+else:
+   Return();      
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+I2C_DEVICE_GLOB_FILES = env.GlobFiles('../src/*/*.c', posix=True)
+ 
+#GLOB returns the relative path name, it needs to replaced with correct build location
+I2C_DEVICE_SOURCES = [path.replace(SRCPATH, '${BUILDPATH}') for path in I2C_DEVICE_GLOB_FILES]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+# env.AddLibrary is a new API, only if the IMAGES is valid in the build env
+# the objects will built and added to the image.
+#-------------------------------------------------------------------------------
+env.AddLibrary(IMAGES, '${BUILDPATH}/I2cDriver', I2C_DEVICE_SOURCES)
+
+#---------------------------------------------------------------------------
+# Device Config
+#---------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      'devcfg_xml'    : '${BUILD_ROOT}/core/buses/i2c/config/${I2C_CONFIG_XML}'
+   })
+
+

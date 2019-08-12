@@ -1,0 +1,348 @@
+#===============================================================================
+#
+# JSDCC tool build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2012, 2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/bootloaders/msm7x30/main/latest/osbl/build/SConscript#10 $
+#  $DateTime: 2009/07/23 12:15:48 $
+#  $Author: wduembeg $
+#  $Change: 976313 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2014-10-28   sb      Updated for 8952
+# 2014-09-18   sb      Updated for 8909
+# 2014-07-21   ah      Updated for 9x45
+# 2012-04-03   ah      Added define for FEATURE_GPP
+# 2012-02-03   ah      Updated for 8064 and 8930
+# 2011-05-26   ah      Updated for 4.1 compiler
+# 2010-08-19   rh      Use DDR memory for 8660
+# 2010-07-14   rh      Force enable debug symbol - again
+# 2010-07-07   rh      Force enable debug symbol
+# 2010-06-22   rh      Update the location of the scl file
+# 2010-06-08   rh      Branch the script for compilation on Scorpion processor
+# 2010-03-16   rh      Add missing IMEM value for 7x30
+# 2010-02-22   rh      Add IMEM value for 8660 and CMM script generator
+# 2009-10-10   rcc     Merged in changes from the integration team
+#===============================================================================
+import os
+Import('env')
+env = env.Clone()
+
+#----------------------------------------------------------------------------
+# Source PATH
+#----------------------------------------------------------------------------
+JSDCC_SRC = "${BUILD_ROOT}/core/storage/tools/jsdcc"
+
+env.VariantDir('.', JSDCC_SRC, duplicate=0)
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias - First alias is always the target then the other possible aliases
+aliases = [
+   'jsdcc',
+]
+
+# Set up any processor or platform specific variables here
+# We should really try to keep the rest platform-independent
+PARAM_BUFFER_SIZE = "0x8000"
+JSDCC_OUTPUT_BUFFER_SIZE = "0x800"
+if env['MSMID'] in ['8660']:
+   CODE_START_ADDR = "0x40001000"
+   DATA_START_ADDR = "0x40030000"
+   CODE_SIZE = "0x40000"
+   processor = 'scorpion'
+elif env['MSMID'] in ['8960', '8930', '8064']:
+   CODE_START_ADDR = "0x2A000000"
+   DATA_START_ADDR = "0x2A010000"
+   CODE_SIZE = "0x40000"
+   processor = 'scorpion'
+elif env['CHIPSET'] in ['msm8916', 'msm8936', 'msm8952', 'msm8956']:
+   processor = 'a53'
+   CODE_START_ADDR = "0x00200000"
+   CODE_SIZE = "0x20000"
+   PARAM_FIELD_TYPE = "uint64"
+elif env['MSM_ID'] in ['9x45', '8909', '8909w']:
+   processor = 'sparrow'
+   CODE_START_ADDR = "0x00200000"
+   CODE_SIZE = "0x20000"
+   PARAM_FIELD_TYPE = "uint32"
+#elif env['MSMID'] in ['8974', '8x10'] or env['CHIPSET'] in ['msm8x26', 'msm8x62', 'msm8x10', 'apq8084', 'mpq8092']:
+else:
+   processor = 'krait'
+   CODE_START_ADDR = "0xFC100000"
+   #CODE_START_ADDR = "0xFE806000"
+   CODE_SIZE = "0x20000"
+   PARAM_FIELD_TYPE = "uint32"
+
+env.Append(CPPDEFINES = [
+    "FEATURE_GPP",
+])
+
+# Allow processor to be taken as a command line arg
+# For ex. build jsdcc processor=rpm
+processor = ARGUMENTS.get('processor', processor)
+
+if processor == 'rpm':
+    processor = 'arm7'
+    env.Append(CPPDEFINES = ['JSDCC_FEATURE_RPM'])
+elif processor == 'scorpion':
+    env.Append(CPPDEFINES = ['SDCC_USES_SCORPION_WAIT'])
+
+env.InitImageVars(
+   alias_list = aliases,      # list of aliases, unique name index [0]
+   proc = processor,         # proc settings
+   config = 'apps',           # config settings
+   build_tags = ['APPS_PROC', 
+      'JSDCC_TOOL_IMAGE'],    # list of build tags for sub lib scripts
+   tools = [
+   '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py',
+   'buildspec_builder.py']
+)
+
+if not env.CheckAlias():
+   Return()
+
+#------------------------------------------------------------------------------
+# Init default values for this PROC/Image
+#------------------------------------------------------------------------------
+env.Replace(BUILD_TOOL_CHAIN = 'yes')
+
+#===============================================================================
+# JSDCC build rules
+#===============================================================================
+
+#------------------------------------------------------------------------------
+# Configure and load in USES and path variables
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+#env.LoadToolsScripts ('rvct', toolpath=["${BUILD_SCRIPTS_ROOT}"])
+#env.LoadToolsScripts ('rvct', toolpath=["${BUILD_SCRIPTS_ROOT}"])
+#env.LoadToolsScripts('modem_defs', toolpath=["${BUILD_SCRIPTS_ROOT}"])
+env.Tool('arm', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+env.Tool('modem_defs', toolpath = ['${BUILD_SCRIPTS_ROOT}'])   
+
+
+# Force debug and symbols for flash tools, required by T32 swbp interface
+env.Replace(ARM_DBG = "-g --dwarf2")     # Enable DWARF2 format debug tables
+
+# After loading default rules, make some optimization changes
+env.Append(ARMCC_CODE = " ${ARM_SPLIT_SECTIONS}")
+env.Replace(ARMLD_NOREMOVE_CMD = "")
+
+# Compile thumb code
+env.Replace(CC = env['TCC'])
+
+#disable unaligned access for c/c++ compiler and assembler
+env.Replace(ARMCC_CODE = "${ARM_END} ${ARM_NO_UNALIGNED_ACCESS}")
+env.Append(ARMCXX_CODE = " ${ARM_NO_UNALIGNED_ACCESS}")
+env.Append(ASFLAGS = " --keep ${ARM_NO_UNALIGNED_ACCESS}")
+
+# Define processor instruction set
+env.Replace(ARM_CPU_KRAIT = "7-A.security")
+env.Replace(ARM_CPU = "${ARM_CPU_CMD} ${ARM_CPU_KRAIT}")
+
+#------------------------------------------------------------------------------
+# Add extension flags for JSDCC
+#------------------------------------------------------------------------------
+if env['BUILD_VER'] == "":
+   env.Replace(BUILD_VER = '0')
+
+env.Append(CPPDEFINES = [
+   "BUILD_TOOL_CHAIN",
+   "BOOT_WATCHDOG_DISABLED",
+   "FEATURE_HS_USB_BASIC",
+   "CODE_START_ADDR=" + CODE_START_ADDR,
+   "CODE_SIZE=" + CODE_SIZE,
+   "JSDCC_OUTPUT_BUFFER_SIZE=" + JSDCC_OUTPUT_BUFFER_SIZE,
+   "PARAM_FIELD_TYPE=" + PARAM_FIELD_TYPE,
+   "PARAM_BUFFER_SIZE=" + PARAM_BUFFER_SIZE,
+   "BOOT_MODULE_BUILD_VERSION=" + env['BUILD_VER'],
+   "BOOT_HEAP_SIZE=0x10000",
+   "FEATURE_STANDALONE_MODEM",
+   "FEATURE_HS_USB_BASIC",
+])
+
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'CS',
+   'DSM',
+   'MODEM_1X',
+   'MODEM_ADIE',
+   'MODEM_DATA',
+   'MODEM_FTM',
+   'MODEM_GERAN',
+   'MODEM_GPS',
+   'MODEM_HDR',
+   'MODEM_MDSP',
+   'MODEM_NAS',
+   'MODEM_PMIC',
+   'MODEM_RF',
+   'MODEM_SERVICES',
+   'MODEM_UIM',
+   'MODEM_WCDMA',
+   'MULTIMEDIA_AUDIO',
+   'MULTIMEDIA_DISPLAY',
+   'MULTIMEDIA_GRAPHICS',
+   'MULTIMEDIA',
+   'WIRELESSCONNECTIVITY',
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BUSES',
+   'DEBUGTOOLS',
+   'HWENGINES',
+   'IODEVICES',
+   'MPROC',
+   'POWER',
+   'SECUREMSM',
+   'SENSORS',
+   'SERVICES',
+   'STORAGE',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+
+   # needs to be last also contains wrong comdef.h   
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+JSDCC_TARGET_SOURCES = [
+   'jsdcc_main.c',
+   'jsdcc_start.s',
+]
+
+JSDCC_BSP_PLATFORM = env['MSMID']
+
+# Match up MSM to reuse BSP files
+#if env['MSMID'] in ['8960','8930','8064']:
+JSDCC_BSP_PLATFORM = '8660'
+
+JSDCC_BSP_SOURCE = 'bsp/jsdcc_bsp_' + JSDCC_BSP_PLATFORM + '.c' 
+
+jsdcc_tool_obj = env.Object([
+   JSDCC_TARGET_SOURCES,
+   JSDCC_BSP_SOURCE
+])
+
+#------------------------------------------------------------------------------
+# Decide which build steps to perform
+#------------------------------------------------------------------------------
+# Regular build steps (no filter) is build everything, once a user starts
+# using filters we have to make decisions depending on user input.
+#
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units, 
+# etc.  This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quartz, stubs, etc.
+
+do_local_files = True
+do_link = True
+do_post_link = True
+
+# Get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# Limit build processing based on filter option
+if filter_opt is not None:
+   do_link = False
+   do_post_link = False
+
+   if not env.FilterMatch(os.getcwd()):
+      do_local_files = False
+      
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+jsdcc_units = [core_objs, core_libs]
+
+
+if do_local_files:
+   #============================================================================
+   # JSDCC Environment
+   #============================================================================
+
+   #----------------------------------------------------------------------------
+   # Begin building JSDCC
+   #----------------------------------------------------------------------------
+   env.Replace(TARGET_NAME = 'jsdcc')
+   
+   #----------------------------------------------------------------------------
+   # Generate Scatter Load File (SCL)
+   #----------------------------------------------------------------------------
+   jsdcc_scl = env.SclBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', 
+      '${BUILD_ROOT}/core/storage/tools/jsdcc/jsdcc_in.scl')
+
+   jsdcc_units.extend(jsdcc_scl)
+
+if do_link:
+   #----------------------------------------------------------------------------
+   # Generate JSDCC ELF
+   #----------------------------------------------------------------------------
+   libs_path = env['INSTALL_LIBPATH']
+   
+   jsdcc_elf = env.Program('${SHORT_BUILDPATH}/${TARGET_NAME}',
+      source=[core_objs, jsdcc_tool_obj],
+      LIBS=[core_libs], LIBPATH=libs_path)
+      
+   env.Depends(jsdcc_elf, jsdcc_scl)
+   
+   env.Clean(jsdcc_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.map'))
+   env.Clean(jsdcc_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.sym'))
+
+if do_post_link:   
+   #----------------------------------------------------------------------------
+   # Generate JSDCC BIN
+   #----------------------------------------------------------------------------
+   jsdcc_bin = env.BinBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', jsdcc_elf)
+
+   #----------------------------------------------------------------------------
+   # Install the generated files
+   #----------------------------------------------------------------------------
+   install_jsdcc_bin = env.Install(JSDCC_SRC, [jsdcc_elf, jsdcc_bin])
+
+   #============================================================================
+   # Define units that will be built
+   #============================================================================
+   jsdcc_units = env.Alias ('arm11_jsdcc_units', [
+      jsdcc_elf,
+      jsdcc_bin,
+      install_jsdcc_bin
+   ])
+
+# Add aliases
+for alias in aliases:
+   env.Alias(alias, jsdcc_units)

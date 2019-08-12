@@ -1,0 +1,308 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+    2 00000000         ;
+    3 00000000         ;     T R U S T Z O N E
+    4 00000000         ;
+    5 00000000         ; GENERAL DESCRIPTION
+    6 00000000         ;   This file contains the TZBSP exec func
+    7 00000000         ;
+    8 00000000         ; EXTERNALIZED SYMBOLS
+    9 00000000         ;
+   10 00000000         ;
+   11 00000000         ; INITIALIZATION AND SEQUENCING REQUIREMENTS
+   12 00000000         ;
+   13 00000000         ;
+   14 00000000         ; Copyright (c) 2010 by Qualcomm Technologies, Incorpora
+                       ted.All Rights Reserved.
+   15 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   16 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   17 00000000         ;
+   18 00000000         ;                           EDIT HISTORY FOR FILE
+   19 00000000         ;
+   20 00000000         ; This section contains comments describing changes made
+                        to the module.
+   21 00000000         ; Notice that changes are listed in reverse chronologica
+                       l order.
+   22 00000000         ;
+   23 00000000         ; $Header: 
+   24 00000000         ;
+   25 00000000         ; when       who     what, where, why
+   26 00000000         ; --------   ---     -----------------------------------
+                       ---------------------
+   27 00000000         ; 05/03/10   na      Added exec implementation
+   28 00000000         ;*====*====*====*====*====*====*====*====*====*====*====
+                       *====*====*====*====*
+   29 00000000         ;=======================================================
+                       =====================
+   30 00000000         ;
+   31 00000000         ;                            MODULE INCLUDES
+   32 00000000         ;
+   33 00000000         ;=======================================================
+                       =====================
+   34 00000000         ;GET tzbsp_libarm_asm.inc
+   35 00000000         ;GET tzbsp_asm.inc
+   36 00000000         ;=======================================================
+                       =====================
+   37 00000000         ;
+   38 00000000         ;                             MODULE EXPORTS
+   39 00000000         ;
+   40 00000000         ;=======================================================
+                       =====================
+   41 00000000         ; Export the symbols that defined in this module
+   42 00000000                 EXPORT           tzbsp_reset_exec
+   43 00000000         ;=======================================================
+                       =====================
+   44 00000000         ;
+   45 00000000         ;                             MODULE IMPORTS
+   46 00000000         ;
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   47 00000000         ;=======================================================
+                       =====================
+   48 00000000         ; Import the external symbols that are referenced in thi
+                       s module.
+   49 00000000                 IMPORT           tzbsp_int_disable_all
+   50 00000000                 IMPORT           tzbsp_exec_get_fgroups_ptr
+   51 00000000                 IMPORT           tzbsp_exec_get_ddr_ptr
+   52 00000000                 IMPORT           tzbsp_exec_get_imem_ptr
+   53 00000000         ;=======================================================
+                       ============
+   54 00000000         ; Workspace
+   55 00000000         ;=======================================================
+                       ============
+   56 00000000         ;
+   57 00000000                 AREA             |TZBSPExecWorkspace|, DATA, REA
+DWRITE, ALIGN=2
+   58 00000000 00 00 00 
+              00       TZBSP_EXEC_PC
+                               SPACE            0x4
+   59 00000004 00 00 00 
+              00       TZBSP_EXEC_CPSR
+                               SPACE            0x4
+   60 00000008 00 00 00 
+              00       TZBSP_EXEC_R0
+                               SPACE            0x4
+   61 0000000C 00 00 00 
+              00       TZBSP_EXEC_R1
+                               SPACE            0x4
+   62 00000010 00 00 00 
+              00       TZBSP_EXEC_R2
+                               SPACE            0x4
+   63 00000014 00 00 00 
+              00       TZBSP_EXEC_R3
+                               SPACE            0x4
+   64 00000018 00 00 00 
+              00       TZBSP_EXEC_R4
+                               SPACE            0x4
+   65 0000001C 00 00 00 
+              00       TZBSP_EXEC_R5
+                               SPACE            0x4
+   66 00000020 00 00 00 
+              00       TZBSP_EXEC_R6
+                               SPACE            0x4
+   67 00000024 00 00 00 
+              00       TZBSP_EXEC_R7
+                               SPACE            0x4
+   68 00000028 00 00 00 
+              00       TZBSP_EXEC_R8
+                               SPACE            0x4
+   69 0000002C 00 00 00 
+              00       TZBSP_EXEC_R9
+                               SPACE            0x4
+   70 00000030 00 00 00 
+              00       TZBSP_EXEC_R10
+                               SPACE            0x4
+   71 00000034 00 00 00 
+              00       TZBSP_EXEC_R11
+                               SPACE            0x4
+   72 00000038 00 00 00 
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+              00       TZBSP_EXEC_R12
+                               SPACE            0x4
+   73 0000003C 00 00 00 
+              00       TZBSP_EXEC_R13
+                               SPACE            0x4
+   74 00000040 00 00 00 
+              00       TZBSP_EXEC_R14
+                               SPACE            0x4
+   75 00000044         ;=======================================================
+                       =====================
+   76 00000044         ;
+   77 00000044         ;                             MODULE DATA AREA
+   78 00000044         ;
+   79 00000044         ;=======================================================
+                       =====================
+   80 00000044                 PRESERVE8
+   81 00000044                 AREA             TZBSP_EXEC, CODE, READONLY, ALI
+GN=2
+   82 00000000         ;=======================================================
+                       ===============
+   83 00000000         ; Reset exec function implementation
+   84 00000000         ;=======================================================
+                       ===============
+   85 00000000         ;void tzbsp_reset_exec(uint32 addr)
+   86 00000000         ;r0 will hold addr passed
+   87 00000000         tzbsp_reset_exec
+                               FUNCTION
+   88 00000000 E3500000        cmp              r0, #0      ; if r0 is 0 that m
+                                                            eans none of the
+   89 00000004 012FFF1E        bxeq             lr          ; TZOS (LK or MobiC
+                                                            ore)is present
+   90 00000008 E59F106C        ldr              r1, =TZBSP_EXEC_CPSR ;Save CPSR
+                                                            
+   91 0000000C E10F2000        mrs              r2, CPSR
+   92 00000010 E5812000        str              r2, [r1]
+   93 00000014 E59F1064        ldr              r1, =TZBSP_EXEC_R4 ;Save r4-r14
+                                                            
+   94 00000018 E8817FF0        stmia            r1, {r4-r14}
+   95 0000001C E59F1060        ldr              r1, =TZBSP_EXEC_R0 
+                                                            ;Save addr passed
+   96 00000020 E5810000        str              r0, [r1]    ;Set r0, this is th
+                                                            e addr passed to it
+                                                            
+   97 00000024 E59F205C        ldr              r2, =tzbsp_int_disable_all ;Fun
+                                                            ction call to disab
+                                                            le interrupts
+   98 00000028 E12FFF32        blx              r2
+   99 0000002C         ; Initialize Image
+  100 0000002C E59F0058        ldr              r0, =tzbsp_exec_get_fgroups_ptr
+  101 00000030 E12FFF30        blx              r0
+  102 00000034 E1A02000        mov              r2, r0      ;Move fgroups to 3r
+                                                            d arg
+  103 00000038 E59F0050        ldr              r0, =tzbsp_exec_get_ddr_ptr
+  104 0000003C E12FFF30        blx              r0
+  105 00000040 E1A01000        mov              r1, r0      ;Move ddr ptr to 2n
+                                                            d arg
+  106 00000044 E59F0048        ldr              r0, =tzbsp_exec_get_imem_ptr
+  107 00000048 E12FFF30        blx              r0          ;Move MC address st
+                                                            ruct to first arg
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+  108 0000004C E59F3030        ldr              r3, =TZBSP_EXEC_R0
+  109 00000050 E5933000        ldr              r3, [r3]
+  110 00000054 E12FFF33        blx              r3          ;Branch to addr pas
+                                                            sed
+  111 00000058 E3500000        cmp              r0, #0      ;Check return statu
+                                                            s, 0 if SUCCESS
+  112 0000005C 0A000000        beq              %f100
+  113 00000060 E3E00000        mov              r0,#-1
+  114 00000064 E59F1010 
+                       100     ldr              r1, =TZBSP_EXEC_CPSR 
+                                                            ;Restore CPSR
+  115 00000068 E5912000        ldr              r2, [r1]
+  116 0000006C E12FF002        msr              CPSR_cxsf, r2
+  117 00000070 E59F1008        ldr              r1, =TZBSP_EXEC_R4
+  118 00000074 E8917FF0        ldmia            r1, {r4-r14}
+  119 00000078 E12FFF1E        bx               lr
+  120 0000007C                 ENDFUNC
+  121 0000007C                 END
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+Command Line: --debug --dwarf2 --diag_suppress=1480,1786,2523 --cpu=Cortex-A7 -
+-fpu=SoftVFP --apcs=/noswst/interwork -o/local/mnt/workspace/CRMBuilds/TZ.BF.2.
+5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/
+trustzone/qsee/executive/build/tzbsp_no_xpu/cortexA7/MATAANAA/src/tzbsp_exec_as
+m.o -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161
+130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/executive/build -I/
+local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222
+454/b/trustzone_images/build/cust -I. -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.
+5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/
+trustzone/qsee/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M89
+09AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/systemdrivers -I/loca
+l/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/
+b/trustzone_images/core/api/systemdrivers/pmic -I/local/mnt/workspace/CRMBuilds
+/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/a
+pi/systemdrivers/hwio/msm8909w -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-0
+0004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/systemdrivers
+/hwio/msm8909w/phys -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909A
+AAAANAZT-2_20161130_222454/b/trustzone_images/core/api/dal -I/local/mnt/workspa
+ce/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_i
+mages/core/api/services -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8
+909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/rapi/services/inc -I
+/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_22
+2454/b/trustzone_images/core/securemsm/trustzone/qsee/services/ssd/inc -I/local
+/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b
+/trustzone_images/core/securemsm/trustzone/qsee/services/ks/inc -I/local/mnt/wo
+rkspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustz
+one_images/core/securemsm/trustzone/qsee/services/img_auth/inc -I/local/mnt/wor
+kspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzo
+ne_images/core/securemsm/trustzone/qsee/arch/msm8909/cfg/mmu -I/local/mnt/works
+pace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone
+_images/core/securemsm/trustzone/qsee/arch/msm8909/src -I/local/mnt/workspace/C
+RMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_image
+s/core/securemsm/trustzone/qsee/arch/common/inc -I/local/mnt/workspace/CRMBuild
+s/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+securemsm/trustzone/qsee/arch/armv7/include -I/local/mnt/workspace/CRMBuilds/TZ
+.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/secu
+remsm/trustzone/qsee/include/crypto -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.
+c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/lk/ke
+rnel/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_
+20161130_222454/b/trustzone_images/core/kernel/lk/arch/inc -I/local/mnt/workspa
+ce/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_i
+mages/core/kernel/lk/platform/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c1
+0-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/vmidmt/
+hal/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_2
+0161130_222454/b/trustzone_images/core/kernel/vmidmt/hal/inc/8909w -I/local/mnt
+/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/tru
+stzone_images/core/kernel/xpu2/hal/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2
+.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/xp
+u2/hal/inc/8909w -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAA
+ANAZT-2_20161130_222454/b/trustzone_images/core/kernel/mmu/inc -I/local/mnt/wor
+kspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzo
+ne_images/core/kernel/hypervisor/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5
+.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/kernel/hype
+rvisor/inc/8909w -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAA
+ANAZT-2_20161130_222454/b/trustzone_images/core/kernel/smmu/smmu500 -I/local/mn
+t/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/tr
+ustzone_images/core/kernel/smmu/smmu500/8909w/tz -I/local/mnt/workspace/CRMBuil
+ds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core
+/systemdrivers/busywait/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-0000
+4-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/systemdrivers/clk/in
+c -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_2016113
+0_222454/b/trustzone_images/core/systemdrivers/hal/qgic/inc -I/local/mnt/worksp
+ace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_
+images/core/boot/mibib/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004
+-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/boot/secboot3/src -I/
+local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222
+454/b/trustzone_images/core/boot/qfprom/hw/core_2_0 -I/local/mnt/workspace/CRMB
+uilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/c
+ore/boot/qfprom/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909A
+AAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/monitor/
+common/inc --list=/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAA
+NAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/executi
+ve/build/tzbsp_no_xpu/cortexA7/MATAANAA/src/tzbsp_exec_asm.o.lst --sitelicense 
+/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_22
+2454/b/trustzone_images/core/securemsm/trustzone/qsee/executive/build/tzbsp_no_
+xpu/cortexA7/MATAANAA/src/tzbsp_exec_asm.o.i

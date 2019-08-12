@@ -1,0 +1,276 @@
+//============================================================================
+//  Name:                                                                     
+//    std_loadtrace.cmm 
+//
+//  Description:                                                              
+//    Common script to load trace ( ETB ) data
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 10/15/2012 AJCheriyan    Created for B-family 
+
+// Support the following arguments.
+// ARG0 - Chipset
+// ARG1 - Type of the trace ( ETB currently supported)
+// ARG2 - Processor for which trace has been collected (one of the many sub-systems)
+
+ENTRY &CHIPSET &ARG1 &ARG2 &ARG3 &ARG4
+
+LOCAL  &TRACE &SUBSYS &vmlinux &tmc &mpsself
+AREA
+&TRACE=STRING.UPPER("&ARG1")
+&SUBSYS=STRING.UPPER("&ARG2")
+&vmlinux=STRING.UPPER("&ARG3")
+&mpsself=STRING.UPPER("&ARG3")
+&tmc=STRING.UPPER("&ARG4")
+
+SETUPSIM:
+IF ("&TRACE"=="ETB")
+(
+	IF ("&SUBSYS"=="APPS")
+	(
+	 
+    if ("&CHIPSET"=="")
+    (
+	Print "No CHIPSET argument specified. Valid options are : 8974, 8226, 9625, 8610, 8084, 8962, 9635, 8916, 8994, 8992, 8939"
+	PRINT "CHIPSET="
+	ENTER &CHIPSET
+    )
+    while ("&CHIPSET"=="")
+    (
+	ENTRY &CHIPSET
+    )
+
+    if ("&CHIPSET"=="8974")
+   (
+	Print "CHIPSET 8974"
+	SYStem.cpu krait
+	SYStem.CONFIG corenumber 4.
+	CORE.num 4.
+	SYStem.CONFIG COREBASE         0x80030000   0x80032000    0x80034000    0x80036000
+	SYStem.CONFIG ETMBASE          0x8003c000   0x8003d000    0x8003e000    0x8003f000
+	SYStem.CONFIG TPIUBASE         0x80018000
+    )
+    else if ("&CHIPSET"=="8226")
+    (
+	Print "CHIPSET 8226"
+	SYStem.cpu CORTEXA7mpcore
+	SYStem.CONFIG corenumber 4.
+	CORE.num 4.
+	SYStem.CONFIG COREBASE         0x80030000   0x80032000    0x80034000    0x80036000
+	SYStem.CONFIG ETMBASE          0x8003c000   0x8003d000    0x8003e000    0x8003f000
+	SYStem.CONFIG TPIUBASE         0x80018000
+    )
+    else if ("&CHIPSET"=="9625")
+    (
+	Print "CHIPSET 9625"
+	SYStem.cpu CORTEXA5
+	SYStem.CONFIG COREBASE		0x80030000
+	SYStem.CONFIG ETMBASE		0x80032000
+	SYStem.CONFIG TPIUBASE		0x80018000
+    )
+    else if ("&CHIPSET"=="8610")
+   (
+	Print "CHIPSET 8610"
+	SYStem.cpu CORTEXA7mpcore
+	SYStem.CONFIG corenumber 4.
+	CORE.num 4.
+	SYStem.CONFIG COREBASE         0x80040000   0x80042000    0x80044000    0x80046000
+	SYStem.CONFIG ETMBASE          0x8004c000   0x8004d000    0x8004e000    0x8004f000
+	SYStem.CONFIG TPIUBASE         0x80020000
+    )
+    else if ("&CHIPSET"=="8084")
+    (
+	Print "CHIPSET 8084"
+	SYStem.cpu krait
+	SYStem.CONFIG corenumber 4.
+	CORE.num 4.
+	SYStem.CONFIG COREBASE         0x80040000   0x80042000    0x80044000    0x80046000
+	SYStem.CONFIG ETMBASE          0x8004c000   0x8004d000    0x8004e000    0x8004f000
+	SYStem.CONFIG TPIUBASE         0x80020000
+    )
+     else if ("&CHIPSET"=="8962")
+   (
+	Print "CHIPSET 8962"
+	SYStem.cpu krait
+	SYStem.CONFIG corenumber 4.
+	CORE.num 4.
+	SYStem.CONFIG COREBASE         0x80040000   0x80042000    0x80044000    0x80046000
+	SYStem.CONFIG ETMBASE          0x8004c000   0x8004d000    0x8004e000    0x8004f000
+	SYStem.CONFIG TPIUBASE         0x80020000
+    )
+    else if ("&CHIPSET"=="9635")
+   (
+	Print "CHIPSET 9635"
+	SYStem.cpu CORTEXA7
+	SYStem.CONFIG COREBASE		0x800300000
+	SYStem.CONFIG ETMBASE		0x80042000
+	SYStem.CONFIG TPIUBASE		0x80020000
+    )
+    else if ("&CHIPSET"=="8916")
+   (
+	Print "CHIPSET 8916"
+	SYStem.cpu CORTEXA53
+	SYStem.CONFIG corenumber 4.
+	CORE.num 4.
+	SYStem.CONFIG COREBASE         DAP:0x80050000  DAP:0x80052000 DAP:0x80054000 DAP:0x80056000
+	SYStem.CONFIG ETMBASE          DAP:0x8005c000  DAP:0x8005D000 DAP:0x8005e000 DAP:0x8005f000
+	SYStem.CONFIG TPIUBASE         DAP:0x80020000
+    )
+    else if ("&CHIPSET"=="8994")
+   (
+	Print "CHIPSET 8994"
+	SYStem.cpu CORTEXA53
+	SYStem.CONFIG corenumber 8.
+	CORE.num 8.
+	SYStem.CONFIG COREBASE         DAP:0x80810000  DAP:0x80910000 DAP:0x80a10000 DAP:0x80b10000 DAP:0x80c10000 DAP:0x80d10000 DAP:0x80e10000 DAP:0x80f10000 
+	SYStem.CONFIG ETMBASE          DAP:0x80840000  DAP:0x80940000 DAP:0x80a40000 DAP:0x80b40000 DAP:0x80c40000 DAP:0x80d40000 DAP:0x80e40000 DAP:0x80f40000
+	SYStem.CONFIG TPIUBASE         DAP:0x80320000
+    )
+    else if ("&CHIPSET"=="8992")
+    (
+	Print "CHIPSET 8992"
+	SYStem.cpu CORTEXA53
+	SYStem.CONFIG corenumber 6.
+	CORE.num 6.
+	SYStem.CONFIG COREBASE         DAP:0x80810000  DAP:0x80910000 DAP:0x80a10000 DAP:0x80b10000 DAP:0x80c10000 DAP:0x80d10000
+	SYStem.CONFIG ETMBASE          DAP:0x80840000  DAP:0x80940000 DAP:0x80a40000 DAP:0x80b40000 DAP:0x80c40000 DAP:0x80d40000
+	SYStem.CONFIG TPIUBASE         DAP:0x80320000
+    )
+    else if ("&CHIPSET"=="8939")
+    (
+	Print "CHIPSET 8939"
+	SYStem.cpu CORTEXA53
+	SYStem.CONFIG corenumber 8.
+	CORE.num 8.
+	SYStem.CONFIG COREBASE         DAP:0x800D0000 DAP:0x800D2000 DAP:0x800D4000 DAP:0x800D6000 DAP:0x800F0000 DAP:0x800F2000 DAP:0x800f4000 DAP:0x800F6000
+	SYStem.CONFIG.CTIBASE          DAP:0x800D8000 DAP:0x800D9000 DAP:0x800DA000 DAP:0x800DB000 DAP:0x800F8000 DAP:0x800F9000 DAP:0x800FA000 DAP:0x800FB000
+	SYStem.CONFIG ETMBASE          DAP:0x800Dc000 DAP:0x800DD000 DAP:0x800DE000 DAP:0x800DF000 DAP:0x800Fc000 DAP:0x800FD000 DAP:0x800fe000 DAP:0x800FF000
+	SYStem.CONFIG TPIUBASE         DAP:0x80020000  
+    )
+    else if ("&CHIPSET"=="8936")
+    (
+	Print "CHIPSET 8936"
+	SYStem.cpu CORTEXA53
+	SYStem.CONFIG corenumber 4.
+	CORE.num 4.
+	SYStem.CONFIG COREBASE         0x800F0000 0x800F2000 0x800f4000 0x800F6000
+	SYStem.CONFIG.CTIBASE          0x800F8000 0x800F9000 0x800FA000 0x800FB000
+	SYStem.CONFIG ETMBASE          0x800Fc000 0x800FD000 0x800fe000 0x800FF000
+	SYStem.CONFIG TPIUBASE         DAP:0x80020000
+    )
+    else if ("&CHIPSET"=="9640")
+   (
+	Print "CHIPSET 9640"
+	SYStem.cpu CORTEXA7
+	SYStem.CONFIG COREBASE		0x800300000
+	SYStem.CONFIG ETMBASE		0x80042000
+	SYStem.CONFIG TPIUBASE		0x80020000
+    )
+    else if ("&CHIPSET"=="8909")
+   (
+	Print "CHIPSET 8909"
+	SYStem.cpu CORTEXA7mpcore
+	SYStem.CONFIG corenumber 4.
+	CORE.num 4.
+	system.config COREBASE		0x80040000 0x80042000 0x80044000 0x80046000
+	system.config.CTIBASE		0x80051000 0x80052000 0x80053000 0x80054000
+	system.config ETMBASE		0x8004c000 0x8004d000 0x8004e000 0x8004f000
+	system.config TPIUBASE		0X80020000
+    ) 
+    else
+    (
+	Print "Invalid CHIPSET argument"
+	Print "Valid options are : 8974, 8226, 9625, 8610, 9635, 8916, 8994,8992, 8939, 8936, 9640, 8909"
+	END
+    )
+    SYStem.u
+	ETM.on
+	ETM.CONTEXTID OFF
+	ETM.CYCLEACCURATE OFF
+	ETM.stall off
+	ETM.TIMESTAMPS OFF
+	ETM.PORTMODE WRAPPED
+	ETM.SmartTrace OFF
+	ETM.Datatrace ON
+	if ("&vmlinux"=="")
+   (
+	Print "Select kernel elf file"
+	d.load.elf *
+    )
+    else
+    (
+	d.load.elf "&vmlinux"
+    )
+
+    la.mode flowtrace on
+    if ("&tmc"=="")
+    (
+	Print "Select TMC binary file"
+	la.import.etb *.bin
+    )
+    else
+    (
+	la.import.etb "&tmc"
+     )
+
+     la.list all tp tpc
+
+	)
+	IF ("&SUBSYS"=="MPSS"&&"&CHIPSET"=="8909")
+	(
+	if (y.exist(sleep_allow_low_power_modes))
+    (
+     system.cpu HEXAGONV56
+	
+    )
+    else 
+   (
+     system.cpu HEXAGONV56
+     sys.up
+	 if ("&mpsself"=="")
+   (
+	Print "Select modem elf file"
+	d.load.elf *
+    )
+    else
+    (
+	d.load.elf "&mpsself"
+    )
+   )
+
+    sys.config.etr.base 0x4
+    sys.config.tpiu.base 0x8
+    Trace.METHOD.LA
+    ETM.PortMode Wrapped
+    ETM.TRACEID 0x24
+    ETM.CA ON
+    A.CLOCK 500.mhz
+    LA.Mode.FlowTrace.ON
+	
+     if ("&tmc"=="")
+    (
+	Print "Select TMC ETF binary file"
+	la.import.etb *.bin
+    )
+    else
+    (
+	la.import.etb "&tmc"
+     )
+
+    t.l tp tpc tpinfo def l.nd.off
+
+    enddo
+
+	)
+) 
+

@@ -1,0 +1,144 @@
+/*
+** Copyright (c) 2015 Qualcomm Technologies, Inc.
+** All Rights Reserved.
+** Confidential and Proprietary - Qualcomm Technologies, Inc.
+** ------------------------------------------------------- */
+sub hello( $hi)
+{
+    print( "hello $hi\n");
+}
+
+sub goodbye( $bye)
+{
+    print( "goodbye $bye\n");
+}
+
+sub factorial( $n)
+{
+    if ( 0 == $n)
+        return  1;
+    else {
+        return ( $n * factorial( $n - 1));
+    }
+}
+
+sub main( @argv)
+{
+    print( "hello world\n");
+    my $client = slopen();
+    print( "slopen() client handle $client\n");
+
+    my $enable_req = slnew_req( "amd", "enable", {"report_period" => 1, "notify_suspend" => 1});
+    print( "slnew_req() returned ok\n");
+
+    my $rc = slsend_req( $client, $enable_req);
+    print( "slsend_req() rc $rc\n");
+
+    // sleep( $seconds);
+
+    $rc  = slclose( $client);
+    print( "slclose() rc $rc\n");
+
+/*
+    my $w = 10;
+    $w += 1;
+
+    while ( $w) {
+        print( "\$w $w\n");
+        $w -= 1;
+    }
+*/
+    my ( $x, $y, $z) = @argv;
+
+    print( "\$x $x, \$y $y, \$z $z\n");
+
+    if ( defined( $x)) {
+        print( "\$x is defined\n");
+    }
+    else {
+        print( "\$x is not defined\n");
+    }
+
+    my $can = "can can";
+    if ( !$x )
+        print( "if ( boolean !$x) $can is true!\n");
+    else
+        print( "if ( boolean !$x) $can is false\n");
+
+
+    hello( "ada");
+
+    my $faq;
+    my $i = 0;
+    while( $i < 16) {
+        $faq = factorial( $i);
+        print( "factorial( $i) == $faq\n");
+        $i += 1;
+        continue;
+    }
+
+    goodbye( "lovelace");
+
+
+
+/*
+
+    my $response = slget_resp( $enable);
+    my $value    = slget_value( $response, "instance_id");
+    print( "instance_id $value\n");
+
+    sleep( $duration);
+
+    my $disable  = slnew_req( $client, "grav", "disable");
+    $rc          = slsend_req( $disable);
+
+    $rc          = slclose( $client);
+*/
+    return( 0);
+}
+
+
+//    if ( condition) { statement1; statement2; }
+//    for ( my $i = 0; $i < 10; $i++) {
+//        print( $i);
+//        while ( $i) {
+//            punt();
+//        }
+//    }
+//    while( condition) {
+//        statement3;
+//        break;
+//        last;
+//    }
+
+/*
+    $number = 1 + 2 * 3;
+    print( "number 1 + 2 * 3 = $number\n");
+    $number = ( 1 + 2) * 3;
+    print( "number ( 1 + 2) * 3 = $number\n");
+    $number = ( 1 + 2) * 4 / 2;
+    print( "number ( 1 + 2) * 4 / 2 = $number\n");
+    my $negation = !7;
+    print( "\$negation = $negation\n");
+
+    my $number = -1 + 2;
+    print( "number -1 + 2 = $number\n");
+
+    my $one = 1;
+    my $two = 2;
+    my $three = 3;
+    my $four = 4;
+    my $five = 5;
+    my $six = 6;
+
+    my $num = $one + $two * $three;
+    print ( "num one + two * three = $num\n");
+
+    $num = ( $four * $five) - $three;
+    print( "(\$four * \$five) - \$three = $num\n");
+
+    $num = $four / $two - $one - $three * $six;
+    print( "\$four / \$two - \$one - \$three * \$six = $num\n");
+*/
+
+

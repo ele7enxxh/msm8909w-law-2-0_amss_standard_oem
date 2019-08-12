@@ -1,0 +1,243 @@
+; NPADump.cmm
+; ------------------------------------------------------------------
+;
+; When to use this script 
+; -----------------------
+; This script should be used to dump NPA state from T32.  It will dump
+; the NPA Ulog and then append all in-memory NPA state.
+;
+; 
+; How to use this script
+; ----------------------
+; After after breaking, retrieve NPA state by running
+;
+; do NPADump <logPath>
+;
+; If <logPath> is given, a "NPA Log.ulog" file will be created in the given directory
+; If <logPath> is not given, the output will be dumped to the screen,
+;
+ENTRY &logPath
+; This global is  set by ULogDump
+GLOBAL &ULogTimestamp
+LOCAL &link &dump &mypath &ulogdump
+
+if "&logPath"==""
+(
+  &logPath="stdout"
+  ; Select the output area for messages
+  AREA.SELECT A000
+
+  &dump="PRINT"
+)
+
+; Check the logPath string for validity
+IF string.char("&(logPath)", string.len("&(logPath)")-1)=='\'
+(
+  &logPath=string.cut("&(logPath)", -1)
+)
+
+; This is effectively cwd()\..\..\ulog\scripts\rpm_ulogdump
+&ulogdump=os.ppd();
+&ulogdump=os.file.path(&ulogdump)
+&ulogdump=os.file.path(&ulogdump)
+&ulogdump="&(ulogdump)\ulog\scripts\rpm_ulogdump"
+DO &ulogdump &logPath "NPA Log"
+
+if "&logPath"!="stdout"
+(
+
+  OPEN #1 "&(logPath)\NPA Log.ulog" /Append
+  PRINT "Dumping NPA state"
+  &dump="WRITE #1"
+)
+
+&dump "&(ULogTimestamp): npa_dump"
+
+&link=V.VALUE(npa.resources)
+
+WHILE &link!=0
+(
+  GOSUB DumpLink &link  
+  &link=V.VALUE(((npa_link *)&link).next)
+)
+&dump "&(ULogTimestamp): end npa_dump"
+
+if "&logPath"!="stdout"
+(
+  CLOSE #1
+)
+ENDDO
+
+
+; Dump Link Subroutine
+DumpLink:
+  ENTRY &link
+  LOCAL &link_name &resource &resource_name &definition
+  &link_name=DATA.STRING(D:V.VALUE(((npa_link *)&link).name))
+  &resource=V.VALUE(((npa_link *)&link).resource)
+  &definition=V.VALUE(((npa_resource *)&resource).definition)
+
+  if &definition==0
+  (
+     GOSUB DumpPlaceholder "&link_name"
+  )
+  else
+  (
+    &resource_name=DATA.STRING(D:V.VALUE(((npa_resource_definition *)&definition).name))
+    if "&resource_name"=="&link_name"
+    (
+      GOSUB DumpResource &resource "&resource_name"
+    ) 
+    ELSE if "&resource_name"=="marker resource"
+    (
+      GOSUB DumpMarker "&link_name"
+    )   
+    ELSE
+    (
+      GOSUB DumpAlias "&link_name" "&resource_name"
+    )
+  )  
+  RETURN
+
+
+DumpPlaceholder:
+  ENTRY &placeholder
+  &dump "&(ULogTimestamp): npa_placeholder (name: &(placeholder))"
+  RETURN
+
+
+DumpMarker:
+  ENTRY &marker
+  &dump "&(ULogTimestamp): npa_marker (name: &(marker))"
+  RETURN
+
+DumpAlias:
+  ENTRY &link_name &resource_name
+  &dump "&(ULogTimestamp): npa_alias (alias_name: &(link_name)) (resource_name: &(resource_name))"
+  RETURN
+
+DumpResource:
+  ENTRY &resource &resource_name
+
+  GOSUB DumpResourceState &resource &resource_name
+  GOSUB DumpResourceClients &resource
+  GOSUB DumpResourceEvents &resource
+
+  &dump "&(ULogTimestamp):         end npa_resource (handle: &(resource))"
+
+  RETURN
+
+DumpResourceState:
+  ENTRY &resource &resource_name
+  LOCAL &active_state &active_max &active_headroom &request_state
+  LOCAL &units &resource_max
+  &units=DATA.STRING(D:V.VALUE(((npa_resource *)&resource).definition.units))
+  &resource_max=FORMAT.DECIMAL(0,V.VALUE(((npa_resource *)&resource).definition.max))
+  &active_state=FORMAT.DECIMAL(0,V.VALUE(((npa_resource *)&resource).active_state))
+  &active_max=FORMAT.DECIMAL(0,V.VALUE(((npa_resource *)&resource).active_max))
+  &active_headroom=FORMAT.DECIMAL(0,V.VALUE(((npa_resource *)&resource).active_headroom))
+  &request_state=FORMAT.DECIMAL(0,V.VALUE(((npa_resource *)&resource).request_state))
+
+  &dump  "&(ULogTimestamp): npa_resource (name: &(resource_name)) (handle: &(resource)) (units: &(units)) (resource max: &(resource_max)) (active max: &(active_max)) (active state &(active_state))  (active headroom: &(active_headroom)) (request state: &(request_state))" 
+
+  RETURN
+
+DumpResourceClients:
+  ENTRY &resource
+  LOCAL &client &client_name &client_type &request
+  LOCAL &string
+
+  &client=V.VALUE(((npa_resource *)&resource).clients)
+
+  while 0!=&client
+  (
+    &client_name=DATA.STRING(D:V.VALUE(((npa_client *)&client).name))
+    &client_type=V.STRING(((npa_client *)&client).type)
+    &request=FORMAT.DECIMAL(0,V.VALUE((((npa_client *)&client).work[((npa_client *)&client).index]).state))
+    
+    &string="&(ULogTimestamp):         npa_client (name: &(client_name)) (handle: &(client)) (resource: &(resource)) (type: &(client_type))"
+; TODO: Handle the wierd formatting
+;    if "&client_type"=="NPA_CLIENT_REQUIRED"
+;    (
+      &string="&(string) (request: &(request))"
+;    )
+
+    &dump "&(string)"
+
+    &client=V.VALUE(((npa_client *)&client).next)
+  )
+  RETURN
+
+
+DumpResourceEvents:
+  ENTRY &resource
+
+  LOCAL &event &name &trigger_type
+
+  &event=V.VALUE(((npa_resource *)&resource).events)
+  while 0!=&event
+  (
+    &trigger_type=V.STRING(((npa_event *)&event).trigger_type)
+    if "&trigger_type"=="NPA_TRIGGER_RESERVED_EVENT"
+    ( 
+      GOSUB DumpReservedEvent &resource &event
+    )
+    else if "&trigger_type"=="NPA_TRIGGER_CHANGE_EVENT"
+    (
+      GOSUB DumpChangeEvent &resource &event
+    )
+    else if "&trigger_type"=="NPA_TRIGGER_WATERMARK_EVENT"
+    (
+      GOSUB DumpWatermarkEvent &resource &event
+    )
+    else if "&trigger_type"=="NPA_TRIGGER_THRESHOLD_EVENT"
+    (
+      GOSUB DumpThresholdEvent &resource &event
+    ) 
+
+    &event=V.VALUE(((npa_event *)&event).next)
+  ) 
+  RETURN
+
+DumpReservedEvent:
+  ENTRY &resource &event
+
+  LOCAL &name 
+
+  &name=DATA.STRING(D:V.VALUE(((npa_event *)&event).name))
+  &dump "&(ULogTimestamp):         npa_reserved_event (name: &(name)) (handle: &(event)) (resource: &(resource))"
+  RETURN
+
+
+DumpChangeEvent:
+  ENTRY &resource &event
+
+  LOCAL &name 
+
+  &name=DATA.STRING(D:V.VALUE(((npa_event *)&event).name))
+  &dump "&(ULogTimestamp):         npa_change_event (name: &(name)) (handle: &(event)) (resource: &(resource))"
+  RETURN
+
+DumpWatermarkEvent:
+  ENTRY &resource &event
+
+  LOCAL &name &hi &lo
+
+  &name=DATA.STRING(D:V.VALUE(((npa_event *)&event).name))
+  &lo=FORMAT.DECIMAL(0,V.VALUE(((npa_event *)&event).lo.watermark))
+  &hi=FORMAT.DECIMAL(0,V.VALUE(((npa_event *)&event).hi.watermark))
+  &dump "&(ULogTimestamp):         npa_watermark_event (name: &(name)) (handle: &(event)) (resource: &(resource)) (lo_watermark: &(lo)) (hi_watermark: &(hi))"
+  RETURN
+
+
+DumpThresholdEvent:
+  ENTRY &resource &event
+
+  LOCAL &name &hi &lo
+
+  &name=DATA.STRING(D:V.VALUE(((npa_event *)&event).name))
+  &lo=FORMAT.DECIMAL(0,V.VALUE(((npa_event *)&event).lo.threshold))
+  &hi=FORMAT.DECIMAL(0,V.VALUE(((npa_event *)&event).hi.threshold))
+  &dump "&(ULogTimestamp):         npa_threshold_event (name: &(name)) (handle: &(event)) (resource: &(resource)) (lo_threshold: &(lo)) (hi_threshold: &(hi))"
+  RETURN
+

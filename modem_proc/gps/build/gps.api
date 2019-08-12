@@ -1,0 +1,34 @@
+#===============================================================================
+#
+# GPS API wrapper script
+#
+# GENERAL DESCRIPTION
+#    build script to load API's for GPS
+#
+# Copyright (c) 2010 - 2012 Qualcomm Technologies Incorporated.
+# Qualcomm Confidential and Proprietary. All Rights Reserved.
+# Copyright (c) 2013 - 2015 Qualcomm Atheros, Inc.
+# Qualcomm Atheros Confidential and Proprietary. All Rights Reserved. 
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //depot/asic/msmshared/users/edwinj/modem/cscons/gps/build/gps.api#2 $
+#  $DateTime: 2010/08/05 09:58:04 $
+#
+#===============================================================================
+Import('env')
+
+if env.PathExists('${BUILD_ROOT}/gps'):
+    env.Replace(GPS_ROOT = '${INC_ROOT}/gps')
+else:    
+    env.Replace(GPS_ROOT = '${INC_ROOT}/modem/gps')
+
+
+env.PublishPublicApi('GPS', ["${GPS_ROOT}/api"])
+
+#next line for with modem folder only
+env.PublishRestrictedApi('GPS', ["${GPS_ROOT}/api"])
+
+env.LoadAPIUnits()

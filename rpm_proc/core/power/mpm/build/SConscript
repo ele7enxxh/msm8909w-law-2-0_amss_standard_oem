@@ -1,0 +1,77 @@
+#===============================================================================
+#
+# MPM stub build file
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary and Confidential
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header$
+#  $DateTime$
+#  $Author$,
+#  $Change$
+#
+#
+#===============================================================================
+
+import os
+import fnmatch
+import itertools
+
+Import('env')
+env = env.Clone()
+
+if env['MSM_ID'] == '8909W':
+	env['MSM_ID'] = '8909'
+
+supported_targets = ['8916', '8936', '9x45', '8909', '8952', '9x07'] 
+if env['MSM_ID'] not in supported_targets:
+    env.PrintWarning('Bailing from mpm scripts; no support for build targets other than %s' % supported_targets)
+    Return()
+
+# Call HAL SConscript
+env.SConscript('../hal/build/SConscript', exports='env')
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/power/mpm/src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'DAL',
+   'SYSTEMDRIVERS',
+   'POWER',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.PublishPrivateApi('POWER_MPM', [
+  "${BUILD_ROOT}/core/power/mpm/inc",
+])
+env.PublishPrivateApi('POWER_RPM', [
+  "${BUILD_ROOT}/core/power/rpm/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+MPM_SOURCES = [
+    '${BUILDPATH}/mpm.c',
+    '${BUILDPATH}/vmpm.c',
+    '${BUILDPATH}/vmpm_target.c',
+    #'${BUILDPATH}/vmpm_${MSM_ID}.c',
+]
+
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/vmpm', MPM_SOURCES)
+

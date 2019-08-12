@@ -1,0 +1,68 @@
+#===============================================================================
+#
+# CoreBSP build rules
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/rel/1.0/boot_images/core/bsp/bootloaders/build/SConstruct#3 $
+#  $DateTime: 2011/03/28 14:47:50 $
+#  $Author: coresvc $
+#  $Change: 1675054 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import os
+import glob
+
+print "------------------------------------------------------------------------------"
+print "   Loading CBSP build system"
+print "------------------------------------------------------------------------------"
+
+#------------------------------------------------------------------------------
+# Get system Environment
+#------------------------------------------------------------------------------
+env = DefaultEnvironment(ENV = os.environ)
+#env = Environment(ENV = os.environ, platform = 'posix')
+#env = Environment(ENV = os.environ, platform = 'cygwin')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Set global variables and defaults
+#------------------------------------------------------------------------------
+Decider('MD5-timestamp')
+env.Replace(BUILD_ROOT = '../../../../')
+env.Tool('defaults', toolpath = ['../../build/scripts'])
+
+#------------------------------------------------------------------------------
+# Load PC Tools scripts that may be needed for the targets
+#------------------------------------------------------------------------------
+env.SConscript('${COREBSP_ROOT}/bsp/tools/boot/build/SConscript', exports='env')
+
+#------------------------------------------------------------------------------
+# Load TARGET scripts
+#------------------------------------------------------------------------------
+env.SConscript('SConscript', exports='env')
+
+print "\n"
+print "------------------------------------------------------------------------------"
+
+# set default target if none is given, print actual targets
+env.Default('all')
+print "BUILD_TARGETS are", map(str, BUILD_TARGETS)
+
+print "\n"
+print "=============================================================================="

@@ -1,0 +1,170 @@
+#===============================================================================
+#
+# Tsens Libs
+#
+# GENERAL DESCRIPTION
+#    Tsens Boot Libs build script
+#
+# Copyright (c) 2009-2015 by Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Qualcomm Technologies Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/hwengines/tsens/build/tsens.scons#3 $
+#  $DateTime: 2015/09/16 02:13:13 $
+#  $Author: pwbldsvc $
+#  $Change: 9037121 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 15-09-16   PR      Add 8909w support
+# 15-02-11   PR      CR782238
+# 14-06-11   sve     Added 8909.
+# 14-05-30   jjo     Added 9x45.
+# 14-04-23   SA      Added 8936.
+# 13-11-25   PR      Added 8916.
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+if env['MSM_ID'] in ['8909w']:
+   env['MSM_ID'] = '8909'
+
+if env['MSM_ID'] not in ['8916', '8936', '9x45', '8909', '8956']:
+   Return();
+
+#-------------------------------------------------------------------------------
+# Defines
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Publish Private APIs
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('HWENGINES_TSENS', [
+   "${INC_ROOT}/core/hwengines/tsens/src",
+   "${INC_ROOT}/core/hwengines/tsens/hal/common",
+])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/hwengines/tsens/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',   
+   'DEBUGTOOLS',   
+   'HAL',
+   'HWENGINES',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources
+#-------------------------------------------------------------------------------
+
+# Common sources
+if env['MSM_ID'] in ['8909']:
+   TSENS_DRV_SOURCES = [
+      '${BUILDPATH}/src/BootTempCheck.c',
+      '${BUILDPATH}/src/TsensBoot.c',
+      '${BUILDPATH}/config/${MSM_ID}/TsensiConversion.c',
+   ]
+else:
+   TSENS_DRV_SOURCES = [
+      '${BUILDPATH}/src/BootTempCheck.c',
+      '${BUILDPATH}/src/TsensBoot.c',
+      '${BUILDPATH}/src/TsensiConversion.c',
+   ]
+
+# BSP files
+
+TSENS_BSP_SOURCES = [
+   '${BUILDPATH}/config/${MSM_ID}/BootTempCheckBsp.c',
+   '${BUILDPATH}/config/${MSM_ID}/TsensBootBsp.c',
+ ]
+ 
+# Target sources
+
+TSENS_DRV_HAL_SOURCES = [
+   '${BUILDPATH}/hal/${MSM_ID}/HALtsens.c',
+]
+
+#-------------------------------------------------------------------------------
+# Libraries
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(
+  ['TSENS_BOOT_DRIVER'],
+  '${BUILDPATH}/tsens', [TSENS_DRV_SOURCES, TSENS_DRV_HAL_SOURCES])
+  
+env.AddLibrary(
+  ['DAL_DEVCFG_IMG'],
+  '${BUILDPATH}/tsens_bsp_lib', TSENS_BSP_SOURCES)
+  
+if 'USES_DEVCFG' in env:
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      'devcfg_xml'    : '${BUILD_ROOT}/core/hwengines/tsens/config/${MSM_ID}/tsens_props.xml'
+   })
+   env.AddDevCfgInfo(DEVCFG_IMG, 
+   {
+      'devcfg_xml'    : '${BUILD_ROOT}/core/hwengines/tsens/config/${MSM_ID}/boot_temp_check_props.xml'
+   })
+
+#-------------------------------------------------------------------------------
+# Pack files (files to remove)
+#-------------------------------------------------------------------------------
+
+# Remove BSP files
+BSP_FILES = env.FindFiles(['*'], '${BUILD_ROOT}/core/hwengines/tsens/config/')
+BSP_FILES_MSMID = env.FindFiles(['*'], '${BUILD_ROOT}/core/hwengines/tsens/config/${MSM_ID}')
+
+BSP_FILES_8916 = env.FindFiles(['*'], '${BUILD_ROOT}/core/hwengines/tsens/config/8916')
+BSP_FILES_8936 = env.FindFiles(['*'], '${BUILD_ROOT}/core/hwengines/tsens/config/8936')
+
+if env['MSM_ID'] in ['8916', '8936']:
+   PACK_BSP_FILES = list(set(BSP_FILES) - set(BSP_FILES_8916) - set(BSP_FILES_8936))
+else:
+   PACK_BSP_FILES = list(set(BSP_FILES) - set(BSP_FILES_MSMID))
+
+env.CleanPack(['TSENS_BOOT_DRIVER'], PACK_BSP_FILES)
+
+# Remove HAL files
+HAL_FILES = env.FindFiles(['*'], '${BUILD_ROOT}/core/hwengines/tsens/hal/')
+HAL_FILES_MSMID = env.FindFiles(['*'], '${BUILD_ROOT}/core/hwengines/tsens/hal/${MSM_ID}')
+
+HAL_FILES_8916 = env.FindFiles(['*'], '${BUILD_ROOT}/core/hwengines/tsens/hal/8916')
+HAL_FILES_8936 = env.FindFiles(['*'], '${BUILD_ROOT}/core/hwengines/tsens/hal/8936')
+
+HAL_COMMON_FILES = env.FindFiles(['*'], '${BUILD_ROOT}/core/hwengines/tsens/hal/common')
+
+if env['MSM_ID'] in ['8916', '8936']:
+   PACK_HAL_FILES = list(set(HAL_FILES) - set(HAL_COMMON_FILES) - set(HAL_FILES_8916) - set(HAL_FILES_8936))
+else:
+   PACK_HAL_FILES = list(set(HAL_FILES) - set(HAL_FILES_MSMID))
+   PACK_HAL_FILES = filter(lambda PACK_HAL_FILES: 'common' not in PACK_HAL_FILES[:], PACK_HAL_FILES)
+
+
+env.CleanPack(['TSENS_BOOT_DRIVER'], PACK_HAL_FILES)
+

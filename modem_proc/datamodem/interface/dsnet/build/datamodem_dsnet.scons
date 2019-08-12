@@ -1,0 +1,184 @@
+#===============================================================================
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/modem/datacommon/dsnet/rel/10.02.02/build/datacommon_dsnet.scons#3 $
+#  $DateTime: 2010/11/11 16:24:03 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 11/11/13   rk      Removed feature mobileap.
+# 08/31/10   ack     Initial revision
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+from glob import glob
+from os.path import join, basename
+
+if 'USES_WPLT' in env or 'USES_DATAMODEM_DSNET' not in env:
+    Return()
+
+#turn off debug if requested  
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+
+#turn on debug if requested
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+   
+#-------------------------------------------------------------------------------
+# Necessary Core Public API's
+#-------------------------------------------------------------------------------
+CORE_PUBLIC_APIS = [
+    'DEBUGTOOLS',
+    'SERVICES',
+		  'SYSTEMDRIVERS',
+		  'WIREDCONNECTIVITY',
+		  'STORAGE',
+		  'SECUREMSM',
+		  'BUSES',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_PUBLIC_APIS, area='core')
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Public API's
+#-------------------------------------------------------------------------------
+MODEM_PUBLIC_APIS = [
+    'MMODE',
+    'DATAMODEM',
+    'UIM',
+    'MCS',
+    'ONEX',
+    'DATA',
+    'HDR',
+    'WMS',
+    'PBM',
+    'GERAN',
+    'NAS',
+    'UTILS',
+    'WCDMA',
+    'RFA',
+    ]
+
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+#-------------------------------------------------------------------------------
+# Necessary Modem Restricted API's
+#-------------------------------------------------------------------------------
+MODEM_RESTRICTED_APIS = [
+    'MODEM_DATA',
+    'MODEM_DATACOMMON',
+    'MODEM_DATAMODEM',
+    'DATAMODEM',
+    'MCS',
+    'ONEX',
+    'NAS',
+    'HDR',
+    'MMODE',
+    'RFA',
+    'GERAN',
+    'UIM',
+    'WCDMA',
+    'MDSP',
+    'UTILS',
+    ]
+
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+
+#-------------------------------------------------------------------------------
+# Required external APIs not built with SCons (if any)
+# e.g. ['BREW',]
+#-------------------------------------------------------------------------------
+REQUIRED_NON_SCONS_APIS = [
+				'WCONNECT', 
+				'BREW',				
+				]
+
+if REQUIRED_NON_SCONS_APIS != []:
+  env.RequireExternalApi(REQUIRED_NON_SCONS_APIS)
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = ".."
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+#code shipped as source
+DATAMODEM_DSNET_CPP_SOURCES = [
+    '${BUILDPATH}/src/ds_Net_BearerTechEx.cpp',
+    '${BUILDPATH}/src/ds_Net_BearerTech.cpp',
+    '${BUILDPATH}/src/ds_Net_CreateInstance.cpp',
+    '${BUILDPATH}/src/ds_Net_Init.cpp',
+    '${BUILDPATH}/src/ds_Net_MemManager.cpp',
+    '${BUILDPATH}/src/ds_Net_EventManager.cpp',
+    '${BUILDPATH}/src/ds_Net_Handle.cpp',
+    '${BUILDPATH}/src/ds_Net_IPFilterSpec.cpp',
+    '${BUILDPATH}/src/ds_Net_MCastSession.cpp',
+    '${BUILDPATH}/src/ds_Net_MCastSessionPriv.cpp',
+    '${BUILDPATH}/src/ds_Net_MCastMBMSCtrl.cpp',
+    '${BUILDPATH}/src/ds_Net_MBMSSpec.cpp',
+    '${BUILDPATH}/src/ds_Net_Network.cpp',
+    '${BUILDPATH}/src/ds_Net_NetworkActive.cpp',
+    '${BUILDPATH}/src/ds_Net_NetworkMonitored.cpp',
+    '${BUILDPATH}/src/ds_Net_Network1X.cpp',
+    '${BUILDPATH}/src/ds_Net_NetworkFactory.cpp',
+    '${BUILDPATH}/src/ds_Net_NetworkIPv6.cpp',
+    '${BUILDPATH}/src/ds_Net_NetworkIPv6Address.cpp',
+    '${BUILDPATH}/src/ds_Net_NetworkUMTS.cpp',
+    '${BUILDPATH}/src/ds_Net_PhysLink.cpp',
+    '${BUILDPATH}/src/ds_Net_Policy.cpp',
+    '${BUILDPATH}/src/ds_Net_QoS.cpp',
+    '${BUILDPATH}/src/ds_Net_QoS1X.cpp',
+    '${BUILDPATH}/src/ds_Net_QoSDefault.cpp',
+    '${BUILDPATH}/src/ds_Net_QoSFlowSpec.cpp',
+    '${BUILDPATH}/src/ds_Net_QoSSecondary.cpp',
+    '${BUILDPATH}/src/ds_Net_IPFilterReg.cpp',
+    '${BUILDPATH}/src/ds_Net_MTPDReg.cpp',
+    '${BUILDPATH}/src/ds_Net_TechUMTSFactory.cpp',
+    '${BUILDPATH}/src/ds_Net_QoSManager.cpp',
+    '${BUILDPATH}/src/ds_Net_MCastManager.cpp',
+    '${BUILDPATH}/src/ds_Net_MCastManagerPriv.cpp',
+    '${BUILDPATH}/src/ds_Net_Conversion.cpp',
+    '${BUILDPATH}/src/ds_Net_ClassIDInstantiator.cpp',
+    '${BUILDPATH}/src/ds_Net_QoSSecondariesInput.cpp',
+    '${BUILDPATH}/src/ds_Net_QoSSecondariesOutput.cpp',
+    '${BUILDPATH}/src/ds_Net_MCastSessionsInput.cpp',
+    '${BUILDPATH}/src/ds_Net_MCastSessionsOutput.cpp',
+    '${BUILDPATH}/src/ds_Net_PSQoSSpecWrapper.cpp',
+    '${BUILDPATH}/src/ds_Net_FirewallManager.cpp',
+    '${BUILDPATH}/src/ds_Net_FirewallRule.cpp',
+    '${BUILDPATH}/src/ds_Net_QoSNetInitiated.cpp',
+    '${BUILDPATH}/src/ds_Net_QoSNetInitiatedReq.cpp',    
+    ]
+
+env.AddLibrary(['MODEM_MODEM', 'MOB_DATAMODEM' ], '${BUILDPATH}/dsnet',[DATAMODEM_DSNET_CPP_SOURCES,])
+
+
+

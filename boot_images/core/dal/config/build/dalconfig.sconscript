@@ -1,0 +1,117 @@
+#===============================================================================
+#
+# DAL CONFIG Lib
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2010 by Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/rel/1.2/boot_images/core/dal/config/build/SConscript#3 $
+#  $DateTime: 2011/09/23 17:41:33 $
+#  $Author: coresvc $
+#  $Change: 1948949 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/04/12   aa      Initial Dal Config Support for BOOTLOADERS2.0
+#
+#===============================================================================
+Import('env')
+import os
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Load dal config builders
+#-------------------------------------------------------------------------------
+env.Tool('dalconfig_builder', toolpath = ['.'])
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${DAL_ROOT}/config/${MSM_ID}"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# External paths, NOTE: DALConfig is a special case as it may require any
+# ".h" file which may not be a public API
+#-------------------------------------------------------------------------------
+
+EXTERNAL_API = [
+   'MODEM_PMIC',                  #pm.h
+   'MODEM_API',
+]
+env.RequireExternalApi(EXTERNAL_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'HAL',
+   'BUSES',
+   'HWENGINES',
+   'SYSTEMDRIVERS',
+   'SYSTEMDRIVERS_DALCONFIG',
+   'DEBUGTOOLS',
+   'SERVICES',
+   'APTTESTS',
+   'KERNEL_MEMORYMANAGER',
+   'KERNEL'
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+if env.has_key('BUILD_BOOT_CHAIN') or env.has_key('BUILD_TOOL_CHAIN'):
+   dal_sys_xml = "${BUILDPATH}/dal_mod_boot.xml"
+   dal_gen_xml = "${BUILDPATH}/dal_mod_boot_copy.xml"
+   dal_gen_src = ['${BUILDPATH}/DALConfig_boot', '${BUILDPATH}/DALModDir_boot']
+env.Append(CPPDEFINES = ["DAL_CONFIG_DIR=${MSM_ID}"])
+
+#import pdb; pdb.set_trace()
+if env.GetUsesFlag('USES_DEVCFG') is True and (env.has_key('BUILD_BOOT_CHAIN') or env.has_key('BUILD_TOOL_CHAIN')):
+   DEVCFG_IMG = ['DAL_DEVCFG_IMG', 'DAL_DEVCFG_TOOLS_IMG']
+   env.AddDevCfgInfo(DEVCFG_IMG,
+   {
+     'devcfg_xml'    : '${BUILD_ROOT}/core/dal/config/dal_mod_boot.xml'
+   })
+   devcfg_gen_xml = '${BUILDPATH}/DevCfg_master.xml'
+   DALConfig_xml = env.DevcfgBuilder([devcfg_gen_xml], None)
+   DALConfig_src = env.DALConfigSrcBuilder(dal_gen_src, DALConfig_xml[0])
+else:
+   DALConfig_xml = env.DALConfigXmlBuilder(dal_gen_xml, dal_sys_xml)
+   DALConfig_src = env.DALConfigSrcBuilder(dal_gen_src, DALConfig_xml)
+
+  
+dalconfig_obj = env.Object(DALConfig_src)
+dalconfig_lib = env.Library('${BUILDPATH}/DALConfig', dalconfig_obj)
+
+# add explicit dependency so SCons know that when ever XML changes so does the 
+# objs have to get re-compiled
+env.Depends (dalconfig_obj, DALConfig_xml)
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+env.AddLibsToImage(
+  ['SINGLE_IMAGE', 'CBSP_SINGLE_IMAGE', 'MODEM_IMAGE', 'CBSP_MODEM_IMAGE',
+  'APPS_IMAGE', 'CBSP_APPS_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE',
+  'APPSBL_BOOT_IMAGE', 'NAND_TOOLS_IMAGE', 'NOR_TOOLS_IMAGE', 'HOSTDL_IMAGE', 
+  'EHOSTDL_IMAGE','DEVICEPROGRAMMER_NAND_IMAGE', 'OSBL_BOOT_IMAGE', 'SBL1_BOOT_IMAGE',
+  'SBL2_BOOT_IMAGE','SBL3_BOOT_IMAGE', 'CORE_SPS', 'CORE_RPM', 'RPM_IMAGE', 'DAL_BOOT_DRIVER',
+  'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN'], 
+  dalconfig_lib)
+

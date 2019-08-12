@@ -1,0 +1,64 @@
+#===============================================================================
+#
+# DAL Framework Libs
+#
+# GENERAL DESCRIPTION
+#    build script for DAL framework on the RPM
+#
+# Copyright (c) 2009 - 2011 Qualcomm Incorporated.
+# All Rights Reserved.
+# Qualcomm Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/rpm/dev/afrantz.vmpm_timer/core/dal/framework/build/SConscript#1 $
+#  $DateTime: 2011/12/13 08:46:37 $
+#  $Author: coresvc $
+#  $Change: 2094401 $
+#
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+# do not define DAL_CONFIG_MMU_SCHEME; RPM has no MMU
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${DAL_ROOT}/framework/src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   # needs to be last also contains wrong comdef.h      
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Source Code
+#-------------------------------------------------------------------------------
+
+DALFW_REX_SOURCES = [
+   '${BUILDPATH}/DALHeap.c',
+   '${BUILDPATH}/dalfwkbase.c',
+   '${BUILDPATH}/dal_asm_wrap.c'
+]
+
+env.Append(CPPDEFINES = ["DAL_NATIVE_PLATFORM"])
+env.Append(CPPDEFINES = ["DALSYS_MEMREGION_ALLOC_USED"])
+env.AddLibrary(['CORE_RPM'], '${BUILDPATH}/DALFwk_rex', DALFW_REX_SOURCES)
+
+#-------------------------------------------------------------------------------
+# Load Subunits (sys)
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()
+

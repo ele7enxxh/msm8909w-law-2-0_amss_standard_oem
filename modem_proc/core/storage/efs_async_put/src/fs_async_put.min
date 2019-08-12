@@ -1,0 +1,26 @@
+#-------------------------------------------------------------------------------
+# EFS_ASYNC_PUT (file services: PSX compatible version)
+#-------------------------------------------------------------------------------
+EFS_ASYNC_PUT_SOURCES=\
+        fs_async_put.c \
+        fs_async_put_task.c \
+        #end
+
+vpath %.h $(EFS_ASYNC_PUT)
+vpath %.c $(EFS_ASYNC_PUT)
+vpath %.s $(EFS_ASYNC_PUT)
+
+ifeq ($(BIG),yes)
+        EFS_ASYNC_PUT_OBJS := $(TARGETDIR)/efs_async_put.lib
+else
+        EFS_ASYNC_PUT_OBJS := $(addprefix $(TARGETDIR)/, $(EFS_ASYNC_PUT_SOURCES:%.c=%.o))
+endif
+
+$(TARGETDIR)/efs_async_put.lib : $(EFS_ASYNC_PUT_SOURCES)
+	$(group_c_compile)
+
+ifeq ($(DO_LINT),yes)
+    EFS_ASYNC_PUT_LINT_OBJS := $(addprefix lint/, $(EFS_ASYNC_PUT_SOURCES:%.c=%.lint))
+    $(EFS_ASYNC_PUT_LINT_OBJS) : LINT_FLAGS := $(LINT_FLAGS) efs_async_put.lnt
+    lint/efs_async_put_lint : $(EFS_ASYNC_PUT_LINT_OBJS)
+endif

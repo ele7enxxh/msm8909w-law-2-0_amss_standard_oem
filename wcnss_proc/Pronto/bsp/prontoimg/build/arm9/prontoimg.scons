@@ -1,0 +1,345 @@
+#===============================================================================
+#
+# RIVA ARM9 build script
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2009 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //depot/asic/sandbox/users/acheung/8960/AMSS/products/8960/core/bsp/coreimg/build/arm9/SConscript#2 $
+#  $DateTime: 2010/07/08 22:54:14 $
+#  $Author: rfavero $
+#  $Change: 1361269 $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+#
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Check if we need to load this script or just bail-out
+#------------------------------------------------------------------------------
+# alias first alias is always the target then the other possibles
+aliases = [
+   'prontoimg', 'pronto', 'pronto_r33d', 'wcn_img', 'wcn',   
+   'arm9', 'all', 'ccu_all'
+]
+
+# init environment variables
+env.InitImageVars(
+   alias_list = aliases,         # aliases
+   proc='arm9',                 # proc
+   config='wcn',            # config type, proc_name
+   plat='rex',
+   target='PRONTO_IMG_${BUILD_ID}',# target (elf, image file name)
+   build_tags = ['CORE', 'CORE_WCN', 'QDSS_EN_IMG','IMAGE_TREE_VERSION_AUTO_GENERATE', 'IMAGE_TREE_UUID_AUTO_GENERATE'],
+   deprecated_build_tags = ['CBSP_WCN_IMAGE', 'WCN_IMAGE', 'WCN_ALL'],
+   tools = ['${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py', 
+   #'${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/dnt_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/pil_splitter_builder',
+   '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/cmm_builder.py',
+   'buildspec_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/swe_builder.py',
+   '${BUILD_ROOT}/core/bsp/build/scripts/sleep_lpr_builder.py'
+	]
+   )
+
+#---------------------------------------------------------------------------
+# BuildProducts
+#---------------------------------------------------------------------------
+build_products_fn = env['TARGET_ROOT'] + "/BuildProducts.txt"
+if not env.GetOption('clean'):
+	fh = open(build_products_fn, "a")
+	fh.write (env.subst("./wcnss_proc/build/ms/bin/${QC_SHORT_BUILDPATH}/wcnss.mbn")+"\n")
+	fh.write (env.subst("./wcnss_proc/build/ms/bin/PIL_IMAGES/${MSM_ID}_SPLITBINS_${QC_SHORT_BUILDPATH}/wcnss.mdt")+"\n")
+	fh.write (env.subst("./wcnss_proc/build/ms/bin/PIL_IMAGES/${MSM_ID}_SPLITBINS_${QC_SHORT_BUILDPATH}/wcnss.flist")+"\n")
+	fh.close()
+else:
+	if os.path.exists(build_products_fn):
+		os.remove(build_products_fn)
+
+if not env.CheckAlias():
+   Return()
+
+# Suppress WLAN extended constant initialiser warning
+env.Append(CFLAGS = ["--diag_suppress=1296"])
+env.Append(CFLAGS = ["--diag_suppress=550"])
+
+#------------------------------------------------------------------------------
+# Init default values this PROC/Image
+#------------------------------------------------------------------------------
+env.Replace(USES_DEVCFG = 'yes')
+
+# replace AMSS CUST file, add ours to #undef unwanted features
+env.Replace(AMSS_CUST_H = env.subst('CUST${BUILD_ID}.H').lower())
+env.Replace(CUST_H = 'cust_pronto_img.h')
+
+
+#---------------------------------------------------------------------------
+# Load in CBSP uses and path variables
+#---------------------------------------------------------------------------
+env.InitBuildConfig()
+
+if (env.has_key('USES_R33D')) and (env.has_key('USES_BT_SMDL')): 
+        env.Append(CPPDEFINES = ["BT_SMDL_EMU"])
+
+if (env.has_key('USES_NO_FM')):
+        env.Append(CPPDEFINES = ["FEATURE_NO_FM"])
+		
+if (env.has_key('USES_R33D')) and not(env.has_key('USES_BT_SMDL')): 
+   env.Append(CPPDEFINES = ["WCONN_UART_TRACE_ENABLED"])
+   env.Append(CPPDEFINES = ["PCIE_SMDL"])
+
+
+# add uBSP image include path
+env.PublishPrivateApi('uBSPimg', ["${BUILD_ROOT}/Pronto/bsp/prontoimg/inc"])
+
+#---------------------------------------------------------------------------
+# Load in the tools scripts
+#---------------------------------------------------------------------------
+env.LoadToolScript('arm', toolpath = ["${BUILD_ROOT}/tools/build/scons/scripts"])
+
+#---------------------------------------------------------------------------
+# add define for original AMSS custfile
+#--------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "AMSS_CUST_H=\\\"${AMSS_CUST_H}\\\"",
+   "CUST_H=\\\"${CUST_H}\\\"",
+   "BUILD_TARGET=\\\"${BUILD_TARGET}\\\"",
+   "BUILD_VER=\\\"${BUILD_VER}\\\"",
+   "BUILD_ASIC=\\\"${BUILD_ASIC}\\\"",
+   "PRONTO_IMAGE",
+   "WCN_IMAGE",
+   "IMAGE_WCN_PROC",
+   "DAL_REX_NATIVE_PLATFORM",
+   "USE_DIAG_IF_LOGGING",
+   "WCN_PRONTO",
+   "FEATURE_RIVAIMG",
+   "WCONN_TRACE_ENABLED",
+   "FEATURE_WLAN_COEX",
+   "ASSERT_FATAL=ASSERT",
+])
+
+
+if (env.has_key('USES_UBSP')):
+    env.Append(CPPDEFINES = [
+     "LPWR_IMG_PRESENT",
+    ]) 	  
+
+if env['MSM_ID'] in ['8974','8x26','8962']:
+   env.Append(CPPDEFINES = [
+      "WCN_WORKLOOP_STACK_SIZE=5120", #reduce this to 2048, once extensively tested
+      "WCN_HEAP_SIZE=0x000C0000",
+      "WCNSS_BOOT_REMAP_BASE=0x0D200000", 
+      "SCL_SHARED_RAM_BASE=0x0FA00000", 
+      ])
+
+if env['MSM_ID'] in ['8974','8962']:
+	env.Append(CPPDEFINES = [
+		"WCNSS_CODE_SIZE=0x0800000",
+                "SCL_SHARED_RAM_SIZE=0x0200000",
+		"WCONN_TRACE_LOG_MAX=65536",
+		"WCONN_IRQ_LOG_MAX=16384",
+		"WCONN_FIQ_LOG_MAX=16384",
+                "DEVCFG_DATA_SEG_SIZE=0x000F000"
+		])
+if env['MSM_ID'] in ['8962']:
+	env.Append(CPPDEFINES = [
+		"WCNSS_CODE_SIZE=0x0800000",
+                "SCL_SHARED_RAM_SIZE=0x0200000",
+		"WCONN_TRACE_LOG_MAX=65536",
+		"WCONN_IRQ_LOG_MAX=16384",
+		"WCONN_FIQ_LOG_MAX=16384",
+                "DEVCFG_DATA_SEG_SIZE=0x000F000"
+		])
+      
+if env['MSM_ID'] in ['8x10','8x26']:
+	env.Append(CPPDEFINES = [
+                "SCL_SHARED_RAM_SIZE=0x0100000",
+		"WCONN_TRACE_LOG_MAX=16384",
+		"WCONN_IRQ_LOG_MAX=8192",
+		"WCONN_FIQ_LOG_MAX=8192",
+		])	
+      
+if env['MSM_ID'] in ['8x26']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_CODE_SIZE=0x0700000",
+      "DEVCFG_DATA_SEG_SIZE=0x000B000"
+      ])
+      
+if env['MSM_ID'] in ['8936']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_BOOT_REMAP_BASE=0x8B600000", 
+      "SCL_SHARED_RAM_BASE=0x86300000",
+      "SCL_SHARED_RAM_SIZE=0x0100000",
+      "WCONN_TRACE_LOG_MAX=16384",
+      "WCONN_IRQ_LOG_MAX=8192",
+      "WCONN_FIQ_LOG_MAX=8192",
+      "WCNSS_CODE_SIZE=0x0600000",
+      "WCN_HEAP_SIZE=0x00098000",
+      "WCN_WORKLOOP_STACK_SIZE=2048",
+      "DEVCFG_DATA_SEG_SIZE=0x000F000",
+      "WCN_PRONTO_BEAR",
+      ])
+
+if env['MSM_ID'] in ['8916']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_BOOT_REMAP_BASE=0x8B600000", 
+      "SCL_SHARED_RAM_BASE=0x86300000",
+      "SCL_SHARED_RAM_SIZE=0x0100000",
+      "WCONN_TRACE_LOG_MAX=16384",
+      "WCONN_IRQ_LOG_MAX=8192",
+      "WCONN_FIQ_LOG_MAX=8192",
+      "WCNSS_CODE_SIZE=0x0600000",
+      "WCN_HEAP_SIZE=0x000A0000",
+      "WCN_WORKLOOP_STACK_SIZE=2048",
+      "DEVCFG_DATA_SEG_SIZE=0x000F000",
+      "WCN_PRONTO_BEAR",
+      ])
+
+if env['MSM_ID'] in ['8929']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_BOOT_REMAP_BASE=0x8B600000", 
+      "SCL_SHARED_RAM_BASE=0x86300000",
+      "SCL_SHARED_RAM_SIZE=0x0100000",
+      "WCONN_TRACE_LOG_MAX=16384",
+      "WCONN_IRQ_LOG_MAX=8192",
+      "WCONN_FIQ_LOG_MAX=8192",
+      "WCNSS_CODE_SIZE=0x0600000",
+      "WCN_HEAP_SIZE=0x000A0000",
+      "WCN_WORKLOOP_STACK_SIZE=2048",
+      "DEVCFG_DATA_SEG_SIZE=0x000F000",
+      "WCN_PRONTO_BEAR",
+      ])
+	  
+if env['MSM_ID'] in ['8952']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_BOOT_REMAP_BASE=0x8B000000", 
+      "SCL_SHARED_RAM_BASE=0x86300000",
+      "SCL_SHARED_RAM_SIZE=0x0100000",
+      "WCONN_TRACE_LOG_MAX=16384",
+      "WCONN_IRQ_LOG_MAX=8192",
+      "WCONN_FIQ_LOG_MAX=8192",
+      "WCNSS_CODE_SIZE=0x0700000",
+      "WCN_HEAP_SIZE=0x000A0000",
+      "WCN_WORKLOOP_STACK_SIZE=2048",
+      "DEVCFG_DATA_SEG_SIZE=0x000F000",
+      "WCN_PRONTO_BEAR",
+      ])
+
+if env['MSM_ID'] in ['8909']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_BOOT_REMAP_BASE=0x8D500000", 
+      "SCL_SHARED_RAM_BASE=0x87D00000",
+      "SCL_SHARED_RAM_SIZE=0x0100000",
+      "WCONN_TRACE_LOG_MAX=16384",
+      "WCONN_IRQ_LOG_MAX=8192",
+      "WCONN_FIQ_LOG_MAX=8192",
+      "WCNSS_CODE_SIZE=0x0600000",
+      "WCN_HEAP_SIZE=0x0008C000",
+      "WCN_WORKLOOP_STACK_SIZE=2048",
+      "DEVCFG_DATA_SEG_SIZE=0x000A800",
+      "WCN_PRONTO_BEAR",
+      ])
+
+if env['MSM_ID'] in ['8x10']:
+   env.Append(CPPDEFINES = [
+      "WCNSS_BOOT_REMAP_BASE=0x0D200000", 
+      "SCL_SHARED_RAM_BASE=0x0D900000",
+      "WCNSS_CODE_SIZE=0x0700000",
+      "WCN_HEAP_SIZE=0x000B0000",
+      "WCN_WORKLOOP_STACK_SIZE=2048",
+      "DEVCFG_DATA_SEG_SIZE=0x0008000"
+      ])
+if env['MSM_ID'] in ['8x10']:
+   env.AddUsesFlags('USES_RELOC_ENABLE_AND_ALIGN', from_builds_file = True)
+      
+#---------------------------------------------------------------------------
+# Libs/Objs
+#---------------------------------------------------------------------------
+prontoimg_libs = []
+prontoimg_objs = []
+
+#---------------------------------------------------------------------------
+# Libraries Section
+#---------------------------------------------------------------------------
+
+# load au_name libs/objs build rules.
+#au_name_libs, au_name_objs = env.LoadAUSoftwareUnits('au_name')
+#prontoimg_libs.extend(au_name_libs)
+#prontoimg_objs.extend(au_name_objs)
+
+# load Core BSP libs/objs build rules.
+build_libs, build_objs = env.LoadAUSoftwareUnits('build')
+prontoimg_libs.extend(build_libs)
+prontoimg_objs.extend(build_objs)
+
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+prontoimg_libs.extend(core_libs)
+prontoimg_objs.extend(core_objs)
+
+#pmic_libs, pmic_objs = env.LoadAUSoftwareUnits('pmic')
+#prontoimg_libs.extend(pmic_libs)
+#prontoimg_objs.extend(pmic_objs)
+
+prontoservices_libs, prontoservices_objs = env.LoadAUSoftwareUnits('rivaservices')
+prontoimg_libs.extend(prontoservices_libs)
+prontoimg_objs.extend(prontoservices_objs)
+
+products_libs, products_objs = env.LoadAUSoftwareUnits('products')
+prontoimg_libs.extend(products_libs)
+prontoimg_objs.extend(products_objs)
+
+bt_libs, bt_objs = env.LoadAUSoftwareUnits('bt')
+prontoimg_libs.extend(bt_libs)
+prontoimg_objs.extend(bt_objs)
+
+fm_libs, fm_objs = env.LoadAUSoftwareUnits('fm')
+prontoimg_libs.extend(fm_libs)
+prontoimg_objs.extend(fm_objs)
+
+wlan_libs, wlan_objs = env.LoadAUSoftwareUnits('wlan')
+prontoimg_libs.extend(wlan_libs)
+prontoimg_objs.extend(wlan_objs)
+# Create UUID  file
+img_uuid_tag = 'IMAGE_TREE_UUID_AUTO_GENERATE'
+if env.IsKeyEnable(img_uuid_tag):
+   env.LoadToolScript('version_builder', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+   oem_uuid_c = env.OEM_UUID_Builder(img_uuid_tag,    
+   '${SHORT_BUILDPATH}/oem_uuid.c', [prontoimg_objs, prontoimg_libs])
+   #oem_uuid_o = env.Object(oem_uuid_c)
+   oem_uuid_o = env.AddObject(img_uuid_tag, oem_uuid_c)
+   #image_units += oem_uuid_o
+   prontoimg_objs.append(oem_uuid_o)
+
+#------------------------------------------------------------------------------
+# Load in CBSP common build rules
+#------------------------------------------------------------------------------
+env.Replace(PRONTOIMG_LIBS = prontoimg_libs)
+env.Replace(PRONTOIMG_OBJS = prontoimg_objs)
+
+
+env.LoadToolScript('REX_ProntoImage', toolpath = ['${BUILD_ROOT}/Pronto/bsp/prontoimg/build/${PROC}'])
+
+#------------------------------------------------------------------------------
+# Generate Scripts
+#------------------------------------------------------------------------------
+env.CMMBuilder(None, None)
+
+

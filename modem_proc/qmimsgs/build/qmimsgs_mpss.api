@@ -1,0 +1,299 @@
+#===============================================================================
+#
+# QMIMSGS MPSS Include Paths
+#
+# GENERAL DESCRIPTION
+#    Build script
+#
+# Copyright (c) 2011-2015 Qualcomm Technologies, Inc.  All Rights Reserved.
+# Qualcomm Technologies Proprietary and Confidential.
+#
+#-------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/qmimsgs/build/qmimsgs_mpss.api#1 $
+#  $DateTime: 2016/12/13 07:58:26 $
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/29/16   vy      Added UIM_HTTP
+# 05/29/15   pm      Added SNS_SAM_IOD.
+# 05/29/15   pm      Added SNS_SAM_IOD_AUTOCAL.
+# 05/19/15   pm      Added CSD.
+# 05/06/15   pm      Remove IOD.
+# 04/16/15   pm      Added SERVREG_NOTIF.
+# 04/16/15   pm      Modified SERVLOC to SERVREG_LOC.
+# 03/24/15   pm      Added SERVLOC.
+# 03/03/15   pm      Added IOD.
+# 02/11/15   pm      Added WDS_EXT.
+# 02/11/15   pm      Added AT.
+# 01/22/15   pm      Added AOSTLM_AUDIT.
+# 11/12/14   pm      Added SFS.
+# 11/07/14   pm      Added QOS.
+# 10/30/14   pm      Added SNS_SYNC_PROXY.
+# 08/15/14   pm      Added LOWI.
+# 07/29/14   pm      Added AOSTLM.
+# 07/23/14   pm      Added HMON.
+# 07/02/14   pm      Added SLIM.
+# 06/20/14   pm      Added CFCM.
+# 05/01/14   pm      Added SLIMBUS.
+# 04/01/14   pm      Added SSREQ.
+# 03/14/14   pm      Added SNS_TIME_API.
+# 02/11/14   pm      Added QDSSC.
+# 01/03/14   pm      Added SNS_SMGR_API.
+# 12/10/13   pm      Added DHMS.
+# 11/14/13   pm      Added SSCTL.
+# 11/08/13   pm      Added DATA_COMMON for DFS.
+# 11/08/13   pm      Added UIMRMT.
+# 10/04/13   pm      Added SNS_SAM_SMD.
+# 10/04/13   pm      Added IPA.
+# 10/03/13   pm      Added VOICE_EXT.
+# 09/23/13   pm      Added DPM.
+# 09/23/13   pm      Added DATA_COMMON.
+# 09/20/13   pm      Added DFS.
+# 09/13/13   pm      Added ATP.
+# 07/30/13   mpa     Added SNS_COMMON, SNS_SAM_(AMD,QMD,RMD,DB,PED).
+# 07/26/13   pm      Added FDS.
+# 06/18/13   pm      Added RFSA.
+# 05/09/13   pm      Added NAS_EXT.
+# 04/03/13   mpa     Added MFSE.
+# 12/18/12   prp     Updated QMIMSG_ROOT to coexist with the tip of Nikel
+# 12/17/12   prp     Updated QMIMSGS_ROOT
+# 11/30/12   mpa     Added IMSDCM.
+# 11/12/12   mpa     Added DSD.
+# 10/19/12   sdt     Removed CSD. Updated header.
+# 10/12/12   mpa     Publish the [QMIMSGS_ROOT]/common/api path with every service
+# 09/12/12   pp      Temp. workaround for api/ to qmimsgs/ folder transition
+#            mpa     Cleaned up references to old api locations.  
+# 08/31/12   mpa     Added RFRPE.
+# 07/16/12   mpa     Added IMSRTP.
+# 07/06/12   mpa     Added BIT.
+# 07/02/12   mpa     Added TIME.
+# 06/21/12   mpa     Client reachitecture phase 1.  Allow [root]/api/<svc>/api
+# 05/12/12   dna     Added QCHAT and STX.
+# 04/30/12   mpa     Added COEX.
+# 04/27/12   mpa     Added OTDT.
+# 04/21/12   mpa     Added SIM_INTERNAL.
+# 03/27/12   mpa     Added PDC.
+# 03/13/12   mpa     Added CTL.
+# 03/07/12   dna     Added IMSVT.
+# 03/07/12   mpa     Added IMSA.
+# 02/16/12   mpa     Added PDS_EXT.
+# 02/13/12   mpa     Added IMSP.
+# 02/09/12   mpa     Added CSVT.
+# 02/01/12   mpa     Added QCMAP.
+# 12/14/11   mpa     Added IMSS.
+# 11/21/11   mpa     Added Test.
+# 11/18/11   mpa     Added TSYNC.
+# 10/31/11   mpa     QMI services P4 relocation
+# 10/04/11   mpa     Added MFS.
+# 09/21/11   mpa     Added WDA.
+# 09/16/11   mpa     Added PDS.
+# 09/15/11   mpa     Added LOC.
+# 09/12/11   mpa     Added AUTH.
+# 09/06/11   mpa     Added SAP.
+# 09/01/11   mpa     Added TS & TMD.
+# 08/29/11   mpa     Added CSD.  Server on App, not used on modem processor
+# 08/22/11   mpa     Move APIs from [root]/mpss/api to [root]/api
+# 08/08/11   mpa     Baseline  
+#===============================================================================
+Import('env')
+
+
+#MPSS.NI.4.5.2, MPSS.NI.5.0.X, MPSS.NI.6.0.X:  core RequirePublicApi(area='api') only
+#will always be ${INC_ROOT}/api & AU_NAME = 'API'
+if env.PathExists('${INC_ROOT}/api') and 'NO_MODEM_FOLDER' in env:
+  env.Replace(QMIMSGS_ROOT = '${INC_ROOT}/api')
+  
+#all other PL's  
+elif env.PathExists('${INC_ROOT}/api'):
+   env.Replace(QMIMSGS_ROOT = '${INC_ROOT}/api')
+   env.Replace(AU_NAME = "QMIMSGS")
+   env.Replace(AU_DIR_PATTERNS = ['${QMIMSGS_ROOT}/build']) 
+
+else:
+   env.Replace(QMIMSGS_ROOT = '${INC_ROOT}/qmimsgs')
+
+#-------------------------------------------------------------------------------
+# Publish Public QMI APIs
+#-------------------------------------------------------------------------------
+env.PublishPublicApi('ADC',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/adc/api"])
+env.PublishPublicApi('AOSTLM',    ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/aostlm/api"])
+env.PublishPublicApi('AOSTLM_AUDIT',["${QMIMSGS_ROOT}/common/api",
+                                    "${QMIMSGS_ROOT}/aostlm_audit/api"])
+env.PublishPublicApi('AT',        ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/at/api"])
+env.PublishPublicApi('ATP',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/atp/api"])         
+env.PublishPublicApi('AUTH',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/auth/api"])
+env.PublishPublicApi('BIT',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/bit/api"])
+env.PublishPublicApi('CAT',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/cat/api"])
+env.PublishPublicApi('CFCM',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/cfcm/api"])
+env.PublishPublicApi('COMMON',    ["${QMIMSGS_ROOT}/common/api"])
+env.PublishPublicApi('COEX',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/coex/api"])
+env.PublishPublicApi('CSD',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/csd/api"])
+env.PublishPublicApi('CSVT',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/csvt/api"])
+env.PublishPublicApi('CTL',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/ctl/api"])
+env.PublishPublicApi('DATA_COMMON',["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/data_common/api"])
+env.PublishPublicApi('DFS',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/dfs/api",
+                                   "${QMIMSGS_ROOT}/data_common/api"])
+env.PublishPublicApi('DHMS',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/dhms/api"])
+env.PublishPublicApi('DMS',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/dms/api"])
+env.PublishPublicApi('DPM',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/dpm/api",
+                                   "${QMIMSGS_ROOT}/data_common/api"])
+env.PublishPublicApi('DSD',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/dsd/api"])
+env.PublishPublicApi('FDS',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/fds/api"])
+env.PublishPublicApi('HMON',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/hmon/api"])                                   
+env.PublishPublicApi('IMSA',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/imsa/api"])
+env.PublishPublicApi('IMSDCM',    ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/imsdcm/api"])
+env.PublishPublicApi('IMSP',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/imsp/api"])
+env.PublishPublicApi('IMSRTP',    ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/imsrtp/api"])
+env.PublishPublicApi('IMSS',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/imss/api"])
+env.PublishPublicApi('IMSVT',     ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/imsvt/api"])
+env.PublishPublicApi('IPA',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/ipa/api",
+                                   "${QMIMSGS_ROOT}/data_common/api"])
+env.PublishPublicApi('LOC',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/loc/api"])
+env.PublishPublicApi('LOWI',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/lowi/api"])
+env.PublishPublicApi('MFS',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/mfs/api"])
+env.PublishPublicApi('MFSE',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/mfse/api"])
+env.PublishPublicApi('NAS',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/nas/api"])
+env.PublishPublicApi('NAS_EXT',   ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/nas_ext/api"])
+env.PublishPublicApi('OTDT',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/otdt/api"])
+env.PublishPublicApi('PBM',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/pbm/api"])
+env.PublishPublicApi('PDC',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/pdc/api"])
+env.PublishPublicApi('PDS',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/pds/api"])
+env.PublishPublicApi('PDS_EXT',   ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/pds_ext/api"])
+env.PublishPublicApi('QCHAT',     ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/qchat/api"])
+env.PublishPublicApi('QDSSC',     ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/qdssc/api"])
+env.PublishPublicApi('QCMAP',     ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/qcmap/api"])
+env.PublishPublicApi('QOS',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/qos/api",
+                                   "${QMIMSGS_ROOT}/data_common/api"])
+env.PublishPublicApi('RFRPE',     ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/rfrpe/api"])
+env.PublishPublicApi('RFSA',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/rfsa/api"])
+env.PublishPublicApi('RMTFS',     ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/rmtfs/api"])
+env.PublishPublicApi('SAP',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/sap/api"])
+env.PublishPublicApi('SAR',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/sar/api"])
+env.PublishPublicApi('SERVREG_LOC',["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/servreg_loc/api"])
+env.PublishPublicApi('SERVREG_NOTIF',["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/servreg_notif/api"])
+env.PublishPublicApi('SFS',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/sfs/api"])
+env.PublishPublicApi('SIM_INTERNAL', ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/sim_internal/api"])
+env.PublishPublicApi('SLIM',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/slim/api"])
+env.PublishPublicApi('SLIMBUS',   ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/slimbus/api"])
+env.PublishPublicApi('SNS_COMMON', ["${QMIMSGS_ROOT}/sns_common/api"])
+env.PublishPublicApi('SNS_SAM_QMD',["${QMIMSGS_ROOT}/sns_common/api",
+                                   "${QMIMSGS_ROOT}/sns_sam_qmd/api"])
+env.PublishPublicApi('SNS_SAM_AMD',["${QMIMSGS_ROOT}/sns_common/api",
+                                   "${QMIMSGS_ROOT}/sns_sam_qmd/api",
+                                   "${QMIMSGS_ROOT}/sns_sam_amd/api"])
+env.PublishPublicApi('SNS_SAM_RMD',["${QMIMSGS_ROOT}/sns_common/api",
+                                   "${QMIMSGS_ROOT}/sns_sam_qmd/api",
+                                   "${QMIMSGS_ROOT}/sns_sam_rmd/api"])
+env.PublishPublicApi('SNS_SAM_DB', ["${QMIMSGS_ROOT}/sns_common/api",
+                                   "${QMIMSGS_ROOT}/sns_sam_db/api"])
+env.PublishPublicApi('SNS_SAM_IOD',["${QMIMSGS_ROOT}/sns_common/api",
+                                    "${QMIMSGS_ROOT}/sns_sam_iod/api"])
+env.PublishPublicApi('SNS_SAM_IOD_AUTOCAL',["${QMIMSGS_ROOT}/sns_common/api",
+                                    "${QMIMSGS_ROOT}/sns_sam_iod_autocal/api"])
+env.PublishPublicApi('SNS_SAM_PED',["${QMIMSGS_ROOT}/sns_common/api",
+                                   "${QMIMSGS_ROOT}/sns_sam_ped/api"])
+env.PublishPublicApi('SNS_SAM_SMD',["${QMIMSGS_ROOT}/sns_common/api",
+                                   "${QMIMSGS_ROOT}/sns_sam_smd/api"])
+env.PublishPublicApi('SNS_SMGR_API',["${QMIMSGS_ROOT}/sns_common/api",
+                                   "${QMIMSGS_ROOT}/sns_smgr_api/api"])
+env.PublishPublicApi('SNS_SYNC_PROXY',["${QMIMSGS_ROOT}/sns_common/api",
+                                   "${QMIMSGS_ROOT}/sns_sync_proxy/api"])
+env.PublishPublicApi('SNS_TIME_API',["${QMIMSGS_ROOT}/sns_common/api",
+                                   "${QMIMSGS_ROOT}/sns_time_api/api"])
+env.PublishPublicApi('SSCTL',     ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/ssctl/api"])
+env.PublishPublicApi('SSREQ',     ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/ssreq/api"])
+env.PublishPublicApi('STX',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/stx/api"])                                   
+env.PublishPublicApi('TEST',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/test/api"])
+env.PublishPublicApi('TIME',      ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/time/api"])
+env.PublishPublicApi('TMD',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/tmd/api"])
+env.PublishPublicApi('TS',        ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/ts/api"])
+env.PublishPublicApi('TSYNC',     ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/tsync/api"])
+env.PublishPublicApi('UIM',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/uim/api"])
+env.PublishPublicApi('UIMHTTP',   ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/uimhttp/api"])
+env.PublishPublicApi('UIMRMT',    ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/uimrmt/api"])
+env.PublishPublicApi('VOICE',     ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/voice/api"])
+env.PublishPublicApi('VOICE_EXT', ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/voice_ext/api"])                                   
+env.PublishPublicApi('WDA',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/wda/api",
+                                   "${QMIMSGS_ROOT}/data_common/api"])
+env.PublishPublicApi('WDS',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/wds/api",
+                                   "${QMIMSGS_ROOT}/data_common/api"])
+env.PublishPublicApi('WDS_EXT',   ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/wds_ext/api",
+                                   "${QMIMSGS_ROOT}/data_common/api"])
+env.PublishPublicApi('WMS',       ["${QMIMSGS_ROOT}/common/api",
+                                   "${QMIMSGS_ROOT}/wms/api"])
+
+env.LoadAPIUnits()

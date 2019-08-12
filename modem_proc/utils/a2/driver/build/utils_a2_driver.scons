@@ -1,0 +1,176 @@
+#===============================================================================
+#
+# Utils A2 Driver
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     	what, where, why
+# --------   ---     	--------------------------------------------------------
+# 10/20/15   am         CR922363 Define feature flag for Lykan
+# 09/22/13   ars        Bring up UL PER task in FTM mode
+# 09/12/13   ars        Change to bring up a2 and a2_log task in FTM mode
+# 04/19/13   ca         Added MOB_UTILS tag
+# 04/08/13   md         Reduced stack size
+# 07/30/12   rp         Added A2 Log Task
+# 11/26/12   hangdong   Updated MPROC with dep on CORE
+# 03/07/12   ars     	RCInit: Added cpu_affinity plus some changes
+# 02/13/12   ars     	RCInit changes
+# 11/21/10    ae     	Initial version.
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+if 'USES_GNSS_SA' in env:
+    Return()
+from glob import glob
+from os.path import join, basename
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "../src"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+   "MSG_BT_SSID_DFLT=MSG_SSID_A2",
+])
+
+#-------------------------------------------------------------------------------
+# if this is Lykan, define Lykan feature flag
+#-------------------------------------------------------------------------------
+CHIPSET = env.get('CHIPSET')
+if (CHIPSET == "mdm9607"):
+  env.Append(CFLAGS = "-DFEATURE_A2_LYKAN") 
+
+#-------------------------------------------------------------------------------
+# Necessary Public and Restricted API's
+#-------------------------------------------------------------------------------
+env.RequirePublicApi([
+    'HWENGINES',
+    'DEBUGTOOLS',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY',
+    'STORAGE',
+    'DAL',
+    'POWER',
+    'BUSES',
+    'SECUREMSM',
+    'MPROC',
+    'KERNEL',                             # needs to be last 
+    ], area='core')
+
+# Need to get access to Modem Public headers
+env.RequirePublicApi([
+    'ONEX',
+    'GPS',      
+    'HDR',      
+    'MCS',
+    'MMODE',    
+    'RFA',      
+    'UTILS',
+    'UIM',
+    ])
+
+env.RequirePublicApi([
+	'MCFG',
+        ],
+        area='MCFG')
+
+# Need get access to Modem Restricted headers
+env.RequireRestrictedApi([
+    'MMODE',    
+    'NAS',      
+    'RFA',      
+    'MDSP',     
+    'MDSPSVC',  
+    'GERAN',    
+    'GPS',      
+    'ONEX',     
+    'HDR',      
+    'MCS',
+    'FW',
+    'LTE',
+    'UTILS',
+    ])
+
+# Allow us to see headers in src dir.
+env.PublishPrivateApi('A2_DRIVER', '${INC_ROOT}/modem/utils/a2/driver/src')
+
+env.PublishPrivateApi('VIOLATIONS', ['${INC_ROOT}/core/systemdrivers/clk/inc'])
+
+
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+UTILS_A2_DRIVER_SOURCES = ['${BUILDPATH}/' + basename(fname)
+                   for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+# Compile the UTILS A2 Driver source and convert to a binary library
+env.AddBinaryLibrary(['MODEM_MODEM','MOB_UTILS'], '${BUILDPATH}/utils_a2_driver', UTILS_A2_DRIVER_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS'])
+
+# RC Init Task Dictionary
+RCINIT_TASK_A2 = {
+            'thread_name'          : 'a2',
+            'sequence_group'       : env.subst('$MODEM_DRIVER'),
+            'stack_size_bytes'     : env.subst('$A2_STKSZ'),
+            'priority_amss_order'  : 'A2_PRI_ORDER',
+            'thread_entry'         : 'a2_task_main',
+            'cpu_affinity'         : 'REX_ANY_CPU_AFFINITY_MASK',
+            'policy_optin'        : ['default', 'ftm', ],
+    }
+    
+# RC Init Task Dictionary
+RCINIT_TASK_A2_UL_PER = {
+            'thread_name'          : 'a2_ul_per',
+            'sequence_group'       : env.subst('$MODEM_DRIVER'),
+            'stack_size_bytes'     : env.subst('$A2_UL_PER_STKSZ'),
+            'priority_amss_order'  : 'A2_UL_PER_PRI_ORDER',
+            'thread_entry'         : 'a2_ul_per_task_main',
+            'cpu_affinity'         : 'REX_ANY_CPU_AFFINITY_MASK',
+            'policy_optin'        : ['default', 'ftm', ],
+    }
+    
+RCINIT_TASK_A2_LOG = {
+            'thread_name'          : 'a2_log',
+            'sequence_group'       : 'RCINIT_GROUP_3',
+            'stack_size_bytes'     : '8192',
+            'priority_amss_order'  : 'SHARED_IDLE_SERVICE_PRI_ORDER',
+            'thread_entry'         : 'a2_log_task_main',
+            'cpu_affinity'         : 'REX_ANY_CPU_AFFINITY_MASK',
+            'policy_optin'        : ['default', 'ftm', ],
+    }
+
+# Add tasks to RCInit
+if 'USES_MODEM_RCINIT' in env:
+            env.AddRCInitTask(['MODEM_MODEM','MOB_UTILS'], RCINIT_TASK_A2)
+            env.AddRCInitTask(['MODEM_MODEM','MOB_UTILS'], RCINIT_TASK_A2_UL_PER)
+
+if 'USES_RCINIT' in env:
+            env.AddRCInitTask(['MODEM_MODEM','MOB_UTILS'], RCINIT_TASK_A2_LOG)
+
+			
+#-------------------------------------------------------------------------------
+# Look for test build files
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

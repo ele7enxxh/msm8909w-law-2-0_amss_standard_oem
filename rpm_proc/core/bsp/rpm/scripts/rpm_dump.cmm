@@ -1,0 +1,135 @@
+; rpm_dump.cmm
+; ------------------------------------------------------------------
+;
+; When to use this script 
+; -----------------------
+; This script should be used to dump the full RPM state from T32
+; when a debug session's state must be recorded for later debugging.
+;
+; What this script does
+; -----------------------
+; This script will sweep through all RPM state in decreasing order
+; of importance for debugging a "typical" issue.  It's sort of like
+; a memory dump, but as a bonus it also dumps some hardware state too.
+;
+; How to use this script
+; ----------------------
+; After after breaking, retrieve all logs by running
+;
+; do rpm_dump <dumpPath>
+;
+ENTRY &dumpPath
+
+; Trim trailing "\" if necessary
+IF string.char("&(dumpPath)", string.len("&(dumpPath)")-1)=='\'
+(
+  &dumpPath=string.cut("&(dumpPath)", -1)
+)
+
+ON ERROR GOSUB error_catch
+
+; Local variables
+local &family_num
+local &device_num
+local &rpm_data_ram_size
+
+; Initialize constants
+&access_mode="a"
+
+; SOC_HW_VERSION register
+&HWIO_TCSR_SOC_HW_VERSION_ADDR=0x6194D000
+&HWIO_TCSR_SOC_HW_VERSION_FAMILY_NUMBER_BMSK=0xF0000000
+&HWIO_TCSR_SOC_HW_VERSION_FAMILY_NUMBER_SHFT=0x1C
+&HWIO_TCSR_SOC_HW_VERSION_DEVICE_NUMBER_BMSK=0xFFF0000
+&HWIO_TCSR_SOC_HW_VERSION_DEVICE_NUMBER_SHFT=0x10
+
+;
+; The order of this dump sequence is not necessary in the most *logical*
+; way, but rather sorted by importance for debugging.  We assume that any
+; target you attach to via JTAG is crashed and might spontaneously reboot
+; at any instant, so we dump "the good stuff" first.
+;
+
+; The current RPM registers.
+store "&(dumpPath)\rpm_registers.cmm" register
+
+; Get chip info
+&family_num=((data.long(&access_mode:&HWIO_TCSR_SOC_HW_VERSION_ADDR)&(&HWIO_TCSR_SOC_HW_VERSION_FAMILY_NUMBER_BMSK))>>(&HWIO_TCSR_SOC_HW_VERSION_FAMILY_NUMBER_SHFT))
+&device_num=((data.long(&access_mode:&HWIO_TCSR_SOC_HW_VERSION_ADDR)&(&HWIO_TCSR_SOC_HW_VERSION_DEVICE_NUMBER_BMSK))>>(&HWIO_TCSR_SOC_HW_VERSION_DEVICE_NUMBER_SHFT))
+
+&rpm_data_ram_size=0xFFFF
+if (&family_num==0x2)&&(&device_num==0x2)
+(
+  ;Update data size for 9x45
+  &rpm_data_ram_size=0x13FFF
+)
+
+; All of the data regions of the RPM.
+d.save.binary "&(dumpPath)\rpm_data_ram.bin" 0x090000++&rpm_data_ram_size
+
+; All of the inter-processor communication RAM.
+d.save.binary "&(dumpPath)\rpm_msg_ram.bin"  0x60060000++0x4FFF
+
+; All of the Cortex-M3's internal controls (the interrupt controller, etc.)
+d.save.binary "&(dumpPath)\rpm_scs.bin"      0xE000E000++0xFFF
+
+; Qualcomm's assorted RPM wrapper hardware (CSR/GPO/etc.)
+d.save.binary "&(dumpPath)\rpm__dec.bin"     0x080000++0x73
+d.save.binary "&(dumpPath)\rpm__qtmr_ac.bin" 0x082000++0xD3
+d.save.binary "&(dumpPath)\rpm__qtmr_f0.bin" 0x083000++0xFD3
+d.save.binary "&(dumpPath)\rpm__qtmr_f1.bin" 0x084000++0xFD3
+d.save.binary "&(dumpPath)\rpm__apu.bin"     0x087000++0x3FF
+
+; The location where all of the RPM code is stored.  This is so late because typically
+; this region is completely RO and doesn't often change (one exception: the interrupt
+; vector table must be in code RAM to lower ISR latency).
+d.save.binary "&(dumpPath)\rpm_code_ram.bin" 0x00000++0x1FFFF
+
+; The MPM hardware block.  The MPM is critical to all chip sleep tasks.
+d.save.binary "&(dumpPath)\mpm.bin" 0x604A0000++0xBFFF
+
+; The main clock control block.  This block encapsulates the most important and
+; frequently changing pieces of the general system configuration.
+d.save.binary "&(dumpPath)\clk_ctl.bin" 0x61800000++0xBFFF
+
+; RBCPR, a block for lowering power consumption by strategically under- or
+; over-volting the silicon based on PVT conditions.
+; *** FIXME *** not currently using CPR hardware; blocks are off for now
+;d.save.binary "&(dumpPath)\rbcpr.bin" 0x60048000++0xFFF
+;d.save.binary "&(dumpPath)\rbcpr_mx.bin" 0x60070000++0xFFF
+
+; The SPDM, which is the main sensory mechanism for implementing bus DCVS.
+; *** FIXME *** until bus DCVS goes in, block is off for now
+;d.save.binary "&(dumpPath)\spdm.bin" 0x60040000++0x5FFF
+
+; Bits of the top level CSR registers.  RPM probably can't even read most of
+; these, but there may be something relevant.
+d.save.binary "&(dumpPath)\tcsr_regs.bin" 0x61937000++0xFFFF
+
+; All of the Cortex-M3's private peripheral space.  Superset of the SCS.
+d.save.binary "&(dumpPath)\rpm__ppi.bin"      0xE0000000++0xFFFFF
+
+;
+; Everything below this line is currently exiled here because it's not always
+; guaranteed to be accessible, and therefore might kill us when we read it.
+; Need a way to determine if we should read these or not.
+;
+
+; OCMEM, an on-chip memory mostly outside the concern of the RPM, except that
+; the RPM supports some low power control features.
+;d.save.binary "&(dumpPath)\ocmem.bin" 0xFDD00000++0x167FF
+
+; From here on out we're just snagging bus configurations.  These are less
+; important in the general case, but sometimes reveal interesting information.
+;d.save.binary "&(dumpPath)\pcnoc.bin" 0x60500000++0x7F
+;d.save.binary "&(dumpPath)\snoc.bin"  0x60580000++0xFF
+;d.save.binary "&(dumpPath)\bimc.bin"  0x60400000++0x6FFFF
+
+ON ERROR
+
+ENDDO
+
+error_catch:
+  PRINT "Error Caught... Continuing..."
+  RETURN
+

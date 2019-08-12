@@ -1,0 +1,16 @@
+Import('env')
+
+if env.PathExists('${BUILD_ROOT}/sec'):
+    env.Replace(SEC_ROOT = '${INC_ROOT}/sec')
+else:    
+    env.Replace(SEC_ROOT = '${INC_ROOT}/modem/sec')
+
+
+env.PublishPublicApi('IPSEC',   ["${SEC_ROOT}/api/ipsec"])
+env.PublishPublicApi('SSL',    ["${SEC_ROOT}/api/ssl"])
+
+#next line for with modem folder only
+env.PublishPublicApi('IPSEC',   ["${SEC_ROOT}/api/ssl"])
+
+
+

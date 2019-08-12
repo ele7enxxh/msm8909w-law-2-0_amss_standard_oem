@@ -1,0 +1,40 @@
+#===============================================================================
+#
+# AMSSBOOT Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2009-2011,2015 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/pkg/bootloaders/rel/1.2/boot_images/core/boot/ddr/build/SConscript#3 $
+#  $DateTime: 2011/09/30 11:00:29 $
+#  $Author: coresvc $
+#  $Change: 1959743 $
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       	who        what, where, why
+# --------   	---        ---------------------------------------------------------
+# 09/11/15   aus           Added 8909w support
+# 09/25/11   pconnors      Move 8064->8960 mapping into APQ8064 Sconscript file 
+# 09/09/11   pconnors      Adding support for APQ8064, using MSM8960 boot source        
+# 07/28/09   dkammath      Adding support for chipset script selection/sub-unit addition.
+# 07/27/09   dkammath      Adding Scons support for Boot modules and Boot Tools
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+if env['MSM_ID'] == '8909W':
+   env['CHIPSET'] = 'msm8909w'
+
+# set default script name
+script_fname = "${CHIPSET}.sconscript"
+
+env.SConscript(script_fname, exports='env')

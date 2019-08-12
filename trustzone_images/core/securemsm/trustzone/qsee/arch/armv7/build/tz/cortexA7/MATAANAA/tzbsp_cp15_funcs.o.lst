@@ -1,0 +1,347 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;=======================================================
+                       =====================
+    2 00000000         ;
+    3 00000000         ;             ARMv7 CP15 register read/write functions
+    4 00000000         ;
+    5 00000000         ; GENERAL DESCRIPTION
+    6 00000000         ;   Functions for reading and writing select CP15 regist
+                       ers.
+    7 00000000         ;
+    8 00000000         ; Copyright 2012 by Qualcomm Technologies, Incorporated.
+                         All Rights Reserved
+    9 00000000         ;=======================================================
+                       =====================
+   10 00000000         ;=======================================================
+                       =====================
+   11 00000000         ;
+   12 00000000         ;                       EDIT HISTORY FOR MODULE
+   13 00000000         ;
+   14 00000000         ; $Header: 
+   15 00000000         ;
+   16 00000000         ; This section contains comments describing changes made
+                        to the module.
+   17 00000000         ; Notice that changes are listed in reverse chronologica
+                       l order.
+   18 00000000         ;
+   19 00000000         ;
+   20 00000000         ; when      who     what, where, why
+   21 00000000         ; --------  ---     ------------------------------------
+                       ---------------------
+   22 00000000         ; 08/12/12  tk      Initial Version
+   23 00000000         ;=======================================================
+                       =====================
+   24 00000000         ;=======================================================
+                       =====================
+   25 00000000         ;
+   26 00000000         ;                        MACROS AND FUNCTIONS
+   27 00000000         ;
+   28 00000000         ;=======================================================
+                       =====================
+   29 00000000         ; Write to CP15 register.
+   30 00000000         ; Creates a function with $fname. R0 is the value writte
+                       n to CP15.
+   31 00000000                 MACRO
+   32 00000000                 MCR15            $fname, $op1, $crn, $crm, $op2
+   33 00000000                 EXPORT           $fname
+   34 00000000         $fname  FUNCTION
+   35 00000000                 mcr              p15, $op1, r0, $crn, $crm, $op2
+   36 00000000                 bx               lr
+   37 00000000                 ENDFUNC
+   38 00000000                 MEND
+   39 00000000         ; Read from CP15 register.
+   40 00000000         ; Creates a function with $fname. R0 is the value read f
+                       rom to CP15.
+   41 00000000                 MACRO
+   42 00000000                 MRC15            $fname, $op1, $crn, $crm, $op2
+   43 00000000                 EXPORT           $fname
+   44 00000000         $fname  FUNCTION
+   45 00000000                 mrc              p15, $op1, r0, $crn, $crm, $op2
+   46 00000000                 bx               lr
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   47 00000000                 ENDFUNC
+   48 00000000                 MEND
+   49 00000000         ; Write to 64-bit CP15 register.
+   50 00000000         ; Creates a function with $fname. R0, R1 are written to 
+                       CP15.
+   51 00000000                 MACRO
+   52 00000000                 MCRR15           $fname, $op1, $crn
+   53 00000000                 EXPORT           $fname
+   54 00000000         $fname  FUNCTION
+   55 00000000                 mcrr             p15, $op1, r0, r1, $crn
+   56 00000000                 bx               lr
+   57 00000000                 ENDFUNC
+   58 00000000                 MEND
+   59 00000000         ; Read from 64-bit CP15 register.
+   60 00000000         ; Creates a function with $fname. R0, R1 read from CP15.
+                       
+   61 00000000                 MACRO
+   62 00000000                 MRRC15           $fname, $op1, $crn
+   63 00000000                 EXPORT           $fname
+   64 00000000         $fname  FUNCTION
+   65 00000000                 mrrc             p15, $op1, r0, r1, $crn
+   66 00000000                 bx               lr
+   67 00000000                 ENDFUNC
+   68 00000000                 MEND
+   69 00000000                 PRESERVE8
+   70 00000000                 CODE32
+   71 00000000                 AREA             CP15_FUNCS, CODE, READONLY
+   72 00000000         ; CP15 timer encoding, from beta version of ARMv7 manual
+                       .
+   73 00000000         ;
+   74 00000000         ; Name,VMSAa    Name, PMSAa CRn  opc1 CRm opc2 Type Desc
+                       ription
+   75 00000000         ; CNTFRQ        CNTFRQ      c14  0    c0  0    RW   Coun
+                       ter Frequency register
+   76 00000000         ; CNTPCT        CNTPCT      c14  0    c14 -    RO   Phys
+                       ical Count register
+   77 00000000         ; CNTKCTL       CNTKCTL     c14  0    c1  0    RW   Time
+                       r PL1 Control register
+   78 00000000         ; CNTP_TVAL     CNTP_TVAL   c14  0    c2  0    RW   PL1 
+                       Physical TimerValue register
+   79 00000000         ; CNTP_CTL      CNTP_CTL    c14  0    c2  1    RW   PL1 
+                       Physical Timer Control register
+   80 00000000         ; CNTV_TVAL     CNTV_TVAL   c14  0    c3  0    RW   Virt
+                       ual TimerValue register
+   81 00000000         ; CNTV_CTL      CNTV_CTL    c14  0    c3  1    RW   Virt
+                       ual Timer Control register
+   82 00000000         ; CNTVCT        CNTVCT      c14  1    c14 -    RO   Virt
+                       ual Count register
+   83 00000000         ; CNTP_CVAL     CNTP_CVAL   c14  2    c14 -    RW   PL1 
+                       Physical Timer CompareValue register1
+   84 00000000         ; CNTV_CVAL     CNTV_CVAL   c14  3    c14 -    RW   Virt
+                       ual Timer CompareValue register
+   85 00000000         ; CNTVOFFb      -           c14  4    c14 -    RW   Virt
+                       ual Offset register
+   86 00000000         ; CNTHCTLb      -           c14  4    c1  0    RW   Time
+                       r PL2 Control register
+   87 00000000         ; CNTHP_TVALb   -           c14  4    c2  0    RW   PL2 
+                       Physical TimerValue register
+   88 00000000         ; CNTHP_CTLb    -           c14  4    c2  1    RW   PL2 
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+                       Physical Timer Control register
+   89 00000000         ; CNTHP_CVALb   -           c14  6    c14 -    RW   PL2 
+                       Physical Timer CompareValue register
+   90 00000000                 MRC15            rcp15_cntfrq,     0, c14, c0, 0
+   43 00000000                 EXPORT           rcp15_cntfrq
+   44 00000000         rcp15_cntfrq
+                               FUNCTION
+   45 00000000 EE1E0F10        mrc              p15, 0, r0, c14, c0, 0
+   46 00000004 E12FFF1E        bx               lr
+   47 00000008                 ENDFUNC
+   91 00000008                 MRRC15           rcp15_cntpct,     0, c14 
+                                                            ; Read-only
+   63 00000008                 EXPORT           rcp15_cntpct
+   64 00000008         rcp15_cntpct
+                               FUNCTION
+   65 00000008 EC510F0E        mrrc             p15, 0, r0, r1, c14
+   66 0000000C E12FFF1E        bx               lr
+   67 00000010                 ENDFUNC
+   92 00000010                 MRC15            rcp15_cntkctl,    0, c14, c1, 0
+   43 00000010                 EXPORT           rcp15_cntkctl
+   44 00000010         rcp15_cntkctl
+                               FUNCTION
+   45 00000010 EE1E0F11        mrc              p15, 0, r0, c14, c1, 0
+   46 00000014 E12FFF1E        bx               lr
+   47 00000018                 ENDFUNC
+   93 00000018                 MRC15            rcp15_cntp_tval,  0, c14, c2, 0
+   43 00000018                 EXPORT           rcp15_cntp_tval
+   44 00000018         rcp15_cntp_tval
+                               FUNCTION
+   45 00000018 EE1E0F12        mrc              p15, 0, r0, c14, c2, 0
+   46 0000001C E12FFF1E        bx               lr
+   47 00000020                 ENDFUNC
+   94 00000020                 MRC15            rcp15_cntp_ctl,   0, c14, c2, 1
+   43 00000020                 EXPORT           rcp15_cntp_ctl
+   44 00000020         rcp15_cntp_ctl
+                               FUNCTION
+   45 00000020 EE1E0F32        mrc              p15, 0, r0, c14, c2, 1
+   46 00000024 E12FFF1E        bx               lr
+   47 00000028                 ENDFUNC
+   95 00000028                 MRC15            rcp15_cntv_tval,  0, c14, c3, 0
+   43 00000028                 EXPORT           rcp15_cntv_tval
+   44 00000028         rcp15_cntv_tval
+                               FUNCTION
+   45 00000028 EE1E0F13        mrc              p15, 0, r0, c14, c3, 0
+   46 0000002C E12FFF1E        bx               lr
+   47 00000030                 ENDFUNC
+   96 00000030                 MRC15            rcp15_cntv_ctl,   0, c14, c3, 1
+   43 00000030                 EXPORT           rcp15_cntv_ctl
+   44 00000030         rcp15_cntv_ctl
+                               FUNCTION
+   45 00000030 EE1E0F33        mrc              p15, 0, r0, c14, c3, 1
+   46 00000034 E12FFF1E        bx               lr
+   47 00000038                 ENDFUNC
+   97 00000038                 MRRC15           rcp15_cntvct,     1, c14 
+                                                            ; Read-only
+   63 00000038                 EXPORT           rcp15_cntvct
+   64 00000038         rcp15_cntvct
+                               FUNCTION
+   65 00000038 EC510F1E        mrrc             p15, 1, r0, r1, c14
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+   66 0000003C E12FFF1E        bx               lr
+   67 00000040                 ENDFUNC
+   98 00000040                 MRRC15           rcp15_cntp_cval,  2, c14
+   63 00000040                 EXPORT           rcp15_cntp_cval
+   64 00000040         rcp15_cntp_cval
+                               FUNCTION
+   65 00000040 EC510F2E        mrrc             p15, 2, r0, r1, c14
+   66 00000044 E12FFF1E        bx               lr
+   67 00000048                 ENDFUNC
+   99 00000048                 MRRC15           rcp15_cntv_cval,  3, c14
+   63 00000048                 EXPORT           rcp15_cntv_cval
+   64 00000048         rcp15_cntv_cval
+                               FUNCTION
+   65 00000048 EC510F3E        mrrc             p15, 3, r0, r1, c14
+   66 0000004C E12FFF1E        bx               lr
+   67 00000050                 ENDFUNC
+  100 00000050                 MRRC15           rcp15_cntvoff,    4, c14
+   63 00000050                 EXPORT           rcp15_cntvoff
+   64 00000050         rcp15_cntvoff
+                               FUNCTION
+   65 00000050 EC510F4E        mrrc             p15, 4, r0, r1, c14
+   66 00000054 E12FFF1E        bx               lr
+   67 00000058                 ENDFUNC
+  101 00000058         ; Virtualized QTimer is not implemented.
+  102 00000058         ;    MRC15  rcp15_cnthctl,    4, c14, c1, 0
+  103 00000058         ;    MRC15  rcp15_cnthp_tval, 4, c14, c2, 0
+  104 00000058         ;    MRC15  rcp15_cnthp_ctl,  4, c14, c2, 1
+  105 00000058         ;    MRRC15 rcp15_cnthp_cval, 6, c14
+  106 00000058                 MRC15            rcp15_isr,         0, c12, c1, 
+0
+   43 00000058                 EXPORT           rcp15_isr
+   44 00000058         rcp15_isr
+                               FUNCTION
+   45 00000058 EE1C0F11        mrc              p15, 0, r0, c12, c1, 0
+   46 0000005C E12FFF1E        bx               lr
+   47 00000060                 ENDFUNC
+  107 00000060                 MCR15            wcp15_cntfrq,     0, c14, c0, 0
+   33 00000060                 EXPORT           wcp15_cntfrq
+   34 00000060         wcp15_cntfrq
+                               FUNCTION
+   35 00000060 EE0E0F10        mcr              p15, 0, r0, c14, c0, 0
+   36 00000064 E12FFF1E        bx               lr
+   37 00000068                 ENDFUNC
+  108 00000068                 MCR15            wcp15_cntkctl,    0, c14, c1, 0
+   33 00000068                 EXPORT           wcp15_cntkctl
+   34 00000068         wcp15_cntkctl
+                               FUNCTION
+   35 00000068 EE0E0F11        mcr              p15, 0, r0, c14, c1, 0
+   36 0000006C E12FFF1E        bx               lr
+   37 00000070                 ENDFUNC
+  109 00000070                 MCR15            wcp15_cntp_tval,  0, c14, c2, 0
+   33 00000070                 EXPORT           wcp15_cntp_tval
+   34 00000070         wcp15_cntp_tval
+                               FUNCTION
+   35 00000070 EE0E0F12        mcr              p15, 0, r0, c14, c2, 0
+   36 00000074 E12FFF1E        bx               lr
+   37 00000078                 ENDFUNC
+  110 00000078                 MCR15            wcp15_cntp_ctl,   0, c14, c2, 1
+   33 00000078                 EXPORT           wcp15_cntp_ctl
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+   34 00000078         wcp15_cntp_ctl
+                               FUNCTION
+   35 00000078 EE0E0F32        mcr              p15, 0, r0, c14, c2, 1
+   36 0000007C E12FFF1E        bx               lr
+   37 00000080                 ENDFUNC
+  111 00000080                 MCR15            wcp15_cntv_tval,  0, c14, c3, 0
+   33 00000080                 EXPORT           wcp15_cntv_tval
+   34 00000080         wcp15_cntv_tval
+                               FUNCTION
+   35 00000080 EE0E0F13        mcr              p15, 0, r0, c14, c3, 0
+   36 00000084 E12FFF1E        bx               lr
+   37 00000088                 ENDFUNC
+  112 00000088                 MCR15            wcp15_cntv_ctl,   0, c14, c3, 1
+   33 00000088                 EXPORT           wcp15_cntv_ctl
+   34 00000088         wcp15_cntv_ctl
+                               FUNCTION
+   35 00000088 EE0E0F33        mcr              p15, 0, r0, c14, c3, 1
+   36 0000008C E12FFF1E        bx               lr
+   37 00000090                 ENDFUNC
+  113 00000090                 MCRR15           wcp15_cntp_cval,  2, c14
+   53 00000090                 EXPORT           wcp15_cntp_cval
+   54 00000090         wcp15_cntp_cval
+                               FUNCTION
+   55 00000090 EC410F2E        mcrr             p15, 2, r0, r1, c14
+   56 00000094 E12FFF1E        bx               lr
+   57 00000098                 ENDFUNC
+  114 00000098                 MCRR15           wcp15_cntv_cval,  3, c14
+   53 00000098                 EXPORT           wcp15_cntv_cval
+   54 00000098         wcp15_cntv_cval
+                               FUNCTION
+   55 00000098 EC410F3E        mcrr             p15, 3, r0, r1, c14
+   56 0000009C E12FFF1E        bx               lr
+   57 000000A0                 ENDFUNC
+  115 000000A0                 MCRR15           wcp15_cntvoff,    4, c14
+   53 000000A0                 EXPORT           wcp15_cntvoff
+   54 000000A0         wcp15_cntvoff
+                               FUNCTION
+   55 000000A0 EC410F4E        mcrr             p15, 4, r0, r1, c14
+   56 000000A4 E12FFF1E        bx               lr
+   57 000000A8                 ENDFUNC
+  116 000000A8         ; Virtualized QTimer is not implemented.
+  117 000000A8         ;    MCR15  wcp15_cnthctl,    4, c14, c1, 0
+  118 000000A8         ;    MCR15  wcp15_cnthp_tval, 4, c14, c2, 0
+  119 000000A8         ;    MCR15  wcp15_cnthp_ctl,  4, c14, c2, 1
+  120 000000A8         ;    MCRR15 wcp15_cnthp_cval, 6, c14
+  121 000000A8                 END
+Command Line: --debug --dwarf2 --diag_suppress=1480,1786,2523 --cpu=Cortex-A7 -
+-fpu=SoftVFP --apcs=/noswst/interwork -o/local/mnt/workspace/CRMBuilds/TZ.BF.2.
+5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/
+trustzone/qsee/arch/armv7/build/tz/cortexA7/MATAANAA/tzbsp_cp15_funcs.o -I/loca
+l/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/
+b/trustzone_images/core/securemsm/trustzone/qsee/arch/armv7/build -I/local/mnt/
+workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trus
+tzone_images/build/cust -I. -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-0000
+4-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/
+qsee/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZ
+T-2_20161130_222454/b/trustzone_images/core/api/dal -I/local/mnt/workspace/CRMB
+uilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/c
+ore/securemsm/trustzone/qsee/arch/msm8909/cfg/mmu -I/local/mnt/workspace/CRMBui
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+lds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/cor
+e/securemsm/trustzone/qsee/arch/msm8909/src -I/local/mnt/workspace/CRMBuilds/TZ
+.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/secu
+remsm/trustzone/qsee/arch/common/inc -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5
+.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/t
+rustzone/qsee/arch/armv7/include -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10
+-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trust
+zone/qsee/arch/msm8909w/src -I/local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-0000
+4-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/core/api/services -I/loca
+l/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/
+b/trustzone_images/core/api/rapi/services/inc --list=/local/mnt/workspace/CRMBu
+ilds/TZ.BF.2.5.c10-00004-M8909AAAAANAZT-2_20161130_222454/b/trustzone_images/co
+re/securemsm/trustzone/qsee/arch/armv7/build/tz/cortexA7/MATAANAA/tzbsp_cp15_fu
+ncs.o.lst --sitelicense /local/mnt/workspace/CRMBuilds/TZ.BF.2.5.c10-00004-M890
+9AAAAANAZT-2_20161130_222454/b/trustzone_images/core/securemsm/trustzone/qsee/a
+rch/armv7/build/tz/cortexA7/MATAANAA/tzbsp_cp15_funcs.o.i

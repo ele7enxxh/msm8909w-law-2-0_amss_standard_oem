@@ -1,0 +1,90 @@
+#*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+#               B U S E S    R E M O T E     A P I
+#
+#   This includable Make module defines the list of sources for buses.
+#
+#   
+#
+# Copyright (c) 2008 by QUALCOMM, Incorporated. All Rights Reserved.
+#*====*====*====*====*====*====*====*====*====*====*====*====*====*====*====*
+
+#============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+#   This section contains comments describing changes made to the module.
+#   Notice that changes are listed in reverse chronological order.
+#
+#   $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/api/rapi/buses/src/bus_rapi.min#1 $
+#
+# when        who    what, where, why
+# --------    ---    --------------------------------------------------------
+# 10/24/09    pm     Changes for bus_mon CMI on 7x30
+# 12/20/08    rng    Created this file.
+#============================================================================
+
+#============================================================================
+# Support for exporting the BUS_PERF APIs 
+#============================================================================
+ifndef HTORPC_bus_perf_ARGS
+ifeq ($(USES_EXPORT_BUS_PERF), yes)
+
+  BUS_PERF_CLIENT_SOURCES = \
+    bus_perf_clnt.c \
+    bus_perf_xdr.c
+
+  BUS_PERF_SERVER_SOURCES = \
+    bus_perf_svc.c \
+    bus_perf_xdr.c
+
+  BUS_PERF_CLIENT_OBJS := $(addprefix $(TARGETDIR)/, $(BUS_PERF_CLIENT_SOURCES:%.c=%.o))
+  BUS_PERF_SERVER_OBJS := $(addprefix $(TARGETDIR)/, $(BUS_PERF_SERVER_SOURCES:%.c=%.o))
+
+  vpath %.h $(AU_CORE_API)/buses
+  vpath %.c $(AU_CORE_RAPI)/buses/src
+
+  ifneq ($(REMOTE_API_LOC_KNOWN), yes)
+    htorpc_bus_perf : REMOTE_API_LOC = $(AU_CORE_RAPI)/buses/src
+    htorpc_bus_perf : REMOTE_API_H_LOC = $(AU_CORE_RAPI)/buses/inc
+  endif
+
+  HTORPC_DEPS += bus_perf
+
+  HTORPC_bus_perf_ARGS = -a bus_perf
+
+endif
+endif
+
+#============================================================================
+# Support for exporting the BUS_MON_REMOTE APIs 
+#============================================================================
+ifndef HTPRPC_bus_mon_remote_ARGS
+ifeq ($(USES_EXPORT_BUS_MON_REMOTE), yes)
+
+  BUS_MON_REMOTE_CLIENT_SOURCES = \
+    bus_mon_remote_clnt.c \
+    bus_mon_remote_xdr.c
+
+  BUS_MON_REMOTE_SERVER_SOURCES = \
+    bus_mon_remote_svc.c \
+    bus_mon_remote_xdr.c
+
+  BUS_MON_REMOTE_CLIENT_OBJS := $(addprefix $(TARGETDIR)/, $(BUS_MON_REMOTE_CLIENT_SOURCES:%.c=%.o))
+  BUS_MON_REMOTE_SERVER_OBJS := $(addprefix $(TARGETDIR)/, $(BUS_MON_REMOTE_SERVER_SOURCES:%.c=%.o))
+
+  vpath %.h $(AU_CORE_API)/buses
+  vpath %.h $(AU_CORE_API)/buses/private
+  vpath %.c $(AU_CORE_RAPI)/buses/src
+
+  ifneq ($(REMOTE_API_LOC_KNOWN), yes)
+    htorpc_bus_mon_remote : REMOTE_API_LOC = $(AU_CORE_RAPI)/buses/src
+    htorpc_bus_mon_remote : REMOTE_API_H_LOC = $(AU_CORE_RAPI)/buses/inc
+  endif
+
+  HTORPC_DEPS += bus_mon_remote
+
+  HTPRPC_bus_mon_remote_ARGS = -a bus_mon_remote
+
+endif
+endif
+

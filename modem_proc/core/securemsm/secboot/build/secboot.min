@@ -1,0 +1,60 @@
+
+#============================================================================
+#  Name:
+#    SECBOOT.MIN
+#
+#  Description:
+#    An includable component of the makefile to build the authentication
+#    code for the MSM boot ROM code.
+#
+#    This file specifies the objects that belong to the various groups that
+#    make up the targets
+#
+# Copyright (c) 2006 by QUALCOMM, Incorporated.  All Rights Reserved.
+#----------------------------------------------------------------------------
+#============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: //components/rel/core.mpss/3.5.c12.3/securemsm/secboot/build/secboot.min#1 $
+#
+# when       who     what, where, why
+# -------    ---     --------------------------------------------------------
+# 11/08/10   YK      8960 PBL port.
+# 05/02/06   AMW   Initial SC2X port.
+# 08/26/04   SJD     Initial revision.
+# 
+#============================================================================
+
+#===============================================================================
+#                         MODULE OBJECT FILE LISTS
+#===============================================================================
+# The objects are grouped by the module C or ASM in which they reside.  This
+# allows selectively controlling compile flags and for easier creation of
+# different combinations of modules to get the entire object list.  They are
+# listed alphabetically by name.
+
+# Note: Each object file should appear exactly once in this file!
+#-------------------------------------------------------------------------------
+# SECBOOT (authentication security code)
+#-------------------------------------------------------------------------------
+
+# This is used to create the PBL_AUTH_OBJS compile group
+SECBOOT_SOURCES=\
+        secboot.c \
+        secboot_asn1.c \
+        secboot_x509.c
+
+SECBOOT_HW_SOURCES=\
+        secboot_hw.c
+
+SECBOOT_TEST_SOURCES=\
+        secboot_hw_test.c
+
+
+SECBOOT_ALL_SOURCES= $(SECBOOT_SOURCES) $(SECBOOT_HW_SOURCES)
+
+SECBOOT_OBJS :=  $(addprefix $(TARGETDIR)/, $(SECBOOT_ALL_SOURCES:%.c=%.o))
+
+vpath %.c $(SECBOOT)/src $(SECBOOT)/hw/secctrl/src
+#vpath %.c $(SECBOOT)/test

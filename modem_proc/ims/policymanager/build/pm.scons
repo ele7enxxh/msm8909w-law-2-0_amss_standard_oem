@@ -1,0 +1,90 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013-2014 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#------------------------------------------------------------------------------
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 
+#===============================================================================
+Import('env')
+
+# Execute the sconsript in which the variables needs to be imported for the Current Script
+# and export the current environment to that script into which the variables will be exported to the it's export list
+
+# Import the required Variables from the export list of the Environment to which the other script file has added
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# ------------------------------------------------------------------------------
+# Sepcify the list of required include Paths
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('IMS_PM_INC', [ 
+"${INC_ROOT}/ims/policymanager/inc",
+])
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within IMS
+#-------------------------------------------------------------------------------
+IMS_API = ['IMS_DPL',
+           'IMS_SIP'
+          ]
+		   
+env.RequireProtectedApi(IMS_API)
+
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi(['BREW',
+						'MODEM_API',
+						'MODEM_DATA',
+						'MODEM_HDR',
+						'MODEM_SERVICES',
+						'MODEM_UIM'])
+
+
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+IMS_PM_FLAGS = ['MAF_NO_GLOBALS',
+						'QP_DONOT_OVERLOAD_NEW_DELETE',
+						'QMAF',
+						'QP_ENABLE_MMI_MODULE',
+						'FORCE_STATIC',
+						'AEE_STATIC',
+						'USE_SIMPLE_LOGGING',
+						'IMS_AMSS_STATIC_BUILD',
+						'FEATURE_AMSS_DPL',
+						'QP_ENABLE_SIGNALS',
+						'XDM_INCLUDE_GROUPMEMBER']
+
+IMS_PM_LIB_CPP_SOURCES = [
+	'${BUILDPATH}/qpIMSPolicyManager.cpp'
+]
+
+# Append the list of Macro Definitions as flags to the Compiler so that it will do a conditional compilation
+env.Append( CPPDEFINES = IMS_PM_FLAGS )
+
+# Create the library with the specified name and path with the list of objects to be added to that library
+# and add the library to the Apps Image
+
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/ims_pm', [IMS_PM_LIB_CPP_SOURCES])

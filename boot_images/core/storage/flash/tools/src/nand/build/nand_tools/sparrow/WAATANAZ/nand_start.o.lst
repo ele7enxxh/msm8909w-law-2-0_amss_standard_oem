@@ -1,0 +1,297 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;
+    2 00000000         ;
+    3 00000000         ;
+    4 00000000         ; CPSR Control Masks 
+    5 00000000 00000040 
+                       PSR_Fiq_Mask
+                               EQU              0x40
+    6 00000000 00000080 
+                       PSR_Irq_Mask
+                               EQU              0x80
+    7 00000000         ; Processor mode definitions 
+    8 00000000 00000013 
+                       PSR_Supervisor
+                               EQU              0x13
+    9 00000000         ;
+   10 00000000         ; Stack sizes
+   11 00000000 00001000 
+                       SVC_Stack_Size
+                               EQU              0x1000
+   12 00000000         ;
+   13 00000000                 IMPORT           main_c
+   14 00000000                 IMPORT           memory_init
+   15 00000000                 IMPORT           svc_stack
+   16 00000000                 IMPORT           zero_init_needed
+   17 00000000                 EXPORT           __main
+   18 00000000                 PRESERVE8
+   19 00000000                 AREA             StartHere, CODE, READONLY
+   20 00000000                 CODE32
+   21 00000000         __main
+   22 00000000                 ENTRY
+   23 00000000         ;=======================================================
+                       ================
+   24 00000000         ; MACRO mmu_set_default_cfg
+   25 00000000         ; ARGS
+   26 00000000         ;   NONE
+   27 00000000         ; DESCRIPTION
+   28 00000000         ;   Update the mmu control register with the read-modify
+                       -write sequence
+   29 00000000         ;   bit [0]:   0 = MMU disabled
+   30 00000000         ;   bit [1]:   0 = Strict alignment fault checking disab
+                       led
+   31 00000000         ;   bit [3]:   1 = Write buffer enabled (for ARM9)
+   32 00000000         ;   bit [6:4]: Should Be One
+   33 00000000         ;   bit [13]:  1 = High exception vectors selected.
+   34 00000000         ;   bit [16]:  Should Be One
+   35 00000000         ;   bit [18]:  Should Be One
+   36 00000000         ;   bit [22]:  1 = unaligned data access support enabled
+                        (for ARM11)
+   37 00000000         ;=======================================================
+                       ================
+   38 00000000                 MACRO
+   39 00000000                 mmu_set_default_cfg
+   40 00000000                 MRC              p15, 0, r0, c1, c0, 0 ; read co
+                                                            ntrol register
+   41 00000000                 LDR              r1, = 0x00452078
+   42 00000000                 ORR              r0, r0, r1
+   43 00000000                 MCR              p15, 0, r0, c1, c0, 0 ; write c
+                                                            ontrol register
+   44 00000000                 MEND
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   45 00000000         ;=======================================================
+                       ================
+   46 00000000         ;=======================================================
+                       ================
+   47 00000000         ; MACRO mmu_enable_i_cache
+   48 00000000         ; ARGS
+   49 00000000         ;  NONE
+   50 00000000         ; DESCRIPTION
+   51 00000000         ;  Enables the I Cache
+   52 00000000         ;  Does a read modify write, so no other bits in the con
+                       trol register a
+   53 00000000         ;  affected
+   54 00000000         ;=======================================================
+                       ================
+   55 00000000                 MACRO
+   56 00000000                 mmu_enable_i_cache
+   57 00000000                 mrc              p15, 0 , r0, c1, c0, 0
+   58 00000000                 orr              r0, r0, # (1 << 12 )
+   59 00000000                 mcr              p15, 0 , r0, c1, c0, 0
+   60 00000000                 MEND
+   61 00000000         ;=======================================================
+                       ================
+   62 00000000         ;
+   63 00000000         ; Supervisor Mode
+   64 00000000         ; Set up the Supervisor stack pointer.
+   65 00000000 E321F0D3        msr              CPSR_c, #PSR_Supervisor:OR:PSR_
+Irq_Mask:OR:PSR_Fiq_Mask
+   66 00000004 E59FD07C        ldr              r13, =svc_stack+SVC_Stack_Size
+   67 00000008         ; ======================================================
+                       ================
+   68 00000008         ; Enable the instruction cache
+   69 00000008         ; ======================================================
+                       ================
+   70 00000008         ; Moved cache/mmu init to nand_l2_cache_lock.cmm script 
+                        
+   71 00000008         ;   mmu_set_default_cfg
+   72 00000008         ;   mmu_enable_i_cache
+   73 00000008         ; ======================================================
+                       ================
+   74 00000008         ; Initialize memory for C only once
+   75 00000008         ;   The test/set of the global variable must be done her
+                       e in assembly
+   76 00000008         ;   because if we access a global variable in the C func
+                       tion, the
+   77 00000008         ;   compiler will construct a PUSH/POP of registers and 
+                       since we will
+   78 00000008         ;   have just zeroed the stack, we will pop zero into R1
+                       4 and then
+   79 00000008         ;   branch to zero.  With no use of globals in the C fun
+                       ction,
+   80 00000008         ;   the compiler will generate a bx r14 for the return a
+                       nd all will
+   81 00000008         ;   work correctly.
+   82 00000008         ; ======================================================
+                       ================
+   83 00000008 E59F207C        ldr              r2, =zero_init_needed
+   84 0000000C E5921000        ldr              r1, [r2]
+   85 00000010 E3510000        cmp              r1, #0x0
+   86 00000014 0A000004        beq              skipmem
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   87 00000018 E59F0070        ldr              a1, =memory_init
+   88 0000001C E12FFF30        blx              a1
+   89 00000020         ; indicate zero init completed
+   90 00000020 E59F2064        ldr              r2, =zero_init_needed
+   91 00000024 E3A00000        mov              r0, #0x0
+   92 00000028 E5820000        str              r0, [r2]
+   93 0000002C         ; Enter C code execution
+   94 0000002C         skipmem
+   95 0000002C E59F0060        ldr              a1, =main_c
+   96 00000030 E12FFF30        blx              a1
+   97 00000034         ; Software breakpoint code
+   98 00000034         ; TRACE32 requires this so that we can hand back the con
+                       trol to TRACE32
+   99 00000034         ; Debugger when main_c returns
+  100 00000034 EEDEEEDE 
+                       swbp    DCD              0xEEDEEEDE
+  101 00000038         ; In case breakpoint above gets clobbered
+  102 00000038         hanghere
+  103 00000038 EAFFFFFE        b                hanghere
+  104 0000003C         ; Terminal emulation entry point for putting a character
+                       .
+  105 0000003C         ; When called, it will put or get a charactr from the
+  106 0000003C         ; JTAG debugger terminal emulation window.  These functi
+                       on
+  107 0000003C         ; are incompatible with the JTAG debugger FLASH.* functi
+                       ons
+  108 0000003C         ; and will cause the debugger to hang if both are used.
+  109 0000003C                 CODE16
+  110 0000003C                 EXPORT           term_put
+  111 0000003C                 ALIGN
+  112 0000003C         term_put
+  113 0000003C 4778            bx               pc
+  114 0000003E 00 00           DCW              0x0         ; Just to suppress 
+                                                            a warning
+  115 00000040                 CODE32
+  116 00000040                 ALIGN
+  117 00000040         ; Check the ID code by reading the cp15 register c0 to
+  118 00000040         ; determine if it's ARM9 or ARM11
+  119 00000040         ; [15:4] Part number 0x926 for ARM926, 0xB36 for ARM1136
+                       
+  120 00000040 EE101F10        mrc              p15, 0, r1, c0, c0, 0 ; read ID
+                                                            
+  121 00000044 E2011A0F        and              r1, r1, #0xf000
+  122 00000048 E3510A0B        cmp              r1, #0xb000 ; if 0xb in part nu
+                                                            mber it's ARM11
+  123 0000004C AA000006        bge              term_put_arm11
+  124 00000050         term_put_arm9
+  125 00000050 E3A02002        mov              r2, #2
+  126 00000054         put_again_arm9
+  127 00000054 EE101E10        mrc              p14, 0, r1, c0, c0
+  128 00000058 E0011002        and              r1, r1, r2
+  129 0000005C E3510000        cmp              r1, #0
+  130 00000060 1AFFFFFB        bne              put_again_arm9
+  131 00000064 EE010E10        mcr              p14, 0, r0, c1, c0
+  132 00000068 E12FFF1E        bx               lr
+  133 0000006C         term_put_arm11
+  134 0000006C E3A02202        ldr              r2, =0x20000000 ; bit 29
+  135 00000070         put_again_arm11
+  136 00000070 EE101E11        mrc              p14, 0, r1, c0, c1 ; read debug
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+                                                             status and control
+                                                             register
+  137 00000074 E0011002        and              r1, r1, r2  ; check if wDTR is 
+                                                            ready to receive da
+                                                            ta
+  138 00000078 E3510000        cmp              r1, #0
+  139 0000007C 1AFFFFFB        bne              put_again_arm11
+  140 00000080 EE000E15        mcr              p14, 0, r0, c0, c5 ; write the 
+                                                            write data transfer
+                                                             register
+  141 00000084 E12FFF1E        bx               lr
+  142 00000088                 END
+              00001000 
+              00000000 
+              00000000 
+              00000000 
+Command Line: --debug --dwarf2 --keep --cpu=7-A.security --apcs=/noswst/interwo
+rk --no_unaligned_access -o/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0001
+2-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flash/tools/src/n
+and/build/nand_tools/sparrow/WAATANAZ/nand_start.o -I/local/mnt/workspace/CRMBu
+ilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core
+/storage/flash/tools/src/nand/build -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.
+1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/build/cust -I. -I/l
+ocal/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_0
+43404/b/boot_images/core/api/dal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2
+.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/boot -I/local
+/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_04340
+4/b/boot_images/core/api/boot/qfprom -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3
+.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/services 
+-I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_201612
+08_043404/b/boot_images/core/api/storage -I/local/mnt/workspace/CRMBuilds/BOOT.
+BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/hweng
+ines -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_2
+0161208_043404/b/boot_images/core/api/systemdrivers -I/local/mnt/workspace/CRMB
+uilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/cor
+e/api/systemdrivers/pmic -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0001
+2-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/api/systemdrivers/hwio/ms
+m8909 -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_
+20161208_043404/b/boot_images/core/api/kernel/libstd -I/local/mnt/workspace/CRM
+Builds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/co
+re/dal/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANA
+ZB-1_20161208_043404/b/boot_images/core/dal/config -I/local/mnt/workspace/CRMBu
+ilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core
+/boot/secboot3/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M890
+9WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/ddr/common -I/local/mnt/wo
+rkspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boo
+t_images/core/boot/ddr/hw/msm8909w -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1
+.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/boot/ddr/hw/phy
+ -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161
+208_043404/b/boot_images/core/boot/ddr/hw/controller -I/local/mnt/workspace/CRM
+Builds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/co
+re/boot/secboot3/hw/msm8909 -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-0
+0012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/services/utils/src -I/
+local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_
+043404/b/boot_images/core/storage/flash/src/dal -I/local/mnt/workspace/CRMBuild
+s/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/st
+orage/flash/src/hal -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M89
+09WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flash/tools/inc -I/loc
+al/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+404/b/boot_images/core/storage/flash/inc -I/local/mnt/workspace/CRMBuilds/BOOT.
+BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/s
+dcc/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-
+1_20161208_043404/b/boot_images/core/storage/sdcc/src/hal -I/local/mnt/workspac
+e/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_imag
+es/core/storage/sdcc/src/bsp -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-
+00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/efs/inc -I/lo
+cal/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_04
+3404/b/boot_images/core/storage/hfat/inc -I/local/mnt/workspace/CRMBuilds/BOOT.
+BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/h
+otplug/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANA
+ZB-1_20161208_043404/b/boot_images/core/storage/tools/deviceprogrammer_ddr/src/
+firehose -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB
+-1_20161208_043404/b/boot_images/core/storage/ufs/src -I/local/mnt/workspace/CR
+MBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/c
+ore/hwengines/mhi -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909
+WAAAANAZB-1_20161208_043404/b/boot_images/core/hwengines/pcie -I/local/mnt/work
+space/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_
+images/core/systemdrivers/tlmm/inc -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1
+.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/systemdrivers/t
+lmm/src -I/local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-
+1_20161208_043404/b/boot_images/core/storage/flash/tools/src/nand -I/local/mnt/
+workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/b
+oot_images/core/storage/flash/tools/src/nor -I/local/mnt/workspace/CRMBuilds/BO
+OT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storag
+e/flash/tools/src/nand/config_v2 --list=/local/mnt/workspace/CRMBuilds/BOOT.BF.
+3.1.2.c3-00012-M8909WAAAANAZB-1_20161208_043404/b/boot_images/core/storage/flas
+h/tools/src/nand/build/nand_tools/sparrow/WAATANAZ/nand_start.o.lst --sitelicen
+se /local/mnt/workspace/CRMBuilds/BOOT.BF.3.1.2.c3-00012-M8909WAAAANAZB-1_20161
+208_043404/b/boot_images/core/storage/flash/tools/src/nand/build/nand_tools/spa
+rrow/WAATANAZ/nand_start.o.i

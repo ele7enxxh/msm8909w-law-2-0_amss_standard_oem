@@ -1,0 +1,241 @@
+#include "DDIUart.h"
+#include "icbarb.h"
+<!-- ================================================================================================== -->
+<!-- GPIO configs.                                                                                      -->
+<!--                                                                                                    -->
+<!-- Source:  IP Catalog                                                                                -->
+<!-- ================================================================================================== -->
+<!--
+
+     BLSP_UART1_TX_DATA     DAL_GPIO_CFG(  12, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART1_RX_DATA     DAL_GPIO_CFG(  13, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART1_CTS_N       DAL_GPIO_CFG(  14, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART1_RFR_N       DAL_GPIO_CFG(  15, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+     BLSP_UART2_TX_DATA     DAL_GPIO_CFG(  4, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART2_RX_DATA     DAL_GPIO_CFG(  5, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART2_CTS_N       DAL_GPIO_CFG(  6, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART2_RFR_N       DAL_GPIO_CFG(  7, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+	 
+     BLSP_UART3_TX_DATA     DAL_GPIO_CFG(  0, 1, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART3_RX_DATA     DAL_GPIO_CFG(  1, 1, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART3_CTS_N       DAL_GPIO_CFG(  2, 1, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART3_RFR_N       DAL_GPIO_CFG(  3, 1, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+     BLSP_UART4_TX_DATA     DAL_GPIO_CFG(  16, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART4_RX_DATA     DAL_GPIO_CFG(  17, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART4_CTS_N       DAL_GPIO_CFG(  18, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART4_RFR_N       DAL_GPIO_CFG(  19, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+	 
+     BLSP_UART5_TX_DATA     DAL_GPIO_CFG(  8, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART5_RX_DATA     DAL_GPIO_CFG(  9, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART5_CTS_N       DAL_GPIO_CFG(  10, 3, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART5_RFR_N       DAL_GPIO_CFG(  11, 3, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+     BLSP_UART6_TX_DATA     DAL_GPIO_CFG(  20, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+     BLSP_UART6_RX_DATA     DAL_GPIO_CFG(  21, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART6_CTS_N       DAL_GPIO_CFG(  22, 2, DAL_GPIO_INPUT,  DAL_GPIO_PULL_DOWN, DAL_GPIO_2MA )
+     BLSP_UART6_RFR_N       DAL_GPIO_CFG(  23, 2, DAL_GPIO_OUTPUT, DAL_GPIO_PULL_UP,   DAL_GPIO_2MA )
+
+     The global_def section also contains the physical addresses of the registers (in order):
+
+       PHSS_UART_LPASS_INT_SEL_0
+       PHSS_UART_PRONTO_INT_SEL_0
+       PHSS_UART_MSS_INT_SEL_0
+
+     PnocIBval or PnocABval value = required bandwidth(in terms of bytes)
+                                  = required bandwidth/8(in terms of bits).
+     In case of UART we can support the maximum baudrate 4Mbps, so we are voting for the max 
+				  bandwidth(500000).
+======================================================================================================= -->
+
+<driver name="Uart">
+
+  <global_def>
+    <string name="blsp1_ahb_clock_name"  type=DALPROP_DATA_TYPE_STRING> gcc_blsp1_ahb_clk        </string>
+
+    <string name="uartbam_1_clock_name"  type=DALPROP_DATA_TYPE_STRING> gcc_blsp1_uart1_apps_clk </string>
+    <string name="uartbam_2_clock_name"  type=DALPROP_DATA_TYPE_STRING> gcc_blsp1_uart2_apps_clk </string>
+    <string name="uartbam_3_clock_name"  type=DALPROP_DATA_TYPE_STRING> gcc_blsp1_uart3_apps_clk </string>
+    <string name="uartbam_4_clock_name"  type=DALPROP_DATA_TYPE_STRING> gcc_blsp1_uart4_apps_clk </string>
+    <string name="uartbam_5_clock_name"  type=DALPROP_DATA_TYPE_STRING> gcc_blsp1_uart5_apps_clk </string>
+    <string name="uartbam_6_clock_name"  type=DALPROP_DATA_TYPE_STRING> gcc_blsp1_uart6_apps_clk </string>
+    
+    <string name="uartcxm_bus_clock_name"  type=DALPROP_DATA_TYPE_STRING> clk_bus_coxm             </string>
+    <string name="uartcxm_core_clock_name" type=DALPROP_DATA_TYPE_STRING> clk_bit_coxm             </string>
+	
+  </global_def>
+
+  <!-- =================================================================== -->
+  <!-- UARTBAM1                                                            -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTBAM_DEVICE_1>
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x200080d2           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c0c2           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c0f2           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x200080e2           </props>
+    <props name="Irq"            type=DALPROP_ATTR_TYPE_UINT32>         243                  </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0x78af000            </props>
+    <props name="UartClockName"  type=DALPROP_ATTR_TYPE_STRING_PTR>     uartbam_1_clock_name </props>
+    <props name="PClockName"     type=DALPROP_ATTR_TYPE_STRING_PTR>     blsp1_ahb_clock_name </props>
+    <props name="ManagePCLK"     type=DALPROP_ATTR_TYPE_UINT32>         1                    </props>
+    <props name="DetectBrk"      type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="UartIntSelBase" type=DALPROP_ATTR_TYPE_UINT32>         0x194B0C0           </props>
+    <props name="UartIntSelVal"  type=DALPROP_ATTR_TYPE_UINT32>         0x00000001           </props>
+    
+    <props name="PnocVoteEnable" type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>    
+    <props name="PnocIBval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocABval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocArbMaster"  type=DALPROP_ATTR_TYPE_UINT32>         ICBID_MASTER_BLSP_1  </props>
+    <props name="PnocArbSlave"   type=DALPROP_ATTR_TYPE_UINT32>         ICBID_SLAVE_EBI1     </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UARTBAM2                                                            -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTBAM_DEVICE_2>
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008052           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c042           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c072           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x20008062           </props>
+    <props name="Irq"            type=DALPROP_ATTR_TYPE_UINT32>         243                  </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0x78b0000            </props>
+    <props name="UartClockName"  type=DALPROP_ATTR_TYPE_STRING_PTR>     uartbam_2_clock_name </props>
+    <props name="PClockName"     type=DALPROP_ATTR_TYPE_STRING_PTR>     blsp1_ahb_clock_name </props>
+    <props name="ManagePCLK"     type=DALPROP_ATTR_TYPE_UINT32>         1                    </props>
+    <props name="DetectBrk"      type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="UartIntSelBase" type=DALPROP_ATTR_TYPE_UINT32>         0x194B0C0           </props>
+    <props name="UartIntSelVal"  type=DALPROP_ATTR_TYPE_UINT32>         0x00000002           </props>
+    
+    <props name="PnocVoteEnable" type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>    
+    <props name="PnocIBval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocABval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocArbMaster"  type=DALPROP_ATTR_TYPE_UINT32>         ICBID_MASTER_BLSP_1  </props>
+    <props name="PnocArbSlave"   type=DALPROP_ATTR_TYPE_UINT32>         ICBID_SLAVE_EBI1     </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UARTBAM3                                                            -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTBAM_DEVICE_3>
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008011           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c001           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c031           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x20008021           </props>
+    <props name="Irq"            type=DALPROP_ATTR_TYPE_UINT32>         243                  </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0x78b1000            </props>
+    <props name="UartClockName"  type=DALPROP_ATTR_TYPE_STRING_PTR>     uartbam_3_clock_name </props>
+    <props name="PClockName"     type=DALPROP_ATTR_TYPE_STRING_PTR>     blsp1_ahb_clock_name </props>
+    <props name="ManagePCLK"     type=DALPROP_ATTR_TYPE_UINT32>         1                    </props>
+    <props name="DetectBrk"      type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="UartIntSelBase" type=DALPROP_ATTR_TYPE_UINT32>         0x194B0C0           </props>
+    <props name="UartIntSelVal"  type=DALPROP_ATTR_TYPE_UINT32>         0x00000004           </props>
+    
+    <props name="PnocVoteEnable" type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>    
+    <props name="PnocIBval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocABval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocArbMaster"  type=DALPROP_ATTR_TYPE_UINT32>         ICBID_MASTER_BLSP_1  </props>
+    <props name="PnocArbSlave"   type=DALPROP_ATTR_TYPE_UINT32>         ICBID_SLAVE_EBI1     </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UARTBAM4                                                            -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTBAM_DEVICE_4>
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008112           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c102           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c132           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x20008122           </props>
+    <props name="Irq"            type=DALPROP_ATTR_TYPE_UINT32>         243                  </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0x78b2000            </props>
+    <props name="UartClockName"  type=DALPROP_ATTR_TYPE_STRING_PTR>     uartbam_4_clock_name </props>
+    <props name="PClockName"     type=DALPROP_ATTR_TYPE_STRING_PTR>     blsp1_ahb_clock_name </props>
+    <props name="ManagePCLK"     type=DALPROP_ATTR_TYPE_UINT32>         1                    </props>
+    <props name="DetectBrk"      type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="UartIntSelBase" type=DALPROP_ATTR_TYPE_UINT32>         0x194B0C0           </props>
+    <props name="UartIntSelVal"  type=DALPROP_ATTR_TYPE_UINT32>         0x00000008           </props>
+    
+    <props name="PnocVoteEnable" type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>    
+    <props name="PnocIBval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocABval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocArbMaster"  type=DALPROP_ATTR_TYPE_UINT32>         ICBID_MASTER_BLSP_1  </props>
+    <props name="PnocArbSlave"   type=DALPROP_ATTR_TYPE_UINT32>         ICBID_SLAVE_EBI1     </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UARTBAM5                                                            -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTBAM_DEVICE_5>
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008092           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c082           </props>
+    <!-- On 9x07 CDP, only TX and RX is routed out.
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c0b3           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x200080a3           </props>
+    -->
+    <props name="Irq"            type=DALPROP_ATTR_TYPE_UINT32>         243                  </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0x78b3000            </props>
+    <props name="UartClockName"  type=DALPROP_ATTR_TYPE_STRING_PTR>     uartbam_5_clock_name </props>
+    <props name="PClockName"     type=DALPROP_ATTR_TYPE_STRING_PTR>     blsp1_ahb_clock_name </props>
+    <props name="ManagePCLK"     type=DALPROP_ATTR_TYPE_UINT32>         1                    </props>
+    <props name="DetectBrk"      type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="UartIntSelBase" type=DALPROP_ATTR_TYPE_UINT32>         0x194B0C0           </props>
+    <props name="UartIntSelVal"  type=DALPROP_ATTR_TYPE_UINT32>         0x00000010           </props>
+    
+    <props name="PnocVoteEnable" type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>    
+    <props name="PnocIBval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocABval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocArbMaster"  type=DALPROP_ATTR_TYPE_UINT32>         ICBID_MASTER_BLSP_1  </props>
+    <props name="PnocArbSlave"   type=DALPROP_ATTR_TYPE_UINT32>         ICBID_SLAVE_EBI1     </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UARTBAM6                                                            -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTBAM_DEVICE_6>
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20008152           </props>
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001c142           </props>
+    <props name="GpioRfrN"       type=DALPROP_ATTR_TYPE_UINT32>         0x2001c172           </props>
+    <props name="GpioCtsN"       type=DALPROP_ATTR_TYPE_UINT32>         0x20008162           </props>
+    <props name="Irq"            type=DALPROP_ATTR_TYPE_UINT32>         243                  </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0x78b4000            </props>
+    <props name="UartClockName"  type=DALPROP_ATTR_TYPE_STRING_PTR>     uartbam_6_clock_name </props>
+    <props name="PClockName"     type=DALPROP_ATTR_TYPE_STRING_PTR>     blsp1_ahb_clock_name </props>
+    <props name="ManagePCLK"     type=DALPROP_ATTR_TYPE_UINT32>         1                    </props>
+    <props name="DetectBrk"      type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>
+    <props name="UartIntSelBase" type=DALPROP_ATTR_TYPE_UINT32>         0x194B0C0           </props>
+    <props name="UartIntSelVal"  type=DALPROP_ATTR_TYPE_UINT32>         0x00000020           </props>
+    
+    <props name="PnocVoteEnable" type=DALPROP_ATTR_TYPE_UINT32>         0                    </props>    
+    <props name="PnocIBval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocABval"      type=DALPROP_ATTR_TYPE_UINT32>         500000               </props>
+    <props name="PnocArbMaster"  type=DALPROP_ATTR_TYPE_UINT32>         ICBID_MASTER_BLSP_1  </props>
+    <props name="PnocArbSlave"   type=DALPROP_ATTR_TYPE_UINT32>         ICBID_SLAVE_EBI1     </props>
+  </device>
+
+  <!-- =================================================================== -->
+  <!-- UART_CXM                                                            -->
+  <!-- =================================================================== -->
+
+  <device id=DALDEVICEID_UARTCXM>
+    <props name="GpioRxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x20018251              </props>
+
+    <props name="GpioTxData"     type=DALPROP_ATTR_TYPE_UINT32>         0x2001C241              </props>
+    <props name="Irq"            type=DALPROP_ATTR_TYPE_UINT32>         78                      </props>
+    <props name="UartBase"       type=DALPROP_ATTR_TYPE_UINT32>         0x041A0000              </props>
+    <props name="UartClockName"  type=DALPROP_ATTR_TYPE_STRING_PTR>     uartcxm_core_clock_name </props>
+    <props name="PClockName"     type=DALPROP_ATTR_TYPE_STRING_PTR>     uartcxm_bus_clock_name  </props>
+    <props name="ManagePCLK"     type=DALPROP_ATTR_TYPE_UINT32>         1                       </props>
+    <props name="IsCxm"          type=DALPROP_ATTR_TYPE_UINT32>         1                       </props>
+    <props name="ResetClock"     type=DALPROP_ATTR_TYPE_UINT32>         1                       </props>
+    <props name="DetectBrk"      type=DALPROP_ATTR_TYPE_UINT32>         0                       </props>
+    <props name="CxmMsgIrq"      type=DALPROP_ATTR_TYPE_UINT32>         94                      </props>
+    <props name="CxmMisalignIrq" type=DALPROP_ATTR_TYPE_UINT32>         95                      </props> 
+  </device>
+
+</driver>

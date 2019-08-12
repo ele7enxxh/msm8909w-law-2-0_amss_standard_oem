@@ -1,0 +1,250 @@
+# --------------------------------------------------------------------------- #
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/hdr/mac/build/hdr_mac.scons#1 $
+# --------------------------------------------------------------------------- #
+# Copyright (c) 2013 - 2015 Qualcomm Technologies Incorporated.
+#
+# All Rights Reserved. Qualcomm Confidential and Proprietary
+# Export of this technology or software is regulated by the U.S. Government.
+# Diversion contrary to U.S. law prohibited.
+#
+# All ideas, data and information contained in or disclosed by
+# this document are confidential and proprietary information of
+# Qualcomm Technologies Incorporated and all rights therein are expressly reserved.
+# By accepting this material the recipient agrees that this material
+# and the information contained therein are held in confidence and in
+# trust and will not be used, copied, reproduced in whole or in part,
+# nor its contents revealed in any manner to others without the express
+# written permission of Qualcomm Technologies Incorporated.
+# --------------------------------------------------------------------------- #
+#                      EDIT HISTORY FOR FILE
+#                      
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#  
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 03/05/15   tnp     Remove RCINIT tcb_name
+# 02/05/15   ljl     Disabled Rev B.
+# 11/07/14   mbs     Added support for FEATURE_OPTIMIZED_FTM_CALIBRATION
+# 09/24/14   rmv     Disabled DO RevB for Tabasco MSM 8952
+# 07/31/14   vko     Removed RMAC4 for 8909 target.
+# 11/05/13   smd     Added hdrrmaccmn.c back to 8610 build
+# 05/13/13   smd     Removed RMAC4 for TR target.
+# 09/11/12   cnx     Removed modem folder.
+# 03/05/12   arm     Fixed RCINIT bugs found during integration.
+# 10/10/11   arm     Added support for RCINIT.
+# 12/17/10   kss     Further api updates.
+# 12/16/10   kss     Updated core and restricted apis.
+# 10/29/10   cnx     Added Restricted API for 'UTILS'.
+# 10/26/10   cnx     Added violated path.
+# 10/12/10   cnx     Updated 'USES' flag for lib.
+# 10/12/10   cnx     Updated 'USES' flag.
+# 09/30/10   cnx     Added Top-level 'USES' flag and DEBUG support.
+# 09/22/10   cnx     Created this file.
+# --------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------- #
+# Import and clone the SCons environment				      
+# --------------------------------------------------------------------------- #
+Import('env')
+env = env.Clone()
+
+# --------------------------------------------------------------------------- #
+# Turn off/on debug if requested 			      
+# --------------------------------------------------------------------------- # 
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+
+# --------------------------------------------------------------------------- #
+# Setup source path                                                       
+# --------------------------------------------------------------------------- #
+SRCPATH = "../src"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+# --------------------------------------------------------------------------- #
+# Set MSG_BT_SSID_DFLT for legacy MSG macros				
+# --------------------------------------------------------------------------- #
+# HDR uses MSG 2.0 macros and does not need this
+
+# --------------------------------------------------------------------------- #
+# Necessary APIs						      
+# --------------------------------------------------------------------------- #
+# CoreBSP public APIs
+CORE_APIS = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'KERNEL',
+    'MPROC',
+    'POWER',
+    'SERVICES',
+    'STORAGE',
+    'SYSTEMDRIVERS',
+    'WIREDCONNECTIVITY'
+    ]
+env.RequirePublicApi(CORE_APIS, area="CORE")
+
+# MODEM public APIs
+MODEM_PUBLIC_APIS = [
+    'DATA', 
+    'DATACOMMON', 
+    'HDR', 
+    'LTE',
+    'MCS', 
+    'MMODE', 
+    'ONEX',
+    'PBM', 
+    'RFA', 
+    'UIM', 
+    'UTILS',
+    'WMS'
+    ]
+env.RequirePublicApi(MODEM_PUBLIC_APIS)
+
+# MODEM restricted APIs
+MODEM_RESTRICTED_APIS = [
+    'DATA',
+    'DATACOMMON',
+    'FW',
+    'GERAN', 
+    'HDR',
+    'LTE',
+    'MCS', 
+    'MDSP', 
+    'MMODE', 
+    'NAS', 
+    'ONEX', 
+    'RFA', 
+    'UIM',
+    'UTILS',
+    'WMS'
+    ]
+env.RequireRestrictedApi(MODEM_RESTRICTED_APIS)
+
+# HDR protected APIs
+HDR_PROTECTED_APIS = [
+    'BC',
+    'COMMON',
+    'CP',
+    'DRIVERS',
+    'MAC',
+    'SRCH',
+    'TAP'
+    ]
+env.RequireProtectedApi(HDR_PROTECTED_APIS)
+
+# Violations
+env.PublishPrivateApi('VIOLATIONS', ['${INC_ROOT}/core/systemdrivers/clk/inc'])
+
+# --------------------------------------------------------------------------- #
+# External APIs not built with SCons   		
+# --------------------------------------------------------------------------- #
+env.RequireExternalApi(['BREW'])
+
+# --------------------------------------------------------------------------- #
+# Generate the library and add to an image			
+# --------------------------------------------------------------------------- #
+MAC_C_SOURCES = [
+    '${BUILDPATH}/hdramac.c',
+    '${BUILDPATH}/hdramacsm.c', 
+    '${BUILDPATH}/hdrcmac.c',
+    '${BUILDPATH}/hdrcmacsm.c',
+    '${BUILDPATH}/hdrfmac.c',
+    '${BUILDPATH}/hdrfmacsm.c',
+    '${BUILDPATH}/hdrlmac.c',
+    '${BUILDPATH}/hdrrmac.c',
+    '${BUILDPATH}/hdrrmaclog.c',
+    '${BUILDPATH}/hdrrx.c',
+    '${BUILDPATH}/hdrrxstats.c',
+    '${BUILDPATH}/hdrtx.c',
+    '${BUILDPATH}/hdrphy.c',
+    ]
+
+LIBMAC_C_SOURCES = [
+    '${BUILDPATH}/hdrrmac0.c',
+    '${BUILDPATH}/hdrrmac3.c', 
+    '${BUILDPATH}/hdrrmac3drv.c',
+    '${BUILDPATH}/hdrrmacmath.c',
+    '${BUILDPATH}/hdrrmaccmn.c',
+    '${BUILDPATH}/hdrfmacutil.c',
+    ]
+
+# Verify that USES is set, otherwise bail out now				      
+if 'USES_WPLT' in env or 'USES_HDR' not in env:
+    Return()
+
+# Ship our code as binary library and add it to the MODEM image
+# Ship as source code when the pack_exception is set
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/lib_mac', LIBMAC_C_SOURCES, pack_exception=['USES_CUSTOMER_GENERATE_LIBS', 'USES_COMPILE_L1_OPT_AC_PROTECTED_LIBS'])
+
+# Verify that USES is set, otherwise bail out now				      
+if 'USES_CDMA' not in env:
+    Return()
+
+# Add library for code shipped as source except for USES_COMPILE_TDSCDMA_AND_ALL_L1_PROTECTED_LIBS flag is set
+env.AddBinaryLibrary(['MODEM_MODEM'], '${BUILDPATH}/mac', MAC_C_SOURCES, 
+                      pack_exception=['USES_COMPILE_TDSCDMA_AND_ALL_L1_PROTECTED_LIBS'] )
+
+
+# Build image for which this task belongs
+RCINIT_HDRTX = ['MODEM_MODEM'] 
+
+# RC Init Function Dictionary
+RCINIT_INIT_HDRTX = {
+ 'sequence_group'             : env.subst('$MODEM_PROTOCOL'),            
+ 'init_name'                  : 'hdrtx_init',                
+ 'init_function'              : 'hdrtx_init',          
+ 'policy_optin'               : ['default', 'ftm', ]
+}
+
+# RC Init Task Dictionary
+RCINIT_TASK_HDRTX = {
+ 'thread_name'                : 'hdrtx', 
+ 'sequence_group'             : env.subst('$MODEM_PROTOCOL'),    
+ 'stack_size_bytes'           : env.subst('$HDRTX_STKSZ'),
+ 'priority_amss_order'        : 'HDRTX_PRI_ORDER', 
+ 'stack_name'                 : 'hdrtx_stack',
+ 'thread_entry'               : 'hdrtx_task',
+ 'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY'),
+ 'policy_optin'               : ['default', 'ftm', ]
+}
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+            env.AddRCInitFunc(RCINIT_HDRTX, RCINIT_INIT_HDRTX)
+            env.AddRCInitTask(RCINIT_HDRTX, RCINIT_TASK_HDRTX)
+
+# Build image for which this task belongs
+RCINIT_HDRRX = ['MODEM_MODEM'] 
+
+# RC Init Function Dictionary
+RCINIT_INIT_HDRRX = {
+ 'sequence_group'             : env.subst('$MODEM_PROTOCOL'),           
+ 'init_name'                  : 'hdrrx_init',                
+ 'init_function'              : 'hdrrx_init',          
+ 'policy_optin'               : ['default', 'ftm', ]
+}
+
+# RC Init Task Dictionary
+RCINIT_TASK_HDRRX = {
+ 'thread_name'                : 'hdrrx', 
+ 'sequence_group'             : env.subst('$MODEM_PROTOCOL'),    
+ 'stack_size_bytes'           : env.subst('$HDRRX_STKSZ'),
+ 'priority_amss_order'        : 'HDRRX_PRI_ORDER', 
+ 'stack_name'                 : 'hdrrx_stack',
+ 'thread_entry'               : 'hdrrx_task',
+ 'cpu_affinity'               : env.subst('$MODEM_CPU_AFFINITY'),
+ 'policy_optin'               : ['default', 'ftm', ]
+}
+
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+            env.AddRCInitFunc(RCINIT_HDRRX, RCINIT_INIT_HDRRX)
+            env.AddRCInitTask(RCINIT_HDRRX, RCINIT_TASK_HDRRX)

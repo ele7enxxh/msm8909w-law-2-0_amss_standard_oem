@@ -1,0 +1,93 @@
+
+Import('env')
+import os.path
+
+env = env.Clone()
+
+CLM_ROOT = "${BUILD_ROOT}/core/power/clm"
+INC_PATH = CLM_ROOT + '/inc'
+SRC_PATH = CLM_ROOT + '/src'
+
+env.VariantDir('${BUILDPATH}', SRC_PATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Determine if target specific files need to be used
+#-------------------------------------------------------------------------------
+
+TGT_CFG_FILE = 'CLM_tgt' + "${MSM_ID}" + '.h'
+TGT_CFG_FILEPATH = INC_PATH + '/' + TGT_CFG_FILE
+
+if (os.path.isfile(TGT_CFG_FILEPATH)):
+   env.Append(CPPDEFINES = [('CLM_TARGET_H', '\\"' + TGT_CFG_FILE + '\\"' )])
+else:
+   env.Append(CPPDEFINES = [('CLM_TARGET_H','\\"CLM_Target_Default.h\\"')])
+
+#-------------------------------------------------------------------------------
+# Determine which target specific HWIO file needs to be included
+#-------------------------------------------------------------------------------
+
+TGT_HWIO_FILE = 'CLM_hwio' + "${MSM_ID}" + '.h'
+TGT_HWIO_FILEPATH = INC_PATH + '/' + TGT_HWIO_FILE
+
+env.Append(CPPDEFINES = [('CLM_HWIO_H', '\\"' + TGT_HWIO_FILE + '\\"' )])
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'BOOT',
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'MPROC',
+   'BUSES',
+   'POWER',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'WIREDCONNECTIVITY',
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+env.PublishPrivateApi('CLM',[INC_PATH])
+
+#-------------------------------------------------------------------------------
+# Run Sleep LPR tool to create a LPRM definition for CLM.
+#-------------------------------------------------------------------------------
+#if env.has_key('USES_CORESLEEP_TOOL') :
+if 'USES_CORESLEEP_TOOL' in env:
+   xml_file = SRC_PATH + '/common/lpr_definition_CLM.xml'
+   env.AddCoreSleepLPR('CBSP_QDSP6_SW_IMAGE', {'sleep_lpr_xml' : [xml_file]})
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+CLM_SOURCES = [
+    '${BUILDPATH}/common/CLM_Client.c',
+    '${BUILDPATH}/common/CLM_Engine.c',
+  ]
+
+#-----------------------------------------------------------------------------
+# Add Libraries to image
+#-----------------------------------------------------------------------------
+env.AddLibrary(
+  ['MODEM_IMAGE', 'CBSP_MODEM_IMAGE', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE'],
+  '${BUILDPATH}/clm', CLM_SOURCES)
+
+#-----------------------------------------------------------------------------
+# Register with RCINIT framework so that it can call our init function.
+#-----------------------------------------------------------------------------
+
+if 'USES_RCINIT' in env:
+	  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW']
+	  env.AddRCInitFunc(
+		RCINIT_IMG,
+		{
+		  'sequence_group'             : 'RCINIT_GROUP_6',
+		  'init_name'                  : 'CLM',
+		  'init_function'              : 'CLM_Initialize',
+		  'dependencies'               : ['clk_regime','dalsys','sleep']
+		})
+

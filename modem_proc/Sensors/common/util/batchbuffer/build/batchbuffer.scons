@@ -1,0 +1,140 @@
+#===============================================================================
+#
+# BATCHBUFFER Libs
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2015 Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# Confidential and Proprietary - Qualcomm Technologies, Inc.
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: 
+#  $DateTime: 
+#  $Author: 
+#  $Change: 
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 2015-07-01  BD     Adding batchbuffer lib
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/Sensors/common/util/batchbuffer/src"
+
+#if not env.SubstPathExists(SRCPATH):
+#   # Legay Path
+#   SRCPATH = "${BUILD_ROOT}/sensors/dsps"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+env.Append(CPPDEFINES = ["DAL_NATIVE_PLATFORM"])
+
+#-------------------------------------------------------------------------------
+# External depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+   'BREW',
+   'CS',
+   'DSM',
+  ])
+
+#-------------------------------------------------------------------------------
+# External depends outside CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'DAL',
+   'DEBUGTOOLS',
+   'HAL',
+   'SERVICES',
+    # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+#env.RequireExternalApi(CBSP_API)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+env.RequirePublicApi(CBSP_API, area='core')
+
+env.UsesInc([
+   "${HWIO}",
+   "${HWIO_API}",
+])
+
+#-------------------------------------------------------------------------------
+# Internal depends within Sensors
+#-------------------------------------------------------------------------------
+SENSORS_API = [
+   'SNS_DEBUG_DSPS',
+   'SNS_EVMGR',
+]
+env.RequireRestrictedApi(SENSORS_API)
+
+#-------------------------------------------------------------------------------
+# Headers required by SNA OSA
+#-------------------------------------------------------------------------------
+DAL_UCOS_API = [
+   'DAL',
+]
+env.RequireRestrictedApi(DAL_UCOS_API)
+env.RequirePublicApi(DAL_UCOS_API)
+
+env.Append(CPPPATH = [
+   "${BUILD_ROOT}/Sensors/api",
+   "${BUILD_ROOT}/Sensors/common/inc",
+   "${BUILD_ROOT}/Sensors/common/util/batchbuffer/inc",
+   "${BUILD_ROOT}/Sensors/pm/inc",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+BATCHBUFF_SOURCES = [
+      '${BUILDPATH}/sns_batchbuff.c',
+   ]
+
+#-------------------------------------------------------------------------------
+# Turn on Memory debugging
+#
+#  To enable this, compile with "-f SNS_MEM_DEBUG" argument to build.py
+#-------------------------------------------------------------------------------
+if 'SNS_MEM_DEBUG' in env:
+   env.Append(CPPDEFINES = ["SNS_FEATURE_BATCHBUFFER_DEBUG"])
+
+#-------------------------------------------------------------------------------
+# Add Libraries to image
+#-------------------------------------------------------------------------------
+if 'SENSORS_DD_DEV_FLAG' in env:
+   # Sources that should not be shared
+   BATCHBUFF_CLEAN_SOURCES = env.FindFiles(['*.c'], '${BUILD_ROOT}/Sensors/common/util/batchbuffer/src')
+   BATCHBUFF_CLEAN_SOURCES += env.FindFiles(['*.h'], '${BUILD_ROOT}/Sensors/common/util/batchbuffer/inc')
+   BATCHBUFF_CLEAN_SOURCES += ['${BUILD_ROOT}/Sensors/common/util/batchbuffer/inc/batchbuffer_cfg.h']
+
+   # Add binary library
+   BATCHBUFF_LIB = env.AddBinaryLibrary(
+   ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+    "${BUILDPATH}/batchbuffer", BATCHBUFF_SOURCES)
+
+   # Clean sources
+   env.CleanPack(['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'], BATCHBUFF_CLEAN_SOURCES)
+else:
+   BATCHBUFF_LIB = env.AddLibrary(
+    ['CBSP_QDSP6_SW_IMAGE', 'CORE_QDSP6_SENSOR_SW'],
+    '${BUILDPATH}/batchbuff', BATCHBUFF_SOURCES)
+
+# Clause common to regular build and HD22
+if 'USES_ISLAND' in env:
+   BATCHBUFF_SECTIONS = ['.text.BATCHBUFF', '.data.BATCHBUFF', '.bss.BATCHBUFF']
+   env.AddIslandLibrary(['CORE_QDSP6_SENSOR_SW'], BATCHBUFF_LIB, BATCHBUFF_SECTIONS)
+

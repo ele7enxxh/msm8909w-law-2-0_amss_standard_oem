@@ -1,0 +1,57 @@
+#===============================================================================
+#
+# IMAGE VERSION 
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright 2010 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/tz.bf/2.5.c10/trustzone_images/core/securemsm/trustzone/image_version/build/SConscript#1 $
+#  $DateTime: 2016/06/17 14:31:11 $
+#  $Author: pwbldsvc $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when        who        what, where, why
+# --------    ---        ---------------------------------------------------------
+#===============================================================================
+Import('env')
+
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/trustzone/image_version/"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Include PATH
+#-------------------------------------------------------------------------------
+env.Append(CPPPATH = "${COREBSP_ROOT}/securemsm/trustzone/qsee/include")
+env.Append(CPPPATH = "${COREBSP_ROOT}/api/services")
+env.Append(CPPPATH = "${COREBSP_ROOT}/api/mproc")
+env.Append(CPPPATH = "${BUILDPATH}/inc")
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+IMAGE_VERSION_SOURCES = [ 
+'${BUILDPATH}/src/image_version.c',
+'${BUILDPATH}/src/tzbsp_imgver_wrapper.c',
+                      ]
+
+
+image_version_obj = env.Object([IMAGE_VERSION_SOURCES])
+image_version_lib = env.Library('${BUILDPATH}/image_version', image_version_obj)
+
+env.AddLibsToImage('TZOS_IMAGE', image_version_lib)
+

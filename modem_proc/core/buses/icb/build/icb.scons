@@ -1,0 +1,162 @@
+#===============================================================================
+#
+#                             Edit History
+#
+# $Header$
+# when         who     what, where, why
+# ----------   ---     ---------------------------------------------------------
+# 2015/01/19   tb      Added 8952
+# 2014/09/04   sds     Add clk_regime dependency explicitly
+# 2014/08/07   tb      Updated for only 8909
+# 2014/07/11   ddk     Added changes to support multiple build variant for mba.
+# 2014/07/01   ddk     Added changes to support ICB CFG Query in Modem.
+# 2014/06/17   vg      Added changes to support ICB CFG Query in MBA
+# 2013/06/11   jc      Added 8926
+# 2013/05/26   pm      Added 8084
+# 2013/05/24   jc      Added 8962
+# 2012/11/06   jc      Added 8x26 and 8x10
+# 2012/07/24   jc      Added APPS ThinUI image
+# 2012/06/25   jc      Added 9x25
+# 2012/05/31   av      Added ABT driver
+# 2012/04/02   dj      Move icbarb_init to RCINIT group 0
+# 2012/03/20   av      Added BOOT image
+# 2012/03/02   pm      Changes for WCNSS PRONTO
+# 2011/12/12   sds     Initial Creation
+#
+#===============================================================================
+#                    Copyright (c) 2011-2015 Qualcomm Technologies Incorporated.
+#                              All Rights Reserved.
+#                            QUALCOMM Proprietary/GTDR
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Python library imports
+#-------------------------------------------------------------------------------
+import glob, os
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+BUILDPATH = '..'
+env.VariantDir('${BUILDPATH}', BUILDPATH, duplicate=0)
+SRCPATH = os.path.join( BUILDPATH, 'src' )
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_APIS = [
+  'BUSES',
+  'HAL',
+  'POWER',
+  'RPM',
+  'DAL',
+  'SYSTEMDRIVERS',
+  'SERVICES',
+  'DEBUGTOOLS',
+  'SECUREMSM',
+  'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_APIS)
+env.RequireRestrictedApi(CBSP_APIS)
+
+#-------------------------------------------------------------------------------
+# Private depends within ICB
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('ICB_API', [ os.path.join(SRCPATH, 'common') ])
+
+NONADSP_BEAR_TARGETS = ['8916', '8936', '8909', '9607']
+#-------------------------------------------------------------------------------
+# Build products for RCINIT
+#-------------------------------------------------------------------------------
+if 'USES_RCINIT' in env and env['MSM_ID'] in ['8909','8952','9607', '8937']:
+  RCINIT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', 
+                'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN',
+                'APPS_IMAGE','CBSP_APPS_IMAGE']
+
+  RCINIT_INIT_ICBARB = {
+    'sequence_group' : 'RCINIT_GROUP_0', # required
+    'init_name'      : 'icbarb',         # required
+    'init_function'  : 'icbarb_init',    # required
+    'dependencies'   : ['npa','rpm','clk_regime'],    # opt [python list]
+  }
+  env.AddRCInitFunc( RCINIT_IMG, RCINIT_INIT_ICBARB )
+
+  RCINIT_ABT_IMG = ['CORE_MODEM', 'CORE_QDSP6_SW', ]
+
+  if env['MSM_ID'] in NONADSP_BEAR_TARGETS:
+    RCINIT_INIT_ABT = {
+      'sequence_group' : 'RCINIT_GROUP_0', # required
+      'init_name'      : 'abt',            # required
+      'init_function'  : 'ABT_Init',       # required
+      'dependencies'   : ['dalsys','clk_regime','adsppm_ultaudioreset_grp0'], # opt [python list]
+    }
+  else:
+    RCINIT_INIT_ABT = {
+      'sequence_group' : 'RCINIT_GROUP_0', # required
+      'init_name'      : 'abt',            # required
+      'init_function'  : 'ABT_Init',       # required
+      'dependencies'   : ['dalsys','clk_regime'],    # opt [python list]
+    }
+  env.AddRCInitFunc( RCINIT_ABT_IMG, RCINIT_INIT_ABT )
+
+#-------------------------------------------------------------------------------
+# Common Sources, but differentiate between core and mba
+#-------------------------------------------------------------------------------
+icb_src = []
+if env.GetUsesFlag('USES_MBA') is True:   
+  # Look for data and xml file for the current MSM_ID   
+  icb_cfg_src = os.path.exists( os.path.join(SRCPATH, env['MSM_ID'], 'icbcfg_data.c') )   
+  icb_config_xml = os.path.exists( '../config/icbcfg_mba_%s.xml' % env['MSM_ID'] )   
+  
+  # If we have both, add to device configuration library   
+  if icb_cfg_src and icb_config_xml:      
+    DEVCFG_MBA_IMG = ['DEVCFG_MBA_CORE_SW']      
+    env.AddDevCfgInfo(DEVCFG_MBA_IMG,{
+                      'soc_xml' : ['${BUILD_ROOT}/core/buses/icb/config/icbcfg_mba_%s.xml' % env['MSM_ID']]
+      }      
+    )      
+    icb_src = ['${BUILDPATH}/src/common/icbcfg_query.c',
+               '${BUILDPATH}/src/common/HALbimc.c',
+               '${BUILDPATH}/src/common/HALbimcImpl.c',	       
+               '${BUILDPATH}/src/${MSM_ID}/icbcfg_data.c' ]
+else:
+#-------------------------------------------------------------------------------
+# Common Sources - core
+#-------------------------------------------------------------------------------
+   icb_src = glob.glob( os.path.join(SRCPATH, 'common', '*.c') )
+
+   # Prepend build path
+   icb_src = ['${BUILDPATH}' + filename[2:] for filename in icb_src]
+#-------------------------------------------------------------------------------
+# Device Configuration Sources
+#-------------------------------------------------------------------------------
+if 'USES_DEVCFG' in env:
+  env.AddDevCfgInfo(['DAL_DEVCFG_IMG'],{
+                    '8909_xml' : ['${BUILD_ROOT}/core/buses/icb/config/icbcfg_mpss_8909.xml','${BUILD_ROOT}/core/buses/icb/config/ABT_modem_8909.xml',
+                                  '${BUILD_ROOT}/core/buses/icb/src/8909/ul_data.c','${BUILD_ROOT}/core/buses/icb/src/8909/ABT_data.c',
+				  '${BUILD_ROOT}/core/buses/icb/config/icbcfg_mba_8909.xml','${BUILD_ROOT}/core/buses/icb/src/8909/icbcfg_data.c'],
+                    '8937_xml' : ['${BUILD_ROOT}/core/buses/icb/config/icbcfg_mpss_8937.xml','${BUILD_ROOT}/core/buses/icb/config/ABT_modem_8937.xml',
+                                  '${BUILD_ROOT}/core/buses/icb/src/8937/ul_data.c','${BUILD_ROOT}/core/buses/icb/src/8937/ABT_data.c',
+				  '${BUILD_ROOT}/core/buses/icb/config/icbcfg_mba_8937.xml','${BUILD_ROOT}/core/buses/icb/src/8937/icbcfg_data.c'],
+                    '8952_xml' : ['${BUILD_ROOT}/core/buses/icb/config/icbcfg_mpss_8952.xml','${BUILD_ROOT}/core/buses/icb/src/8952/ul_data.c',
+                                  '${BUILD_ROOT}/core/buses/icb/config/icbcfg_mba_8952.xml','${BUILD_ROOT}/core/buses/icb/src/8952/icbcfg_data.c',
+                                  '${BUILD_ROOT}/core/buses/icb/src/8952/ABT_data.c','${BUILD_ROOT}/core/buses/icb/config/ABT_modem_8952.xml'],
+                    '9607_xml' : ['${BUILD_ROOT}/core/buses/icb/config/icbcfg_mpss_9607.xml','${BUILD_ROOT}/core/buses/icb/src/9607/ul_data.c',
+                                  '${BUILD_ROOT}/core/buses/icb/config/icbcfg_mba_9607.xml','${BUILD_ROOT}/core/buses/icb/src/9607/icbcfg_data.c',
+                                  '${BUILD_ROOT}/core/buses/icb/src/9607/ABT_data.c','${BUILD_ROOT}/core/buses/icb/config/ABT_modem_9607.xml'],
+                    }
+                    )
+
+#-------------------------------------------------------------------------------
+# Images 
+#-------------------------------------------------------------------------------
+
+env.AddLibrary(
+   ['MODEM_IMAGE','CBSP_MODEM_IMAGE',
+   'CORE_QDSP6_SW', 'QDSP6_SW_IMAGE', 'CBSP_QDSP6_SW_IMAGE', 
+   'WCN_IMAGE', 'CBSP_WCN_IMAGE', 'CORE_WCN', 'TZOS_IMAGE',
+   'BUSES_AHB_BOOT_DRIVER', 'APPS_IMAGE','CBSP_APPS_IMAGE','MBA_CORE_SW'],
+   '${BUILDPATH}/icb', icb_src)

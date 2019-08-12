@@ -1,0 +1,87 @@
+#===============================================================================
+#
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2013 by Qualcomm Technologies, Inc.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //source/qcom/qct/core/bsp/config/scmm/main/latest/securemsm/secboot/build/SConscript#1 $
+#  $DateTime: 2009/10/02 00:38:04 $
+#  $Author: cbirch $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 01/03/2014  hw     add secboot_util.c
+# 01/17/2013  hw     Initial Version
+#===============================================================================
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = "${BUILD_ROOT}/core/securemsm/secboot"
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+CBSP_API = [
+   'SECUREMSM',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+   'BOOT',
+   'BOOT_TOOLS',
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+INC_PATH = [
+      "${BUILDPATH}/src",
+]
+env.Append(CPPPATH = INC_PATH)
+
+#-------------------------------------------------------------------------------
+# Compiler, object, and linker definitions
+#-------------------------------------------------------------------------------
+
+env.PublishPrivateApi('SECUREMSM', [
+   "${COREBSP_ROOT}/api/dal/",
+])
+
+#-------------------------------------------------------------------------------
+# Sources, libraries
+#-------------------------------------------------------------------------------
+
+SECBOOT_LIB_SOURCES = [
+        '${BUILDPATH}/src/secboot.c',
+        '${BUILDPATH}/src/secboot_asn1.c',
+        '${BUILDPATH}/src/secboot_x509.c',
+        '${BUILDPATH}/oem/secboot_util.c',
+]
+if env['CHIPSET'] in ['mdm9x07']:
+	SECBOOT_LIB_SOURCES += ['${BUILDPATH}/hw/secctrl/${CHIPSET}/src/secboot_hw.c',
+                            '${BUILDPATH}/hw/secctrl/${CHIPSET}/src/secboot_hw_apps.c',]
+else:
+    SECBOOT_LIB_SOURCES += ['${BUILDPATH}/hw/secctrl/src/secboot_hw.c',
+                            '${BUILDPATH}/hw/secctrl/src/secboot_hw_apps.c',]
+
+#-------------------------------------------------------------------------------
+# Add Libraries to MBA Image
+#-------------------------------------------------------------------------------
+env.AddBinaryLibrary(['TZOS_IMAGE'], '${BUILDPATH}/secboot_auth',  SECBOOT_LIB_SOURCES)
+

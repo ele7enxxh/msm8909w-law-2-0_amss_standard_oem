@@ -1,0 +1,2621 @@
+
+revision 8;
+
+/** Enumeration of the loc Eng status codes. */
+enum
+{
+  eLOC_ENG_SUCCESS                            = 0, 
+  /**< Request was completed successfully. */     
+  eLOC_ENG_GENERAL_FAILURE                    = 1,
+  /**< Request failed because of a general failure. */
+  eLOC_ENG_UNSUPPORTED                        = 2, 
+  /**< Request failed because it is not supported. */
+  eLOC_ENG_INVALID_PARAMETER                  = 3,
+  /**< Request failed because it contained invalid parameters. */  
+  eLOC_ENG_ENGINE_BUSY                        = 4,
+  /**< Request failed because the engine is busy. */
+  eLOC_ENG_PHONE_OFFLINE                      = 5,
+  /**< Request failed because the phone is offline. */
+  eLOC_ENG_TIMEOUT                            = 6,
+  /**< Request failed because it timed out. */
+  eLOC_ENG_CONFIG_NOT_SUPPORTED               = 7,
+  /**< Request failed because an undefined configuration was requested */
+  eLOC_ENG_INSUFFICIENT_MEMORY                = 8
+  /**< Request failed because the engine could not allocate sufficent
+       memory for the request. */
+}locEngStatusEnumT;
+
+/** enumeration of loc engine source tasks that can send a loc Eng Msg*/
+enum
+{
+  eLOC_ENG_MSG_SOURCE_LOC_MW = 0,
+  /**< Message was sent by loc MW task*/
+  eLOC_ENG_MSG_SOURCE_LBS = 1,
+  /**< Message was sent by LBS task*/
+  eLOC_ENG_MSG_SOURCE_SDP = 2,
+  /**< Message was sent by SDP task*/
+  eLOC_ENG_MSG_SOURCE_NF = 3,
+  /**< Message was sent by NF task*/
+  eLOC_ENG_MSG_SOURCE_SM = 4
+  /**< Message was sent by SM task*/
+}locEngMsgSourceEnumT;
+
+
+//=============================================================================
+/** @COMMAND        LOC_ENG_POS
+    @CMD_VERSION    1.0
+    @BRIEF          common position structure
+*/
+//=============================================================================
+
+//-----------------------------------------------------------------------------
+//! @MSG      LOC_ENG_POS
+//! @TYPE     Indication
+//! @SENDER   Control point
+//-----------------------------------------------------------------------------
+const LOC_ENG_MAX_SV_USED_LIST_LENGTH = 80;
+/**< Maximum length of the list containing the SV's that were used to generate 
+     a position report. */
+
+struct
+{
+   float PDOP;     
+  /**< Position dilution of precision.\n
+       - Type: Floating point \n
+       - Range: 1 (highest accuracy) to 50 (lowest accuracy)\n
+       - PDOP = square root of (HDOP^2 + VDOP^2)       */
+
+  float HDOP;   
+  /**< Horizontal dilution of precision.\n
+       - Type: Floating point \n  
+       - Range: 1 (highest accuracy) to 50 (lowest accuracy) */
+
+  float VDOP;     
+  /**< Vertical dilution of precision.\n
+       - Type: Floating point. \n
+       - Range: 1 (highest accuracy) to 50 (lowest accuracy) */
+}locEngDOPStructT;
+
+
+mask32
+{
+   LOC_ENG_POS_TECH_MASK_SATELLITE           = 0x00000001,
+   /**< Satellites were used to generate the fix. */
+
+   LOC_ENG_POS_TECH_MASK_CELLID              = 0x00000002,
+   /**< Cell towers were used to generate the fix. */
+
+   LOC_ENG_POS_TECH_MASK_WIFI                = 0x00000004,
+   /**< WiFi access points were used to generate the fix. */
+
+   LOC_ENG_POS_TECH_MASK_SENSORS             = 0x00000008,
+   /**< Sensors were used to generate the fix. */
+
+   LOC_ENG_POS_TECH_MASK_REFERENCE_LOCATION  = 0x00000010,
+   /**< Reference Location was used to generate the fix. */
+
+   LOC_ENG_POS_TECH_MASK_INJECTED_COARSE_POSITION = 0x00000020
+  /**<  Coarse position injected into the location engine was used to 
+        generate the fix.   */
+}locEngPositionTechMaskT;
+
+enum
+{
+  eLOC_ENG_POS_SESS_STATUS_SUCCESS          = 0, 
+  /**< Session was successful. */     
+
+  eLOC_ENG_SESS_STATUS_IN_PROGRESS       = 1,
+  /**< Session still in progress. Further position reports will be
+       generated until either the fix criteria specified by the client
+       are met or the client response timeout occurs. */  
+
+  eLOC_ENG_SESS_STATUS_GENERAL_FAILURE  = 2,
+  /**< Session failed. */ 
+
+  eLOC_ENG_SESS_STATUS_TIMEOUT          = 3, 
+  /**< Fix request failed because the session timed out. */     
+
+  eLOC_ENG_SESS_STATUS_USER_END         = 4, 
+  /**< Fix request failed because the session was ended by the user. */     
+
+  eLOC_ENG_SESS_STATUS_BAD_PARAMETER    = 5,     
+  /**< Fix request failed due to bad parameters in the request. */
+
+  eLOC_ENG_SESS_STATUS_PHONE_OFFLINE    = 6, 
+  /**< Fix request failed because the phone is offline. */
+
+  eLOC_ENG_SESS_STATUS_ENGINE_LOCKED    = 7 
+  /**< Fix request failed because the engine is locked. */
+
+}locEngPositionSessionStatusEnumT;
+
+mask32
+{
+  LOC_ENG_SENSOR_MASK_USED_ACCEL            = 0x00000001,
+  /**< Bitmask to specify whether an accelerometer was used. */
+
+  LOC_ENG_SENSOR_MASK_USED_GYRO             = 0x00000002
+  /**< Bitmask to specify whether a gyroscope was used. */
+}locEngSensorUsageMaskT;
+
+mask32
+{
+  LOC_ENG_SENSOR_AIDED_MASK_HEADING         = 0x00000001,
+  /**< Bitmask to specify whether a sensor was used to calculate heading. */
+
+  LOC_ENG_SENSOR_AIDED_MASK_SPEED           = 0x00000002,
+  /**< Bitmask to specify whether a sensor was used to calculate speed. */
+
+  LOC_ENG_SENSOR_AIDED_MASK_POSITION        = 0x00000004,
+  /**< Bitmask to specify whether a sensor was used to calculate position. */
+
+  LOC_ENG_SENSOR_AIDED_MASK_VELOCITY        = 0x00000008
+  /**< Bitmask to specify whether a sensor was used to calculate velocity. */
+}locEngSensorAidedMaskT;
+
+struct
+{
+  locEngSensorUsageMaskT usageMask;
+  /**< Specifies which sensors are used.
+  
+       Valid bitmasks are specified by the following constants: \n       
+         - 0x00000001 -- SENSOR_USED_ACCEL \n
+         - 0x00000002 -- SENSOR_USED_GYRO */
+
+  locEngSensorAidedMaskT aidingIndicatorMask;
+  /**< Specifies which results are aided by sensors.
+
+       Valid bitmasks are specified by the following constants: \n
+         - 0x00000001 -- AIDED_HEADING \n
+         - 0x00000002 -- AIDED_SPEED \n
+         - 0x00000004 -- AIDED_POSITION \n
+         - 0x00000008 -- AIDED_VELOCITY */
+}locEngSensorUsageIndicatorStructT;
+
+enum
+{
+  eLOC_ENG_TIME_SRC_INVALID                             = 0,
+  /**< Invalid time. */
+  eLOC_ENG_TIME_SRC_NETWORK_TIME_TRANSFER               = 1,
+  /**< Time is set by the 1x system. */
+  eLOC_ENG_TIME_SRC_NETWORK_TIME_TAGGING                = 2,
+  /**< Time is set by WCDMA/GSM time tagging (i.e.,
+       associating network time with GPS time). */
+  eLOC_ENG_TIME_SRC_EXTERNAL_INPUT                      = 3,
+  /**< Time is set by an external injection. */
+  eLOC_ENG_TIME_SRC_TOW_DECODE                          = 4,
+  /**< Time is set after decoding over-the-air GPS navigation data
+       from one GPS satellite. */
+  eLOC_ENG_TIME_SRC_TOW_CONFIRMED                       = 5,
+  /**< Time is set after decoding over-the-air GPS navigation data 
+       from multiple satellites. */
+  eLOC_ENG_TIME_SRC_TOW_AND_WEEK_CONFIRMED              = 6,
+  /**< Both time of the week and the GPS week number are known. */
+  eLOC_ENG_TIME_SRC_NAV_SOLUTION                        = 7,
+  /**< Time is set by the position engine after the fix is obtained. */
+  eLOC_ENG_TIME_SRC_SOLVE_FOR_TIME                      = 8,
+  /**< Time is set by the position engine after performing SFT.
+       This is done when the clock time uncertainty is large. */
+  eLOC_ENG_TIME_SRC_GLO_TOW_DECODE                      = 9,
+  /**< Time is set after decoding GLO satellites */
+  eLOC_ENG_TIME_SRC_TIME_TRANSFORM                      = 10,
+  /**< Time is set after transforming the GPS to GLO time */
+  eLOC_ENG_TIME_SRC_WCDMA_SLEEP_TIME_TAGGING            = 11,
+  /**< Time is set by the sleep time tag provided by the WCDMA network */
+  eLOC_ENG_TIME_SRC_GSM_SLEEP_TIME_TAGGING              = 12,
+  /**< Time is set by the sleep time tag provided by the GSM network */
+  eLOC_ENG_TIME_SRC_UNKNOWN                             = 13,
+  /**< Source of the time is unknown */
+  eLOC_ENG_TIME_SRC_SYSTEM_TIMETICK                     = 14, 
+  /**<  Time is derived from system clock (better known as slow clock). 
+       GNSS time is maintained irrespective of the GNSS receiver state  */
+  eLOC_ENG_TIME_SRC_QZSS_TOW_DECODE                     = 15,
+  /**< Time is set after decoding QZSS satellites */
+  eLOC_ENG_TIME_SRC_BDS_TOW_DECODE                      = 16,
+  /**< Time is set after decoding BDS satellites */
+  eLOC_ENG_TIME_SRC_GAL_TOW_DECODE                      = 17
+  /**< Time is set after decoding GAL satellites */
+} locEngTimeSourceEnumT;
+
+enum
+{
+  eLOC_ENG_RELIABILITY_NOT_SET   = 0,
+  /**< Location reliability is not set */
+  eLOC_ENG_RELIABILITY_VERY_LOW  = 1,
+  /**< Location reliability is very low; use it at your own risk */
+  eLOC_ENG_RELIABILITY_LOW       = 2,
+  /**< Location reliability is low; little or no cross-checking is possible */
+  eLOC_ENG_RELIABILITY_MEDIUM    = 3,
+  /**< Location reliability is medium; limited cross-check passed  */
+  eLOC_ENG_RELIABILITY_HIGH      = 4
+  /**< Location reliability is high; strong cross-check passed */
+}locEngReliabilityEnumT;
+
+struct
+{
+  uint16 gpsWeek;
+  /**< Current GPS week as calculated from midnight, Jan. 6, 1980. \n
+       - Type: Unsigned integer \n
+       - Units: Weeks */
+
+  uint32 gpsTimeOfWeekMs;
+  /**< Amount of time into the current GPS week. \n
+       - Type: Unsigned integer \n
+       - Units: Milliseconds */
+  
+}locEngGPSTimeStructT;
+
+message
+{
+  //!  Session Status
+  //! @VERSION 1.0
+  mandatory locEngPositionSessionStatusEnumT  sessionStatus; 
+  /**< Session status.
+  
+        Valid values: \n
+          - 0x00000000 -- SESS_STATUS_SUCCESS \n
+          - 0x00000001 -- SESS_STATUS_IN_PROGRESS \n
+          - 0x00000002 -- SESS_STATUS_GENERAL_FAILURE \n
+          - 0x00000003 -- SESS_STATUS_TIMEOUT \n
+          - 0x00000004 -- SESS_STATUS_USER_END \n
+          - 0x00000005 -- SESS_STATUS_BAD_PARAMETER \n
+          - 0x00000006 -- SESS_STATUS_PHONE_OFFLINE \n
+          - 0x00000007 -- SESS_STATUS_ENGINE_LOCKED
+      */
+
+  //!  Session ID
+  //! @VERSION 1.0
+  mandatory uint8 sessionId;
+  /**<  ID of the session that was specified in the Start request 
+        LOC_ENG_START_REQ. \n
+        - Type: Unsigned integer \n
+        - Range: 0 to 255 */
+
+  //! Latitude
+  //! @VERSION 1.0
+  optional double latitude;
+  /**< Latitude (specified in WGS84 datum). \n
+       - Type: Floating point \n
+       - Units: Degrees \n
+       - Range: -90.0 to 90.0 \n
+       - Positive values indicate northern latitude \n
+       - Negative values indicate southern latitude */
+
+  //!  Longitude
+  //! @VERSION 1.0
+  optional double longitude;
+  /**< Longitude (specified in WGS84 datum).\n
+       - Type: Floating point \n
+       - Units: Degrees \n
+       - Range: -180.0 to 180.0 \n
+       - Positive values indicate eastern longitude \n
+       - Negative values indicate western longitude */
+
+  //!  Circular Horizontal Position Uncertainty
+  //! @VERSION 1.0
+  optional float horUncCircular;
+  /**< Horizontal position uncertainty (circular).\n
+       - Type: Floating point \n
+       - Units: Meters */
+
+  //! Horizontal Elliptical Uncertainty (Semi-Minor Axis)
+  //! @VERSION 1.0
+  optional float horUncEllipseSemiMinor;    
+  /**< Semi-minor axis of horizontal elliptical uncertainty.\n
+       - Type: Floating point \n
+       - Units: Meters */
+
+  //! Horizontal Elliptical Uncertainty (Semi-Major Axis)
+  //! @VERSION 1.0
+  optional float horUncEllipseSemiMajor;
+  /**< Semi-major axis of horizontal elliptical uncertainty.\n
+       - Type: Floating point \n
+       - Units: Meters */
+
+  //! Elliptical Horizontal Uncertainty Azimuth
+  //! @VERSION 1.0
+  optional float horUncEllipseOrientAzimuth; 
+  /**< Elliptical horizontal uncertainty azimuth of orientation.\n
+       - Type: Floating point \n
+       - Units: Decimal degrees \n
+       - Range: 0 to 180 */
+
+  //! Horizontal Circular Confidence
+  //! @VERSION 1.0
+  optional uint8 horCircularConfidence;         
+  /**< Horizontal circular uncertainty confidence.\n
+       - Type: Unsigned integer \n 
+       - Units: Percent \n
+       - Range: 0 to 99 */
+
+  //! Horizontal Elliptical Confidence
+  //! @VERSION 1.0
+  optional uint8 horEllipticalConfidence;         
+  /**< Horizontal elliptical uncertainty confidence.\n
+       - Type: Unsigned integer \n 
+       - Units: Percent \n
+       - Range: 0 to 99 */
+
+  //! Horizontal Reliability
+  //! @VERSION 1.0
+  optional locEngReliabilityEnumT horReliability;
+  /**< Specifies the reliability of the horizontal position.
+
+       Valid values: \n
+         - 0x00000000 -- RELIABILITY_NOT_SET \n
+         - 0x00000001 -- RELIABILITY_VERY_LOW \n
+         - 0x00000002 -- RELIABILITY_LOW \n
+         - 0x00000003 -- RELIABILITY_MEDIUM \n
+         - 0x00000004 -- RELIABILITY_HIGH
+*/   
+
+  //! Horizontal Speed
+  //! @VERSION 1.0
+  optional float horSpeed;              
+  /**< Horizontal speed.\n
+       - Type: Floating point \n 
+       - Units: Meters/second */
+
+  //! Horizontal Speed Uncertainty
+  //! @VERSION 1.0
+  optional float horSpeedUnc; 
+  /**< 2D (horizontal) Speed uncertainty.\n
+       - Type: Floating point \n 
+       - Units: Meters/second */
+               
+  //! Altitude With Respect to Ellipsoid
+  //! @VERSION 1.0
+  optional float altitudeWrtEllipsoid;        
+  /**< Altitude with respect to the WGS84 ellipsoid.\n
+       - Type: Floating point \n 
+       - Units: Meters \n
+       - Range: -500 to 15883 */
+
+  //! Altitude With Respect to Sea Level
+  //! @VERSION 1.0
+  optional float altitudeWrtMeanSeaLevel;   
+  /**< Altitude with respect to mean sea level.\n
+       - Type: Floating point \n 
+       - Units: Meters */
+
+  //! Vertical Uncertainty
+  //! @VERSION 1.0
+  optional float vertUnc;
+  /**< Vertical uncertainty.\n
+       - Type: Floating point \n 
+       - Units: Meters */
+
+  //! Vertical Confidence
+  //! @VERSION 1.0
+  optional uint8 vertConfidence;           
+  /**< Vertical uncertainty confidence.\n
+       - Type: Unsigned integer \n 
+       - Units: Percent	\n
+       - Range: 0 to 99 */
+
+  //! Vertical Reliability
+  //! @VERSION 1.0
+  optional locEngReliabilityEnumT vertReliability;
+   /**< Specifies the reliability of the vertical position.
+
+        Valid values: \n
+          - 0x00000000 -- RELIABILITY_NOT_SET \n
+          - 0x00000001 -- RELIABILITY_VERY_LOW \n
+          - 0x00000002 -- RELIABILITY_LOW \n
+          - 0x00000003 -- RELIABILITY_MEDIUM \n
+          - 0x00000004 -- RELIABILITY_HIGH */
+
+  //! Vertical Speed
+  //! @VERSION 1.0
+  optional float vertSpeed;                
+    /**< Vertical speed.\n
+         - Type: Floating point \n
+         - Units: Meters/second */
+
+  //! Vertical Speed Uncertainty
+  //! @VERSION 1.0
+  optional float vertSpeedUnc; 
+  /**< 1-D (vertical) speed uncertainty.\n
+       - Type: Floating point \n 
+       - Units: Meters/second */
+
+  //! Heading
+  //! @VERSION 1.0
+  optional float heading;                       
+    /**< Heading.\n
+         - Type: Floating point \n
+         - Units: Degrees \n
+         - Range: 0 to 359.999  */
+
+  //! Heading Uncertainty
+  //! @VERSION 1.0
+  optional float headingUnc;                   
+  /**< Heading uncertainty.\n
+       - Type: Floating point \n
+       - Units: Degrees \n
+       - Range: 0 to 359.999 */
+
+  //! Magnetic Deviation
+  //! @VERSION 1.0
+  optional float magneticDeviation;
+ /**< Difference between the bearing to true north and the bearing shown 
+      on a magnetic compass. The deviation is positive when the magnetic
+      north is east of true north. \n
+      - Type: Floating point */
+
+  //! Technology Used
+  //! @VERSION 1.0
+  optional locEngPositionTechMaskT technologyMask;
+  /**< Technology used in computing this fix.
+
+       Valid bitmasks: \n
+         - 0x00000001 -- SATELLITE \n
+         - 0x00000002 -- CELLID \n
+         - 0x00000004 -- WIFI \n
+         - 0x00000008 -- SENSORS \n 
+         - 0x00000010 -- REFERENCE_LOCATION
+         - 0x00000020 -- INJECTED_COARSE_POSITION */
+
+  //! Dilution of Precision
+  //! @VERSION 1.0
+  optional locEngDOPStructT DOP;
+  /**< Dilution of Precision */
+
+  //! UTC Timestamp
+  //! @VERSION 1.0
+  optional uint64 timestampUtc;
+  /**< UTC timestamp, including the leap seconds \n
+       - Type: Unsigned integer \n 
+       - Units: Milliseconds since Jan. 1, 1970 */
+
+  //! GPS Time
+  //! @VERSION 1.0
+  optional locEngGPSTimeStructT gpsTime;
+  /**< \n The number of weeks since Jan. 5, 1980, and
+       milliseconds into the current week. */
+
+  //! Time Uncertainty
+  //! @VERSION 1.0
+  optional float timeUnc;                      
+  /**< Time uncertainty. \n
+       - Type: Floating point \n
+       - Units: Milliseconds */ 
+
+  //! Time Source
+  //! @VERSION 1.0
+  optional locEngTimeSourceEnumT timeSrc;
+  /**< Time source.
+  
+        Valid values: \n
+          - 0x00000000 -- TIME_SRC_INVALID \n 
+          - 0x00000001 -- TIME_SRC_NETWORK_TIME_TRANSFER \n  
+          - 0x00000002 -- TIME_SRC_NETWORK_TIME_TAGGING \n   
+          - 0x00000003 -- TIME_SRC_EXTERNAL_ INPUT \n         
+          - 0x00000004 -- TIME_SRC_TOW_DECODE \n             
+          - 0x00000005 -- TIME_SRC_TOW_CONFIRMED \n          
+          - 0x00000006 -- TIME_SRC_TOW_AND_WEEK_CONFIRMED \n 
+          - 0x00000007 -- TIME_SRC_NAV_SOLUTION \n  
+          - 0x00000008 -- TIME_SRC_SOLVE_FOR_TIME */
+
+  //! Sensor Data Usage
+  //! @VERSION 1.0
+  optional locEngSensorUsageIndicatorStructT sensorDataUsage;
+  /**< \n Whether sensor data was used in computing the position in this
+       position report. */
+
+  //! SV's Used to Calculate the Fix
+  //! @VERSION 1.0
+  optional uint16 gnssSvUsedList <LOC_ENG_MAX_SV_USED_LIST_LENGTH>;
+  /** Each entry in the list contains the SV ID of a Satellite
+      used for calculating this position report. The following 
+      information is associated with each SV ID:
+      - Type: Unsigned integer \n 
+      - Range: \n
+           -- For GPS:     1 to 32 \n
+           -- For SBAS:    33 to 64	\n
+           -- For GLONASS: 65 to 96 \n 
+           -- For QZSS:    193 to 197 */
+
+  //! 3D Speed Uncertainty
+  //! @VERSION 1.7
+  optional float speedUnc3d; 
+  /**< 3-D speed uncertainty.\n
+       - Type: Floating point \n 
+       - Units: Meters/second */
+
+}locEngPositionReportMsgT;
+
+//=============================================================================
+/** @COMMAND        LOC_ENG_EVENT_PEDOMETER_CONTROL
+    @CMD_VERSION    1.1
+    @USAGE          Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @BRIEF           Controls the injection of pedometer reports into the
+                     location engine 
+*/
+//=============================================================================
+
+//-----------------------------------------------------------------------------
+//! @MSG      LOC_ENG_EVENT_PEDOMETER_CONTROL_IND
+//! @TYPE     Indication
+//! @SENDER   Service
+//-----------------------------------------------------------------------------
+
+message
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  //! Request Pedometer Data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory boolean requestPedometerData;
+  /**< \n Whether GNSS location engine is requesting the client to 
+          send pedometer data.
+       \begin{itemize1}
+       \item    0x01 (TRUE)  -- GNSS location engine is requesting 
+                                pedometer data
+       \item    0x00 (FALSE) -- GNSS location engine is not requesting
+                                pedometer data
+       \vspace{-0.18in} \end{itemize1}
+  */
+
+  //! Reset Step Count
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional boolean resetStepCount;
+  /**< Whether step count should be reset.
+       \begin{itemize1}
+       \item    0x01 (TRUE)  -- Pedometer step count should be reset. 
+       \item    0x00 (FALSE) -- Pedometer step count should not be reset.
+       \vspace{-0.18in} \end{itemize1} */
+
+  //! Step Count Threshold
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint32 stepCountThreshold;
+  /**< Specifies the step count after which a pedometer report must be 
+       generated. If the threshold is set to 0 then the pedometer report 
+       should be generated at every step.
+  */
+
+}locEngEventPedometerControlIndMsgT;
+/** @DESCRIPTION
+  This command is used to control how pedometer reports are sent to
+  the location engine. This request is generated only if the control point 
+  has indicated its interest by setting the appropriate mask in 
+  LOC_ENG_REG_EVENTS_REQ.
+ */
+
+//=============================================================================
+/** @COMMAND        LOC_ENG_EVENT_MOTION_DATA_CONTROL
+    @CMD_VERSION    1.1
+    @USAGE          Production
+    @SECURITY_LEVEL Medium Risk
+    @REQUIRED_ACTION Default
+    @BRIEF           Controls the injection of motion data into
+                     the location engine 
+*/
+//=============================================================================
+
+//-----------------------------------------------------------------------------
+//! @MSG      LOC_ENG_EVENT_MOTION_DATA_CONTROL_IND
+//! @TYPE     Indication
+//! @SENDER   Service
+//-----------------------------------------------------------------------------
+
+message
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+  //! Request Motion Data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+   mandatory boolean requestMotionData;
+  /**< \n Whether GNSS location engine is requesting the client to 
+          send motion data.
+       \begin{itemize1}
+       \item    0x01 (TRUE)  -- GNSS location engine is requesting 
+                                motion data
+       \item    0x00 (FALSE) -- GNSS location engine is not requesting 
+                                motion data
+       \vspace{-0.18in} \end{itemize1}
+  */
+ 
+ 
+}locEngEventMotionDataControlIndMsgT;
+/** @DESCRIPTION
+  This command informs the control point whether the location engine is
+  ready to accept motion data injection.
+  This request is generated only if the control point has indicated its 
+  interest by setting the appropriate mask in LOC_ENG_REG_EVENTS_REQ.
+*/
+
+//=============================================================================
+/** @COMMAND        LOC_ENG_PEDOMETER_REPORT
+    @CMD_VERSION    1.1
+    @USAGE          Production
+    @SECURITY_LEVEL High Risk
+    @REQUIRED_ACTION Default
+    @BRIEF          Used by the control point to inject pedometer data
+                    into the location engine.
+*/
+//=============================================================================
+
+enum
+{
+  eLOC_ENG_SENSOR_TIME_SOURCE_UNSPECIFIED = 0,
+  /**< The sensor time source is unspecified*/
+  eLOC_ENG_SENSOR_TIME_SOURCE_COMMON = 1
+   /**< The time source is common between the sensors and 
+       the location engine*/
+}locEngSensorDataTimeSourceEnumT;
+
+//-----------------------------------------------------------------------------
+//! @MSG      LOC_ENG_PEDOMETER_REPORT_REQ
+//! @TYPE     Request
+//! @SENDER   Control point
+//-----------------------------------------------------------------------------
+
+//! Different pedometer report types set in the report_type TLV
+enum {
+  eLOC_ENG_INJECT_PEDOMETER_REPORT_ON_STEP_EVENT,
+  /**< Report is injected on detection of a step event \n */
+
+  eLOC_ENG_INJECT_PEDOMETER_REPORT_PERIODICALLY
+  /**< Report is injected periodically */
+
+} loc_eng_inject_pedometer_report_enum_type;
+
+message
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  //! Pedometer report timestamp in modem time
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory uint64 modemTimeTickMsec;
+  /**< Timestamp of sensor input in modem time which caused this indication. \n
+       - Unit: Milliseconds */
+
+  //! Time Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngSensorDataTimeSourceEnumT timeSource;
+/**< Time source for the pedometer. */
+
+  //! Pedometer report timestamp
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory uint32 timestamp;
+  /**< Timestamp of sensor input which caused this indication. \n
+       - Unit: Milliseconds */
+
+  //! Time Interval
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1  
+  mandatory float timeInterval; 
+  /**< Time interval during which the step count was calculated. 
+       Unit : Seconds. */
+
+  //! Step Count
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory uint32 stepCount; 
+  /**< Number for steps counted after the last pedometer reset. */
+
+  //! Step Confidence
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1  
+  optional uint8 stepConfidence; 
+  /**< Confidence associated with the stepCount.
+       Range: 0 to 100.
+       Note: The report will be ignored if confidence is 0. */
+
+  //! Step Count Uncertainty
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1 
+  optional float stepCountUncertainty;
+  /**< Uncertainty (in steps) associated with the step count. */
+
+  //! Step Rate
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1 
+  optional float stepRate;
+  /**< Current estimate for the rate of steps per second.
+       Units: steps/second
+       Range: >= 0.0
+  */
+
+  //! Pedometer report timestamp in Gps time
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional locEngGPSTimeStructT gpsTime;
+  /**< Timestamp of sensor input in GPS time. \n */
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< opaque user data, if specified the same user data should be
+       echoed back in the response indication */
+
+  //! UTC Timestamp
+  //! @VERSION_INTRODUCED 1.3
+  //! @VERSION 1.3
+  optional uint64 timestampUtc;
+  /**< UTC timestamp, including the leap seconds \n
+       - Type: Unsigned integer \n 
+       - Units: Milliseconds since Jan. 1, 1970 */
+
+  //! @VERSION_INTRODUCED 1.7
+  //! @VERSION 1.7
+  //! Stride Length Estimate
+  optional float strideLength;
+  /**< Current estimate of the stride length. \n
+       - Type: Float \n
+       - Units: Meters/stride \n
+       - Range: >= 0
+  */
+
+  //! @VERSION_INTRODUCED 1.7
+  //! @VERSION 1.7
+  //! Stride Length Uncertainty
+  optional float strideLengthUncertainty;
+  /**< Uncertainty associated with the stride length, provided at a 1-sigma 
+       (68 percent) confidence. \n
+       - Type: Float \n
+       - Units: Meters/stride \n
+       - Range: >= 0
+  */
+
+  //! @VERSION_INTRODUCED 1.7
+  //! @VERSION 1.7
+  //! Fractional Step Count Data
+  optional float stepCountFractional;
+  /**< Sub-integer portion of the number of steps counted during the time 
+       interval. If the report is generated on event, this will be 0. \n
+       - Type: Float \n
+       - Units: steps \n
+       - Range: >= 0.0 and < 1.0
+  */
+
+  //! @VERSION_INTRODUCED 1.7
+  //! @VERSION 1.7
+  //! Injected Pedometer Report Type
+  optional loc_eng_inject_pedometer_report_enum_type reportType;
+  /**< Identifies the type of report generated. Values: \n
+       @ENUM () 
+  */
+
+}locEngPedometerReportReqMsgT;
+
+
+//-----------------------------------------------------------------------------
+//! @MSG      LOC_ENG_PEDOMETER_REPORT_IND
+//! @TYPE     Indication
+//! @SENDER   Service
+//-----------------------------------------------------------------------------
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  //! Status of Pedometer report request
+  //! @VERSION_INTRODUCED 1.0
+  //! @VERSION 1.0
+  mandatory locEngStatusEnumT status;
+  /**< Status of the pedometer report request
+
+       Valid values: \n
+       @ENUM()
+  */
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< if specified the it contains the same user data that was passed
+       in the request */
+
+}locEngPedometerReportIndMsgT;
+
+/** @ERROR
+    -QMI_ERR_NONE               No error in the request
+    -QMI_ERR_INTERNAL           Unexpected error occurred during processing
+    -QMI_ERR_MALFORMED_MSG      Message was not formulated correctly by the
+                                control point or the message was corrupted
+                                during transmission
+    -QMI_ERR_NO_MEMORY          Device could not allocate memory to formulate
+                                a response
+    -QMI_ERR_INVALID_HANDLE     Invalid client handle was received
+*/
+
+/** @DESCRIPTION
+  This command is used to send pedometer data to the location engine. 
+  The pedometer data must only be sent if the location service indicates
+  its readiness to accept pedomter data in the 
+  LOC_ENG_EVENT_SENSOR_STREAMING_READY_STATUS indication.  
+*/
+
+//============================================================================
+/** @COMMAND LOC_ENG_INJECT_MOTION_DATA
+    @CMD_VERSION 1.1
+    @USAGE          Production
+    @SECURITY_LEVEL High Risk
+    @REQUIRED_ACTION Default
+    @BRIEF Injects motion data for MSM GPS service use.
+*/
+//============================================================================
+
+enum {
+
+  eLOC_ENG_MOTION_STATE_UNKNOWN,
+  /**< Device state is not known. */
+
+  eLOC_ENG_MOTION_STATE_STATIONARY,
+  /**< Device state is Stationary. */
+
+  eLOC_ENG_MOTION_STATE_IN_MOTION
+  /**< Device state is In Motion. */
+
+} locEngMotionStateEnumT;
+
+enum {
+
+  eLOC_ENG_MOTION_MODE_UNKNOWN              =  0,
+  /**< Device movement is not known. */
+  /* Add more unknown motion modes here */
+
+  eLOC_ENG_MOTION_MODE_STATIONARY,
+  /**< Device is not moving. */
+  /* Add more stationary motion modes here */
+
+  eLOC_ENG_MOTION_MODE_PEDESTRIAN_UNKNOWN   =  200,
+  /**< Device movement is in Pedestrian mode; nothing else is known about the movement. */
+  eLOC_ENG_MOTION_MODE_PEDESTRIAN_WALKING,
+  /**< Device movement is in pedestrian Walking mode. */
+  eLOC_ENG_MOTION_MODE_PEDESTRIAN_RUNNING,
+  /**< Device movement is in pedestrian Running mode. */
+  /* Add more pedestrian modes here */
+
+  eLOC_ENG_MOTION_MODE_VEHICLE_UNKNOWN      =  300
+  /**< Device movement is in Vehicular mode; nothing else is known about the movement. */
+  /* Add more vehicles modes here */
+
+} locEngMotionModeEnumT;
+
+struct {
+
+  locEngMotionStateEnumT motion_state;
+  /**< Current motion state of the user. \n
+
+       Valid values: \begin{itemize1}
+       \item eLOC_ENG_MOTION_STATE_UNKNOWN (0) -- Device state is not known. 
+       \item eLOC_ENG_MOTION_STATE_STATIONARY (1) -- Device state is Stationary.  
+       \item eLOC_ENG_MOTION_STATE_IN_MOTION (2) -- Device state is In Motion.   
+       \vspace{0.06in} \end{itemize1} 
+       
+       Absolute rest and relative rest are both indicated by setting motion_state 
+       to Stationary. The relative rest state can be distinguished from absolute 
+       rest by reducing probability_of_state.
+  */
+
+  locEngMotionModeEnumT motion_mode;
+  /**< Modes of user motion. \n
+
+       Valid values: \begin{itemize1}
+       \item eLOC_ENG_MOTION_MODE_ UNKNOWN (0) -- Device movement is not known. 
+       \item eLOC_ENG_MOTION_MODE_ STATIONARY (1) -- Device is not moving.  
+       \item eLOC_ENG_MOTION_MODE_ PEDESTRIAN_UNKNOWN (200) -- Device movement
+             is in Pedestrian mode; nothing else is known about the movement.   
+       \item eLOC_ENG_MOTION_MODE_ PEDESTRIAN_WALKING (201) -- Device movement
+             is in Pedestrian Walking mode.   
+       \item eLOC_ENG_MOTION_MODE_ PEDESTRIAN_RUNNING (202) -- Device movement
+             is in Pedestrian Running mode.   
+       \item eLOC_ENG_MOTION_MODE_ VEHICLE_UNKNOWN (300) -- Device movement is
+             in Vehicular mode; nothing else is known about the movement.   
+       \vspace{0.06in} \end{itemize1} 
+       
+       The motion_mode value is independent of the motion_state value.
+  */
+  
+  float probability_of_state;
+  /**< Probability that the device is actually undergoing the motion state 
+       specified by the combination of the values of motion_state, motion_mode, 
+       and motion_sub_mode. \vspace{0.06in}
+
+       This value is a floating point number in the range of 0 to 100, in 
+       units of percent probability. Any value greater than 99.9999 is 
+       applied as 99.9999. \vspace{0.06in} 
+
+       It is recommended that if a particular combination of motion_state and
+       motion_mode cannot be determined with more than 50 percent confidence, 
+       that a more general statement of user motion be made. 
+       For example, if the mode of In-Motion + Pedestrian-Running can only be 
+       determined with 50 percent probability, and the simpler statement of In-Motion 
+       can be determined with 90 percent probability, it is recommended that this field 
+       be used to simply state In-Motion with 90 percent probability. \vspace{0.06in}
+
+       If the motion_state is not known, the value in this field is not used.
+  */
+  
+  uint16 age;
+  /**< Age of the motion data in milliseconds at the time of injection. 
+  */
+  
+  uint16 timeout;
+  /**< If the age of the motion data input exceeds the timeout value, the data
+       will no longer be used. The timeout value is in units of milliseconds. 
+       Values in the range of 0 to 10000 are accepted. If 65535 is provided, 
+       the motion data input is applied until the next input is 
+       received. \vspace{0.06in}
+
+       If the determination of motion data is an instantaneous observation 
+       and no notice is guaranteed to be given via the QMI on a change in the 
+       state of the motion data, it is recommended that this field be set to 0. \vspace{0.06in}
+
+       If the determination of motion data is continuously monitored 
+       external to the QMI and an update is always applied to the QMI upon any 
+       change in state, a value of 65535 is used for this field. 
+       Note that in this case, if a certain mode is set and is not later 
+       unset (e.g., by sending in the request message with a user motion 
+       state of Unknown), the value is applied indefinitely. 
+  */
+
+} locEngMotionDataStructT;
+
+
+//============================================================================
+/** @COMMAND LOC_ENG_EVENT_INJECT_WIFI_AP_DATA_REQUEST
+    @CMD_VERSION 1.1
+    @USAGE          Production
+    @SECURITY_LEVEL High Risk
+    @REQUIRED_ACTION Default
+    @BRIEF For MSM GPS to request wifi AP data.
+*/
+//============================================================================
+
+//============================================================================
+/** @COMMAND LOC_ENG_INJECT_WIFI_AP_DATA
+    @CMD_VERSION 1.1
+    @USAGE          Production
+    @SECURITY_LEVEL High Risk
+    @REQUIRED_ACTION Default
+    @BRIEF Injects wifi data for MSM GPS service use.
+*/
+//============================================================================
+
+
+enum {
+
+  eLOC_ENG_WIFI_AP_DEVICE_TYPE_WLAN_802_11_A         =  0,
+  /**< Wifi AP device is 802.11a. */
+
+  eLOC_ENG_WIFI_AP_DEVICE_TYPE_WLAN_802_11_B         =  1,
+  /**< Wifi AP device is 802.11b. */
+
+  eLOC_ENG_WIFI_AP_DEVICE_TYPE_WLAN_802_11_G         =  2
+  /**< Wifi AP device is 802.11g. */
+
+} locEngWifiApDeviceTypeEnumT;
+
+
+enum {
+
+  eLOC_ENG_WIFI_AP_RTD_UNIT_MICROSEC             =  0,
+  /**< microseconds. */
+
+  eLOC_ENG_WIFI_AP_RTD_UNIT_HUNDREDS_OF_NANOSEC  =  1,
+  /**< hundreds of nano seconds. */
+
+  eLOC_ENG_WIFI_AP_RTD_UNIT_TENS_OF_NANOSEC      =  2,
+  /**< tens of nano seconds. */
+
+  eLOC_ENG_WIFI_AP_RTD_UNIT_NANOSEC              =  3,
+  /**< nano seconds. */
+
+  eLOC_ENG_WIFI_AP_RTD_UNIT_TENTH_OF_NANOSEC     =  4
+  /**< tenth nano seconds. */
+
+} locEngWifiApRtdUnitTypeEnumT;
+
+
+mask32
+{
+   LOC_ENG_WIFI_APINFO_MASK_AP_TRANSMIT_POWER = 0x00000001,
+   /**< ap_transmit valid. */
+
+   LOC_ENG_WIFI_APINFO_MASK_AP_ANTENNA_GAIN   = 0x00000002,
+   /**< ap_antenna_gain valid. */
+
+   LOC_ENG_WIFI_APINFO_MASK_AP_SNR            = 0x00000004,
+   /**< ap_signal_to_noise valid. */
+
+   LOC_ENG_WIFI_APINFO_MASK_AP_DEVICE_TYPE    = 0x00000008,
+   /**< ap_device_type valid. */
+
+   LOC_ENG_WIFI_APINFO_MASK_AP_RSSI           = 0x00000010,
+   /**< ap_rssi valid. */
+
+   LOC_ENG_WIFI_APINFO_MASK_AP_CHANNEL          = 0x00000020,
+   /**<  ap_channel valid.   */
+
+   LOC_ENG_WIFI_APINFO_MASK_AP_ROUNDTRIP_DELAY  = 0x00000040,
+   /**<  ap_roundtrip_delay valid.   */
+
+   LOC_ENG_WIFI_APINFO_MASK_AP_ROUNDTRIP_DELAY_ACCURACY = 0x00000080,
+   /**<  ap_roundtrip_delay_accuracy valid.   */
+
+   LOC_ENG_WIFI_APINFO_MASK_MOBILE_SNR = 0x00000100,
+   /**<  mobile_signal_to_noise valid.   */
+
+   LOC_ENG_WIFI_APINFO_MASK_MOBILE_RSSI = 0x00000200
+   /**<  mobile_rssi valid.   */
+
+}locEngWifiMaskT;  
+
+struct {
+
+  locEngWifiMaskT wifiInfoMask; 
+
+  /**< Specifies which sensors are used.
+  
+       Valid bitmasks are specified by the following constants: \n       
+         - 0x00000001 -- AP_TRANSMIT_POWER \n
+         - 0x00000002 -- AP_ANTENNA_GAIN \n
+         - 0x00000004 -- AP_SNR \n
+         - 0x00000008 -- AP_DEVICE_TYPE \n
+         - 0x00000010 -- AP_RSSI \n
+         - 0x00000020 -- AP_CHANNEL \n
+         - 0x00000040 -- AP_ROUNDTRIP_DELAY \n
+         - 0x00000080 -- AP_ROUNDTRIP_DELAY_ACCURACY \n
+         - 0x00000100 -- MOBILE_SNR \n
+         - 0x00000200 -- MOBILE_RSSI */
+
+  uint8 mac_address[6];   
+  /**< mac address: [5] containing the 6th octect; mandatory */
+
+  int32 ap_transmit_power;  
+  /**< AP transmit power in dbm, optional;  */
+
+  int32 ap_antenna_gain;    
+  /**< AP antenna gain in dbi, optional */
+
+  int32 ap_signal_to_noise; 
+  /**< AP S/N received at the mobile, optional */
+
+  locEngWifiApDeviceTypeEnumT ap_device_type;  
+  /**> AP device type, optional */                            
+
+  int32 ap_rssi;             
+  /**> Receiver AP signal strength indicator dBm, optional */
+
+  uint16 ap_channel;         
+  /**> WiFi channel on which a beacon was received, optioanl */
+
+  uint32 ap_round_trip_delay; 
+  /**> round trip delay between the mobile and the AP, in unit of ap_round_trip_delay_unit, optional */
+
+  locEngWifiApRtdUnitTypeEnumT ap_round_trip_delay_unit; 
+  /**> unit of ap_round_trip_delay and its accuracy; mandatory if ap_round_trip_delay is present */
+
+  uint8 ap_round_trip_delay_accuracy;  
+  /**> accuracy of ap_round_trip_delay, in unit of ap_round_trip_delay_unit, optional*/
+
+  int32 mobile_signal_to_noise; 
+  /**> mobile S/N received at AP, optional */
+
+  int32 mobile_rssi;   
+  /**> mobile signal strength at AP, optional */   
+
+} locEngWifiApInfoStructT;
+
+
+
+//-----------------------------------------------------------------------------
+//! @MSG     LOC_ENG_EVENT_INJECT_WIFI_AP_DATA_REQUEST_IND
+//! @TYPE    Indication
+//! @SENDER  Control point
+//----------------------------------------------------------------------------
+
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+} locEngEventInjectWifiApDataRequestIndMsgT;
+
+
+
+const QMI_LOC_WIFI_MAX_REPORTED_APS_PER_MSG  =  50;
+/**< Maximum number of Access Point entries per message. */
+
+//-----------------------------------------------------------------------------
+//! @MSG     LOC_ENG_INJECT_WIFI_AP_DATA_REQ
+//! @TYPE    Request
+//! @SENDER  Control point
+//----------------------------------------------------------------------------
+
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+ //! Wifi AP Data
+  //! @VERSION_INTRODUCED 1.1 
+  //! @VERSION 1.1
+  mandatory locEngWifiApInfoStructT wifi_ap_info<QMI_LOC_WIFI_MAX_REPORTED_APS_PER_MSG>;
+  /**< Current motion data of the client */
+  
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< opaque user data, if specified the same user data should be
+       echoed back in the response indication */
+
+} locEngInjectWifiApDataReqMsgT;
+
+
+
+//-----------------------------------------------------------------------------
+//! @MSG      LOC_ENG_INJECT_WIFI_AP_DATA_IND
+//! @TYPE     Indication
+//! @SENDER   Service
+//-----------------------------------------------------------------------------
+
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  //! Inject Motion Data Request Status
+  //! @VERSION_INTRODUCED 2.2
+  //! @VERSION 2.2
+  mandatory locEngStatusEnumT status;
+  /**< Status of the Inject Motion Data request. 
+
+       Valid values: \n
+       @ENUM()
+  */
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< if specified the it contains the same user data that was passed
+       in the request */
+
+} locEngInjectWifiApDataIndMsgT;
+
+
+
+
+
+//-----------------------------------------------------------------------------
+//! @MSG     LOC_ENG_INJECT_MOTION_DATA_REQ
+//! @TYPE    Request
+//! @SENDER  Control point
+//----------------------------------------------------------------------------
+
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  //! Motion Data report timestamp in modem time 
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory uint64 modemTimeTickMsec;
+  /**< Timestamp of sensor input in modem time which caused this indication. \n
+       - Unit: Milliseconds */
+
+  //! Motion Data
+  //! @VERSION_INTRODUCED 1.1 
+  //! @VERSION 1.1
+  mandatory locEngMotionDataStructT motion_data;
+  /**< Current motion data of the client */
+  
+  //! Motion Data report timestamp in Gps time 
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional locEngGPSTimeStructT gpsTime;
+  /**< Timestamp of sensor input in GPS time. \n */
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< opaque user data, if specified the same user data should be
+       echoed back in the response indication */
+
+} locEngInjectMotionDataReqMsgT;
+
+//-----------------------------------------------------------------------------
+//! @MSG      LOC_ENG_INJECT_MOTION_DATA_IND
+//! @TYPE     Indication
+//! @SENDER   Service
+//-----------------------------------------------------------------------------
+
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  //! Inject Motion Data Request Status
+  //! @VERSION_INTRODUCED 2.2
+  //! @VERSION 2.2
+  mandatory locEngStatusEnumT status;
+  /**< Status of the Inject Motion Data request. 
+       Valid values: \n
+       @ENUM()
+  */
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< if specified the it contains the same user data that was passed
+       in the request */
+} locEngInjectMotionDataIndMsgT;
+
+/** @ERROR
+    -QMI_ERR_NONE               No error in the request
+    -QMI_ERR_INTERNAL           Unexpected error occurred during processing
+    -QMI_ERR_MALFORMED_MSG      Message was not formulated correctly by the
+                                control point or the message was corrupted
+                                during transmission
+    -QMI_ERR_NO_MEMORY          Device could not allocate memory to formulate
+                                a response
+    -QMI_ERR_INVALID_HANDLE     Invalid client handle was received
+*/
+
+/** @DESCRIPTION
+    This command enables the injection of data to describe the motion of 
+    the user.
+
+    Motion data is an indication of user motion that is applied within 
+    the navigation engine to improve navigation performance. Motion 
+    data consists primarily of a stationary/nonstationary indication, 
+    a motion mode (i.e., pedestrian and walking, or vehicle), and an 
+    associated confidence. The source of motion data is typically inertial 
+    sensor data that has undergone some level of external processing. 
+    Alternatively, certain aspects of the motion data may be predefined 
+    depending on the specific application.
+*/
+
+//============================================================================
+/** @COMMAND LOC_ENG_SET_NAVIGATION_CONFIG
+    @BRIEF Sets various navigation configuration parameters. 
+    @USAGE     Production
+    @SECURITY_LEVEL    High Risk
+    @REQUIRED_ACTION   Default
+    @CMD_VERSION 1.8           
+*/
+//============================================================================
+
+//! @MSG     LOC_ENG_SET_NAVIGATION_CONFIG_REQ
+//! @TYPE    Request
+//! @SENDER  Control point
+//----------------------------------------------------------------------------
+
+mask32 
+{
+  LOC_ENG_NAV_CONFIG_POS_METHOD_MASK_SUPPRESS_USE_OF_INJECTED_POSITION = 0x00000001,
+  /**<  Suppress the use of injected position from direct 
+        use in position calculation. */
+  LOC_ENG_NAV_CONFIG_POS_METHOD_MASK_USE_INSTANTANEOUS_INFORMATION     = 0x00000002,
+  /**<  Report the measurement used and DOPs using 
+        instantaneous information. */
+  LOC_ENG_NAV_CONFIG_POS_METHOD_MASK_DISABLE_ASSIST_DATA_STORE         = 0x00000004,
+  /**<  Disable the storage of assistance data in persistent memory. */ 
+  LOC_ENG_NAV_CONFIG_ENABLE_COMPUTING_ACCURATE_AZIMUTH_ELEVATION       = 0x00000008
+  /**<  Enable the computing of accurate azimuth and elevation in the position engine. */ 
+} locEngNavConfigPosMethodMaskT;
+
+mask32 
+{
+  LOC_ENG_NAV_CONFIG_SENSOR_ALGORITHM_MASK_DISABLE_INS_POSITIONING_FILTER = 0x00000001
+  /**<  Inertial sensors are not to be used in Accelerometer-integrated fashion 
+        with GNSS. They can still be used for aiding in heading improvement. */
+} locEngNavConfigSensorAlgorithmConfigT;
+
+mask 
+{
+  LOC_ENG_VEHICLE_DATA_ENABLE_USE_MASK_ACCEL_X_AXIS = 0x0000000000000001,
+  /**< Enable the use of x-axis vehicle accelerometer sensor data */
+  LOC_ENG_VEHICLE_DATA_ENABLE_USE_MASK_ACCEL_Y_AXIS = 0x0000000000000002,
+  /**< Enable the use of y-axis vehicle accelerometer sensor data */
+  LOC_ENG_VEHICLE_DATA_ENABLE_USE_MASK_ACCEL_Z_AXIS = 0x0000000000000004,
+  /**< Enable the use of z-axis vehicle accelerometer sensor data */
+  LOC_ENG_VEHICLE_DATA_ENABLE_USE_MASK_GYRO_X_AXIS  = 0x0000000000000010,
+  /**< Enable the use of x-axis vehicle gyroscope data */
+  LOC_ENG_VEHICLE_DATA_ENABLE_USE_MASK_GYRO_Y_AXIS  = 0x0000000000000020,
+  /**< Enable the use of y-axis vehicle gyroscope data */
+  LOC_ENG_VEHICLE_DATA_ENABLE_USE_MASK_GYRO_Z_AXIS  = 0x0000000000000040,
+  /**< Enable the use of z-axis vehicle gyroscope data */
+  LOC_ENG_VEHICLE_DATA_ENABLE_USE_MASK_ODOMETRY     = 0x0000000000000100
+  /**< Enable the use of odometry data. */
+} locEngVehicleDataUseControlMaskT;
+
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  //! Navigation config timestamp in modem time 
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory uint64 modemTimeTickMsec;
+  /**< Timestamp of sensor input in modem time which caused this indication. \n
+       - Unit: Milliseconds */
+
+  //! @VERSION 1.8
+  //! Gyro Data Variance
+  optional float gyro_data_variance;
+  /**< Gyroscope data variance. \n
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Radians^2/seconds^2     \n
+       - Valid values: 0 to 0.25  \n
+       - Default: 0.0625
+  */
+
+  //! @VERSION 1.8
+  //! Gyro Bias Random Walk
+  optional float gyro_bias_random_walk;
+  /**< Gyroscope bias random walk. \n
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Radians^2/seconds^4     \n
+       - Valid values: 0, 1             \n
+       - Default: 1.0e-5
+  */
+
+  //! @VERSION 1.8
+  //! Virtual Gyro Gravity Averaging Length 
+  optional uint32 virtual_gyro_gravity_averaging_length;
+  /**< Virtual gyroscope gravity averaging length. \n
+       - Type: 32-bit unsigned integer \n
+       - Units: Seconds \n
+       - Range: 1 to 60 \n
+       - Default: 20 sec
+  */
+
+
+  //! @VERSION 1.8
+  //! Heading Filter Mode (M)
+  optional uint8 heading_filter_mode;
+  /**< Heading filter mode. 
+
+       \begin{itemize1}
+       \item   Type: 8-bit unsigned integer
+       \item   Valid values:\begin{itemize1}
+          \item   -128 to -1 -- Disable heading filter
+          \item   0 to 127   -- Enable heading filter
+          \end{itemize1}
+       \item  Default: 0     \vspace{-0.18in}
+       \end{itemize1}
+  */
+
+  //! @VERSION 1.8
+  //! Velocity Constraint Variance
+  optional float velocity_constraint_variance;
+  /**< Velocity constraint variance. \n
+       - Type: IEEE-754 32-bit float   \n
+       - Units: Meters^2/seconds^2     \n
+       - Valid values: Positive values \n
+       - Default: 25.0
+  */
+
+  //! @VERSION 1.31
+  //! Positioning Method
+  optional locEngNavConfigPosMethodMaskT positioning_method;
+  /**< Bitmask of navigation configuration settings. 
+
+       \begin{itemize1}
+       \item   Type: 32-bit unsigned integer
+       \item   Valid values:\begin{itemize1}
+          \item   0x00000001 -- Suppress the use of injected position from direct 
+                                use in the position calculation.
+          \item   0x00000002 -- Report the measurement used and DOPs using 
+                                instantaneous information.
+          \item   0x00000004 -- Disable the storage of assistance data in 
+                                persistent memory.
+          \item   0x00000008 -- Enable the computing of accurate azimuth and elevation in 
+                                the position engine.
+          \item   Default (0x00000000) -- Normal operation -- Use the injected 
+                  position directly in the position calculation, when possible. 
+                  Report the measurement used and DOPs using filtered 
+                  (i.e., non-instantaneous) information. Store the assistance 
+                  data in persistent memory.  
+                  Report azimuth, elevation with normal accuracy and normal precision.\vspace{0.06in}
+          \end{itemize1}
+       \end{itemize1}
+
+       All unlisted bits are reserved for future use and must be set to 0.
+  */
+  
+  //! @VERSION 1.17
+  //! Velocity Random Walk Spectral Density 
+  optional float velocity_random_walk_spectral_density;
+  /**< Velocity random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Meters/seconds^2/Hz^0.5    \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+  //! @VERSION 1.17
+  //! Acceleration Random Walk Spectral Density 
+  optional float acceleration_random_walk_spectral_density;
+  /**< Acceleration random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Meters/seconds^3/Hz^0.5    \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+  //! @VERSION 1.17
+  //! Angle Random Walk Spectral Density 
+  optional float angle_random_walk_spectral_density;
+  /**< Angle random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Radians/seconds/Hz^0.5    \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+ 
+  //! @VERSION 1.17
+  //! Rate Random Walk Spectral Density 
+  optional float rate_random_walk_spectral_density;
+  /**< Rate random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Radians/seconds^2/Hz^0.5    \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+  
+  //! @VERSION 1.17
+  //! Sensor Algorithm Configuration
+  optional locEngNavConfigSensorAlgorithmConfigT sensor_algorithm_config;
+  /**< Bitmask of sensor algorithm configuration settings. 
+
+       \begin{itemize1}
+       \item   Type: 32-bit unsigned integer
+       \item   Valid values:\begin{itemize1}
+          \item   0x00000001 -- INS positioning filter is disabled. Sensors may
+                                still be used by the heading filter.
+          \item   Default (0x00000000) -- Normal operation -- INS positioning 
+                  filter is enabled.\vspace{0.06in}
+          \end{itemize1}
+       \end{itemize1}
+
+       All unlisted bits are reserved for future use and must be set to 0.
+  */
+
+  //! @VERSION 1.17
+  //! Maximum Dead Reckoning Time 
+  optional uint32 maximum_dead_reckoning_time;
+  /**< Maximum dead reckoning time to propagate a navigation fix using an 
+       INS filter without a GNSS signal. \n  
+       - Type: 32-bit unsigned integer   \n
+       - Units: Seconds                        \n
+       - Valid values: Zero or positive values \n
+       - Default: 30 sec
+  */
+
+  //! @VERSION 1.17
+  //! INS Filter Cross Check Sigma Low Threshold 
+  optional uint8 ins_filter_cross_check_sigma_low_threshold;
+  /**< Low threshold for averaging the position outputs from an INS filter and 
+       non-INS filter (includes heading filter). \n
+       Sigma = horiz_distance (INS filter position, non-INS filter position)/(non-INS filter HEPE). \n
+       The reporting logic is: 
+
+       \begin{itemize1}
+       \item   If 0 < sigma < low_threshold, the INS filter position is reported 
+       \item   Else if low_threshold < sigma < high_threshold, 
+               the weighted average of the INS filter and non-INS filter position is 
+               reported 
+       \item   Else if sigma < high_threshold, the non-INS filter position is reported  \vspace{0.12in}
+       \end{itemize1}
+
+       - Type: 8-bit unsigned integer   \n
+       - Valid values: Positive values  \n
+       - Default: 2
+  */
+
+  //! @VERSION 1.17
+  //! INS Filter Cross Check Sigma High Threshold 
+  optional uint8 ins_filter_cross_check_sigma_high_threshold;
+  /**< High threshold for averaging the position outputs from an INS filter and 
+       non-INS filter (includes heading filter). \n
+       Sigma = horiz_distance (INS filter position, non-INS filter position)/(non-INS filter HEPE). \n
+       The reporting logic is: 
+
+       \begin{itemize1}
+       \item   If 0 < sigma < low_threshold, the INS filter position is reported
+       \item   Else if low_threshold < sigma < high_threshold, 
+               the weighted average of the INS filter and non-INS filter position is 
+               reported 
+       \item   Else if sigma < high_threshold, the non-INS filter position is reported  \vspace{0.12in}
+       \end{itemize1}
+
+       - Type: 8-bit unsigned integer   \n
+       - Valid values: Positive values  \n
+       - Default: 10
+  */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Data Use Control
+  optional locEngVehicleDataUseControlMaskT vehicle_data_use;
+  /**< Identifies which portions of the vehicle data to use in location 
+       estimation (information provided by message 
+       LOC_ENG_INJECT_VEHICLE_ SENSOR_DATA. Valid bitmasks: \n
+       @MASK() 
+       
+       \vspace{3pt}
+       Default: 0x0000000000000000, which means that
+                usage of all vehicle sensor inputs is disabled 
+       
+       Note: All other bits are reserved for future use and must be set to 0 */
+   
+  /* Tech Pubs note: added space after _ to aid in document formatting */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Velocity Random Walk Spectral Density
+  optional float vehicle_velocity_random_walk_spectral_density;
+  /**< Vehicle velocity random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float     \n
+       - Units: Meters/seconds^2/Hz^0.5  \n
+       - Valid values: Positive values   \n
+       - Default: None
+  */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Accelerometer Random Walk Spectral Density
+  optional float vehicle_accel_random_walk_spectral_density;
+  /**< Vehicle accelerometer random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float     \n
+       - Units: Meters/seconds^3/Hz^0.5  \n
+       - Valid values: Positive values   \n
+       - Default: None
+  */
+
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Angle Random Walk Spectral Density
+  optional float vehicle_angle_random_walk_spectral_density;
+  /**< Vehicle angle random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Radians/seconds/Hz^0.5  \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Angular Rate Random Walk Spectral Density
+  optional float vehicle_angular_rate_random_walk_spectral_density;
+  /**< Vehicle angular rate random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float      \n
+       - Units: Radians/seconds^2/Hz^0.5  \n
+       - Valid values: Positive values    \n
+       - Default: None
+  */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Odometry Scale Factor Random Walk Spectral Density
+  optional float vehicle_odometry_scale_factor_random_walk_spectral_density;
+  /**< Vehicle odometry scale factor random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float  \n
+       - Units: (1/seconds)/Hz^0.5    \n 
+       - Range: Approximately 0.0001 to 0.001  \n
+       - Default: 0.001 (actual is calibration recommended)
+  */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Odometry Variance
+  optional float vehicle_odometry_variance;
+  /**< Vehicle odometry variance of each odometry sample
+       (coarseness of measurement). \n
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Meters^2                \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+
+  //! Navigation config request timestamp in Gps time
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional locEngGPSTimeStructT gpsTime;
+  /**< Timestamp of the navigation config request in GPS time. \n */
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< opaque user data, if specified the same user data should be
+       echoed back in the response indication */
+
+  //! @VERSION_INTRODUCED 1.39
+  //! @VERSION 1.39
+  //! Maximum Dead Reckoning Time with Vehicle Sensor Inputs
+  optional uint32 vehicle_maximum_dead_reckoning_time;
+  /**< Maximum dead reckoning time to propagate a navigation fix with vehicle sensor
+       inputs using a Path filter without a GNSS signal. \n
+       - Type: 32-bit unsigned integer \n
+       - Units: seconds \n
+       - Valid values: Zero or Positive values \n
+       - Default: None
+  */
+
+  //! @VERSION_INTRODUCED 1.41
+  //! @VERSION 1.41
+  //! Maximum Dead Reckoning Time for Pedestrian Use Cases
+  optional uint32 pedestrian_maximum_dead_reckoning_time;
+  /**< Maximum dead reckoning time to propagate a navigation fix for pedestrian 
+       use cases using a path filter without a GNSS signal. \n
+       - Type: 32-bit unsigned integer \n
+       - Units: Seconds \n
+       - Valid values: Zero or positive values \n
+       - Default: None
+  */
+}   locEngSetNavigationConfigReqMsgT;
+
+
+//! @MSG    LOC_ENG_SET_NAVIGATION_CONFIG_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  //! Inject Vehicle Sensor Data Request Status
+  //! @VERSION_INTRODUCED 2.2
+  //! @VERSION 2.2
+  mandatory locEngStatusEnumT status;
+  /**< Status of the Inject Vehicle Sensor Data request. 
+       Valid values: \n
+       @ENUM()
+  */
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< if specified the it contains the same user data that was passed
+       in the request */
+
+} locEngSetNavigationConfigRespMsgT;
+
+
+/** @ERROR
+    -QMI_ERR_NONE                   Operation requested by the control point
+                                    completed successfully
+    -QMI_ERR_INTERNAL               Unexpected error occurred during 
+                                    processing
+    -QMI_ERR_MALFORMED_MSG          Message was not formulated correctly by 
+                                    the control point or the message 
+                                    was corrupted during transmission
+    -QMI_ERR_INVALID_ARG            Value field of one or more TLVs in the
+                                    request message contains an invalid value
+    -QMI_ERR_OP_DEVICE_UNSUPPORTED  Operation is not supported by the MSM GPS
+                                    service
+    -QMI_ERR_INVALID_OPERATION      Operation is not allowed due to the 
+                                    current state of the location engine
+*/
+                        
+/** @DESCRIPTION
+    This command sets various navigation engine-related configuration 
+    parameters. These parameters are written to persistent memory by the GPS 
+    service. The GPS service retrieves the last programmed values each time it 
+    boots up. The GPS service uses the default value for a parameter until a 
+    QMI client changes it for the first time. 
+
+    This command is only accepted when the GPS service is not in a tracking
+    session. If the command is received while the GPS service is in a tracking 
+    session, a QMI_ERR_INTERNAL error is returned.
+*/
+
+//============================================================================
+/** @COMMAND LOC_ENG_GET_NAVIGATION_CONFIG
+    @BRIEF Gets various navigation configuration parameters. 
+    @USAGE     Production
+    @SECURITY_LEVEL    High Risk
+    @REQUIRED_ACTION   Default
+    @CMD_VERSION 1.8           
+*/
+//============================================================================
+
+//! @MSG     LOC_ENG_GET_NAVIGATION_CONFIG_REQ
+//! @TYPE    Request
+//! @SENDER  Control point
+//----------------------------------------------------------------------------
+
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  //! Navigation config request timestamp in modem time 
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory uint64 modemTimeTickMsec;
+  /**< Timestamp of sensor input in modem time which caused this indication. \n
+       - Unit: Milliseconds */
+
+  //! Navigation config request timestamp in Gps time
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional locEngGPSTimeStructT gpsTime;
+  /**< Timestamp of the navigation config request in GPS time. \n */
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< opaque user data, if specified the same user data should be
+       echoed back in the response indication */
+
+}   locEngGetNavigationConfigReqMsgT;
+
+
+//! @MSG    LOC_ENG_GET_NAVIGATION_CONFIG_RESP
+//! @TYPE    Response
+//! @SENDER  Service
+//----------------------------------------------------------------------------
+
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  
+  //! Get Navigation Config Request Status
+  //! @VERSION_INTRODUCED 2.2
+  //! @VERSION 2.2
+  mandatory locEngStatusEnumT status;
+  /**< Status of the Get Navigation Config request. 
+       Valid values: \n
+       @ENUM()
+  */
+
+  //! @VERSION 1.8
+  //! Gyro Data Variance
+  optional float gyro_data_variance;
+  /**< Gyroscope data variance. \n
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Radians^2/seconds^2     \n
+       - Valid values: 0 to 0.25  \n
+       - Default: 0.0625
+  */
+
+  //! @VERSION 1.8
+  //! Gyro Bias Random Walk
+  optional float gyro_bias_random_walk;
+  /**< Gyroscope bias random walk. \n
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Radians^2/seconds^4     \n
+       - Valid values: 0, 1             \n
+       - Default: 1.0e-5
+  */
+
+  //! @VERSION 1.8
+  //! Virtual Gyro Gravity Averaging Length 
+  optional uint32 virtual_gyro_gravity_averaging_length;
+  /**< Virtual gyroscope gravity averaging length. \n
+       - Type: 32-bit unsigned integer \n
+       - Units: Seconds \n
+       - Range: 1 to 60 \n
+       - Default: 20 sec
+  */
+
+
+  //! @VERSION 1.8
+  //! Heading Filter Mode (M)
+  optional uint8 heading_filter_mode;
+  /**< Heading filter mode. 
+
+       \begin{itemize1}
+       \item   Type: 8-bit unsigned integer
+       \item   Valid values:\begin{itemize1}
+          \item   -128 to -1 -- Disable heading filter
+          \item   0 to 127   -- Enable heading filter
+          \end{itemize1}
+       \item  Default: 0     \vspace{-0.18in}
+       \end{itemize1}
+  */
+
+  //! @VERSION 1.8
+  //! Velocity Constraint Variance
+  optional float velocity_constraint_variance;
+  /**< Velocity constraint variance. \n
+       - Type: IEEE-754 32-bit float   \n
+       - Units: Meters^2/seconds^2     \n
+       - Valid values: Positive values \n
+       - Default: 25.0
+  */
+
+  //! @VERSION 1.31
+  //! Positioning Method
+  optional locEngNavConfigPosMethodMaskT positioning_method;
+  /**< Bitmask of navigation configuration settings. 
+
+       \begin{itemize1}
+       \item   Type: 32-bit unsigned integer
+       \item   Valid values:\begin{itemize1}
+          \item   0x00000001 -- Suppress the use of injected position from direct 
+                                use in the position calculation.
+          \item   0x00000002 -- Report the measurement used and DOPs using 
+                                instantaneous information.
+          \item   0x00000004 -- Disable the storage of assistance data in 
+                                persistent memory.
+          \item   0x00000008 -- Enable the computing of accurate azimuth and elevation in 
+                                the position engine.
+          \item   Default (0x00000000) -- Normal operation -- Use the injected 
+                  position directly in the position calculation, when possible. 
+                  Report the measurement used and DOPs using filtered 
+                  (i.e., non-instantaneous) information. Store the assistance 
+                  data in persistent memory.  
+                  Report azimuth, elevation with normal accuracy and normal precision.\vspace{0.06in}
+          \end{itemize1}
+       \end{itemize1}
+
+       All unlisted bits are reserved for future use and must be set to 0.
+  */
+  
+  //! @VERSION 1.17
+  //! Velocity Random Walk Spectral Density 
+  optional float velocity_random_walk_spectral_density;
+  /**< Velocity random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Meters/seconds^2/Hz^0.5    \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+  //! @VERSION 1.17
+  //! Acceleration Random Walk Spectral Density 
+  optional float acceleration_random_walk_spectral_density;
+  /**< Acceleration random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Meters/seconds^3/Hz^0.5    \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+  //! @VERSION 1.17
+  //! Angle Random Walk Spectral Density 
+  optional float angle_random_walk_spectral_density;
+  /**< Angle random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Radians/seconds/Hz^0.5    \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+ 
+  //! @VERSION 1.17
+  //! Rate Random Walk Spectral Density 
+  optional float rate_random_walk_spectral_density;
+  /**< Rate random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Radians/seconds^2/Hz^0.5    \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+  
+  //! @VERSION 1.17
+  //! Sensor Algorithm Configuration
+  optional locEngNavConfigSensorAlgorithmConfigT sensor_algorithm_config;
+  /**< Bitmask of sensor algorithm configuration settings. 
+
+       \begin{itemize1}
+       \item   Type: 32-bit unsigned integer
+       \item   Valid values:\begin{itemize1}
+          \item   0x00000001 -- INS positioning filter is disabled. Sensors may
+                                still be used by the heading filter.
+          \item   Default (0x00000000) -- Normal operation -- INS positioning 
+                  filter is enabled.\vspace{0.06in}
+          \end{itemize1}
+       \end{itemize1}
+
+       All unlisted bits are reserved for future use and must be set to 0.
+  */
+
+  //! @VERSION 1.17
+  //! Maximum Dead Reckoning Time 
+  optional uint32 maximum_dead_reckoning_time;
+  /**< Maximum dead reckoning time to propagate a navigation fix using an 
+       INS filter without a GNSS signal. \n  
+       - Type: 32-bit unsigned integer   \n
+       - Units: Seconds                        \n
+       - Valid values: Zero or positive values \n
+       - Default: 30 sec
+  */
+
+  //! @VERSION 1.17
+  //! INS Filter Cross Check Sigma Low Threshold 
+  optional uint8 ins_filter_cross_check_sigma_low_threshold;
+  /**< Low threshold for averaging the position outputs from an INS filter and 
+       non-INS filter (includes heading filter). \n
+       Sigma = horiz_distance (INS filter position, non-INS filter position)/(non-INS filter HEPE). \n
+       The reporting logic is: 
+
+       \begin{itemize1}
+       \item   If 0 < sigma < low_threshold, the INS filter position is reported 
+       \item   Else if low_threshold < sigma < high_threshold, 
+               the weighted average of the INS filter and non-INS filter position is 
+               reported 
+       \item   Else if sigma < high_threshold, the non-INS filter position is reported  \vspace{0.12in}
+       \end{itemize1}
+
+       - Type: 8-bit unsigned integer   \n
+       - Valid values: Positive values  \n
+       - Default: 2
+  */
+
+  //! @VERSION 1.17
+  //! INS Filter Cross Check Sigma High Threshold 
+  optional uint8 ins_filter_cross_check_sigma_high_threshold;
+  /**< High threshold for averaging the position outputs from an INS filter and 
+       non-INS filter (includes heading filter). \n
+       Sigma = horiz_distance (INS filter position, non-INS filter position)/(non-INS filter HEPE). \n
+       The reporting logic is: 
+
+       \begin{itemize1}
+       \item   If 0 < sigma < low_threshold, the INS filter position is reported
+       \item   Else if low_threshold < sigma < high_threshold, 
+               the weighted average of the INS filter and non-INS filter position is 
+               reported 
+       \item   Else if sigma < high_threshold, the non-INS filter position is reported  \vspace{0.12in}
+       \end{itemize1}
+
+       - Type: 8-bit unsigned integer   \n
+       - Valid values: Positive values  \n
+       - Default: 10
+  */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Data Use Control
+  optional locEngVehicleDataUseControlMaskT vehicle_data_use;
+  /**< Identifies which portions of the vehicle data to use in location 
+       estimation (information provided by message 
+       LOC_ENG_INJECT_VEHICLE_ SENSOR_DATA. Valid bitmasks: \n
+       @MASK() 
+       
+       \vspace{3pt}
+       Default: 0x0000000000000000, which means that
+                usage of all vehicle sensor inputs is disabled 
+       
+       Note: All other bits are reserved for future use and must be set to 0 */
+   
+  /* Tech Pubs note: added space after _ to aid in document formatting */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Velocity Random Walk Spectral Density
+  optional float vehicle_velocity_random_walk_spectral_density;
+  /**< Vehicle velocity random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float     \n
+       - Units: Meters/seconds^2/Hz^0.5  \n
+       - Valid values: Positive values   \n
+       - Default: None
+  */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Accelerometer Random Walk Spectral Density
+  optional float vehicle_accel_random_walk_spectral_density;
+  /**< Vehicle accelerometer random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float     \n
+       - Units: Meters/seconds^3/Hz^0.5  \n
+       - Valid values: Positive values   \n
+       - Default: None
+  */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Angle Random Walk Spectral Density
+  optional float vehicle_angle_random_walk_spectral_density;
+  /**< Vehicle angle random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Radians/seconds/Hz^0.5  \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Angular Rate Random Walk Spectral Density
+  optional float vehicle_angular_rate_random_walk_spectral_density;
+  /**< Vehicle angular rate random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float      \n
+       - Units: Radians/seconds^2/Hz^0.5  \n
+       - Valid values: Positive values    \n
+       - Default: None
+  */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Odometry Scale Factor Random Walk Spectral Density
+  optional float vehicle_odometry_scale_factor_random_walk_spectral_density;
+  /**< Vehicle odometry scale factor random walk spectral density. \n  
+       - Type: IEEE-754 32-bit float  \n
+       - Units: (1/seconds)/Hz^0.5    \n 
+       - Range: Approximately 0.0001 to 0.001  \n
+       - Default: 0.001 (actual is calibration recommended)
+  */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Vehicle Odometry Variance
+  optional float vehicle_odometry_variance;
+  /**< Vehicle odometry variance of each odometry sample
+       (coarseness of measurement). \n
+       - Type: IEEE-754 32-bit float    \n
+       - Units: Meters^2                \n
+       - Valid values: Positive values  \n
+       - Default: None
+  */
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< if specified the it contains the same user data that was passed
+       in the request */
+
+  //! @VERSION_INTRODUCED 1.39
+  //! @VERSION 1.39
+  //! Maximum Dead Reckoning Time with Vehicle Sensor Inputs
+  optional uint32 vehicle_maximum_dead_reckoning_time;
+  /**< Maximum dead reckoning time to propagate a navigation fix with vehicle sensor
+       inputs using a Path filter without a GNSS signal. \n
+       - Type: 32-bit unsigned integer \n
+       - Units: seconds \n
+       - Valid values: Zero or Positive values \n
+       - Default: None
+  */
+
+  //! @VERSION_INTRODUCED 1.41
+  //! @VERSION 1.41
+  //! Maximum Dead Reckoning Time for Pedestrian Use Cases
+  optional uint32 pedestrian_maximum_dead_reckoning_time;
+  /**< Maximum dead reckoning time to propagate a navigation fix for pedestrian 
+       use cases using a path filter without a GNSS signal. \n
+       - Type: 32-bit unsigned integer \n
+       - Units: Seconds \n
+       - Valid values: Zero or positive values \n
+       - Default: None
+  */
+} locEngGetNavigationConfigRespMsgT;
+
+
+/** @ERROR
+    -QMI_ERR_NONE                   Operation requested by the control point
+                                    completed successfully
+    -QMI_ERR_INTERNAL               Unexpected error occurred during 
+                                    processing
+    -QMI_ERR_MALFORMED_MSG          Message was not formulated correctly by 
+                                    the control point or the message 
+                                    was corrupted during transmission
+    -QMI_ERR_INVALID_ARG            Value field of one or more TLVs in the
+                                    request message contains an invalid value
+    -QMI_ERR_OP_DEVICE_UNSUPPORTED  Operation is not supported by the MSM GPS
+                                    service
+    -QMI_ERR_INVALID_OPERATION      Operation is not allowed due to the 
+                                    current state of the location engine
+*/
+                        
+/** @DESCRIPTION
+    This command gets various navigation engine-related configuration 
+    parameters. These parameters are written to persistent memory by the GPS 
+    service. The GPS service retrieves the last programmed values each time it 
+    boots up. The GPS service uses the default value for a parameter until a 
+    QMI client changes it for the first time. 
+
+    This command is only accepted when the GPS service is not in a tracking
+    session. If the command is received while the GPS service is in a tracking 
+    session, a QMI_ERR_INTERNAL error is returned.
+*/
+
+//============================================================================
+/** @COMMAND LOC_ENG_INJECT_VEHICLE_SENSOR_DATA
+    @BRIEF   Injects on-vehicle sensor data into the location engine.
+             \label{idl:injectVehicleSensorData}
+    @USAGE             Production
+    @SECURITY_LEVEL    High Risk
+    @REQUIRED_ACTION   Default
+    @CMD_VERSION 1.28
+*/
+//! @MSG     LOC_ENG_INJECT_VEHICLE_SENSOR_DATA_REQ
+//! @TYPE    Request
+//! @SENDER  Control point
+//----------------------------------------------------------------------------
+
+const LOC_ENG_VEHICLE_SENSOR_DATA_MAX_SAMPLES     = 65;
+/**< Maximum number of vehicle sensor samples that can be injected */
+
+const LOC_ENG_VEHICLE_SENSOR_DATA_MAX_AXES        = 3;
+/**< Maximum number of axes that can be provided in each sample */
+
+const LOC_ENG_VEHICLE_ODOMETRY_MAX_MEASUREMENTS   = 3;
+/**< Maximum number of measurements from an odometer */
+
+mask 
+{
+  LOC_ENG_MASK_X_AXIS   = 0x0000000000000001,
+  /**< The x-axis is valid \n */
+  LOC_ENG_MASK_Y_AXIS   = 0x0000000000000002,
+  /**< The y-axis is valid \n */
+  LOC_ENG_MASK_Z_AXIS   = 0x0000000000000004
+  /**< The z-axis is valid. */
+} locEngAxesMaskT;
+
+struct 
+{
+  uint32                sample_timetag_offset;
+  /**< Sample time offset. This time offset must be 
+       relative to the sensor time of the first sample. \n 
+       - Type: Unsigned integer  \n 
+       - Units: Microseconds     \n
+       - Range: Up to over 4000 sec */
+
+  float                 axis_sample<LOC_ENG_VEHICLE_SENSOR_DATA_MAX_AXES>;
+  /**< Sensor axis sample.        \n 
+       - Type: Floating point     \n
+       - Units accelerometer:     \n
+         ( (meters)/(seconds^2) ) \n
+       - Units gyroscope:         \n
+         ( (radians)/(seconds) ) 
+         
+       \vspace{3pt}
+       Note: The axes samples must be in the following order: \n 
+             - x-axis \n
+             - y-axis \n
+             - z-axis */
+
+} locEngVehicleSensorSampleStructT; 
+
+struct 
+{
+  uint32                                sensor_sample_time_base;
+  /**< Denotes a 32-bit time tag of a reference time, from which 
+       all samples in this request are offset. Note that this time must 
+       be the same or (slightly) earlier than the first (oldest) 
+       sample in this request. \n
+       - Type: Unsigned integer  \n
+       - Units: 1 ms             \n
+       - Range: Approximately 4 million sec or almost 50 days between 
+                rollovers */
+
+  locEngAxesMaskT     axes_validity;
+  /**< Identifies the axes that are valid for all the sensor samples. 
+       Valid bitmasks: 
+       @MASK() */
+
+  locEngVehicleSensorSampleStructT 
+                                sensorData<LOC_ENG_VEHICLE_SENSOR_DATA_MAX_SAMPLES>;
+  /* Variable length array to specify the on-vehicle sensor samples; 
+     Max Length of array is: 50 */
+} locEngVehicleSensorSampleListStructT; 
+
+mask 
+{
+  LOC_ENG_MASK_VEHICLE_ODOMETRY_REVERSE_MOVEMENT = 0x0000000000000001,
+  /**< Odometry data includes at least some data where
+       the vehicle may have been moving in the reverse direction. 
+       If odometry data may be in reverse, this bit must be set.
+       If odometry data is all in the forward direction, this bit 
+       must not be set. */
+  LOC_ENG_MASK_VEHICLE_ODOMETRY_AFFECTED_BY_ERRORS = 0x0000000000000002,
+  /**< Odometry data includes at least some data affected
+       by a major error source affecting distance-traveled accuracy, 
+       such as wheel slippage due to skidding, gravel, snow, or ice as
+       detected by the vehicle, e.g., via an ABS or other system. */
+
+  LOC_ENG_MASK_VEHICLE_ODOMETRY_ABSOLUTE_MEASUREMENT = 0x0000000000000004
+  /**< Odometry data is an absolute amount since the vehicle
+       began service, and is the same vehicle that is regularly used with 
+       this device (so that the offset of this value, since the last time
+       this measurement was used by the location engine, can be safely used
+       as a likely correct estimate of the distance traveled since last 
+       use). */
+} locEngVehicleOdometryMeasDeviationMaskT;
+
+mask
+{
+  LOC_ENG_MASK_VEHICLE_ODOMETRY_LEFT_AND_RIGHT_AVERAGE  = 0x0000000000000001,
+  /**< Average of left and right non-turning wheels */
+  LOC_ENG_MASK_VEHICLE_ODOMETRY_LEFT            =     0x0000000000000002,
+  /**< Left side, non-turning wheel */
+  LOC_ENG_MASK_VEHICLE_ODOMETRY_RIGHT           =     0x0000000000000004
+  /**< Right side, non-turning wheel */
+
+} locEngVehicleOdometryWheelFlagsMaskT;
+/**< Delineates for which wheels the measurements are being provided
+     in the following samples, where one or more of the following bits
+     must be set, and data samples aligned with these axes must appear
+     in groups, in this order. 
+
+     Note: At least one bit must be set. */
+
+
+struct 
+{
+  uint32      sample_timetag_offset;
+  /**< Sample time offset. This time offset must be 
+       relative to the sensor time of the first sample. \n 
+       - Type: Unsigned integer  \n 
+       - Units: Microseconds     \n
+       - Range: Up to over 4000 sec */
+
+  uint32      distance_travelled<LOC_ENG_VEHICLE_ODOMETRY_MAX_MEASUREMENTS>;
+  /**<  Distance traveled (odometry) sample offset. \n 
+        - Type: Unsigned integer                      \n
+        - Units of accumulated distance: Millimeters  \n
+        - Range: Over 4000 km
+
+        \vspace{3pt}
+        This measurement (in units of millimeters) is added to 
+        the distance_travelled_base measurement (in meters) to 
+        get the total distance traveled sample value.
+
+        \vspace{3pt}
+        Note: The order of measurements must be: \n
+              - Average of left and right  \n
+              - Left                       \n
+              - Right 
+   */
+} locEngVehicleOdometrySampleStructT; 
+
+struct 
+{
+  uint32                                  sensor_sample_time_base;
+  /**< Denotes a 32-bit time tag of a reference time, from which 
+       all samples in this request are offset. Note that this time must 
+       be the same or (slightly) earlier than the first (oldest) 
+       sample in this request. \n
+       - Type: Unsigned integer  \n
+       - Units: 1 ms             \n
+       - Range: Approximately 4 million sec or almost 50 days between 
+                rollovers */
+  
+  locEngVehicleOdometryMeasDeviationMaskT   flags;
+  /**<  Flags to indicate any deviation from the default measurement 
+        assumptions. Valid bitmasks: \n
+        @MASK() */
+
+  locEngVehicleOdometryWheelFlagsMaskT      wheel_flags;
+  /**<  Delineates for which wheels the measurements are provided
+        in the samples, where one or more of the following
+        bits must be set, and data samples aligned with these axes must
+        appear in groups, in this order. Valid bitmasks: \n
+        @MASK() */
+  
+  uint32                                        distance_travelled_base;
+  /**< Distance traveled base. \n
+        - Type: Unsigned integer                 \n
+        - Units of accumulated distance: Meters  \n
+        - Range: Over 4,000,0000 km 
+
+        \vspace{3pt}
+        Distance traveled (odometry) is to be reported in a continuously 
+        accumulating way from device power-up. It may be an incremental 
+        distance starting at zero, or another arbitrary point from device 
+        power-up, or the absolute distance traveled by the vehicle
+        (and if so, set LOC_ENG_MASK_VEHICLE_ODOMETRY_ ABSOLUTE_MEASUREMENT), 
+        as long as the distance grows incrementally from device power-up.
+        
+        \vspace{3pt}
+        This distance_travelled_base is added to the distrance_travelled offset
+        of each sample to get the absolute distance of each sample 
+        point.
+
+        \vspace{3pt}
+        Distance traveled errors are expected to be primarily due to 
+        scale-factor, with some allowance for "noise" due to minor slippage 
+        events, e.g., gravel. Major wheel slippage events that affect 
+        odometry, must be flagged; see the flags field.
+
+        Note: Other events, such as a vehicle traveling in reverse, may 
+        also affect the available accuracy of this information, and notification
+        of those events must be provided; see the flags field. */
+       
+  locEngVehicleOdometrySampleStructT           
+                          odometry_data<LOC_ENG_VEHICLE_SENSOR_DATA_MAX_SAMPLES>;
+  /**< Variable length array to specify the odometry samples.
+       Max Length of array is: 50 */
+  
+} locEngVehicleOdometrySampleListStructT;
+
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  //! Motion Data report timestamp in modem time 
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory uint64 modemTimeTickMsec;
+  /**< Timestamp of sensor input in modem time which caused this indication. \n
+       - Unit: Milliseconds */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! On-Vehicle Accelerometer Data
+  optional locEngVehicleSensorSampleListStructT  accel_data;
+  /* Accelerometer sensor samples. */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! On-Vehicle Angular Rotation Data
+  optional locEngVehicleSensorSampleListStructT  ang_rotation_data;
+  /* Angular rotation data sensor samples. */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! Odometry Data
+  optional locEngVehicleOdometrySampleListStructT  odometry_data;
+  /* Odometer sensor samples. */
+
+  //! @VERSION_INTRODUCED 1.28
+  //! @VERSION 1.28
+  //! External Time Sync Information
+  optional int32  change_in_time_scales;
+  /**< This field is to be used in conjunction with an external 
+       timesync mechanism that is aligning the vehicle sensor time scale, 
+       with the on-device sensor time scale, to ensure that updates in
+       that time offset do not appear as jumps in the relative sensor time
+       of the samples provided in this request. If there is no such sync
+       mechanism, e.g., if only the vehicle time is provided, this field
+       may be left at zero.
+
+       \vspace{3pt}
+       This field is defined as the change from the previously sent QMI
+       request, with similar TLVs 0x10, 0x11, or 0x12 in it, to this QMI 
+       request, in the amount that the sensor time is ahead of an 
+       "external vehicle time." \n
+
+       - Type: Signed integer  \n
+       - Units: 1 ms           \n
+       - Range: Approximately -2100 sec to +2100 sec, where
+                full-scale (minimum and maximum value) is interpreted
+                as equal to or more than this value of an offset change
+                (unlikely to be reached in practice, unless there is a 
+                startup, major resync, or some other rollover event) */
+
+
+  //! Vehicle sensor data report timestamp in Gps time
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional locEngGPSTimeStructT gpsTime;
+  /**< Timestamp of vehicle sensor input in GPS time. \n */
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< opaque user data, if specified the same user data should be
+       echoed back in the response indication */
+
+} locEngInjectVehicleSensorDataReqMsgT;
+
+
+//! @MSG      LOC_ENG_INJECT_VEHICLE_SENSOR_DATA_RESP
+//! @TYPE     Response
+//! @SENDER   Service
+//-----------------------------------------------------------------------------
+
+message 
+{
+  //! Message Source
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  mandatory locEngMsgSourceEnumT messageSource;
+  /**< the GNSS task that sent this message
+        Valid Values :\n
+        @ENUM() */
+
+  //! Inject Vehicle Sensor Data Request Status
+  //! @VERSION_INTRODUCED 2.2
+  //! @VERSION 2.2
+  mandatory locEngStatusEnumT status;
+  /**< Status of the Inject Vehicle Sensor Data request. 
+
+       Valid values: \n
+       @ENUM()
+  */
+
+  //! user data
+  //! @VERSION_INTRODUCED 1.1
+  //! @VERSION 1.1
+  optional uint64 userData;
+  /**< if specified the it contains the same user data that was passed
+       in the request */
+
+} locEngInjectVehicleSensorDataRespMsgT;
+
+/** @ERROR
+    -QMI_ERR_NONE                   Operation requested by the control point
+                                    completed successfully
+    -QMI_ERR_INTERNAL               Unexpected error occurred during 
+                                    processing
+    -QMI_ERR_MALFORMED_MSG          Message was not formulated correctly by 
+                                    the control point or the message 
+                                    was corrupted during transmission
+    -QMI_ERR_INVALID_ARG            Value field of one or more TLVs in the
+                                    request message contains an invalid value
+    -QMI_ERR_OP_DEVICE_UNSUPPORTED  Operation is not supported by the MSM GPS
+                                    service
+    -QMI_ERR_INVALID_OPERATION      Operation is not allowed due to the 
+                                    current state of the location engine
+    -QMI_ERR_INFO_UNAVAILABLE       Samples were dropped because the message 
+                                    time-sanity check failed; failure is due to 
+                                    one of the following: sensor-to-GPS time 
+                                    synchronization information is not available, 
+                                    or the average sampling rate is faster than 
+                                    the threshold specified in the description 
+                                    below, or the message time has drifted too 
+                                    far from the expected time
+    -QMI_ERR_NO_MEMORY              Samples were dropped because no memory is  
+                                    available
+*/
+
+/** @DESCRIPTION
+    This command injects vehicle sensor information to the location service. 
+
+    Samples provided for each sample type must be provided in chronological 
+    order. The timescale and timestamps associated with the injected sensor 
+    samples are expected to be monotonically increasing and to increase at 
+    approximately the same rate as GPS time as determined by the location 
+    service. The initial relationship of GPS time to sensor time is established
+    by the QMI_PDS_INJECT_TIME_SYNC_DATA command. When the location service 
+    determines that the sensor timestamps of an incoming command have drifted 
+    too far from the expected sensor timestamp, the following occurs:\begin{itemize}
+
+      \item QMI_ERR_INFO_UNAVAILABLE error is returned
+      \item Current GPS time to sensor time relationship is discarded, and a 
+            request for time synchronization is sent out
+    \end{itemize}
+
+    These actions re-establish the GPS time to sensor time relationship and 
+    account for the clock drift.
+
+    The sensor timestamps of this command are expected to have an average time 
+    between samples of no less than 8 ms (approximately 125 Hz). If the samples 
+    span less than this threshold, a QMI_ERR_INFO_UNAVAILABLE error is returned.
+
+    The inertial and odometry sensor measurements described in this command
+    are intended to be on-vehicle sensors, where stable alignment with respect
+    to a wheeled land vehicle platform can be assumed. For example, this could 
+    be sensors from a vehicle (in which the device is located) being routed 
+    to the device, or where the device itself is embedded in a vehicle.
+	*/
+
+//******************************************************************************
+//=============================================================================
+// Service definition
+// Note: Service-specific message IDs must start from 0x20. 
+//=============================================================================
+service locEng
+{
+  //! @ID LOC_ENG_POS
+  locEngPositionReportMsgT LOC_ENG_POS = 0x20;
+
+  //! @ID LOC_ENG_EVENT_PEDOMETER_CONTROL
+  locEngEventPedometerControlIndMsgT LOC_ENG_EVENT_PEDOMETER_CONTROL_IND;
+
+  //! @ID LOC_ENG_EVENT_MOTION_DATA_CONTROL
+  locEngEventMotionDataControlIndMsgT LOC_ENG_EVENT_MOTION_DATA_CONTROL_IND;
+
+  //! @ID LOC_ENG_PEDOMETER_REPORT
+  locEngPedometerReportReqMsgT  LOC_ENG_PEDOMETER_REPORT_REQ,
+  locEngPedometerReportIndMsgT  LOC_ENG_PEDOMETER_REPORT_IND;
+
+  //!@ID LOC_ENG_INJECT_MOTION_DATA
+  locEngInjectMotionDataReqMsgT LOC_ENG_INJECT_MOTION_DATA_REQ,
+  locEngInjectMotionDataIndMsgT LOC_ENG_INJECT_MOTION_DATA_IND;
+
+  //!@ID LOC_ENG_SET_NAVIGATION_CONFIG
+  locEngSetNavigationConfigReqMsgT LOC_ENG_SET_NAVIGATION_CONFIG_REQ,
+  locEngSetNavigationConfigRespMsgT LOC_ENG_SET_NAVIGATION_CONFIG_RESP;
+
+  //!@ID LOC_ENG_GET_NAVIGATION_CONFIG
+  locEngGetNavigationConfigReqMsgT LOC_ENG_GET_NAVIGATION_CONFIG_REQ,
+  locEngGetNavigationConfigRespMsgT LOC_ENG_GET_NAVIGATION_CONFIG_RESP;
+
+  //!@ID LOC_ENG_INJECT_VEHICLE_SENSOR_DATA
+  locEngInjectVehicleSensorDataReqMsgT LOC_ENG_INJECT_VEHICLE_SENSOR_DATA_REQ,
+  locEngInjectVehicleSensorDataRespMsgT LOC_ENG_INJECT_VEHICLE_SENSOR_DATA_RESP;
+
+  //!@ID LOC_ENG_EVENT_INJECT_WIFI_AP_DATA_REQUEST
+  locEngEventInjectWifiApDataRequestIndMsgT LOC_ENG_EVENT_INJECT_WIFI_AP_DATA_REQUEST_IND;
+
+  //!@ID LOC_ENG_INJECT_WIFI_AP_DATA
+  locEngInjectWifiApDataReqMsgT LOC_ENG_INJECT_WIFI_AP_DATA_REQ,
+  locEngInjectWifiApDataIndMsgT LOC_ENG_INJECT_WIFI_AP_DATA_IND;
+
+
+} = 0x10; /* same as LOC to avoid conflicts with other services*/

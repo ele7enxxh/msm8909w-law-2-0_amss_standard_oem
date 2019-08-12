@@ -1,0 +1,345 @@
+#===============================================================================
+#
+# NOR Tools build script
+#
+# GENERAL DESCRIPTION
+#    NOR Tools image build script
+#
+# Copyright (c) 2010-2014 by QUALCOMM, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Confidential and Proprietary
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: $
+#  $DateTime: $
+#  $Author: $
+#  $Change: $
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 09/20/14   eo      I2C NOR tools address change to code ram
+# 09/16/14   sb      I2C NOR tool support on cortex-a7
+# 08/04/14   sb      Fix to support on Virtio
+# 06/22/14   sb      Add support for 9x45
+#===============================================================================
+import os
+Import('env')
+
+env = env.Clone()
+
+#------------------------------------------------------------------------------
+# Add new options/arguments to build system
+# Needs to be done before check aliases other wise help won't be updated
+#------------------------------------------------------------------------------
+vars = Variables(None)
+
+# Defining this to enable PRINTF through command line
+vars.Add(
+   EnumVariable('NOR_USES_PRINTF',
+      'Overide USES_PRINTF flag used in NOR_TOOLS', 'yes',
+      allowed_values=('yes', 'no'), map={}, ignorecase=0
+   )
+)
+
+# Update environment and read command line variables
+vars.Update(env)
+
+Help(vars.GenerateHelpText(env))
+
+#------------------------------------------------------------------------------
+# Aliases: Determines when to build the nor tools
+#------------------------------------------------------------------------------
+# aliases:  first alias is always the target then the other possibles aliases
+# amss      : Alias for AMSS; anything that needs to be build for amss  
+#             as a whole target (componenets from modem + apps)
+# arm11     : Build components that is for ARM11 only 
+# modem     : Only the modem (not applicable to single processor targets) 
+# amss_arm11: amss for arm11 processor 
+# arm9      : Build components that is for ARM9 only
+# amss_arm9 : amss for arm9 processor 
+# all       : Build all components 
+# cbsp      : Build core image with nor_tools 
+
+if env['MSM_ID'] in ['8909', '8909w']:
+   aliases = [
+      'nor_tools', 'tools', 'flashtools', 'all',
+   ]
+else:  
+   aliases = [
+      'not_supported',
+   ]
+   
+if env['MSM_ID'] in ['8909', '8909w']:
+   proc = 'sparrow'
+else:
+   proc = 'not_supported'
+ 
+env.InitImageVars(
+   alias_list = aliases,                           # list of aliases, unique name index [0]
+   proc = proc,                                    # proc settings
+   config = 'apps',                                # config settings
+   build_tags = [                                  # list of build tags for sub lib scripts
+   'NOR_TOOLS_IMAGE',
+   'DAL_DEVCFG_TOOLS_IMG'],               
+   tools = [
+   '${BUILD_ROOT}/core/bsp/build/scripts/mbn_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/bin_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/hex_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/scl_builder.py', 
+   '${BUILD_ROOT}/core/bsp/build/scripts/devcfg_builder.py',
+   'buildspec_builder.py']
+)
+
+if not env.CheckAlias():
+   Return()
+
+#------------------------------------------------------------------------------
+# Init default values this PROC/Image
+#------------------------------------------------------------------------------
+env.Replace(BUILD_TOOL_CHAIN = 'yes')
+env.Replace(USES_DEVCFG = 'yes')
+
+#===============================================================================
+# NOR_TOOLS build rules
+#===============================================================================
+
+#------------------------------------------------------------------------------
+# define builder for nor_param_cmm
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Configure and load in CBSP uses and path variables
+#------------------------------------------------------------------------------
+env.InitBuildConfig()
+
+#------------------------------------------------------------------------------
+# Load in tools scripts, and re define our CCCOM string
+#------------------------------------------------------------------------------
+env.LoadToolScript('arm', toolpath = ['${BUILD_SCRIPTS_ROOT}'])
+
+env.LoadToolScript('modem_defs', toolpath = ['${BUILD_SCRIPTS_ROOT}'])   
+
+env.Tool('nor_cmm_builder', toolpath = ['.'])
+
+# after loading default rules, make some changes
+env.Append(ARMCC_CODE = " ${ARM_SPLIT_SECTIONS}")
+env.Replace(ARMLD_NOREMOVE_CMD = "")
+
+# Force debug and symbols for flash tools, required by T32 swbp interface
+env.Replace(ARM_DBG = "-g --dwarf2")     # Enable DWARF2 format debug tables
+
+# Compile thumb code
+env.Replace(CC = env['TCC'])
+
+#disable unaligned access for c/c++ compiler and assembler
+env.Replace(ARMCC_CODE = "${ARM_END} ${ARM_NO_UNALIGNED_ACCESS}")
+env.Append(ARMCXX_CODE = " ${ARM_NO_UNALIGNED_ACCESS}")
+env.Append(ASFLAGS = " --keep ${ARM_NO_UNALIGNED_ACCESS}")
+
+# Space optimization
+env.Append(ARMCC_CODE = " ${ARM_SPLIT_SECTIONS} ")
+
+# Define processor instruction set
+env.Replace(ARM_CPU_KRAIT = "7-A.security")
+env.Replace(ARM_CPU = "${ARM_CPU_CMD} ${ARM_CPU_KRAIT}")
+
+# enable stack protection
+#env.Append(CFLAGS = " --protect_stack ")
+
+# ---------------------------------------------------------------------------
+# Determine the platform
+# Please see //source/qcom/qct/core/storage/flash/main/latest/src/README.txt
+# for details on flash configurations.
+# ---------------------------------------------------------------------------
+FLASH_CFG_ID = "UKNOWN"
+env.Replace(TNOISYLEVEL = "0")
+env.Replace(USES_PRINTF = "yes")
+
+#----------------------------------------------------------------------------
+# Define macro NOR_PAGE_SIZE used to pass a value to macro 'MAX_PAGE_SIZE',
+# which is used by nor tools and flash drivers (when compiled with tools)
+# to size the static buffers.
+#----------------------------------------------------------------------------
+NOR_PAGE_SIZE = "512"
+
+# The following for FLASH_7K_CFG is not used but is place holder for
+# future targets that shoudl use this configurations for hal, dal, tools
+
+if env['MSM_ID'] in ['8909']:
+   FLASH_CFG_ID = "FLASH_8K_CORTEXA7_CFG"
+   MSMID_TYPE = "M8909"
+   FLASH_DAL_CFG = "config_v2"
+   FLASH_HAL_CFG = "config_v1"
+   FLASH_NAND_TOOLS_CFG = "config_v2"
+   FLASH_NOR_TOOLS_CFG = "config_v1"
+   FLASH_HOSTDL_CFG = "config_v1"
+   SRCROOT = "../../../../../.."
+ 
+if env['MSM_ID'] in ['8909w']:
+   FLASH_CFG_ID = "FLASH_8K_CORTEXA7_CFG"
+   MSMID_TYPE = "M8909w"
+   FLASH_DAL_CFG = "config_v2"
+   FLASH_HAL_CFG = "config_v1"
+   FLASH_NAND_TOOLS_CFG = "config_v2"
+   FLASH_NOR_TOOLS_CFG = "config_v1"
+   FLASH_HOSTDL_CFG = "config_v1"
+   SRCROOT = "../../../../../.."
+
+env.Replace(DAL_CONFIG_TARGET_ID = '0x8909')
+
+#----------------------------------------------------------------------------
+# Overide uses_print setting from cmd line
+#----------------------------------------------------------------------------
+if env['NOR_USES_PRINTF'] == "no":
+   env.Replace(USES_PRINTF = "no")
+
+#----------------------------------------------------------------------------
+# Define the PRINT SOURCES.PRINT LOGS will be enabled only if USES_PRINTF is
+# set to YES in the make file
+#----------------------------------------------------------------------------
+if env.has_key('USES_PRINTF') and env['USES_PRINTF'] == "yes": 
+   env.Append(CPPDEFINES = [
+      "FLASH_LOG_H=\\\"flash_log.h\\\"",
+      "NOISY",
+      "TNOISY=" + str(env['TNOISYLEVEL']),
+   ])
+
+#print env.Dump()
+
+#----------------------------------------------------------------------------
+# These are used in creation of NOR_PARAM.CMM
+#  run from SDRAM so it works for both SURF and FFA
+#----------------------------------------------------------------------------
+NOR_CODE_ADDR = "0x00200000"      # address of code start
+NOR_PARAM_ADDR = "0x0021E000"     # address of parameter block
+
+#----------------------------------------------------------------------------
+# These are used to manipulate the flash for DMSS programming
+# and must encompass the size of the DMSS image and start
+# at the address which it is located to run
+# We are allowing 4GB of code space
+#----------------------------------------------------------------------------
+NOR_CODE_BEGIN = "0x00000000"
+NOR_CODE_END = "0xFFFFFFFF"
+NOR_BOOT_BEGIN = ""
+NOR_BOOT_END = ""
+
+# add extension flags for DBL
+env.Append(CPPDEFINES = [
+   "BUILD_TOOL_CHAIN",
+   "MAX_PAGE_SIZE=" + NOR_PAGE_SIZE,
+   "NOR_CODE_ADDR=" + NOR_CODE_ADDR,
+   "NOR_PARAM_ADDR=" + NOR_PARAM_ADDR,
+   "FLASH_TOOLS_HEAP_SIZE=2400",
+   "FLASH_SINGLE_THREADED",
+   "ENDIAN_LITTLE",
+   "BUILD_NOR_TOOLS",
+   "BUILD_JFLASH",
+   "QCOM_OS_ENV",
+   "DAL_CONFIG_MMU_SCHEME=DAL_CONFIG_MMU_SCHEME_NONE",
+   "DAL_IMAGE_FLASH_TOOLS",
+   "DAL_CONFIG_TARGET_ID=${DAL_CONFIG_TARGET_ID}",
+])
+
+#------------------------------------------------------------------------------
+# Decide which build steps to perform
+#------------------------------------------------------------------------------
+# Regular build steps (no filter) is build everything, once a user starts
+# using filters we have to make decisions depending on user input.
+#
+# The LoadAUSoftwareUnits function will take care of filtering subsystem, units, 
+# etc.  This is to take care of what steps to enable disable from the top level
+# script, such as building files specify in this script i.e. quartz, stubs, etc.
+
+do_local_files = True
+do_link = True
+do_post_link = True
+
+# Get user input from command line
+filter_opt = env.get('FILTER_OPT')
+
+# Limit build processing based on filter option
+if filter_opt is not None:
+   do_link = False
+   do_post_link = False
+
+   if not env.FilterMatch(os.getcwd()):
+      do_local_files = False
+
+#-------------------------------------------------------------------------------
+# Libraries Section
+#-------------------------------------------------------------------------------
+core_libs, core_objs = env.LoadAUSoftwareUnits('core')
+nor_tools_units = [core_libs, core_objs,]
+
+if do_local_files:
+#-------------------------------------------------------------------------------
+# NOR Tools Environment
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# Begin building NOR_TOOLS
+#-------------------------------------------------------------------------------
+   env.Replace(TARGET_NAME = 'nor_tools')
+   env.Replace(TARGET_BLD_KCFG = 'M')
+   env.Replace(FLASH_TYPE = 'nor')
+   env.Replace(TARGET_IMAGE = 'MODEM_PROC')
+
+#-------------------------------------------------------------------------------
+# Generate scatter load file
+#-------------------------------------------------------------------------------
+   target_scl = env.SclBuilder('${SHORT_BUILDPATH}/${TARGET_NAME}', 
+     '${BUILD_ROOT}/core/storage/flash/tools/src/nor/nor_in.scl')
+     
+if do_link:
+#-------------------------------------------------------------------------------
+# Generate nor_tools elf
+#-------------------------------------------------------------------------------
+   libs_path = env['INSTALL_LIBPATH']
+   nor_tools_elf = env.Program('${SHORT_BUILDPATH}/${TARGET_NAME}', source=[core_objs], LIBS=[core_libs], 
+      LIBPATH=libs_path)
+   env.Depends(nor_tools_elf, target_scl)
+   
+   Clean(nor_tools_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.map'))
+   Clean(nor_tools_elf, env.subst('${SHORT_BUILDPATH}/${TARGET_NAME}.sym'))
+
+# copy elf and reloc to needed locations for AMSS tools to load on target
+   install_target_elf = env.Install("${BUILD_ROOT}/core/storage/flash/tools/src/nor", 
+      nor_tools_elf)
+	  
+if do_post_link:
+   nor_param_cmm = env.NorParamBuilder("nor_param", install_target_elf,
+      FLASH_CFG_ID=FLASH_CFG_ID,
+      MSMID_TYPE=MSMID_TYPE,
+      NOR_CODE_ADDR=NOR_CODE_ADDR,
+      NOR_PARAM_ADDR=NOR_PARAM_ADDR,
+      NOR_BOOT_BEGIN=NOR_BOOT_BEGIN,
+      NOR_BOOT_END=NOR_BOOT_END,
+      NOR_CODE_BEGIN=NOR_CODE_BEGIN,
+      NOR_CODE_END=NOR_CODE_END,
+      FLASH_NOR_TOOLS_CFG=FLASH_NOR_TOOLS_CFG,
+      SRCROOT=SRCROOT)
+   install_nor_param_cmm = env.Install("${BUILD_ROOT}/core/storage/flash/tools/src/nor", 
+   nor_param_cmm)
+
+   flash_prog_err_cmm = env.FlashProgErrBuilder('flash_prog_error',
+   '${BUILD_ROOT}/core/storage/flash/tools/inc/flash_prog_error.h')
+   install_flash_prog_err_cmm = env.Install("${BUILD_ROOT}/core/storage/flash/tools/src/nor", 
+     flash_prog_err_cmm)
+
+#===============================================================================
+# Define units that will be build
+#===============================================================================
+   nor_tools_units = env.Alias (
+      'nor_tools_units',
+   [install_target_elf, install_nor_param_cmm, install_flash_prog_err_cmm]
+   )
+
+# Add aliases
+for alias in aliases:
+   env.Alias(alias, nor_tools_units)

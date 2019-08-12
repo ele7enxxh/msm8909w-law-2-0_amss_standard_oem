@@ -1,0 +1,229 @@
+=============================================================================
+# Modem Build Configuration Definition File.
+#
+# Copyright (c) 2011 QUALCOMM Inc.  All Rights Reserved
+#==============================================================================
+#==============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header:  $
+# $DateTime:  $
+#
+# when       who    what, where, why
+# -------    ---    -------------------------------------------
+# 09/30/11   lyao   Initial version.
+#==============================================================================
+
+#------------------------------------------------------------------------------
+#  APT
+#------------------------------------------------------------------------------
+#define FEATURE_CBSPTEST
+
+#------------------------------------------------------------------------------
+#  BOOT
+#------------------------------------------------------------------------------
+[SoftComponent: boot]
+define FEATURE_DISABLE_DLOAD_ENTRY_ON_ERROR_FATAL
+undef FEATURE_UI
+undef FEATURE_VOC_TASK
+define FEATURE_NO_DDR
+define FEATURE_SAVE_TRACE_EXTENDED
+define FEATURE_OPTIMIZE_TRACE_RECORDS
+define FEATURE_RELOCATABLE_WCNSS_IMAGE
+define FEATURE_SMI
+define FEATURE_PMEM
+define BOOT_MODE_NAND
+define SHADOW_MODE
+split_code_data makeonly
+SMI_CFG_DATA makeonly
+define DLOAD_ID_ADDR IRAM_BASE
+undef  FEATURE_FULL_JTAG_DOWNLOAD
+define DEBUG_COOKIE_VAL		0x53444247
+
+#--For Debugging Only--#
+define FEATURE_APPS_WCNSS_RESET_REQ_HANDLER
+define FEATURE_PMU_SPARE_OUT_LOGGING
+define FEATURE_CMEM_CRC_DEBUG
+
+#========================
+# JTAG Debug
+#========================
+define POWER_UNLOCK            0
+define POWERDOWN_NOTIFICATION  1
+define POWERDOWN_ACKNOWLEDGE   2
+define POWERUP_NOTIFICATION    3
+define POWERUP_ACKNOWLEDGE     4
+
+#------------------------------------------------------------------------------
+#  DEBUGTOOLS
+#------------------------------------------------------------------------------
+[SoftComponent: debugtools]
+define FEATURE_ERR_EXTENDED_STORE
+define FEATURE_SAVE_DEBUG_TRACE
+define FEATURE_ERR_SERVICES
+err makeonly
+err_inject_crash makeonly
+
+define TMC_HEAP_MEM_BUFFER_SIZE    4096
+define TMC_HEAP_SMALL_MEM_BUFFER_SIZE  2048
+rcinit makeonly
+
+#REMOVE THESE AS TECH TEAMS UPDATE TO USE RCINIT FRAMEWORK
+#define TMC_RCINIT_INITFN_TIMER_INIT
+#define TMC_RCINIT_INITFN_TIMER_TASK_INIT
+define TMC_RCINIT_REXTASK_TMC
+define FEATURE_DOG_BARK
+
+#------------------------------------------------------------------------------
+# Kernel
+#------------------------------------------------------------------------------
+[SoftComponent: kernelsp]
+define FEATURE_STACK_PROTECTION
+stack_protector         makeonly
+#stack_protector_all     makeonly
+
+[SoftComponent: kernel]
+define FEATURE_DAL
+define FEATURE_REX
+undef FEATURE_L4
+undef FEATURE_REX_DYNA_MEM
+rex                    makeonly
+dal					   makeonly
+unuse    Iguana
+undef FEATURE_REX_CS
+define FEATURE_PMEM_7K_SMI_ONLY
+define FEATURE_REX_DYNA_MEM
+#define WCN_HEAP_SIZE (1 << 18)  <--Let Pronto team define this in target.builds
+define FEATURE_REX_TIMER_EX
+#debug features
+#define FEATURE_REX_STAT
+define FEATURE_REX_TRACE
+define FEATURE_REX_PROFILE
+
+#------------------------------------------------------------------------------
+# Memory
+#------------------------------------------------------------------------------
+define FEATURE_DSM_LARGE_ITEMS
+define WCN_RVA_POOL_CACHED_BASE            0x30000000
+define WCN_RVA_POOL_CACHED_SIZE            0x10000000
+define WCN_RVA_POOL_UNCACHED_BASE          0x40000000
+define WCN_RVA_POOL_UNCACHED_SIZE          0x10000000
+
+#------------------------------------------------------------------------------
+# Mproc
+#------------------------------------------------------------------------------
+[SoftComponent: mproc]
+define FEATURE_SMEM
+define FEATURE_SMEM_LOG
+define FEATURE_SMSM
+define FEATURE_SMD_LITE
+undef FEATURE_ONCRPC
+
+define FEATURE_SPINLOCK
+define FEATURE_ARM_ASM_SPINLOCK
+###define FEATURE_SPINLOCK_TEST
+arm_asm_spinlock        makeonly
+smem_log makeonly
+smem                    makeonly
+define FEATURE_MULTIPROCESSOR
+
+#------------------------------------------------------------------------------
+# Power
+#------------------------------------------------------------------------------
+[SoftComponent: power]
+
+
+#------------------------------------------------------------------------------
+#  SECURITY
+#------------------------------------------------------------------------------
+[SoftComponent: SEC]
+
+
+#------------------------------------------------------------------------------
+# Services
+#------------------------------------------------------------------------------
+[SoftComponent: services]
+#define FEATURE_TIME_POWER_COLLAPSE
+#undef FEATURE_TOD_MULTIPROC_SYNC
+#diag
+diag_smd_support makeonly
+define DSMI_DIAG_SMD_RX_ITEM_SIZ    1024  if APPS_PROC
+define DIAG_TX_SLEEP_THRESHOLD_DEFAULT (1024*16)
+define DIAG_TX_SLEEP_TIME_DEFAULT 10
+define DIAGBUF_COMMIT_THRESHOLD_NRT (1024*24)
+define FEATURE_DIAG_PACKET_COUPLING
+undef FEATURE_MMC
+#define FEATURE_EXPORT_NV
+#define FEATURE_DIAG_FS_ACCESS_VALIDATION
+define FEATURE_TIMER_TASK
+define FEATURE_USE_TIME_VU
+#define FEATURE_NO_DB
+#define FEATURE_NV_MEID_ENABLE
+#define FEATURE_TOOLSDIAG_INIT
+#define FEATURE_NVDIAG_INIT
+#below feature was defined in custdmss.h.  Removing custdmss.h caused compilation errors in queue.c
+define FEATURE_Q_NO_SELF_QPTR
+#define FEATURE_DIAG_TASK  #Added to scons file
+define FEATURE_UTILS_ENABLE_AMSS_MALLOC_INIT
+define FEATURE_UTILS_MEMHEAP_NOSTATIC_INIT
+#define ASSERT_FATAL   ASSERT
+#define FEATURE_MEM_DEBUG
+
+#8974 bring-up
+timer_stubs makeonly
+
+#------------------------------------------------------------------------------
+# Storage
+#------------------------------------------------------------------------------
+[SoftComponent: storage]
+undef FEATURE_EFS
+
+#------------------------------------------------------------------------------
+# systemdrivers
+#------------------------------------------------------------------------------
+[SoftComponent: systemdrivers]
+define FEATURE_CLKREGIM_RM
+
+
+#------------------------------------------------------------------------------
+# WiredConn
+#------------------------------------------------------------------------------
+[SoftComponent: wiredconn]
+
+#------------------------------------------------------------------------------
+# uBSP Features
+#------------------------------------------------------------------------------
+[SoftComponent: ubsp]
+#define UBSP_TEST
+ubsp                 makeonly
+
+#------------------------------------------------------------------------------
+# Common MSM configurations for CoreBSP
+#------------------------------------------------------------------------------
+[SoftComponent: CoreBSP_Common]
+define BOOTHW_MSM_H     "boothw_target.h"
+define CLKRGM_H         "clkregim.h"
+define CLKRGMI_H        "clkregim.h"
+define GPIO_H           "tlmm_gpio.h"
+define HS_H             "hs_mb6250.h" #Fix me
+define PMEM_MSM_H       "pmem_7500.h"
+define SBI_MSM_H        "sbi_lib_api.h"
+define RIVA_BRINGUP_VIRTIO
+define FEATURE_PMIC
+define FEATURE_UI_CORE_REMOVED
+mbntools                makeonly
+hal makeonly
+efs2   makeonly
+use boot
+use debugtools
+use kernelsp
+use kernel
+use mproc
+use power
+use SEC
+use services
+use storage
+use systemdrivers
+use wiredconn
+use ubsp

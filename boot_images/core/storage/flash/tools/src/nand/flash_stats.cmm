@@ -1,0 +1,795 @@
+;============================================================================
+;  Name:
+;    flash_stats.cmm
+;
+;  Description:
+;    This script gathers and processes the performance information from the
+;    flash driver.
+;
+;  Execution:
+;    Inside the debugger,
+;    type at the command line:  "do flash_stats.cmm "".
+;
+;   Copyright (c) 2010,2012-2013 Qualcomm Technologies Incorporated.
+;   All Rights Reserved.
+;   Qualcomm Confidential and Proprietary
+;----------------------------------------------------------------------------
+
+;============================================================================
+;
+;                        EDIT HISTORY FOR MODULE
+;
+; $Header: //components/rel/boot.bf/3.1.2.c3/boot_images/core/storage/flash/tools/src/nand/flash_stats.cmm#1 $ $DateTime: 2015/09/01 00:30:35 $ $Author: pwbldsvc $
+;
+; when       who     what, where, why
+; -------    ---     --------------------------------------------------------
+; 02/28/13   eo      Change throughput units to MBytes per second
+; 01/18/12   sv      Update with flash opt changes
+; 09/08/10   nr      First version
+;============================================================================;
+
+local &filename
+entry &filename
+
+local &temp
+&temp=""
+&temp="&filename"
+
+WinCLEAR
+WinPage.Reset
+WINPOS 0. 0. 50% 100%
+
+area
+AREA.Create A000 800. 1000.
+AREA.RESet
+
+local &submenufirstrun
+&submenufirstrun=0x01
+;=====================================================
+; - Stats framework config Variables -
+;====================================================
+
+local &flash_stats_core
+;=====================================================
+; - page size Variables -
+;====================================================
+
+local &page_size
+local &main_size
+local &spare_size
+
+;=====================================================
+; - Offset Variables -
+;====================================================
+
+
+local &read_main_offset
+local &read_spare_offset
+local &read_main_spare_offset
+local &read_raw_offset
+
+local &write_main_offset
+local &write_spare_offset
+local &write_main_spare_offset
+local &write_raw_offset
+local &write_partial_page_offset
+
+local &erase_offset
+
+local &bus_transfer_offset
+local &hal_transfer_offset
+
+local &hal_pprocess_offset
+
+local &ops_start_offset
+local &ops_end_offset
+
+local &operation_count_offset
+local &data_transfer_offset
+local &time_elapsed_offset
+local &start_time_offset
+local &max_time_offset
+local &min_time_offset
+local &npages_offset
+local &histogram_offset
+
+
+;=====================================================
+; - Variables to store values -
+;====================================================
+
+local &op_count
+local &total_time
+local &min_time
+local &max_time
+local &throughput
+local &maxthroughput
+local &minthroughput
+local &mean_time
+local &min_range
+local &bucket_size
+local &third_bucket_min_range
+local &histo_count
+
+;=====================================================
+; - argument variables -
+;====================================================
+local &argoffset
+local &size
+local &choice
+local &option
+local &isErase
+
+gosub checkFeatureEnable
+gosub MainMenu
+
+enddo
+
+
+;=====================================================
+; - Main Menu -
+;====================================================
+
+MainMenu:
+  print
+  print  "   +-------------------------------------------------------------------------+"
+  print  "   |   _____ _        _    ____  _   _                                       |"
+  print  "   |  |  ___| |      / \  / ___|| | | |                                      |"
+  print  "   |  | |_  | |     / _ \ \___ \| |_| |                                      |"
+  print  "   |  |  _| | |___ / ___ \ ___) |  _  |                                      |"
+  print  "   |  |_|   |_____/_/   \_\____/|_| |_|                                      |"
+  print  "   |                                                                         |"
+  print  "   |   ____  _____ ____  _____ ___  ____  __  __    _    _   _  ____ _____   |"
+  print  "   |  |  _ \| ____|  _ \|  ___/ _ \|  _ \|  \/  |  / \  | \ | |/ ___| ____|  |"
+  print  "   |  | |_) |  _| | |_) | |_ | | | | |_) | |\/| | / _ \ |  \| | |   |  _|    |"
+  print  "   |  |  __/| |___|  _ <|  _|| |_| |  _ <| |  | |/ ___ \| |\  | |___| |___   |"
+  print  "   |  |_|   |_____|_| \_\_|   \___/|_| \_\_|  |_/_/   \_\_| \_|\____|_____|  |"
+  print  "   |                                                                         |"
+  print  "   |   _____ ____      _    __  __ _______        _____  ____  _  __         |"
+  print  "   |  |  ___|  _ \    / \  |  \/  | ____\ \      / / _ \|  _ \| |/ /         |"
+  print  "   |  | |_  | |_) |  / _ \ | |\/| |  _|  \ \ /\ / / | | | |_) | ' /          |"
+  print  "   |  |  _| |  _ <  / ___ \| |  | | |___  \      /| |_| |  _ <| . \          |"
+  print  "   |  |_|   |_| \_\/_/   \_\_|  |_|_____|  \_/\_/  \___/|_| \_\_|\_\         |"
+  print  "   |                                                                         |"
+  print  "   |   Copyright (c) 2010 QUALCOMM Incorporated.                             |"
+  print  "   |   All Rights Reserved.                                                  |"
+  print  "   |                                                                         |"
+  print  "   +-------------------------------------------------------------------------+"
+  print
+
+  if &flash_stats_core!=2
+  (
+   gosub frameworkNotEnabledError
+   return
+  )
+  
+  print
+  print "   *** Flash Statistics Framework is Enabled in the Build ***"
+  print
+  
+  gosub enterFile
+  gosub subMenu
+
+return
+
+;=====================================================
+; - Sub menu for processing and printing data -
+;====================================================
+
+subMenu:
+  print
+  print  "   +-------------------------------------------------------------------------+"
+  print  "   |   _____ _        _    ____  _   _                                       |"
+  print  "   |  |  ___| |      / \  / ___|| | | |                                      |"
+  print  "   |  | |_  | |     / _ \ \___ \| |_| |                                      |"
+  print  "   |  |  _| | |___ / ___ \ ___) |  _  |                                      |"
+  print  "   |  |_|   |_____/_/   \_\____/|_| |_|                                      |"
+  print  "   |                                                                         |"
+  print  "   |   ____  _____ ____  _____ ___  ____  __  __    _    _   _  ____ _____   |"
+  print  "   |  |  _ \| ____|  _ \|  ___/ _ \|  _ \|  \/  |  / \  | \ | |/ ___| ____|  |"
+  print  "   |  | |_) |  _| | |_) | |_ | | | | |_) | |\/| | / _ \ |  \| | |   |  _|    |"
+  print  "   |  |  __/| |___|  _ <|  _|| |_| |  _ <| |  | |/ ___ \| |\  | |___| |___   |"
+  print  "   |  |_|   |_____|_| \_\_|   \___/|_| \_\_|  |_/_/   \_\_| \_|\____|_____|  |"
+  print  "   |                                                                         |"
+  print  "   |   _____ ____      _    __  __ _______        _____  ____  _  __         |"
+  print  "   |  |  ___|  _ \    / \  |  \/  | ____\ \      / / _ \|  _ \| |/ /         |"
+  print  "   |  | |_  | |_) |  / _ \ | |\/| |  _|  \ \ /\ / / | | | |_) | ' /          |"
+  print  "   |  |  _| |  _ <  / ___ \| |  | | |___  \      /| |_| |  _ <| . \          |"
+  print  "   |  |_|   |_| \_\/_/   \_\_|  |_|_____|  \_/\_/  \___/|_| \_\_|\_\         |"
+  print  "   |                                                                         |"
+  print  "   |   Copyright (c) 2010 QUALCOMM Incorporated.                             |"
+  print  "   |   All Rights Reserved.                                                  |"
+  print  "   |                                                                         |"
+  print  "   +-------------------------------------------------------------------------+"
+  print
+  print "  0: Exit"
+  print "  1: Print Basic Profile data"
+  print "  2: Print Advanced Data"
+  print "  3: Print Histogram"
+  print
+  print " Please make a choice: "
+
+  &t32_cmm_stopped=1
+  enter &Choice
+  &t32_cmm_stopped=0
+  print
+  &option=99
+  if &flash_stats_core!=2
+  (
+   gosub frameworkNotEnabledError
+   return
+  )
+  if "&Choice"=="0"
+  (
+    if "&temp"!=""
+    (
+      AREA.CLOSE A000
+    )
+    return
+  )
+  
+  if "&Choice"=="1"
+  (
+   &option=1
+  )
+  
+  if "&Choice"=="2"
+  (
+   &option=2
+  )
+  
+  if "&Choice"=="3"
+  (
+   &option=3
+  )
+  
+  if &option>3
+  (
+    print "Invalid Choice .Exiting..."
+    return
+  )
+  if &submenufirstrun==0x01
+  (
+    &submenufirstrun=0x00
+    gosub init
+    if "&temp"!=""
+    (
+      AREA.OPEN A000 &temp
+    )
+  )
+  
+    
+    print "-------------------------------------------------------------------------"
+    
+   if "&Choice"=="1"
+  (
+    print "             BASIC FLASH PERFORMANCE DATA"
+  )
+  
+  if "&Choice"=="2"
+  (
+    print "             ADVANCED FLASH PERFORMANCE DATA"
+  )
+  
+  if "&Choice"=="3"
+  (
+    print "                  FLASH HISTOGRAM DATA"
+  )
+  
+    print "-------------------------------------------------------------------------"
+
+  gosub read_main
+  gosub read_spare
+  gosub read_main_spare
+  gosub read_raw
+  gosub write_main
+  gosub write_spare
+  gosub write_main_spare
+  gosub write_raw
+  gosub write_partial_page
+  gosub erase_pages
+  gosub bus_transfer
+  gosub hal_transfer
+  gosub hal_pprocess
+  gosub ops_start
+  gosub ops_end
+  print
+  goto subMenu
+return
+
+
+;============================================================
+; - Ask user for file path if not already entered -
+;============================================================
+enterFile:
+  if "&temp"==""
+  (
+    print
+    print " Please enter the filepath of the outputfile"
+    print " (leave blank if you do not wish to save output) "
+    print " Filepath :-  " 
+    &t32_cmm_stopped=1
+    enter &temp
+    &t32_cmm_stopped=0
+    print
+  )
+return
+
+
+;============================================================
+; - Check to see if software framework is enabled -
+;============================================================
+checkFeatureEnable:
+  &flash_stats_core=data.long(flash_profile_cfg)
+return
+
+;=====================================================
+; - offset initialization -
+;====================================================
+
+init:
+  &page_size=data.long(flash_stats+0x00)
+  &main_size=data.long(flash_stats+0x04)
+  &spare_size=data.long(flash_stats+0x08)
+  &min_range=data.long(flash_stats+0x0c)
+  &bucket_size=data.long(flash_stats+0x10)
+  &third_bucket_min_range=data.long(flash_stats+0x14)
+  
+  &read_main_offset=0x18
+  &read_spare_offset=&read_main_offset+0x6c
+  &read_main_spare_offset=&read_spare_offset+0x6c
+  &read_raw_offset=&read_main_spare_offset+0x6c
+  &write_main_offset=&read_raw_offset+0x6c
+  &write_spare_offset=&write_main_offset+0x6c
+  &write_main_spare_offset=&write_spare_offset+0x6c
+  &write_raw_offset=&write_main_spare_offset+0x6c
+  &write_partial_page_offset=&write_raw_offset+0x6c
+  &erase_offset=&write_partial_page_offset+0x6c
+  &bus_transfer_offset=&erase_offset+0x6c
+  &hal_transfer_offset=&bus_transfer_offset+0x6c
+  &hal_pprocess_offset=&hal_transfer_offset+0x6c
+  &ops_start_offset=&hal_pprocess_offset+0x6c
+  &ops_end_offset=&ops_start_offset+0x6c
+
+  &operation_count_offset=0x00
+  &data_transfer_offset=&operation_count_offset+0x04
+  &time_elapsed_offset=&data_transfer_offset+0x04
+  &start_time_offset=&time_elapsed_offset+0x04
+  &max_time_offset=&start_time_offset+0x04
+  &min_time_offset=&max_time_offset+0x04
+  &npages_offset=&min_time_offset+0x04
+  &histogram_offset=&npages_offset+0x04
+return
+
+;=====================================================
+; - Function to process data -
+;=====================================================
+
+process_data:
+  &op_count=data.long(flash_stats+&argoffset+&operation_count_offset)*1.0
+  if &op_count>0
+  (
+    &size=&size*1.0
+    &total_time=data.long(flash_stats+&argoffset+&time_elapsed_offset)*1.0
+    &max_time=data.long(flash_stats+&argoffset+&max_time_offset)/1024.0
+    &min_time=data.long(flash_stats+&argoffset+&min_time_offset)/1024.0   
+
+    &mean_time=&total_time/&op_count*1.0
+
+    if &mean_time>0
+    (
+      &throughput=&size/&mean_time*1000000.0/1000.0/1000.0
+    )
+    else
+    (
+      &throughput=0xFFFFFFFF
+    )
+
+    if &min_time>0
+    (
+      &maxthroughput=&size/&min_time*1000000.0/1000.0/1000.0
+    )
+    else
+    (
+      &maxthroughput=0xFFFFFFFF
+    )
+
+    if &max_time>0
+    (
+      &minthroughput=&size/&max_time*1000000.0/1000.0/1000.0
+    )
+    else
+    (
+      &minthroughput=0xFFFFFFFF
+    )
+  )
+return
+
+
+;=====================================================
+; - Function to process then print histogram -
+;=====================================================
+process_and_print_histogram:
+  local &loopcount
+  local &bucket_low
+  local &bucket_offset
+  local &bucket_high
+  &loopcount=0
+  &bucket_low=0*1.0
+  &bucket_offset=0
+  &bucket_high=&min_range*1.0
+  while &loopcount<19.0
+  (
+    if &loopcount>0
+    (
+      &bucket_offset=&bucket_offset+0x04
+    )
+    
+    &histo_count=data.long(flash_stats+&argoffset+&histogram_offset+&bucket_offset)
+    &histo_count=&histo_count*1.0
+    if &isErase!=0
+    (
+      &histo_count=&histo_count/255.0
+    )
+    if &loopcount==0
+    (
+      &bucket_high=&bucket_high-1
+      print "  &bucket_low(us) to &bucket_high(us) ==> &histo_count    "  
+      
+      &bucket_low=&bucket_high+1
+      &bucket_high=&third_bucket_min_range-1*1.0
+    )
+    else 
+    (
+      print "  &bucket_low(us) to &bucket_high(us) ==> &histo_count   "   
+      &bucket_low=&bucket_high+1
+      &bucket_high=&bucket_low+&bucket_size-1*1.0
+    )
+    
+    &loopcount=&loopcount+1
+  )
+    
+  &bucket_offset=&bucket_offset+0x04
+  &histo_count=data.long(flash_stats+&argoffset+&histogram_offset+&bucket_offset)
+  &histo_count=&histo_count*1.0
+  
+  if &isErase!=0
+  (
+    &histo_count=&histo_count/255.0
+  )
+  
+  print "  &bucket_low(us) to INFI ==> &histo_count   "
+return
+
+
+
+;=====================================================
+; - Function to print results -
+;=====================================================
+
+print_results:
+  if &option==2
+  (
+    print "    Total Number of Operations    = &op_count"
+    print "    Size of data                  = &size"
+    print "    Total Time (us)               = &total_time(us) "
+    print "    Minimum Time (us)             = &min_time(us) "
+    print "    Maximum Time (us)             = &max_time(us) "
+    print "    Average Time (us)             = &mean_time(us) "
+  )
+    
+  if &option<=2
+  (
+    print "    Average Througput (MBps)      = &throughput(MBps)"
+    print "    Maximum Througput (MBps)      = &maxthroughput(MBps)"
+    print "    Minimum Througput (MBps)      = &minthroughput(MBps)"
+  )
+    
+  if &option==3
+  (
+    &isErase=0
+    gosub process_and_print_histogram
+  )
+return
+
+
+
+;=====================================================
+; - READ MAIN -
+;=====================================================
+
+read_main:
+  &size=&main_size
+  &argoffset=&read_main_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "            READ MAIN ONLY"
+    print "            -------------- "
+    print
+    gosub print_results
+  )
+return
+
+
+;=====================================================
+; - READ SPARE -
+;=====================================================
+
+read_spare:
+  &size=&spare_size
+  &argoffset=&read_spare_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "            READ SPARE ONLY"
+    print "            --------------- "
+    print
+    gosub print_results
+  )
+return
+
+;=====================================================
+; - READ MAIN  and SPARE-
+;=====================================================
+
+read_main_spare:
+  &size=&page_size
+  &argoffset=&read_main_spare_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "            READ MAIN and SPARE"
+    print "            -------------------"
+    print
+    gosub print_results
+  )
+return
+
+;=====================================================
+; - READ RAW -
+;=====================================================
+
+read_raw:
+  &size=&page_size
+  &argoffset=&read_raw_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "            READ RAW"
+    print "            -------- "
+    print
+    gosub print_results
+  )
+return
+
+;=====================================================
+; - WRITE MAIN -
+;=====================================================
+
+write_main:
+  &size=&main_size
+  &argoffset=&write_main_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "            WRITE MAIN ONLY"
+    print "            --------------- "
+    print
+    gosub print_results
+  )
+return
+
+
+
+;=====================================================
+; - WRITE SPARE -
+;=====================================================
+
+write_spare:
+  &size=&spare_size
+  &argoffset=&write_spare_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "            WRITE SPARE ONLY"
+    print "            ---------------- "
+    print
+    gosub print_results
+  )
+return
+
+;=====================================================
+; - WRITE MAIN  and SPARE-
+;=====================================================
+
+write_main_spare:
+  &size=&page_size
+  &argoffset=&write_main_spare_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "            WRITE MAIN and SPARE"
+    print "            --------------------"
+    print
+    gosub print_results
+  )
+return
+
+;=====================================================
+; - WRITE RAW -
+;=====================================================
+
+write_raw:
+  &size=&page_size
+  &argoffset=&write_raw_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "            WRITE RAW"
+    print "            ---------"
+    print
+    gosub print_results
+  )
+return
+
+;=====================================================
+; - WRITE PARTIAL PAGE -
+;=====================================================
+
+write_partial_page:
+  &size=1
+  &argoffset=&write_partial_page_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "            WRITE PARTIAL PAGE"
+    print "            ------------------ "
+    print
+    gosub print_results
+  )
+return
+
+;=====================================================
+; - ERASE BLOCK -
+;=====================================================
+
+erase_pages:
+  &size=&page_size
+  &argoffset=&erase_offset
+  gosub process_data
+  if &op_count>0
+  (
+    &mean_time=&total_time/&op_count*1.0*255.0
+    &min_time=&min_time*255.0
+    &max_time=&max_time*255.0
+    print
+    print "            ERASE PAGES"
+    print "            -----------"
+    print
+      
+    if &option<=2
+    (
+      print "    Average Time per block (us)   = &mean_time (us)" 
+      print "    Maximum Time per block (us)   = &max_time (us)"
+      print "    Minimum Time per block (us)   = &min_time (us)"
+    )
+      
+    
+    if &option==3
+    (
+      &isErase=1
+      gosub process_and_print_histogram
+    )   
+  )
+return
+
+
+;=====================================================
+; - BUS TRANSFER -
+;=====================================================
+
+bus_transfer:
+  &size=1
+  &argoffset=&bus_transfer_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "               BUS TRANSFER"
+    print "               ------------ "
+    print
+    gosub print_results
+  )
+return
+
+;=====================================================
+; - HAL TRANSFER -
+;=====================================================
+
+hal_transfer:
+  &size=&main_size
+  &argoffset=&hal_transfer_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "               HAL TRANSFER"
+    print "               ------------ "
+    print
+    gosub print_results
+  )
+return
+
+;=====================================================
+; - HAL PPROCESS -
+;=====================================================
+
+hal_pprocess:
+  &size=&main_size
+  &argoffset=&hal_pprocess_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "               HAL PPROCESS"
+    print "               ------------ "
+    print
+    gosub print_results
+  )
+return
+
+;=====================================================
+; - OPS START -
+;=====================================================
+
+ops_start:
+  &size=1
+  &argoffset=&ops_start_offset
+  gosub process_data
+  if &op_count>0
+  (
+    
+    print
+    print "               OPS START"
+    print "               --------- "
+    print
+    gosub print_results
+  )
+return
+
+;=====================================================
+; - OPS END -
+;=====================================================
+
+ops_end:
+  &size=1
+  &argoffset=&ops_end_offset
+  gosub process_data
+  if &op_count>0
+  (
+    print
+    print "                OPS END"
+    print "                ------- "
+    print
+    gosub print_results
+  )
+return
+
+
+frameworkNotEnabledError:
+  print
+  print "   *** ERR : Flash Stats Framework is not Enabled in the build! ***"
+  print "   To Enable the Framework please refer :-"
+  print "   http://qwiki.qualcomm.com/qct-csw/Flash_Profiler_Framework_-_How_To "
+  print
+return

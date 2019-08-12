@@ -1,0 +1,67 @@
+//============================================================================
+//  Name:                                                                     
+//    std_toolsconfig.cmm 
+//
+//  Description:                                                              
+//    Configures the path of the tools / scripts for a particular debug session
+//                                                                            
+// Copyright (c) 2012 - 2014 by Qualcomm Technologies, Incorporated.  All Rights Reserved.        
+//
+//
+//
+//
+//                      EDIT HISTORY FOR FILE
+//  This section contains comments describing changes made to the module.
+//  Notice that changes are listed in reverse chronological order.
+//
+// when       who     		what, where, why
+// --------   ---     		---------------------------------------------------------
+// 12/10/2012 AJCheriyan    Added support for multiple chipsets 	
+// 07/10/2012 AJCheriyan    Created for B-family. 
+
+// Supports 2 arguments
+// ARG0 - Name of the Chipset for which path has to be setup
+// ARG1 - Name of the Subsys for which path has to be setup
+ENTRY &ARG0 &ARG1
+
+// Create a global variable for every "subsystem" script folder
+// Top level meta scripts
+GLOBAL &METASCRIPTSDIR
+// Common Scripts
+GLOBAL &COMMON_METASCRIPTSDIR
+// Generated Scripts
+GLOBAL &GEN_METASCRIPTSDIR
+// Sub-system level scripts
+GLOBAL &MPSS_METASCRIPTSDIR
+GLOBAL &RPM_METASCRIPTSDIR
+GLOBAL &APPS_METASCRIPTSDIR
+GLOBAL &ADSP_METASCRIPTSDIR
+GLOBAL &WCNSS_METASCRIPTSDIR
+GLOBAL &VSS_METASCRIPTSDIR
+GLOBAL &IPA_CM3_METASCRIPTSDIR
+GLOBAL &PARTITION_METASCRIPTSDIR
+
+&METASCRIPTSDIR=OS.PPD()
+&GEN_METASCRIPTSDIR="&METASCRIPTSDIR/gen"
+&MPSS_METASCRIPTSDIR="&METASCRIPTSDIR/mpss/&ARG0"
+&COMMON_METASCRIPTSDIR="&METASCRIPTSDIR/common"
+&COMMON_CHIPSET_METASCRIPTSDIR="&METASCRIPTSDIR/common/&ARG0"
+&APPS_METASCRIPTSDIR="&METASCRIPTSDIR/apps/&ARG0"
+&RPM_METASCRIPTSDIR="&METASCRIPTSDIR/rpm/&ARG0"
+&ADSP_METASCRIPTSDIR="&METASCRIPTSDIR/adsp/&ARG0"
+&WCNSS_METASCRIPTSDIR="&METASCRIPTSDIR/wcnss/&ARG0"
+&VSS_METASCRIPTSDIR="&METASCRIPTSDIR/vss/&ARG0"
+&IPA_CM3_METASCRIPTSDIR="&METASCRIPTSDIR/ipa_cm3/&ARG0"
+&PARTITION_METASCRIPTSDIR="&METASCRIPTSDIR\..\..\build"
+
+// Set the path up to include the top level, SS specific scripts and apps specific script
+PATH &METASCRIPTSDIR &COMMON_METASCRIPTSDIR &COMMON_CHIPSET_METASCRIPTSDIR &GEN_METASCRIPTSDIR &METASCRIPTSDIR/&ARG1/&ARG0 &APPS_METASCRIPTSDIR &APPS_METASCRIPTSDIR/&HLOS &METASCRIPTSDIR/adsp &METASCRIPTSDIR/mpss &METASCRIPTSDIR/apps &METASCRIPTSDIR/ipa_cm3 &PARTITION_METASCRIPTSDIR
+
+// Set RPM to have full system knowledge 
+IF (("&ARG1"=="APPS")||("&ARG1"=="apps"))
+(
+	PATH + &MPSS_METASCRIPTSDIR &WCNSS_METASCRIPTSDIR &VSS_METASCRIPTSDIR &ADSP_METASCRIPTSDIR &IPA_CM3_METASCRIPTSDIR &PARTITION_METASCRIPTSDIR
+)
+PATH + &RPM_METASCRIPTSDIR
+
+ENDDO

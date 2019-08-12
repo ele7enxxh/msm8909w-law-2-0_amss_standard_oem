@@ -1,0 +1,23 @@
+#-------------------------------------------------------------------------------
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/mmode/mmoc/src/mmoc.min#1 $
+# MMOC 
+#-------------------------------------------------------------------------------
+MMOC_SOURCES=\
+	mmoc.c \
+    mmocmmgsdi.c \
+	mmocdbg.c
+	
+MMOC_OBJS :=  $(addprefix $(TARGETDIR)/, $(MMOC_SOURCES:%.c=%.o))
+vpath %.c $(MMOC)	
+
+### Start Lint block ###
+ifeq ($(DO_LINT),yes)
+
+MMOC_LINT_OBJS := $(addprefix $(LINTDIR)/, $(MMOC_SOURCES:%.c=%.lint))
+
+# Specify group target for linting MMOC subsystem
+$(LINTDIR)/mmoc_lint : $(MMOC_LINT_OBJS)
+
+endif
+### End Lint block ###
+

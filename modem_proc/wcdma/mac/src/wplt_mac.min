@@ -1,0 +1,45 @@
+#============================================================================
+#  Name:
+#    MAC.MIN
+#
+#  Description:
+#    An includable component of the makefile to build the DMSS software,
+#    this file lists the source files for the WCDMA MAC feature.
+#
+# Copyright (c) 2001, 2002 by QUALCOMM, Incorporated.  All Rights Reserved.
+# Copyright (c) 2006 - 2009 by QUALCOMM, Incorporated.  All Rights Reserved.
+
+#============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/wcdma/mac/src/wplt_mac.min#1 $
+#
+# when       who     what, where, why
+# -------    ---     --------------------------------------------------------
+#  05/07/09  ssg     Updated Copyright Information
+#  01/31/07  sk      Added maculhslog.c
+#  08/23/06  sk      Moved some src files from MAC_SOURCES to MAC_PRIVATE_SOURCES
+#============================================================================
+
+#-------------------------------------------------------------------------------
+# Security services
+#-------------------------------------------------------------------------------
+
+
+WPLT_MAC_SOURCES=\
+        macdlhs.c \
+        machstask.c 
+
+
+vpath %.c $(MAC)
+
+ifeq ($(BIG),yes)
+        WPLT_MAC_OBJS  := $(TARGETDIR/wplt_mac.lib
+else
+        WPLT_MAC_OBJS :=  $(addprefix $(TARGETDIR)/, $(WPLT_MAC_SOURCES:%.c=%.o))
+endif
+
+
+$(TARGETDIR)/wplt_mac.lib : $(WPLT_MAC_SOURCES) 
+

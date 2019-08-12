@@ -1,0 +1,257 @@
+;****************************************************************************
+;** Dumps ETB contents to a binary file.
+;**         
+;** Usage: do detb [<dumpfile>] [<loglevel>]
+;**
+;**  Each invocation dumps data collected in ETB since the last dump
+;**    
+;**  Optional Arguments
+;**      
+;**    dumpfile - If not specified will dump to etb_<date_time>.bin in 
+;**               the temp direcotry. (eg. C:\TEMP\etb_2012_12_7_15_21_26.bin)
+;**
+;**    loglevel - Optional argument to display debug messages             
+;**               To specify the second argument the first argument is necessary
+;** 
+;** Copyright (c) 2011-2012 by Qualcomm Technologies Incorporated.  All Rights Reserved.
+;**
+;****************************************************************************
+;**  $Header: //components/rel/rpm.bf/2.1.1/core/debugtrace/tools/scripts/8916/8916_Dump_ETB.cmm#1 $
+;**                        EDIT HISTORY FOR MODULE
+;**
+;**
+;** when       who     what, where, why
+;** --------   ---     ------------------------------------------------------
+;** 06/20/12   jk     First revision for Aragorn(8974)
+;** 12/07/12   jk     Updated to not rely on read/write pointers
+;
+
+&etb_base=0x00825000          //append 0x6 at start i.e. 0x60825000 for RPM.
+&etb_size_reg=&etb_base+0x4    //etb size
+&sts_reg=&etb_base+0xC       //status
+&rrd_reg=&etb_base+0x10      //read data
+&rrp_reg=&etb_base+0x14      //read pointer
+&rwp_reg=&etb_base+0x18      //write pointer
+&ctl_reg=&etb_base+0x20      //control
+&ffcr_reg=&etb_base+0x304    //ffcr
+&lar_reg=&etb_base+0xFB0     //lock access
+
+
+//area for dump_etb
+area.Create dump_etb 
+area.Select dump_etb 
+area.view dump_etb
+
+entry &dump_file &log_level
+
+if (""=="&dump_file")
+(
+      gosub GetDumpFileName
+      entry &dump_file
+)
+
+if (""=="&log_level")
+(
+        &log_level=0
+)
+
+
+
+GLOBAL &control_saved &status_saved &ffcr_saved 
+d.s edap:&lar_reg %LONG 0xC5ACCE55   // Unlock ETB 
+gosub SaveState
+
+GLOBAL &restored_state
+&restored_state=0
+on ERROR gosub RestoreState
+
+gosub PrintState
+
+gosub StopTMC 
+
+gosub PrintState
+gosub PrintPointers
+
+gosub ReadETB
+ENTRY &byte_count
+
+gosub PrintPointers
+
+
+Data.Save.Binary &dump_file (AVM:0x0++(&byte_count-1))
+
+gosub RestoreState 
+gosub PrintState
+
+d.s edap:&lar_reg %LONG 0x3A5331AA   // Lock ETB 
+
+if (file.exist(&dump_file))
+(
+        &dump_file=os.file.path(&dump_file)+"\"+os.file.name(&dump_file)
+        print "Dump File:"
+        print ""
+        print "&dump_file"
+        gosub SaveLastDumpFileName &dump_file
+
+)
+
+
+print "____________________________"
+enddo
+
+
+;----------
+SaveState:
+&control_saved=data.long(edap:&ctl_reg)       
+&status_saved=data.long(edap:&sts_reg)
+&ffcr_saved=data.long(edap:&ffcr_reg)       
+return 
+
+;----------
+RestoreState:
+if (0==&restored_state)
+(
+    &restored_state=1
+    if (1==(&control_saved&0x1))
+    (
+       print "Resuming ETB ..."
+
+       //Renable trace capture if it was already enabled
+        &control=&control_saved&0xFFFFFFFE
+        d.s edap:&ctl_reg %LONG &control    // Disable capture
+
+         gosub WaitForTMCReady
+         d.s edap:&ffcr_reg %LONG &ffcr_saved	//Restore FFCR
+       d.s edap:&ctl_reg %LONG &control_saved   //Write 1 to enable capture again
+       print "                  ... Done"
+    )
+    else
+    (
+       d.s edap:&ffcr_reg %LONG &ffcr_saved	//Restore FFCR
+    )
+)
+return
+
+;----------
+PrintState:
+if (&log_level>0)
+(
+        &control=data.long(edap:&ctl_reg)       
+        &status=data.long(edap:&sts_reg)
+        &ffcr=data.long(edap:&ffcr_reg)       
+        print  "CONTROL: "  &control_saved "   STATUS: "  &status " FFCR: " &ffcr
+)
+return
+
+;----------
+PrintPointers:
+if (&log_level>0)
+(
+        &write_ptr=data.long(edap:&rwp_reg)
+        &read_ptr=data.long(edap:&rrp_reg)
+        print "READ PTR: "  &read_ptr " WRITE PTR: " &write_ptr
+)
+return
+
+
+;----------
+ReadETB:
+local &i
+local &data
+print "Reading ETB ..."
+&i=0
+&data=data.long(edap:&rrd_reg)
+while &data!=0xffffffff
+(
+   Data.Set AVM:&i %Long &data
+   &i=&i+4
+   if (&log_level>2)
+   (
+        &read_ptr=data.long(edap:&rrp_reg)
+	     print "read_ptr: " &read_ptr ";  i: " &i
+   )
+   &data=data.long(edap:&rrd_reg)
+)
+print %d "                  ... " &i  " bytes"
+return &i
+
+;----------
+StopTMC:
+print "Stopping ETB ..."
+
+&ffcr=data.long(edap:&ffcr_reg)       
+&ffcr=&ffcr|0x1000
+d.s edap:&ffcr_reg %LONG &ffcr		// Enable Stop on Flush
+&ffcr=&ffcr|0x40			//Set FlushMan to flush 
+d.s edap:&ffcr_reg %LONG &ffcr	//This will also stop the formatter.
+
+gosub WaitForTMCReady
+
+print "                  ... Done"
+
+return 
+
+
+;----------
+WaitForTMCReady:
+local &status
+local &i
+
+if (&log_level>1)
+(
+        print "Waiting for TMCReady"
+)
+//Wait for TMCReady is 1
+&status=data.long(edap:&sts_reg)
+&i=0
+while (0==(&status&4))
+(
+	WAIT 10.ms
+	&status=data.long(edap:&sts_reg)
+	i++
+)	
+if (&log_level>1)
+(
+        print  " TMCready after " &i " cycles"
+)
+return
+
+
+;----------
+GetDumpFileName:
+local &tmp
+local &fname
+
+&fname=os.ptd()+"\etb"
+
+&tmp=clock.year()
+&tmp=string.cut("&tmp",-1)
+&fname="&fname"+"_"+"&tmp"
+
+&tmp=clock.month()
+&tmp=string.cut("&tmp",-1)
+&fname="&fname"+"_"+"&tmp"
+
+&tmp=clock.day()
+&tmp=string.cut("&tmp",-1)
+&fname="&fname"+"_"+"&tmp"
+
+&time=clock.time()
+&hours=string.cut("&time",-6)
+&minutes=string.cut(string.cut("&time",3),-3)
+&seconds=string.cut("&time",6)
+&time="&hours"+"_"+"&minutes"+"_"+"&seconds"
+
+
+&fname="&fname"+"_"+"&time"+".bin"
+
+return &fname
+
+;------------
+SaveLastDumpFileName:
+entry &dump_file
+&lastdump=os.ptd()+"\qdss_lastdump.txt"
+open #1 "&lastdump" /Create
+write #1 "&dump_file"
+close #1
+return

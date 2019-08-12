@@ -1,0 +1,120 @@
+#===============================================================================
+#
+# HAL CLK CHIPSET LIBRARY
+#
+# Target:    MSM8x26
+# Processor: All
+#
+# GENERAL DESCRIPTION
+#    build script
+#
+# Copyright (c) 2011 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //components/rel/rpm.bf/2.1.1/core/systemdrivers/hal/clk/hw/msm8952/build/halclk_chipset.scons#1 $
+#  $DateTime: 2015/02/25 02:53:43 $
+#  $Author: pwbldsvc $
+#  $Change: 7538753 $
+#
+#===============================================================================
+
+import os
+Import('env')
+env = env.Clone()
+
+#-------------------------------------------------------------------------------
+# Source PATH
+#-------------------------------------------------------------------------------
+
+SRCPATH = "../"
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0) 
+
+
+#-------------------------------------------------------------------------------
+# Internal depends within CoreBSP
+#-------------------------------------------------------------------------------
+
+CBSP_API = [
+   'HAL',
+   'DAL',
+   'DEBUGTOOLS',
+   'MPROC',
+   'SERVICES',
+   'SYSTEMDRIVERS',
+
+   # needs to be last also contains wrong comdef.h
+   'KERNEL',
+]
+
+env.RequirePublicApi(CBSP_API)
+env.RequireRestrictedApi(CBSP_API)
+
+HAL_CLK_CHIPSET_BUILD_ROOT = os.getcwd();
+
+env.PublishPrivateApi("SYSTEMDRIVERS_HAL_CLK_CHIPSET", [
+  HAL_CLK_CHIPSET_BUILD_ROOT + "/../inc",
+])
+
+
+#-----------------------------------------------------------------------------
+# Sources: HALClock Chipset Sources
+#-----------------------------------------------------------------------------
+
+HALCLK_CHIPSET_SOURCES = [
+    '${BUILDPATH}/src/HALclkMainRPM.c',
+    '${BUILDPATH}/src/GCC/HALclkBIMC.c',
+    '${BUILDPATH}/src/GCC/HALclkGCC.c',
+    '${BUILDPATH}/src/GCC/HALclkGCCMain.c',
+    '${BUILDPATH}/src/GCC/HALclkDDRDIMWrapper.c',
+    '${BUILDPATH}/src/GCC/HALclkSPDM.c',
+    '${BUILDPATH}/src/GCC/HALclkPCNOC.c',
+    '${BUILDPATH}/src/GCC/HALclkQDSS.c',
+    '${BUILDPATH}/src/GCC/HALclkRBCPR.c',
+    '${BUILDPATH}/src/GCC/HALclkRPM.c',
+    '${BUILDPATH}/src/GCC/HALclkSPMI.c',
+    '${BUILDPATH}/src/GCC/HALclkSystemNOC.c',
+    '${BUILDPATH}/src/GCC/HALclkCRYPTO.c',
+    '${BUILDPATH}/src/GCC/HALclkSMMU.c',
+    '${BUILDPATH}/src/GCC/HALclkAPSS.c',
+    '${BUILDPATH}/src/GCC/HALclkIPA.c',	
+]
+
+HALClockChipset_lib = env.Library('${BUILDPATH}/HALclk_chipset', HALCLK_CHIPSET_SOURCES)
+
+
+#-------------------------------------------------------------------------------
+# Sources: HALClockChipset Library Creation
+#-------------------------------------------------------------------------------
+
+env.AddLibsToImage('RPM_IMAGE', HALClockChipset_lib)
+
+
+# ============================================================================
+# HWIO
+# ============================================================================
+
+if env.has_key('HWIO_IMAGE'):
+
+  env.AddHWIOFile('HWIO', [
+    {
+      'filename': '${INC_ROOT}/core/systemdrivers/hal/clk/hw/msm8952/inc/HALclkHWIO.h',
+      'modules': ['GCC_CLK_CTL_REG', 'DEHR_BIMC'],
+      'filter-exclude': ['TSENS', 'ACR', 'RPU', 'RESERVED'],
+      'output-offsets': True,
+      'header':
+        '/*\n'
+        ' * HWIO base definitions\n'
+        ' */\n'
+        'extern  uint32                     HAL_clk_nHWIOBaseTop;\n' +
+        '#define CLK_CTL_BASE               HAL_clk_nHWIOBaseTop\n' +
+        '#define CLK_CTL_BASE_PHYS          0x61800000\n' +
+        '#define CLK_CTL_BASE_SIZE          0x00090000\n\n' +
+        '#define DEHR_BIMC_WRAPPER_BASE     0x604b0000\n\n' +
+        '#define PROC_CLK_BRANCH_ENA_VOTE   GCC_RPM_CLOCK_BRANCH_ENA_VOTE\n\n'
+        '#define PROC_SMMU_CLK_BRANCH_ENA_VOTE   GCC_RPM_SMMU_CLOCK_BRANCH_ENA_VOTE\n\n'
+
+    }
+  ])

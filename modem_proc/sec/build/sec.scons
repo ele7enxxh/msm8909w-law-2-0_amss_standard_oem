@@ -1,0 +1,88 @@
+Import('env')
+
+env = env.Clone()
+#For Error on compiler warning 
+
+# Enable warnings -> errors for all, except LLVM toolchain (6.x.x) during migration
+import os
+if not os.environ.get('HEXAGON_RTOS_RELEASE').startswith('6'):
+   env.Append(CCFLAGS = "-Wall -Werror")
+
+# Load cleanpack script:
+import os
+if os.path.exists('sec_cleanpack.py'):
+   env.LoadToolScript('sec_cleanpack.py')
+
+
+
+if env.PathExists('${BUILD_ROOT}/sec'):
+    env.Replace(SEC_ROOT = '${INC_ROOT}/sec')
+else:    
+    env.Replace(SEC_ROOT = '${INC_ROOT}/modem/sec')
+    
+
+env.RequirePublicApi([
+        'KERNEL',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='DATAMODEM')
+
+env.RequirePublicApi([
+        'DAL',
+        'MEMORY',
+        'SECUREMSM',
+        'DEBUGTOOLS',
+        'SERVICES',
+        'SYSTEMDRIVERS',
+        ],
+        area='CORE')
+
+env.RequirePublicApi([
+        'SSL',
+        'IPSEC',
+        ],
+        area='SEC')
+
+env.RequirePublicApi([
+        'PUBLIC',
+        ],
+        area='HDR')
+
+env.RequirePublicApi([
+        'STORAGE',
+        ],
+        area='CORE')
+
+
+
+# cust file relocation
+# Protected is "private within the SU" vs. Restricted with is visible to other SUs
+env.PublishProtectedApi('SEC', [
+        '${SEC_ROOT}/cust/inc',
+        '${SEC_ROOT}/variation/inc',
+        '${SEC_ROOT}/ssl/shared/src',
+        '${SEC_ROOT}/ssl/chipset/src',
+        '${SEC_ROOT}/ipsec/src',
+        '${SEC_ROOT}/common/inc',                                   
+       ])
+
+# Require these for all components within the SU as they all have compile time
+# variation.  In the future this can be pushed down to the component .scons
+# files only for components that have compile time variation.
+env.RequireProtectedApi(['SEC'])
+
+
+
+env.PublishProtectedApi('SEC', [
+   "${INC_ROOT}/modem/sec/common/inc",
+])
+
+
+#-------------------------------------------------------------------------------
+# Load sub scripts
+#-------------------------------------------------------------------------------
+env.LoadSoftwareUnits()

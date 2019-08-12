@@ -1,0 +1,179 @@
+#===============================================================================
+#
+# Multimode MMOC SCons 
+#
+# GENERAL DESCRIPTION
+#    SCons build script
+#
+# Copyright (c) 2012 by Qualcomm Technologies, Incorporated.
+# All Rights Reserved.
+# QUALCOMM Proprietary/GTDR
+#
+#-------------------------------------------------------------------------------
+#
+#  $Header: //commercial/MPSS.JO.2.0.c1.4/Main/modem_proc/mmcp/mmode/mmoc/build/mmode_mmoc.scons#1 $
+#  $DateTime: 2016/12/13 08:00:05 $
+#
+#                      EDIT HISTORY FOR FILE
+#
+#  This section contains comments describing changes made to the module.
+#  Notice that changes are listed in reverse chronological order.
+#
+# when       who     what, where, why
+# --------   ---     ---------------------------------------------------------
+# 05/01/12   gm      Add offline notify send from MMOC
+# 04/16/11   gm      Init function name for MMOC is changed.
+# 09/29/11   gm      RC init changes
+# 09/15/10   pm      Initial file
+#
+#===============================================================================
+#from glob import glob
+#from os.path import join, basename
+
+Import('env')
+env = env.Clone()
+
+# --------------------------------------------------------------------------- #
+# Turn off/on debug if requested 			      
+# --------------------------------------------------------------------------- # 
+if ARGUMENTS.get('DEBUG_OFF','no') == 'yes':
+    env.Replace(ARM_DBG = "")
+    env.Replace(HEXAGON_DBG = "")
+    env.Replace(GCC_DBG = "")
+
+if ARGUMENTS.get('DEBUG_ON','no') == 'yes':
+    env.Replace(ARM_DBG = "-g --dwarf2") 
+    env.Replace(HEXAGON_DBG = "-g")  
+    env.Replace(GCC_DBG = "-g")
+
+#-------------------------------------------------------------------------------
+# Setup source PATH
+#-------------------------------------------------------------------------------
+SRCPATH = '../src'
+
+env.VariantDir('${BUILDPATH}', SRCPATH, duplicate=0)
+
+#-------------------------------------------------------------------------------
+# Set MSG_BT_SSID_DFLT for legacy MSG macros
+#-------------------------------------------------------------------------------
+env.Append(CPPDEFINES = [
+    'MSG_BT_SSID_DFLT=MSG_SSID_MMOC',
+])
+
+#-------------------------------------------------------------------------------
+# For MSGR_DEFINE_UMID() calls
+#-------------------------------------------------------------------------------
+if 'USES_MSGR' in env:
+    env.AddUMID('${BUILDPATH}/mmoc_msgr.umid', ['../../../api/mmoc_msgr.h'])
+
+#-------------------------------------------------------------------------------
+# Publish our Private API
+#-------------------------------------------------------------------------------
+env.PublishPrivateApi('MMODE', ["${INC_ROOT}/mmcp/mmode/mmoc/inc"])
+
+#-------------------------------------------------------------------------------
+# Necessary Public API's
+#-------------------------------------------------------------------------------
+REQUIRED_PUBLIC_APIS = [
+    'HDR',
+    'MCS',
+    'MMODE',
+    'NAS',
+    'ONEX',
+    'RFA',
+    'UIM',
+    'WCDMA',
+    ]
+
+REQUIRED_RESTRICTED_APIS = [
+    'FW',
+    'GERAN',
+    'HDR',
+    'LTE',
+    'MCS',
+    'MDSP',
+    'MMODE',
+    'NAS',
+    'ONEX',
+    'RFA',
+    'UIM',
+    'UTILS',
+    'WCDMA',
+    ]
+
+CORE_APIS = [
+    'BUSES',
+    'DAL',
+    'DEBUGTOOLS',
+    'MPROC',
+	'POWER',
+    'SERVICES',
+    'SYSTEMDRIVERS',
+
+    # needs to be last also contains wrong comdef.h
+    'KERNEL',
+    ]
+
+env.RequirePublicApi(CORE_APIS, area='core')
+
+env.RequirePublicApi(['AUDIO'], area='MULTIMEDIA') 
+env.RequirePublicApi(['MVS'], area='MULTIMEDIA')
+
+env.RequirePublicApi(REQUIRED_PUBLIC_APIS) 
+env.RequireRestrictedApi(REQUIRED_RESTRICTED_APIS)
+
+#-------------------------------------------------------------------------------
+# External API's not built with SCons
+#-------------------------------------------------------------------------------
+env.RequireExternalApi([
+    'BREW',
+    'MULTIMEDIA_AUDIO',
+])
+									 
+#-------------------------------------------------------------------------------
+# Generate the library and add to an image
+#-------------------------------------------------------------------------------
+
+# Construct the list of source files by looking for *.c
+#MMOC_C_SOURCES = ['${BUILDPATH}/' + basename(fname)
+#                 for fname in glob(join(env.subst(SRCPATH), '*.c'))]
+
+MMOC_C_SOURCES = [
+    '${BUILDPATH}/mmoc.c',
+    '${BUILDPATH}/mmocmmgsdi.c',
+    '${BUILDPATH}/mmocdbg.c',
+]
+
+# Add our library to the ModemApps image
+env.AddLibrary( ['MODEM_MODEM'], '${BUILDPATH}/mmode_mmoc', [MMOC_C_SOURCES] )
+
+# Build image for which this task belongs
+RCINIT_MMOC = ['MODEM_MODEM']
+
+# RC Init Function Dictionary
+RCINIT_INIT_MMOC = {
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'init_name'           : 'mmoc_init',
+	    'init_function'       : 'mmoc_init_before_task_start',
+      'policy_optin'        : ['default', 'ftm', ],
+    }
+
+# RC Init Task Dictionary
+RCINIT_TASK_MMOC = {
+	    'thread_name'         : 'mmoc',
+	    'sequence_group'      : env.subst('$MODEM_UPPERLAYER'),
+	    'stack_size_bytes'    : env.subst('$MMOC_STKSZ'),
+	    'priority_amss_order' : 'MMOC_PRI_ORDER',
+	    'stack_name'          : 'mmoc_stack',
+	    'thread_entry'        : 'mmoc_task',
+	    'tcb_name'            : 'mmoc_tcb',
+      'cpu_affinity'	      : env.subst('$MODEM_CPU_AFFINITY'),
+      'policy_optin'        : ['default', 'ftm', ],
+    }
+    
+# Add init function to RCInit
+if 'USES_MODEM_RCINIT' in env:
+	    env.AddRCInitTask(RCINIT_MMOC, RCINIT_TASK_MMOC)
+	    env.AddRCInitFunc(RCINIT_MMOC, RCINIT_INIT_MMOC)
+
+
